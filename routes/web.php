@@ -9,6 +9,7 @@ use App\Http\Controllers\TugasController;
 use App\Http\Controllers\JenisTugasController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\MasterKopSuratController;
+use App\Jobs\SendSuratTugasEmail;
 // START PATCH: import controller TTD Saya
 use App\Http\Controllers\MySignatureController;
 // END PATCH
@@ -187,4 +188,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/kop-surat/ttd-saya', [MySignatureController::class, 'edit'])->name('kop.ttd.edit');
     Route::post('/kop-surat/ttd-saya', [MySignatureController::class, 'update'])->name('kop.ttd.update');
     // END PATCH
+
+    Route::get('/dev/send-surat/{id}', function ($id) {
+    SendSuratTugasEmail::dispatch((int)$id, 'to_recipients');
+    return "Job dikirim untuk surat ID {$id}. Cek inbox (atau MailHog).";
+});
+
 });

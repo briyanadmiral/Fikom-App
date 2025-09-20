@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator; // Penting untuk pagination
+use App\Models\TugasHeader;
+use App\Observers\TugasHeaderObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,5 +28,6 @@ class AppServiceProvider extends ServiceProvider
     {
         // Memberitahu Laravel untuk menggunakan template Bootstrap untuk semua pagination
         Paginator::useBootstrap();
+        TugasHeader::observe(TugasHeaderObserver::class);
     }
 }

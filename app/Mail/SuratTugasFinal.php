@@ -2,60 +2,43 @@
 
 namespace App\Mail;
 
-use App\Models\TugasHeader;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
 
-class SuratTugasFinal extends Mailable implements ShouldQueue // Implementasi ShouldQueue penting!
+class SuratTugasFinal extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $tugas;
-    public $subjectLine;
+    public string $subjectText;
+    public object $tugas;              // stdClass dari DB
+    public ?string $attachmentPathRel; // path relatif di storage/app (mis. private/...)
 
-    /**
-     * Create a new message instance.
-     *
-     * @return void
-     */
-    public function __construct(TugasHeader $tugas)
+    public function __construct(string $subjectText, object $tugas, ?string $attachmentPathRel = null)
     {
+        $this->subjectText = $subjectText;
         $this->tugas = $tugas;
-        $this->subjectLine = "Surat Tugas Baru Terbit: " . ($tugas->nama_umum ?? $tugas->tugas);
+        $this->attachmentPathRel = $attachmentPathRel;
     }
 
-    /**
-     * Build the message.
-     *
-     * @return $this
-     */
     public function build()
     {
-        $emailView = $this->subject($this->subjectLine)
-                          ->view('emails.surat_tugas.final') // Pastikan Anda punya view ini
-                          ->with([
-                              'namaSurat' => $this->tugas->nama_umum ?? $this->tugas->tugas,
-                              'nomorSurat' => $this->tugas->nomor,
-                              'urlSurat' => route('surat_tugas.show', $this->tugas->id),
-                          ]);
+        $mail = $this->subject($this->subjectText)
+            ->markdown('emails.surat_tugas.final', [
+                'tugas' => $this->tugas,
+                // 'recipientName' => null, // bisa dipakai jika personalisasi per penerima
+            ]);
 
-        // Jika PDF yang ditandatangani ada, lampirkan
-        if ($this->tugas->signed_pdf_path && Storage::disk('local')->exists($this->tugas->signed_pdf_path)) {
-            
+        if ($this->attachmentPathRel) {
             $safeNomor = preg_replace('/[\/\\\\]+/', '-', (string)($this->tugas->nomor ?? 'SuratTugas'));
-            
-            $emailView->attachFromStorage(
-                $this->tugas->signed_pdf_path,
-                'SuratTugas_' . $safeNomor . '.pdf',
-                [
-                    'mime' => 'application/pdf',
-                ]
+            $mail->attachFromStorage(
+                $this->attachmentPathRel,
+                "SuratTugas_{$safeNomor}.pdf",
+                ['mime' => 'application/pdf']
             );
         }
 
-        return $emailView;
+        return $mail;
     }
 }
