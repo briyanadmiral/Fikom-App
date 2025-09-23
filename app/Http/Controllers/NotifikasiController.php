@@ -20,8 +20,8 @@ class NotifikasiController extends Controller
 
         // Ambil notifikasi milik user yang belum dibaca
         $notifs = Notifikasi::where('pengguna_id', $user->id)
-                             ->orderByDesc('dibuat_pada')
-                             ->get();
+            ->orderByDesc('dibuat_pada')
+            ->get();
 
         return view('notifikasi.index', compact('notifs'));
     }
@@ -39,18 +39,18 @@ class NotifikasiController extends Controller
         // Carilah notifikasi dengan ID yang diberikan, 
         // pastikan milik user yang sedang login
         $notif = Notifikasi::where('id', $id)
-                           ->where('pengguna_id', $user->id)
-                           ->first();
+            ->where('pengguna_id', $user->id)
+            ->first();
 
         if (!$notif) {
             return redirect()->route('notifikasi.index')
-                             ->with('error', 'Notifikasi tidak ditemukan.');
+                ->with('error', 'Notifikasi tidak ditemukan.');
         }
 
         // Tandai sebagai dibaca
         $notif->update(['dibaca' => true]);
 
         return redirect()->route('notifikasi.index')
-                         ->with('success', 'Notifikasi telah ditandai dibaca.');
+            ->with('success', 'Notifikasi telah ditandai dibaca.');
     }
 }

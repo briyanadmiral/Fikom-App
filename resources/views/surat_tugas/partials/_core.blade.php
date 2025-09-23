@@ -1,3 +1,12 @@
+{{-- === GUARD VISIBILITAS TTD/CAP (fallback) === --}}
+@php
+  if (!isset($showSigns)) {
+    $showSigns = isset($tugas)
+      ? (($tugas->status_surat ?? null) === 'disetujui' && !empty($tugas->signed_at ?? null))
+      : false;
+  }
+@endphp
+
 @php
   // ==== context: 'pdf' | 'web' (default 'web') ====
   $context = $context ?? 'web';
@@ -26,33 +35,37 @@
   $ttdW_final       = $ttdW       ?? 42;
   $capW_final       = $capW       ?? 35;
   $capOpacity_final = $capOpacity ?? 0.95;
+
+  // HARDENING: Jika belum boleh tampil, kosongkan gambar agar aman
+  if (!$showSigns) {
+    $ttdImageB64 = null;
+    $capImageB64 = null;
+  }
 @endphp
 
 {{-- ====================== STYLING & WRAPPER ====================== --}}
 @if($context === 'pdf')
   <style>
     /* Menggunakan @page untuk margin cetak yang benar */
-    @page {
-        margin: 2cm; /* Margin 2cm di semua sisi */
-    }
+    @page { margin: 2cm; }
 
     /* Hapus margin dari body, karena sudah diatur oleh @page */
     body {
         font-family: "Times New Roman", Times, serif;
         margin: 0;
-        font-size: 16px; /* Set base font size */
+        font-size: 16px;
     }
 
     table { border-collapse: collapse; width: 100%; }
     td { padding: 4px 8px; vertical-align: top; }
 
-    /* Header: Elemen normal di atas dokumen */
+    /* Header */
     .kop-wrap {
         position: static;
         width: 100%;
         padding-bottom: 8px;
         border-bottom: 2px solid #000;
-        margin-bottom: 20px; /* Jarak dari header ke judul */
+        margin-bottom: 20px;
     }
     .kop-td-text { width: calc(100% - 130px); }
     .kop-td-logo { width: 130px; text-align: right; border-left: 2px solid #000; padding-left: 12px; }
@@ -64,10 +77,10 @@
 
     .judul { text-align: center; font-weight: 700; font-size: 22px; text-decoration: underline; }
     .nomor { text-align: center; margin: 6px 0 20px; }
-    .isi-surat { line-height: 1.5; } /* Tambah line-height untuk keterbacaan */
+    .isi-surat { line-height: 1.5; }
     .detail-tugas { margin: 1.2em 0 1.2em 40px; }
 
-    /* Blok TTD: Sama dengan versi web */
+    /* Blok TTD */
     .ttd-wrapper { display: table; width: 100%; margin-top: 25px; page-break-inside: avoid; }
     .ttd-kolom-kiri { display: table-cell; width: 55%; }
     .ttd-kolom-kanan { display: table-cell; width: 45%; vertical-align: top; page-break-inside: avoid; }
@@ -78,7 +91,7 @@
     .ttd-area-sign .cap { width: var(--cap-w, 35mm); opacity: var(--cap-opacity, 0.95); margin-left: -40mm; margin-bottom: 6mm; position: relative; z-index: 2; }
   </style>
 @else
-  {{-- CSS UNTUK WEB PREVIEW (TIDAK DIUBAH) --}}
+  {{-- CSS UNTUK WEB PREVIEW --}}
   <style>
     body { margin:0; font-family:"Times New Roman", Times, serif; background:#f6f7fb; }
     .sheet{ width:210mm; min-height:297mm; margin:8mm auto; background:#fff; position:relative;
@@ -159,17 +172,15 @@
         <td>:</td>
         <td>
           @php
-            // Membuat array untuk menampung bagian waktu yang valid
             $waktuList = [];
             if (!empty($tugas->semester)) $waktuList[] = $tugas->semester;
             if (!empty($tugas->tahun)) $waktuList[] = $tugas->tahun;
-            // Gabungkan dengan spasi, atau tampilkan '-' jika keduanya kosong
             echo !empty($waktuList) ? implode(' ', $waktuList) : '-';
           @endphp
         </td>
       </tr>
     </table>
-</div>
+  </div>
 
   Harap melaksanakan tugas dengan sebaik-baiknya dan penuh tanggung jawab serta memberikan laporan setelah selesai melaksanakan tugas.
 </div>
@@ -177,26 +188,35 @@
 <div class="ttd-wrapper">
   <div class="ttd-kolom-kiri"></div>
   <div class="ttd-kolom-kanan">
-  <div class="ttd-teks">
-    Semarang, {{ \Carbon\Carbon::parse($tugas->tanggal_surat ?? now())->translatedFormat('d F Y') }}
-    <br>
-    @php
-      $penandatangan = $tugas->penandatanganUser;
-      $jabatanTtd = 'Pejabat Penandatangan'; // Fallback default
-      if ($penandatangan) {
-          if ($penandatangan->peran_id == 2) {
-              $jabatanTtd = 'Dekan Fakultas Ilmu Komputer';
-          } elseif ($penandatangan->peran_id == 3) {
-              $jabatanTtd = 'a.n. Dekan Fakultas Ilmu Komputer<br>Wakil Dekan Fakultas Ilmu Komputer';
-          }
-      }
-    @endphp
-    {!! $jabatanTtd !!}
-  </div>
-    <div class="ttd-area-sign" style="--ttd-w: {{$ttdW_final}}mm; --cap-w: {{$capW_final}}mm; --cap-opacity: {{$capOpacity_final}};">
-      @if(!empty($ttdImageB64))<img class="ttd" src="{{ $ttdImageB64 }}" alt="TTD">@endif
-      @if(!empty($capImageB64))<img class="cap" src="{{ $capImageB64 }}" alt="Cap">@endif
+    <div class="ttd-teks">
+      Semarang, {{ \Carbon\Carbon::parse($tugas->tanggal_surat ?? now())->translatedFormat('d F Y') }}
+      <br>
+      @php
+        $penandatangan = $tugas->penandatanganUser;
+        $jabatanTtd = 'Pejabat Penandatangan'; // Fallback default
+        if ($penandatangan) {
+            if ($penandatangan->peran_id == 2) {
+                $jabatanTtd = 'Dekan Fakultas Ilmu Komputer';
+            } elseif ($penandatangan->peran_id == 3) {
+                $jabatanTtd = 'a.n. Dekan Fakultas Ilmu Komputer<br>Wakil Dekan Fakultas Ilmu Komputer';
+            }
+        }
+      @endphp
+      {!! $jabatanTtd !!}
     </div>
+
+    {{-- === AREA TTD & CAP === --}}
+    <div class="ttd-area-sign" style="--ttd-w: {{$ttdW_final}}mm; --cap-w: {{$capW_final}}mm; --cap-opacity: {{$capOpacity_final}};">
+      @if($showSigns)
+        @if(!empty($ttdImageB64))
+          <img class="ttd" src="{{ $ttdImageB64 }}" alt="TTD">
+        @endif
+        @if(!empty($capImageB64))
+          <img class="cap" src="{{ $capImageB64 }}" alt="Cap">
+        @endif
+      @endif
+    </div>
+
     <div class="ttd-teks">
       <strong>{{ optional($tugas->penandatanganUser)->nama_lengkap ?? '-' }}</strong><br>
       NPP. {{ optional($tugas->penandatanganUser)->npp ?? '-' }}

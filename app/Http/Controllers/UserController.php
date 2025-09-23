@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Peran;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; // <-- DITAMBAHKAN
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -12,13 +12,32 @@ class UserController extends Controller
 {
     /**
      * Tampilkan daftar semua pengguna beserta peran.
-     * Secara default, ini hanya akan menampilkan pengguna yang tidak di-soft-delete.
+     * SUDAH TERMASUK FITUR PENCARIAN
      */
-    public function index()
+    public function index(Request $request) // <-- Diubah untuk menerima Request
     {
-        // 1. Mengurutkan berdasarkan data terbaru dan menggunakan paginate untuk performa
-        $users = User::with('peran')->latest()->paginate(15); 
+        // Memulai query builder dengan relasi dan urutan yang sudah ada
+        $query = User::with('peran')->latest();
+
+        // [LOGIKA PENCARIAN]
+        // Jika ada input 'search' dari form, tambahkan filter ke query
+        if ($request->filled('search')) {
+            $searchTerm = $request->search;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('nama_lengkap', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%")
+                  ->orWhere('npp', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        // Lakukan paginasi SETELAH query difilter.
+        // `appends` akan memastikan parameter 'search' tetap ada di link pagination.
+        $users = $query->paginate(15)->appends($request->only('search'));
+
+        // Ambil semua peran (untuk modal 'Kelola Peran')
         $roles = Peran::all();
+
+        // Kirim data ke view
         return view('users.index', compact('users', 'roles'));
     }
 
@@ -36,32 +55,47 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        // 2. Menambahkan validasi untuk 'jabatan' dan 'status'
+        // Normalisasi input agar validasi unik tidak "kejebak" spasi/kasus
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
+            'npp'   => $this->formatNpp($request->input('npp')),
+        ]);
+
         $validated = $request->validate([
-            'email'         => 'required|email|unique:pengguna,email',
+            'email'         => [
+                'required',
+                'email',
+                // unik pada pengguna.email, abaikan baris yang sudah soft-deleted
+                Rule::unique('pengguna', 'email')->where(fn ($q) => $q->whereNull('deleted_at')),
+            ],
             'nama_lengkap'  => 'required|string|max:100',
-            'jabatan'       => 'nullable|string|max:100', // Jabatan boleh kosong
+            'npp'           => [
+                'nullable',
+                'string',
+                'max:50',
+                // unik pada pengguna.npp, abaikan baris soft-deleted
+                Rule::unique('pengguna', 'npp')->where(fn ($q) => $q->whereNull('deleted_at')),
+            ],
+            'jabatan'       => 'nullable|string|max:100',
             'peran_id'      => 'required|exists:peran,id',
-            'status'        => ['required', Rule::in(['aktif', 'tidak_aktif'])], // Status harus 'aktif' atau 'tidak_aktif'
+            'status'        => ['required', Rule::in(['aktif', 'tidak_aktif'])],
             'password'      => 'required|string|min:6|confirmed',
         ]);
 
         try {
-            // 3. Menyesuaikan proses pembuatan data dengan kolom baru
             User::create([
-                'email'         => strtolower($validated['email']),
-                'password'      => Hash::make($validated['password']), // Menggunakan 'password' sesuai standar Laravel
+                'email'         => $validated['email'],
+                'password'      => Hash::make($validated['password']),
                 'nama_lengkap'  => $validated['nama_lengkap'],
-                'jabatan'       => $validated['jabatan'],
+                'npp'           => $validated['npp'] ?? null,
+                'jabatan'       => $validated['jabatan'] ?? null,
                 'peran_id'      => $validated['peran_id'],
                 'status'        => $validated['status'],
-                // 'created_at' dan 'updated_at' akan diisi otomatis oleh Laravel
             ]);
 
             return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan.');
-        } catch (\Exception $e) {
-            // Sebaiknya log error ini untuk debugging
-            // Log::error('Gagal tambah user: ' . $e->getMessage()); 
+        } catch (\Throwable $e) {
+            // \Log::error('Gagal tambah user', ['err' => $e->getMessage()]);
             return back()->withInput()->with('error', 'Terjadi kesalahan saat menambahkan user.');
         }
     }
@@ -71,8 +105,9 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        $user = User::findOrFail($id);
+        $user  = User::findOrFail($id);
         $peran = Peran::all();
+
         return view('users.edit', compact('user', 'peran'));
     }
 
@@ -83,14 +118,31 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-        // 4. Menambahkan validasi untuk field baru di proses update
+        // Normalisasi input supaya validasi unik konsisten
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
+            'npp'   => $this->formatNpp($request->input('npp')),
+        ]);
+
         $validated = $request->validate([
             'email' => [
                 'required',
                 'email',
-                Rule::unique('pengguna')->ignore($user->id),
+                // unik email, abaikan record saat ini, dan abaikan yang soft-deleted
+                Rule::unique('pengguna', 'email')
+                    ->ignore($user->id)
+                    ->where(fn ($q) => $q->whereNull('deleted_at')),
             ],
             'nama_lengkap'  => 'required|string|max:100',
+            'npp'           => [
+                'nullable',
+                'string',
+                'max:50',
+                // unik npp, abaikan record saat ini & soft-deleted
+                Rule::unique('pengguna', 'npp')
+                    ->ignore($user->id)
+                    ->where(fn ($q) => $q->whereNull('deleted_at')),
+            ],
             'jabatan'       => 'nullable|string|max:100',
             'peran_id'      => 'required|exists:peran,id',
             'status'        => ['required', Rule::in(['aktif', 'tidak_aktif'])],
@@ -98,22 +150,22 @@ class UserController extends Controller
         ]);
 
         try {
-            // 5. Menyesuaikan proses update data
-            $user->email = strtolower($validated['email']);
+            $user->email        = $validated['email'];
             $user->nama_lengkap = $validated['nama_lengkap'];
-            $user->jabatan = $validated['jabatan'];
-            $user->peran_id = $validated['peran_id'];
-            $user->status = $validated['status'];
+            $user->npp          = $validated['npp'] ?? null;      // <— ikut diupdate
+            $user->jabatan      = $validated['jabatan'] ?? null;
+            $user->peran_id     = $validated['peran_id'];
+            $user->status       = $validated['status'];
 
             if (!empty($validated['password'])) {
-                $user->password = Hash::make($validated['password']); // Menggunakan 'password'
+                $user->password = Hash::make($validated['password']);
             }
 
             $user->save();
 
             return redirect()->route('users.index')->with('success', 'User berhasil diperbarui.');
-        } catch (\Exception $e) {
-            // Log::error('Gagal update user: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            // \Log::error('Gagal update user', ['id' => $user->id, 'err' => $e->getMessage()]);
             return back()->withInput()->with('error', 'Terjadi kesalahan saat memperbarui user.');
         }
     }
@@ -130,12 +182,34 @@ class UserController extends Controller
         }
 
         try {
-            // 6. Proses delete sekarang akan melakukan Soft Delete secara otomatis
-            $user->delete(); 
+            $user->delete(); // Soft delete
             return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
-        } catch (\Exception $e) {
-            // Log::error('Gagal hapus user: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            // \Log::error('Gagal hapus user', ['id' => $user->id, 'err' => $e->getMessage()]);
             return back()->with('error', 'Terjadi kesalahan saat menghapus user.');
         }
     }
+
+    /**
+ * Format NPP ke pola 3-1-4-3 (contoh: 058.1.2002.255).
+ * Fallback: kalau bukan 11 digit, dikelompokkan per 3 digit (xxx.xxx.xxx...).
+ */
+private function formatNpp(?string $raw): ?string
+{
+    if ($raw === null) return null;
+    $digits = preg_replace('/\D+/', '', $raw); // ambil angka saja
+    if ($digits === '') return null;
+
+    if (strlen($digits) === 11) {
+        // Pola utama: 3-1-4-3
+        return substr($digits, 0, 3) . '.' .
+               substr($digits, 3, 1) . '.' .
+               substr($digits, 4, 4) . '.' .
+               substr($digits, 8, 3);
+    }
+
+    // Fallback aman: kelompok per 3 digit (biar tetap terbaca)
+    return implode('.', str_split($digits, 3));
+}
+
 }

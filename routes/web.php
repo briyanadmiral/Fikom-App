@@ -87,40 +87,40 @@ Route::middleware('auth')->group(function () {
             Route::get('semua', [TugasController::class, 'all'])->name('all');
 
             // APPROVE LIST (hindari bentrok dengan {tugas})
-            Route::get('approve-list', [TugasController::class, 'approveList'])->name('approveList');
+            Route::get('approve-list', [TugasController::class, 'approveList'])
+                ->name('approveList')
+                ->middleware('can:view-approve-list');
 
             // Redirect path lama "approve" → "approve-list"
             Route::get('approve', function () {
                 return redirect()->route('surat_tugas.approveList');
-            })->name('approveRedirect');
+            })->name('approveRedirect')->middleware('can:view-approve-list');
 
             // --- AWAL MODIFIKASI: Standarisasi {id} menjadi {tugas} ---
-            // Mengganti {id} menjadi {tugas} agar seragam dengan route resource di bawah
-            // dan memaksimalkan Route Model Binding.
 
             // Aksi APPROVE by ID ✅ VERSI BARU distandarkan ke {tugas}
             Route::match(['post','patch'], '{tugas}/approve', [TugasController::class, 'approve'])
-                ->name('approve')->whereNumber('tugas');
+                ->name('approve')
+                ->whereNumber('tugas')
+                ->middleware('can:approve-tugas,tugas');
 
             // Highlight & Download PDF ✅ VERSI BARU distandarkan ke {tugas}
             Route::get('{tugas}/highlight', [TugasController::class, 'highlight'])
-                ->name('highlight')->whereNumber('tugas');
+                ->name('highlight')->whereNumber('tugas')->middleware('can:view,tugas');
             Route::get('{tugas}/download-pdf', [TugasController::class, 'downloadPdf'])
-                ->name('downloadPdf')->whereNumber('tugas');
+                ->name('downloadPdf')->whereNumber('tugas')->middleware('can:view,tugas');
 
-            // --- AKHIR MODIFIKASI ---
-
-            // === Quick Preview (lihat cepat) === (Sudah benar)
+            // === Quick Preview (lihat cepat) ===
             Route::get('{tugas}/preview', [TugasController::class, 'preview'])
-                ->name('preview')->whereNumber('tugas');
+                ->name('preview')->whereNumber('tugas')->middleware('can:view,tugas');
 
-            // Tambah penerima (policy addRecipient + binding) (Sudah benar)
+            // Tambah penerima (policy addRecipient + binding)
             Route::post('{tugas}/penerima', function (\App\Models\TugasHeader $tugas) {
                 request()->merge(['tugas_id' => $tugas->getKey()]);
                 return app(\App\Http\Controllers\TugasController::class)->addRecipient(request());
             })->name('recipient.add')->middleware('can:addRecipient,tugas')->whereNumber('tugas');
 
-            // ====== ROUTE DINAMIS (TERAKHIR) ====== (Ini sudah benar dari awal)
+            // ====== ROUTE DINAMIS (TERAKHIR) ======
             Route::get('{tugas}', [TugasController::class, 'show'])->name('show')->middleware('can:view,tugas')->whereNumber('tugas');
             Route::get('{tugas}/edit', [TugasController::class, 'edit'])->name('edit')->middleware('can:update,tugas')->whereNumber('tugas');
             Route::put('{tugas}', [TugasController::class, 'update'])->name('update')->middleware('can:update,tugas')->whereNumber('tugas');
@@ -190,8 +190,8 @@ Route::middleware('auth')->group(function () {
     // END PATCH
 
     Route::get('/dev/send-surat/{id}', function ($id) {
-    SendSuratTugasEmail::dispatch((int)$id, 'to_recipients');
-    return "Job dikirim untuk surat ID {$id}. Cek inbox (atau MailHog).";
-});
+        SendSuratTugasEmail::dispatch((int)$id, 'to_recipients');
+        return "Job dikirim untuk surat ID {$id}. Cek inbox (atau MailHog).";
+    });
 
 });

@@ -34,24 +34,23 @@ class RoleController extends Controller
     }
 
     public function update(Request $request, $id)
-{
-    $role = Peran::findOrFail($id);
-    $validated = $request->validate([
-        'nama' => 'required|string|max:255|unique:peran,nama,'.$role->id,
-        'deskripsi' => 'nullable|string|max:255'
-    ]);
-    $role->update($validated);
-    return response()->json([
-        'status' => 'ok',
-        'message' => 'Peran berhasil diperbarui.',
-        'role' => $role
-    ]);
-}
-public function destroy($id)
-{
-    $role = Peran::findOrFail($id);
-    $role->delete();
-    return response()->json(['status' => 'ok', 'message' => 'Peran berhasil dihapus.']);
-}
-
+    {
+        $role = Peran::findOrFail($id);
+        $validated = $request->validate([
+            'nama' => 'required|string|max:255|unique:peran,nama,' . $role->id,
+            'deskripsi' => 'nullable|string|max:255'
+        ]);
+        $role->update($validated);
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Peran berhasil diperbarui.',
+            'role' => $role
+        ]);
+    }
+    public function destroy($id)
+    {
+        $role = Peran::findOrFail($id);
+        $role->delete();
+        return response()->json(['status' => 'ok', 'message' => 'Peran berhasil dihapus.']);
+    }
 }

@@ -114,7 +114,7 @@ class TugasHeader extends Model
             : [];
     }
 
-        /**
+    /**
      * Tanggal utama untuk display/sortir:
      * Prioritas tanggal_surat; fallback ke tanggal_asli.
      */
@@ -123,6 +123,16 @@ class TugasHeader extends Model
         return $this->tanggal_surat ?: $this->tanggal_asli;
     }
 
+    public function getIsSignedAttribute(): bool
+    {
+        // Hanya dianggap "sudah tertandatangani" bila benar2 sudah disetujui & ada waktu tanda tangan.
+        return $this->status_surat === 'disetujui'
+            && !is_null($this->signed_at);
+    }
 
-
+    public function shouldShowSignatures(): bool
+    {
+        // Satu pintu untuk semua view/partial
+        return $this->is_signed === true;
+    }
 }

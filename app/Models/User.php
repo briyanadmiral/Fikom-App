@@ -25,6 +25,7 @@ class User extends Authenticatable
         'email',
         'sandi_hash',
         'nama_lengkap',
+        'npp',
         'jabatan',     // Tambahan kolom baru
         'peran_id',
         'status',      // Tambahan kolom baru
@@ -81,4 +82,19 @@ public function signature()
 }
 // END PATCH
 
+
+public function isDekan(): bool
+{
+    return (int) $this->peran_id === 2; // tabel `peran`: id=2 -> dekan
+}
+
+public function isWakilDekan(): bool
+{
+    return (int) $this->peran_id === 3; // tabel `peran`: id=3 -> wakil_dekan
+}
+
+public function canApproveSurat(): bool
+{
+    return $this->isDekan() || $this->isWakilDekan();
+}
 }

@@ -1,215 +1,334 @@
-{{-- resources/views/pengaturan/kop_surat.blade.php --}}
 @extends('layouts.app')
 
 @section('title','Pengaturan Kop Surat')
 
+@push('styles')
+<style>
+    /* Menggunakan kembali style header dan komponen dari halaman lain */
+    .page-header {
+        background: #f3f6fa; padding: 1.3rem 2.2rem; border-radius: 1.1rem;
+        margin-bottom: 2.2rem; border: 1px solid #e0e6ed;
+        display: flex; align-items: center; gap: 1.3rem;
+    }
+    .page-header .icon {
+        /* Warna ungu/indigo untuk pengaturan */
+        background: linear-gradient(135deg,#6610f2 0,#8540f5 100%);
+        width: 54px; height: 54px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; box-shadow: 0 1px 10px #6610f24d; font-size: 2rem;
+    }
+    .page-header-title {
+        font-weight: bold; color: #3c0991; font-size: 1.85rem;
+        margin-bottom: 0.13rem; letter-spacing: -1px;
+    }
+    .page-header-desc { color: #636e7b; font-size: 1.03rem; }
+    .card-settings {
+        border: none; border-radius: .8rem;
+        box-shadow: 0 4px 25px rgba(0,0,0, .05);
+    }
+    .card-settings .card-header {
+        background-color: #fff; border-bottom: 1px solid #f0f0f0; padding: 1rem 1.5rem;
+    }
+    .card-settings .card-body { padding: 1.5rem; }
+    .form-control, .custom-select { border-radius: .5rem; }
+
+    /* [BARU] Kotak Upload Gambar dengan Pratinjau */
+    .upload-box {
+        border: 2px dashed #ced4da; border-radius: .5rem;
+        padding: 1rem; text-align: center;
+        background-color: #f8f9fa;
+    }
+    .upload-box .preview-img {
+        max-height: 80px; max-width: 100%;
+        border-radius: .3rem; margin-bottom: .5rem;
+        object-fit: contain;
+    }
+    .upload-box .custom-file-label {
+        text-align: left;
+        background-color: #fff;
+    }
+
+    /* [BARU] Pratinjau Surat di Kanan */
+    .preview-card { position: sticky; top: 20px; }
+    .preview-pane {
+        background-color: #fff;
+        box-shadow: 0 0 20px rgba(0,0,0,.1);
+        padding: 20px;
+        font-family: 'Times New Roman', Times, serif; /* Font khas surat */
+    }
+    .preview-pane hr { border-top: 3px solid #000; }
+    .preview-content {
+        display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;
+    }
+    .preview-logo { height: 70px; }
+    .preview-text { text-align: center; flex-grow: 1; }
+    .preview-text h1 { font-size: 18px; font-weight: bold; margin: 0; }
+    .preview-text h2 { font-size: 16px; font-weight: bold; margin: 0; }
+    .preview-text p { font-size: 11px; margin: 0; line-height: 1.4; }
+    .preview-fallback-img { max-width: 100%; height: auto; }
+</style>
+@endpush
+
+@section('content_header')
+<div class="page-header mt-2 mb-3">
+    <span class="icon"><i class="fas fa-sliders-h text-white"></i></span>
+    <span>
+        <div class="page-header-title">Pengaturan Kop Surat</div>
+        <div class="page-header-desc">
+            Atur tampilan header, footer, logo, dan cap untuk semua surat yang dibuat.
+        </div>
+    </span>
+</div>
+@endsection
+
 @section('content')
 <div class="container-fluid">
-    {{-- Alerts --}}
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert">×</button>
-            <i class="fas fa-check mr-1"></i> {{ session('success') }}
+        <div class="alert alert-success shadow-sm">
+            <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
         </div>
     @endif
     @if ($errors->any())
-        <div class="alert alert-danger alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert">×</button>
-            <i class="fas fa-ban mr-1"></i> Gagal menyimpan. Periksa isian di bawah:
+        <div class="alert alert-danger shadow-sm">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            <strong>Gagal menyimpan:</strong>
             <ul class="mb-0 mt-2">
                 @foreach ($errors->all() as $e) <li>{{ $e }}</li> @endforeach
             </ul>
         </div>
     @endif
 
-    <div class="row">
-        {{-- === KIRI: FORM PENGATURAN === --}}
-        <div class="col-lg-7">
-            <div class="card card-primary">
-                <div class="card-header">
-                    <i class="fas fa-tools mr-2"></i>Pengaturan Kop & Cap
+    <form action="{{ route('kop.update') }}" method="POST" enctype="multipart/form-data">
+        @csrf
+        @method('PUT')
+        <div class="row">
+            {{-- KOLOM KIRI: FORM PENGATURAN --}}
+            <div class="col-lg-7">
+                {{-- Kartu Mode --}}
+                <div class="card card-settings mb-4">
+                    <div class="card-header"><h6 class="mb-0 font-weight-bold">1. Pilih Mode Kop Surat</h6></div>
+                    <div class="card-body">
+                        <select name="mode" id="kop_mode" class="custom-select">
+                            <option value="composed" {{ old('mode', $kop->mode ?? 'composed') === 'composed' ? 'selected' : '' }}>
+                                Mode Terpusat (Teks + Logo)
+                            </option>
+                            <option value="image" {{ old('mode', $kop->mode) === 'image' ? 'selected' : '' }}>
+                                Mode Gambar Penuh (Fallback)
+                            </option>
+                        </select>
+                        <small class="text-muted mt-2 d-block"><b>Mode Terpusat</b> direkomendasikan untuk hasil cetak terbaik. <b>Mode Gambar</b> digunakan sebagai alternatif jika Anda memiliki gambar kop yang sudah jadi.</small>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form action="{{ route('kop.update') }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        @method('PUT')
 
+                {{-- Kartu Detail Kop (Mode Terpusat) --}}
+                <div class="card card-settings mb-4" id="composed-settings-card">
+                    <div class="card-header"><h6 class="mb-0 font-weight-bold">2. Detail Kop Surat Terpusat</h6></div>
+                    <div class="card-body">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Judul Atas</label>
+                                <input name="judul_atas" class="form-control" data-live-preview="#preview-judul-atas" value="{{ old('judul_atas', $kop->judul_atas) }}">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>Subjudul</label>
+                                <input name="subjudul" class="form-control" data-live-preview="#preview-subjudul" value="{{ old('subjudul', $kop->subjudul) }}">
+                            </div>
+                        </div>
                         <div class="form-group">
-                            <label class="font-weight-bold">Mode Kop</label>
-                            <select name="mode" id="mode" class="form-control">
-                                <option value="image" {{ ($kop->mode ?? 'image')==='image' ? 'selected' : '' }}>
-                                    Gambar penuh (fallback)
-                                </option>
-                                <option value="composed" {{ ($kop->mode ?? 'image')==='composed' ? 'selected' : '' }}>
-                                    Composed (teks + logo)
-                                </option>
-                            </select>
-                            <small class="text-muted">
-                                Pilih <b>Composed</b> untuk mengisi judul, alamat, dst. Layout tetap kanan-atas.
-                            </small>
+                            <label>Alamat</label>
+                            <textarea name="alamat" class="form-control" rows="2" data-live-preview="#preview-alamat">{{ old('alamat', $kop->alamat) }}</textarea>
                         </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label>Telepon & Fax</label>
+                                <input name="telepon" class="form-control" data-live-preview="#preview-kontak" value="{{ old('telepon', $kop->telepon) }}" placeholder="021-123456 / 021-654321">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label>Email & Website</label>
+                                <input name="email" class="form-control" data-live-preview="#preview-kontak" value="{{ old('email', $kop->email) }}" placeholder="kontak@email.com / website.com">
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                        {{-- Field untuk mode composed --}}
-                        <div class="border rounded p-3 mb-3">
-                            <div class="form-row">
-                                <div class="form-group col-md-6" data-composed>
-                                    <label>Judul Atas</label>
-                                    <input name="judul_atas" class="form-control"
-                                           value="{{ old('judul_atas', $kop->judul_atas) }}">
-                                </div>
-                                <div class="form-group col-md-6" data-composed>
-                                    <label>Subjudul</label>
-                                    <input name="subjudul" class="form-control"
-                                           value="{{ old('subjudul', $kop->subjudul) }}">
-                                </div>
-                                <div class="form-group col-md-12" data-composed>
-                                    <label>Alamat</label>
-                                    <input name="alamat" class="form-control"
-                                           value="{{ old('alamat', $kop->alamat) }}">
-                                </div>
-                                <div class="form-group col-md-4" data-composed>
-                                    <label>Telepon</label>
-                                    <input name="telepon" class="form-control"
-                                           value="{{ old('telepon', $kop->telepon) }}">
-                                </div>
-                                <div class="form-group col-md-4" data-composed>
-                                    <label>Fax</label>
-                                    <input name="fax" class="form-control"
-                                           value="{{ old('fax', $kop->fax) }}">
-                                </div>
-                                <div class="form-group col-md-4" data-composed>
-                                    <label>Email</label>
-                                    <input type="email" name="email" class="form-control"
-                                           value="{{ old('email', $kop->email) }}">
-                                </div>
-                                <div class="form-group col-md-6" data-composed>
-                                    <label>Website</label>
-                                    <input name="website" class="form-control"
-                                           value="{{ old('website', $kop->website) }}">
-                                </div>
-
-                                <div class="form-group col-md-6" data-composed>
-                                    <label>Logo Kiri</label>
-                                    <input type="file" name="logo_kiri" class="form-control-file">
-                                    <div class="form-check mt-1">
-                                        <input class="form-check-input" type="checkbox" name="tampilkan_logo_kiri" value="1"
-                                               {{ !empty($kop?->tampilkan_logo_kiri) ? 'checked' : '' }}>
-                                        <label class="form-check-label">Tampilkan logo kiri</label>
+                {{-- Kartu Aset Gambar --}}
+                <div class="card card-settings">
+                    <div class="card-header"><h6 class="mb-0 font-weight-bold">3. Aset Gambar (Logo, Cap, dsb.)</h6></div>
+                    <div class="card-body">
+                        <div class="row">
+                            {{-- Logo Kiri --}}
+                            <div class="col-md-6 mb-3" data-composed-item>
+                                <label class="d-block mb-2">Logo Kiri</label>
+                                <div class="upload-box">
+                                    <img id="logo_kiri_preview" src="{{ $kop->logo_kiri_path ? asset('storage/'.$kop->logo_kiri_path) : 'https://placehold.co/200x80/f8f9fa/ccc?text=Logo' }}" alt="Pratinjau Logo Kiri" class="preview-img">
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" name="logo_kiri" id="logo_kiri" accept="image/png, image/jpeg">
+                                        <label class="custom-file-label" for="logo_kiri">Pilih file...</label>
                                     </div>
-                                    @if($kop?->logo_kiri_path)
-                                        <img src="{{ asset('storage/'.$kop->logo_kiri_path) }}" class="mt-2 img-thumbnail" style="max-height:60px">
-                                    @endif
                                 </div>
-
-                                <div class="form-group col-md-6" data-composed>
-                                    <label>Logo Kanan</label>
-                                    <input type="file" name="logo_kanan" class="form-control-file">
-                                    <div class="form-check mt-1">
-                                        <input class="form-check-input" type="checkbox" name="tampilkan_logo_kanan" value="1"
-                                               {{ !empty($kop?->tampilkan_logo_kanan) ? 'checked' : '' }}>
-                                        <label class="form-check-label">Tampilkan logo kanan</label>
+                            </div>
+                            {{-- Logo Kanan --}}
+                            <div class="col-md-6 mb-3" data-composed-item>
+                                <label class="d-block mb-2">Logo Kanan</label>
+                                <div class="upload-box">
+                                    <img id="logo_kanan_preview" src="{{ $kop->logo_kanan_path ? asset('storage/'.$kop->logo_kanan_path) : 'https://placehold.co/200x80/f8f9fa/ccc?text=Logo' }}" alt="Pratinjau Logo Kanan" class="preview-img">
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" name="logo_kanan" id="logo_kanan" accept="image/png, image/jpeg">
+                                        <label class="custom-file-label" for="logo_kanan">Pilih file...</label>
                                     </div>
-                                    @if($kop?->logo_kanan_path)
-                                        <img src="{{ asset('storage/'.$kop->logo_kanan_path) }}" class="mt-2 img-thumbnail" style="max-height:60px">
-                                    @endif
+                                </div>
+                            </div>
+                            {{-- Header Fallback --}}
+                            <div class="col-12 mb-3" data-image-item>
+                                <label class="d-block mb-2">Gambar Header Penuh (Fallback)</label>
+                                <div class="upload-box">
+                                    <img id="header_preview" src="{{ $kop->header_path ? asset('storage/'.$kop->header_path) : 'https://placehold.co/800x150/f8f9fa/ccc?text=Header' }}" alt="Pratinjau Header" class="preview-img" style="max-height: 100px;">
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" name="header" id="header" accept="image/png, image/jpeg">
+                                        <label class="custom-file-label" for="header">Pilih file...</label>
+                                    </div>
+                                </div>
+                            </div>
+                             {{-- Cap/Stempel --}}
+                            <div class="col-md-6 mb-3">
+                                <label class="d-block mb-2">Cap/Stempel</label>
+                                <div class="upload-box">
+                                    <img src="{{ $kop->cap_path ? asset('storage/'.$kop->cap_path) : 'https://placehold.co/200x200/f8f9fa/ccc?text=Cap' }}" alt="Pratinjau Cap" class="preview-img" style="max-height: 120px;">
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" name="cap" id="cap" accept="image/png">
+                                        <label class="custom-file-label" for="cap">Pilih PNG...</label>
+                                    </div>
+                                </div>
+                            </div>
+                            {{-- Footer --}}
+                             <div class="col-md-6 mb-3">
+                                <label class="d-block mb-2">Gambar Footer</label>
+                                <div class="upload-box">
+                                    <img src="{{ $kop->footer_path ? asset('storage/'.$kop->footer_path) : 'https://placehold.co/800x100/f8f9fa/ccc?text=Footer' }}" alt="Pratinjau Footer" class="preview-img">
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" name="footer" id="footer" accept="image/png, image/jpeg">
+                                        <label class="custom-file-label" for="footer">Pilih file...</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        {{-- Upload fallback (image mode) & cap --}}
-                        <div class="border rounded p-3 mb-3">
-                            <div class="form-row">
-                                <div class="form-group col-md-4">
-                                    <label>Header (PNG/JPG) – fallback</label>
-                                    <input type="file" name="header" class="form-control-file">
-                                    @if($kop?->header_path)
-                                        <img src="{{ asset('storage/'.$kop->header_path) }}" class="mt-2 img-thumbnail" style="max-height:80px">
-                                    @endif
+                {{-- Tombol Simpan --}}
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary btn-s mb-3"><i class="fas fa-save mr-2"></i>Simpan Pengaturan</button>
+                </div>
+            </div>
+
+            {{-- KOLOM KANAN: PRATINJAU LANGSUNG --}}
+            <div class="col-lg-5">
+                <div class="card card-settings preview-card">
+                    <div class="card-header"><h6 class="mb-0 font-weight-bold"><i class="fas fa-eye mr-2"></i>Pratinjau Langsung</h6></div>
+                    <div class="card-body">
+                        <div class="preview-pane">
+                            {{-- Tampilan Mode Terpusat --}}
+                            <div id="composed-preview">
+                                <div class="preview-content">
+                                    <img id="preview-logo-kiri" src="{{ $kop->logo_kiri_path ? asset('storage/'.$kop->logo_kiri_path) : 'https://placehold.co/100x100/fff/ccc?text=' }}" class="preview-logo">
+                                    <div class="preview-text">
+                                        <h1 id="preview-judul-atas">{{ $kop->judul_atas ?? 'JUDUL ATAS' }}</h1>
+                                        <h2 id="preview-subjudul">{{ $kop->subjudul ?? 'SUBJUDUL' }}</h2>
+                                        <p id="preview-alamat">{{ $kop->alamat ?? 'Alamat lengkap, kota, kode pos' }}</p>
+                                        <p id="preview-kontak">
+                                            Telp/Fax: {{ $kop->telepon ?? '...' }} | Email/Web: {{ $kop->email ?? '...' }}
+                                        </p>
+                                    </div>
+                                    <img id="preview-logo-kanan" src="{{ $kop->logo_kanan_path ? asset('storage/'.$kop->logo_kanan_path) : 'https://placehold.co/100x100/fff/ccc?text=' }}" class="preview-logo">
                                 </div>
-                                <div class="form-group col-md-4">
-                                    <label>Footer (PNG/JPG)</label>
-                                    <input type="file" name="footer" class="form-control-file">
-                                    @if($kop?->footer_path)
-                                        <img src="{{ asset('storage/'.$kop->footer_path) }}" class="mt-2 img-thumbnail" style="max-height:80px">
-                                    @endif
-                                </div>
-                                <div class="form-group col-md-4">
-                                    <label>Cap/Stamp (PNG transparan)</label>
-                                    <input type="file" name="cap" class="form-control-file">
-                                    @if($kop?->cap_path)
-                                        <img src="{{ asset('storage/'.$kop->cap_path) }}" class="mt-2 img-thumbnail" style="max-height:80px">
-                                    @endif
-                                </div>
+                                <hr>
                             </div>
+                             {{-- Tampilan Mode Gambar Penuh --}}
+                             <div id="image-preview" style="display: none;">
+                                <img id="preview-header-img" src="{{ $kop->header_path ? asset('storage/'.$kop->header_path) : 'https://placehold.co/800x150/fff/ccc?text=Header Penuh' }}" class="preview-fallback-img">
+                             </div>
                         </div>
-
-                        <button class="btn btn-primary">
-                            <i class="fas fa-save mr-1"></i> Simpan
-                        </button>
-                    </form>
+                        <small class="text-muted d-block mt-3">* Pratinjau ini adalah representasi visual untuk header. Tampilan final pada PDF mungkin sedikit berbeda.</small>
+                    </div>
                 </div>
             </div>
         </div>
-
-        {{-- === KANAN: PRATINJAU === --}}
-        <div class="col-lg-5">
-            <div class="card">
-                <div class="card-header">
-                    <i class="fas fa-eye mr-2"></i>Pratinjau Kop (Tampilan Ringkas)
-                </div>
-                <div class="card-body">
-                    <style>
-                        .kop-kanan-preview { position: relative; width: 420px; margin-left: auto; text-align: right; }
-                        .kop-kanan-preview img.logo { height: 56px; vertical-align: middle; }
-                        .kop-kanan-preview .title { font-weight: 700; letter-spacing: .02em; font-size: 16px; }
-                        .kop-kanan-preview .meta { font-size: 11px; line-height: 1.25; }
-                    </style>
-
-                    @if(($kop->mode ?? 'image') === 'image' && !empty($kop?->header_path))
-                        <div class="kop-kanan-preview">
-                            <img class="logo" src="{{ asset('storage/'.$kop->header_path) }}">
-                        </div>
-                    @else
-                        <div class="kop-kanan-preview">
-                            @if(($kop->tampilkan_logo_kanan ?? false) && $kop->logo_kanan_path)
-                                <img class="logo" src="{{ asset('storage/'.$kop->logo_kanan_path) }}">
-                            @endif
-                            <div class="title">{{ strtoupper($kop->judul_atas ?? '') ?: '—' }}</div>
-                            <div class="meta">
-                                {{ $kop->subjudul ?: '—' }}<br>
-                                {{ $kop->alamat ?: '—' }}<br>
-                                Telp. {{ $kop->telepon ?: '—' }}@if($kop?->fax), Fax. {{ $kop->fax }}@endif<br>
-                                email: {{ $copied = $kop->email ?: '—' }}@if($kop?->website) | {{ $kop->website }} @endif
-                            </div>
-                        </div>
-                    @endif
-
-                    <small class="text-muted d-block mt-3">
-                        *Pratinjau ini hanya header; tata letak final mengikuti PDF.
-                    </small>
-                </div>
-            </div>
-        </div>
-    </div>
+    </form>
 </div>
+@endsection
 
-{{-- Toggle enable/disable field composed --}}
 @push('scripts')
 <script>
-(function(){
-    function toggleComposed(){
-        var useComposed = document.getElementById('mode').value === 'composed';
-        document.querySelectorAll('[data-composed] input, [data-composed] textarea, [data-composed] select')
-            .forEach(function(el){ el.disabled = !useComposed; });
-        document.querySelectorAll('[data-composed]').forEach(function(w){
-            w.style.opacity = useComposed ? '1' : '0.6';
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    const modeSelect = document.getElementById('kop_mode');
+    const composedCard = document.getElementById('composed-settings-card');
+    const composedItems = document.querySelectorAll('[data-composed-item]');
+    const imageItems = document.querySelectorAll('[data-image-item]');
+    const composedPreview = document.getElementById('composed-preview');
+    const imagePreview = document.getElementById('image-preview');
+
+    // Fungsi untuk mengubah tampilan berdasarkan mode
+    function toggleModeView() {
+        const isComposed = modeSelect.value === 'composed';
+        composedCard.style.display = isComposed ? 'block' : 'none';
+        composedPreview.style.display = isComposed ? 'block' : 'none';
+        imagePreview.style.display = !isComposed ? 'block' : 'none';
+        composedItems.forEach(el => el.style.display = isComposed ? 'block' : 'none');
+        imageItems.forEach(el => el.style.display = !isComposed ? 'block' : 'none');
     }
-    document.addEventListener('DOMContentLoaded', function(){
-        toggleComposed();
-        document.getElementById('mode').addEventListener('change', toggleComposed);
+
+    // Fungsi live preview untuk input teks
+    document.querySelectorAll('input[data-live-preview], textarea[data-live-preview]').forEach(input => {
+        const previewEl = document.querySelector(input.dataset.livePreview);
+        if (previewEl) {
+            input.addEventListener('input', () => {
+                // Khusus untuk kontak, gabungkan beberapa field
+                if (input.dataset.livePreview === '#preview-kontak') {
+                    const telp = document.querySelector('input[name="telepon"]').value || '...';
+                    const email = document.querySelector('input[name="email"]').value || '...';
+                    previewEl.textContent = `Telp/Fax: ${telp} | Email/Web: ${email}`;
+                } else {
+                    previewEl.textContent = input.value || input.placeholder;
+                }
+            });
+        }
     });
-})();
+
+    // Fungsi live preview untuk file input
+    function handleImagePreview(inputId, previewImgId) {
+        const input = document.getElementById(inputId);
+        const previewImg = document.getElementById(previewImgId);
+        if (input && previewImg) {
+            input.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    previewImg.src = URL.createObjectURL(file);
+                    // Update juga nama file di label
+                    const label = this.nextElementSibling;
+                    if(label) label.textContent = file.name;
+                }
+            });
+        }
+    }
+    
+    // Inisialisasi semua live preview
+    handleImagePreview('logo_kiri', 'preview-logo-kiri');
+    handleImagePreview('logo_kanan', 'preview-logo-kanan');
+    handleImagePreview('header', 'preview-header-img');
+    // Untuk file input lain (cap & footer) yang tidak punya pratinjau langsung, cukup update labelnya
+    ['cap', 'footer', 'logo_kiri', 'logo_kanan', 'header'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('change', function(e) {
+                const fileName = e.target.files[0] ? e.target.files[0].name : 'Pilih file...';
+                const label = this.nextElementSibling;
+                if(label) label.textContent = fileName;
+            });
+        }
+    });
+
+    // Inisialisasi awal dan event listener
+    toggleModeView();
+    modeSelect.addEventListener('change', toggleModeView);
+});
 </script>
 @endpush
-@endsection

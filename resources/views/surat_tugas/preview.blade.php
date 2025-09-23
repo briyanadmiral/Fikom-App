@@ -1,3 +1,13 @@
+{{-- === GUARD VISIBILITAS TTD/CAP (PREVIEW) === --}}
+@php
+  if (!isset($showSigns)) {
+    $showSigns = isset($tugas)
+      ? (($tugas->status_surat ?? null) === 'disetujui' && !empty($tugas->signed_at ?? null))
+      : false;
+  }
+@endphp
+
+
 {{-- Preview Surat Tugas (hasil final, paritas dengan PDF) --}}
 @php
   $context = 'web';

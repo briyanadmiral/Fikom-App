@@ -61,9 +61,9 @@
             .surat-header-desc { font-size: .99rem; }
             .card.filter-card, .card.data-card { border-radius: .6rem; }
         }
-        /* Custom badge, filter btn, dan spacing */
+        /* Misc */
         .badge-info { background: #0bb1e3 !important; color: #fff; }
-        .card .btn { font-size: 0.96rem; paddi }
+        .card .btn { font-size: 0.96rem; padding: .475rem .75rem; }
         .dropdown-menu a.dropdown-item { cursor: pointer; }
         .dropdown-menu .fa-fw { margin-right: 8px; }
         #quickViewModal .modal-body { height: 75vh; }
@@ -72,14 +72,24 @@
 @endpush
 
 @section('content_header')
+@php
+    // Deteksi mode otomatis jika controller tidak mengirim variabel $mode
+    $mode = $mode ?? (request()->routeIs('surat_tugas.approveList') ? 'approve-list' : 'list');
+@endphp
 <div class="surat-header mt-2 mb-3">
     <span class="icon">
         <i class="fas fa-envelope-open-text text-white"></i>
     </span>
     <span>
-        <div class="surat-header-title">Daftar Surat Tugas</div>
+        <div class="surat-header-title">
+            {{ $mode === 'approve-list' ? 'Daftar Surat Menunggu Persetujuan Anda' : 'Daftar Surat Tugas' }}
+        </div>
         <div class="surat-header-desc">
-            Semua surat tugas <b>sekolah</b> — kelola, filter, cetak PDF, dan lacak statusnya di sini.
+            @if ($mode === 'approve-list')
+                Hanya menampilkan surat dengan status <b>pending</b> yang menunggu persetujuan Anda.
+            @else
+                Semua surat tugas <b>sekolah</b> — kelola, filter, cetak PDF, dan lacak statusnya di sini.
+            @endif
         </div>
     </span>
 </div>
@@ -108,17 +118,23 @@
         </div>
     </div>
 
-    {{-- Filter dan Tombol --}}
+    {{-- Filter dan Tombol (sembunyikan tombol buat/jenis saat approve-list) --}}
     <div class="card filter-card mb-4 shadow-sm">
         <div class="card-header bg-white border-0 py-3">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 w-100">
                 <h5 class="mb-0 font-weight-bold">
                     <i class="fas fa-filter mr-2 text-primary"></i>Filter & Pencarian
                 </h5>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('surat_tugas.create') }}" class="btn btn-primary"><i class="fas fa-plus mr-2"></i>Tambah Surat Tugas</a>
-                    <a href="{{ route('jenis_surat_tugas.index') }}" class="btn btn-outline-secondary"><i class="fas fa-cog mr-2"></i>Manage Jenis Surat</a>
-                </div>
+                @if ($mode !== 'approve-list')
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('surat_tugas.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus mr-2"></i>Tambah Surat Tugas
+                        </a>
+                        <a href="{{ route('jenis_surat_tugas.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-cog mr-2"></i>Manage Jenis Surat
+                        </a>
+                    </div>
+                @endif
             </div>
         </div>
         <div class="card-body">
@@ -211,16 +227,17 @@
                                         <i class="fas fa-cog"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-right">
-                                        <a class="dropdown-item"
-   href="{{ route('surat_tugas.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}"
-   data-toggle="modal"
-   data-target="#modal-preview"
-   data-preview-url="{{ route('surat_tugas.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}">
-   <i class="fas fa-search mr-2"></i> Lihat Cepat
-</a>
+                                        {{-- Quick View: gunakan modal #quickViewModal --}}
+                                        <a class="dropdown-item quick-view"
+                                           href="{{ route('surat_tugas.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}"
+                                           data-url="{{ route('surat_tugas.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}">
+                                            <i class="fas fa-search mr-2"></i> Lihat Cepat
+                                        </a>
 
+                                        <a class="dropdown-item" href="{{ route('surat_tugas.show', $h->id) }}">
+                                            <i class="fas fa-fw fa-eye"></i> Halaman Detail
+                                        </a>
 
-                                        <a class="dropdown-item" href="{{ route('surat_tugas.show', $h->id) }}"><i class="fas fa-fw fa-eye"></i> Halaman Detail</a>
                                         @can('edit-surat', $h)
                                           <a class="dropdown-item"
                                              href="{{ route('surat_tugas.edit', ['tugas' => $h->id, 'mode' => 'koreksi']) }}">
@@ -229,23 +246,29 @@
                                         @endcan
 
                                         <div class="dropdown-divider"></div>
+
                                         @if($h->status_surat == 'disetujui')
-                                            <a class="dropdown-item" href="{{ route('surat_tugas.downloadPdf', $h->id) }}" target="_blank"><i class="fas fa-fw fa-download"></i> Download PDF</a>
+                                            <a class="dropdown-item" href="{{ route('surat_tugas.downloadPdf', $h->id) }}" target="_blank">
+                                                <i class="fas fa-fw fa-download"></i> Download PDF
+                                            </a>
                                         @endif
 
-                                        {{-- PENGGANTIAN UTAMA: Approve langsung -> Tinjau & Setujui --}}
+                                        {{-- Tinjau & Setujui: menuju halaman detail agar bisa atur ukuran TTD/CAP dulu --}}
                                         @if($h->status_surat === 'pending' && in_array(auth()->user()->peran_id, [2, 3]) && $h->penandatangan == auth()->id())
-                                            {{-- SEBELUM (hapus):
-                                            <a class="dropdown-item btn-approve" data-url="{{ route('surat_tugas.approve', $h->id) }}">
-                                                <i class="fas fa-fw fa-check text-success"></i> Approve
-                                            </a>
-                                            --}}
-                                            {{-- SESUDAH: arahkan ke halaman detail + auto-scroll ke panel approve --}}
                                             <a class="dropdown-item goto-approve"
                                                href="{{ route('surat_tugas.show', $h->id) }}?approve=1#approve-panel">
-                                                <i class="fas fa-fw fa-check text-success"></i> Tinjau & Setujui
+                                                <i class="fas fa-fw fa-check text-success"></i> Tinjau &amp; Setujui
                                             </a>
                                         @endif
+
+                                        {{-- Contoh tombol hapus (khusus pembuat draft) jika ingin diaktifkan:
+                                        @can('delete', $h)
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item btn-delete" data-url="{{ route('surat_tugas.destroy', $h->id) }}">
+                                                <i class="fas fa-trash mr-2 text-danger"></i> Hapus
+                                            </a>
+                                        @endcan
+                                        --}}
                                     </div>
                                 </div>
                             </td>
@@ -259,7 +282,7 @@
     </div>
 </div>
 
-{{-- Modal Quick View --}}
+{{-- Modal Quick View (diselaraskan dengan JS) --}}
 <div class="modal fade" id="quickViewModal" tabindex="-1" role="dialog" aria-labelledby="quickViewModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
@@ -282,29 +305,34 @@
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(function () {
         $('[data-toggle="tooltip"]').tooltip();
+
+        const MODE = "{{ $mode }}"; // 'list' | 'approve-list'
+        const emptyMsg = MODE === 'approve-list'
+            ? "Tidak ada surat yang perlu Anda setujui."
+            : "Tidak ada data surat tugas.";
+
         const table = $('#table-tugas').DataTable({
-    responsive: true,
-    autoWidth: false,
-    language: {
-        url: "/assets/datatables/i18n/id.json",
-        emptyTable: "{{ in_array(auth()->user()->peran_id, [2,3]) ? 'Tidak ada surat yang perlu Anda setujui.' : 'Tidak ada data surat tugas.' }}"
-    },
-    columnDefs: [
-        { targets: [7, 8], orderable: false, searchable: false }
-    ]
-});
+            responsive: true,
+            autoWidth: false,
+            language: {
+                url: "/assets/datatables/i18n/id.json",
+                emptyTable: emptyMsg
+            },
+            columnDefs: [
+                { targets: [7, 8], orderable: false, searchable: false }
+            ]
+        });
 
-
+        // Search & filter
         $('#globalSearch').on('keyup', function() { table.search(this.value).draw(); });
         $('#statusFilter').on('change', function() {
             const status = this.value;
             if (status) {
-                table.column(6).search('^' + status + '$', true, false).draw();
+                table.column(6).search('^' + status + '$', true, false).draw(); // kolom Status (index 6)
             } else {
                 table.column(6).search('').draw();
             }
@@ -319,63 +347,57 @@
             Swal.fire({ icon: 'success', title: 'Berhasil!', text: "{{ session('success') }}", timer: 2500, showConfirmButton: false });
         @endif
 
-        // Handler dropdown item
+        // Dropdown actions
         $('#table-tugas').on('click', '.dropdown-item', function(e) {
-            e.preventDefault();
-            const action = $(this);
-            if (action.hasClass('quick-view')) {
-                const url = action.data('url');
-                $('.quickview-spinner').show();
-                const iframe = $('#quickViewModal iframe');
-                iframe.off('load').on('load', function() { $('.quickview-spinner').hide(); });
-                iframe.attr('src', url);
-                $('#quickViewModal').modal('show');
-            } 
-            else if (action.hasClass('btn-delete')) {
-                const url = action.data('url');
+            const el = $(this);
+
+            // Quick view (pakai modal #quickViewModal)
+            if (el.hasClass('quick-view')) {
+                e.preventDefault();
+                const url = el.data('url') || el.attr('href');
+                if (!url) return;
+
+                const $modal = $('#quickViewModal');
+                const $spinner = $modal.find('.quickview-spinner');
+                const $iframe = $modal.find('iframe');
+
+                $spinner.show();
+                $iframe.off('load').on('load', function(){ $spinner.hide(); });
+                $iframe.attr('src', url);
+
+                $modal.modal('show');
+                return;
+            }
+
+            // Hapus (jika diaktifkan)
+            if (el.hasClass('btn-delete')) {
+                e.preventDefault();
+                const url = el.data('url');
                 Swal.fire({
                     title: 'Anda yakin?', text: "Surat ini akan dihapus permanen.", icon: 'warning',
                     showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Batal', confirmButtonText: 'Ya, hapus!'
                 }).then(result => {
                     if (result.isConfirmed) {
                         const form = $('<form>', { 'method': 'POST', 'action': url, 'style':'display:none' })
-                            .append('@csrf')
-                            .append('@method("DELETE")');
+                            .append($('<input>', { type: 'hidden', name: '_token', value: '{{ csrf_token() }}' }))
+                            .append($('<input>', { type: 'hidden', name: '_method', value: 'DELETE' }));
                         $('body').append(form);
-                        form.submit();
+                        form.trigger('submit');
                     }
                 });
-            } 
-            // PENGHAPUSAN: blok approve instan dihapus agar wajib lewat UI
-            else {
-                // default: navigasi ke href (Detail, Preview, Tinjau & Setujui, dll.)
-                window.location.href = action.attr('href');
+                return;
             }
+
+            // Default: navigate to href (Detail / Tinjau & Setujui / Download / dsb.)
+            // Tidak preventDefault agar link berjalan normal
         });
 
+        // Reset iframe saat modal ditutup
         $('#quickViewModal').on('hidden.bs.modal', function () {
-            const iframe = $(this).find('iframe');
-            iframe.off('load');
-            iframe.attr('src', 'about:blank');
+            const $iframe = $(this).find('iframe');
+            $iframe.off('load').attr('src', 'about:blank');
             $('.quickview-spinner').hide();
         });
-    });
-
-    // Handler modal preview (tetap dipertahankan sesuai kode awal)
-    document.addEventListener('DOMContentLoaded', function(){
-      $('#modal-preview').on('show.bs.modal', function (e) {
-        const btn = $(e.relatedTarget);
-        const url = btn.data('preview-url') || btn.attr('href');
-        if (!url) {
-          $('#preview-frame').attr('src', 'about:blank');
-          return;
-        }
-        $('#preview-frame').attr('src', url);
-      });
-
-      $('#modal-preview').on('hidden.bs.modal', function () {
-        $('#preview-frame').attr('src', 'about:blank');
-      });
     });
     </script>
 @endpush

@@ -5,6 +5,7 @@
 
 @push('styles')
 <style>
+    /* [STYLE HEADER TETAP SAMA KARENA ANDA MENYUKAINYA] */
     .page-header {
         background: #f3f6fa;
         padding: 1.3rem 2.2rem 1.3rem 1.8rem;
@@ -28,61 +29,102 @@
         margin-bottom: 0.13rem;
         letter-spacing: -1px;
     }
-    .page-header-desc {
-        color: #636e7b; font-size: 1.03rem;
-    }
+    .page-header-desc { color: #636e7b; font-size: 1.03rem; }
     @media (max-width: 767.98px) {
         .page-header { flex-direction: column; align-items: flex-start; padding: 1.2rem 1rem; gap: .7rem; }
         .page-header-title { font-size: 1.18rem; }
         .page-header-desc { font-size: .99rem; }
     }
-    .card {
+    /* [AKHIR DARI STYLE HEADER] */
+
+    /* [STYLE BARU UNTUK KONTEN] */
+    .card-users {
+        border-radius: 0.8rem;
         border: none;
-        border-radius: 0.75rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease-in-out;
+        box-shadow: 0 4px 25px rgba(0,0,0, .07);
     }
-    .card:hover {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    .card-users .card-header {
+        background-color: #fff;
+        border-bottom: 1px solid #f0f0f0;
+        padding: 1.2rem 1.5rem;
     }
-    .card-header {
-        background-color: #f8f9fa;
-        border-bottom: none;
-        padding: 1.25rem 1.5rem;
-        border-top-left-radius: 0.75rem;
-        border-top-right-radius: 0.75rem;
+    .card-users .card-footer {
+        background-color: #fff;
+        border-top: 1px solid #f0f0f0;
     }
-    .table thead th {
-        background-color: #343a40;
-        color: #fff;
-        border-bottom: none;
+    .table-users {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+    .table-users thead th {
+        background: #f8f9fa;
+        color: #555;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        font-size: 0.85rem;
+        border-bottom: 2px solid #dee2e6;
+        vertical-align: middle;
     }
-    .table-hover tbody tr:hover {
-        background-color: #f1f3f5;
+    .table-users tbody td {
+        vertical-align: middle;
+        font-size: 0.95rem;
+        color: #333;
+    }
+    .table-users tbody tr:hover {
+        background-color: #f3f6fa;
+    }
+    .user-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background-color: #007bff;
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1.1rem;
+        box-shadow: 0 2px 4px rgba(0,123,255,.2);
+    }
+    .user-info .user-name {
+        font-weight: 600;
+        color: #212529;
+    }
+    .user-info .user-email {
+        font-size: 0.85rem;
+        color: #6c757d;
     }
     .btn-action {
         width: 38px;
         height: 38px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
         border-radius: 50%;
         transition: all 0.2s ease-in-out;
+        box-shadow: 0 1px 3px rgba(0,0,0,.1);
     }
     .btn-action:hover {
         transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,.15);
+    }
+    .badge-peran {
+        padding: 0.4em 0.8em;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
     }
     .badge-status {
-        padding: 0.5em 0.75em;
-        font-size: 0.75rem;
-        font-weight: 600;
+        padding: .5em .75em;
+        font-size: .8rem;
+        border-radius: 6px;
     }
 </style>
 @endpush
 
 @section('content_header')
+{{-- Bagian ini tidak diubah sesuai permintaan --}}
 <div class="page-header mt-2 mb-3">
     <span class="icon">
         <i class="fas fa-users-cog text-white"></i>
@@ -108,48 +150,71 @@
 <div class="container-fluid">
     @include('users.peran.modal')
 
-    <div class="card">
-        <div class="card-body">
+    <div class="card card-users">
+        {{-- [BARU] Card Header untuk kontrol seperti pencarian --}}
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 font-weight-bold">Daftar Pengguna</h5>
+            <form action="{{ route('users.index') }}" method="GET" class="w-25">
+                <div class="input-group input-group-sm">
+                    <input type="text" name="search" class="form-control" placeholder="Cari pengguna..." value="{{ request('search') }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover table-striped" id="table-users">
+                <table class="table table-hover table-users" id="table-users">
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Nama Lengkap</th>
-                            <th>Email</th>
+                            <th class="pl-4">Pengguna</th>
+                            <th>NPP</th>
                             <th>Jabatan</th>
                             <th>Peran</th>
-                            <th>Status</th>
+                            <th class="text-center">Status</th>
                             <th>Bergabung Pada</th>
-                            <th class="text-center">Aksi</th>
+                            <th class="text-center pr-4">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                     @forelse ($users as $u)
                         <tr>
-                            <td>{{ $loop->iteration + $users->firstItem() - 1 }}</td>
-                            <td>
-                                <div class="font-weight-bold">{{ $u->nama_lengkap }}</div>
+                            <td class="pl-4">
+                                <div class="d-flex align-items-center">
+                                    {{-- [BARU] Avatar dengan inisial nama --}}
+                                    <div class="user-avatar mr-3" style="background-color: {{ generate_color_from_string($u->nama_lengkap) }};">
+                                        {{ get_initials($u->nama_lengkap) }}
+                                    </div>
+                                    {{-- [BARU] Grouping Nama dan Email --}}
+                                    <div class="user-info">
+                                        <div class="user-name">{{ $u->nama_lengkap }}</div>
+                                        <div class="user-email">{{ $u->email }}</div>
+                                    </div>
+                                </div>
                             </td>
-                            <td>{{ $u->email }}</td>
-                            <td>{{ $u->jabatan ?? '-' }}</td>
+                            <td>{{ $u->npp ?? '—' }}</td>
+                            <td>{{ $u->jabatan ?? '—' }}</td>
                             <td>
-                                {!! badge_peran(optional($u->peran)->nama ?? 'N/A', optional($u->peran)->deskripsi ?? '-') !!}
+                                {!! badge_peran(optional($u->peran)->nama ?? 'N/A') !!}
                             </td>
-                            <td>
+                            <td class="text-center">
                                 @if($u->status == 'aktif')
                                     <span class="badge badge-success badge-status">Aktif</span>
                                 @else
                                     <span class="badge badge-danger badge-status">Tidak Aktif</span>
                                 @endif
                             </td>
-                            <td>{{ $u->created_at ? $u->created_at->isoFormat('D MMMM YYYY') : '-' }}</td>
-                            <td class="text-center">
+                            <td>{{ $u->created_at ? $u->created_at->isoFormat('D MMM YYYY') : '—' }}</td>
+                            <td class="text-center pr-4">
                                 <a href="{{ route('users.edit', $u->id) }}" class="btn btn-warning btn-action" data-toggle="tooltip" title="Edit Pengguna">
-                                    <i class="fas fa-edit"></i>
+                                    <i class="fas fa-pencil-alt"></i>
                                 </a>
                                 <button type="button" class="btn btn-danger btn-action btn-hapus-user" data-id="{{ $u->id }}" data-toggle="tooltip" title="Hapus Pengguna">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash-alt"></i>
                                 </button>
                                 <form id="form-hapus-{{ $u->id }}" action="{{ route('users.destroy', $u->id) }}" method="POST" style="display:none">
                                     @csrf @method('DELETE')
@@ -158,20 +223,28 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">
-                                <i class="fas fa-exclamation-circle fa-2x text-muted mb-2"></i>
-                                <p class="text-muted">Belum ada data pengguna.</p>
+                            <td colspan="7" class="text-center py-5">
+                                <i class="fas fa-ghost fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">Oops, tidak ada data pengguna yang ditemukan.</p>
                             </td>
                         </tr>
                     @endforelse
                     </tbody>
                 </table>
             </div>
-            <div class="d-flex justify-content-end mt-3">
-                {{-- Menampilkan link pagination --}}
+        </div>
+
+        {{-- [BARU] Card Footer untuk pagination --}}
+        @if ($users->hasPages())
+        <div class="card-footer d-flex justify-content-between align-items-center">
+             <div class="text-muted small">
+                Menampilkan {{ $users->firstItem() }} sampai {{ $users->lastItem() }} dari {{ $users->total() }} hasil
+            </div>
+            <div>
                 {{ $users->links() }}
             </div>
         </div>
+        @endif
     </div>
 </div>
 @endsection
@@ -189,7 +262,9 @@ $(function () {
             title: 'Berhasil!',
             text: "{{ session('success') }}",
             showConfirmButton: false,
-            timer: 2000
+            timer: 2000,
+            toast: true,
+            position: 'top-end'
         });
     @endif
 
@@ -206,7 +281,7 @@ $(function () {
         var id = $(this).data('id');
         Swal.fire({
             title: 'Anda Yakin?',
-            text: 'Pengguna akan dihapus (soft delete).',
+            text: 'Pengguna akan dihapus (soft delete) dan tidak dapat dikembalikan.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',

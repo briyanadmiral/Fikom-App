@@ -66,6 +66,28 @@ class TugasController extends Controller
         return in_array($mode, ['draft', 'submit']) ? $mode : 'draft';
     }
 
+    // ==== START: Guard visibilitas tanda tangan & cap ====
+    /**
+     * Syarat TTD/Cap boleh tampil:
+     * - status_surat = 'disetujui'
+     * - signed_at tidak null
+     */
+    private function shouldShowSignatures(TugasHeader $tugas): bool
+    {
+        return ($tugas->status_surat === 'disetujui') && !empty($tugas->signed_at);
+    }
+
+    /**
+     * Baca override dari request (untuk halaman khusus penandatangan mengatur layout).
+     * Default: false (TTD/Cap disembunyikan sampai disetujui).
+     */
+    private function resolveShowSignsOverride(Request $request): bool
+    {
+        // izinkan ?preview_layout=1 atau ?preview_layout=true untuk kebutuhan set posisi oleh penandatangan
+        return filter_var($request->input('preview_layout'), FILTER_VALIDATE_BOOLEAN);
+    }
+    // ==== END: Guard visibilitas tanda tangan & cap ====
+
     // ------------------ CRUD / Business ------------------
 
     public function index()
@@ -485,12 +507,14 @@ class TugasController extends Controller
 
     public function approveList()
     {
-        $this->authorize('approveList', TugasHeader::class);
+        // Halaman ini sendiri dilindungi Gate (biar tidak 403 untuk peran 2/3)
+        \Illuminate\Support\Facades\Gate::authorize('view-approve-list');
 
         $list = TugasHeader::with(['pembuat', 'penerima.pengguna'])
             ->where('status_surat', 'pending')
-            ->where('penandatangan', Auth::id())
-            ->orderByDesc('created_at')->get();
+            ->where('next_approver', \Illuminate\Support\Facades\Auth::id()) // << inti: hanya surat yang menunggu user ini
+            ->orderByDesc('created_at')
+            ->get();
 
         $stats = [
             'draft'     => $list->where('status_surat', 'draft')->count(),
@@ -503,56 +527,64 @@ class TugasController extends Controller
 
     // START PATCH: Approve + Digital Sign
     public function approve(Request $request, TugasHeader $tugas)
-{
-    $user = auth()->user();
-    if (!in_array((int)$user->peran_id, [2, 3], true)) {
-        abort(403, 'Hanya Dekan/Wakil Dekan yang dapat menyetujui surat.');
-    }
+    {
+        // Otorisasi per-surat: hanya Dekan/WD yang memang next_approver & bukan pembuat
+        $this->authorize('approve-tugas', $tugas);
 
-    // TIDAK PERLU FindOrFail($id) lagi. $tugas sudah ada dari Route Model Binding.
-    if (!in_array($tugas->status_surat, ['pending', 'draft'], true)) {
-            return back()->with('error', 'Surat ini sudah diproses dan tidak bisa disetujui ulang.');
-        }
-
+        // Validasi input ukuran TTD & CAP
         $validated = $request->validate([
             'ttd_w_mm'    => 'required|integer|min:30|max:60',
             'cap_w_mm'    => 'required|integer|min:25|max:45',
             'cap_opacity' => 'required|numeric|min:0.7|max:1.0',
         ]);
 
-        DB::beginTransaction();
+        \Illuminate\Support\Facades\DB::beginTransaction();
         try {
-            $tugas->ttd_config = null;
-            $tugas->cap_config = null;
+            // Reset config lama (pakai field baru tanpa offset)
+            $tugas->ttd_config  = null;
+            $tugas->cap_config  = null;
+
+            // Simpan preferensi ukuran & opasitas
             $tugas->ttd_w_mm    = $validated['ttd_w_mm'];
             $tugas->cap_w_mm    = $validated['cap_w_mm'];
             $tugas->cap_opacity = $validated['cap_opacity'];
 
+            // Isi tanggal surat jika masih kosong
             if (empty($tugas->tanggal_surat)) {
                 $tugas->tanggal_surat = now()->toDateString();
             }
-            $tugas->status_surat = 'disetujui';
-            $tugas->signed_at    = now();
+
+            // Tetapkan status & metadata tanda tangan
+            $tugas->status_surat  = 'disetujui';
+            $tugas->penandatangan = \Illuminate\Support\Facades\Auth::id(); // pastikan pencatat penandatangan
+            $tugas->signed_at     = now();
+            $tugas->next_approver = null; // sudah selesai
+
             $tugas->save();
 
+            // Render & simpan PDF final yang sudah bertanda tangan
             $pdfBytes = $this->renderTugasPdfWithSign($tugas);
-            $pdfPath  = "private/surat_tugas/signed/{$tugas->id}_" . md5($tugas->nomor) . ".pdf";
-            Storage::disk('local')->put($pdfPath, $pdfBytes);
+            $pdfPath  = "private/surat_tugas/signed/{$tugas->id}_" . md5((string)$tugas->nomor) . ".pdf";
+            \Illuminate\Support\Facades\Storage::disk('local')->put($pdfPath, $pdfBytes);
+
             $tugas->signed_pdf_path = $pdfPath;
             $tugas->save();
 
-            app(NotifikasiService::class)->notifyApproved($tugas);
+            // Notifikasi ke penerima/pembuat
+            app(\App\Services\NotifikasiService::class)->notifyApproved($tugas);
 
-            DB::commit();
-            return redirect()->route('surat_tugas.approve_list')->with('success', 'Surat berhasil disetujui & ditandatangani.');
+            \Illuminate\Support\Facades\DB::commit();
+
+            // NOTE: nama route yang benar adalah 'surat_tugas.approveList'
+            return redirect()
+                ->route('surat_tugas.approveList')
+                ->with('success', 'Surat berhasil disetujui & ditandatangani.');
         } catch (\Throwable $e) {
-            DB::rollBack();
+            \Illuminate\Support\Facades\DB::rollBack();
             \Log::error('Gagal approve surat tugas #' . $tugas->id, ['error' => $e->getMessage()]);
             return back()->with('error', 'Terjadi kesalahan sistem saat menyetujui surat.');
         }
     }
-
-
 
     // ====== helper kecil di controller ======
 
@@ -647,6 +679,45 @@ class TugasController extends Controller
             ])->output();
     }
 
+    /**
+     * Render PDF DRAFT tanpa TTD/Cap (tidak bocor sebelum disetujui).
+     * Bonus: kirim flag 'isDraft' & 'showSigns=false' agar view bisa menaruh watermark bila diinginkan.
+     */
+    private function renderTugasPdfDraft(TugasHeader $tugas): string
+    {
+        // Kita tetap siapkan daftar penerima; tapi TTD/Cap TIDAK dioper ke view
+        $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
+
+        // Ambil kop agar header surat tetap tampil rapi
+        $kop = MasterKopSurat::query()->first();
+
+        $html = view('surat_tugas.surat_pdf', [
+            'tugas'        => $tugas,
+            'penerimaList' => $penerimaList,
+            'kop'          => $kop,
+
+            // Penting: sembunyikan tanda tangan & cap di view
+            'showSigns'    => false,
+            'isDraft'      => true,
+
+            // Kosongkan aset supaya view yang "nakal" (langsung render kalau ada gambar)
+            // tetap tidak punya bahan untuk menampilkan TTD/Cap.
+            'ttdImageB64'  => null,
+            'capImageB64'  => null,
+            'ttdW'         => null,
+            'capW'         => null,
+            'capOpacity'   => null,
+        ])->render();
+
+        return Pdf::loadHTML($html)
+            ->setPaper('A4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled'      => true,
+                'dpi'                  => 96,
+                'chroot'               => public_path(),
+            ])->output();
+    }
 
 
     private function getApprovalPreviewImagesForTugas($tugas): array
@@ -680,18 +751,17 @@ class TugasController extends Controller
 
     public function show(Request $request, TugasHeader $tugas)
     {
-        // Kita tidak perlu lagi mencari $tugas, karena sudah otomatis di-inject oleh Laravel
+        // Relasi yang dibutuhkan
         $tugas->load(['pembuat', 'penandatanganUser.peran', 'penerima.pengguna']);
 
-
-        // Di sini Anda bisa menambahkan logika otorisasi (Gate)
-        // Contoh: Gate::authorize('view', $tugas);
-
-        // Panggil helper utama untuk mendapatkan semua aset visual
+        // Ambil aset TTD/CAP (base64 & ukuran default)
         $assets = $this->getSigningAssets($tugas);
 
-        // Siapkan data terstruktur untuk pratinjau di halaman approval
-        // Ambil nilai dari request (untuk live preview) atau dari database/default
+        // Hitung showSigns (default: mengikuti status surat). Boleh dioverride saat atur layout.
+        $override  = $this->resolveShowSignsOverride($request);
+        $showSigns = $override ? true : $this->shouldShowSignatures($tugas);
+
+        // Data pratinjau ukuran (tetap bisa diubah via request untuk live preview halaman approve)
         $previewData = [
             'ttd_image_b64' => $assets['ttdImageB64'],
             'cap_image_b64' => $assets['capImageB64'],
@@ -700,22 +770,25 @@ class TugasController extends Controller
             'cap_opacity'   => $request->input('cap_opacity', $assets['capOpacity']),
         ];
 
-        // Jika ini adalah request AJAX untuk live preview, kembalikan hanya partialnya
+        // Partial AJAX untuk live preview di halaman approve
         if ($request->input('partial') === 'true') {
-            return view('surat_tugas.partials.approve-preview', [ // <-- Tambahkan .partials di sini
-                'tugas'   => $tugas,
-                'kop'     => $assets['kop'],
-                'preview' => $previewData,
+            return view('surat_tugas.partials.approve-preview', [
+                'tugas'     => $tugas,
+                'kop'       => $assets['kop'],
+                'preview'   => $previewData,
+                'showSigns' => $showSigns,
             ]);
         }
 
-        // Jika request biasa, render seluruh halaman show.blade.php
+        // Render halaman show penuh
         return view('surat_tugas.show', [
-            'tugas'   => $tugas,
-            'kop'     => $assets['kop'],
-            'preview' => $previewData, // Kirim data pratinjau terstruktur
+            'tugas'     => $tugas,
+            'kop'       => $assets['kop'],
+            'preview'   => $previewData,
+            'showSigns' => $showSigns,
         ]);
     }
+
 
     public function edit(TugasHeader $tugas)
     {
@@ -818,7 +891,7 @@ class TugasController extends Controller
             'semester' => 'required|string|in:Ganjil,Genap',
             'nama_pembuat' => 'required|exists:pengguna,id',
             'asal_surat' => 'required|exists:pengguna,id',
-            'nomor' => ['required', 'string', Rule::unique('tugas_header')->ignore($tugas->id)], 
+            'nomor' => ['required', 'string', Rule::unique('tugas_header')->ignore($tugas->id)],
         ];
         $validated = $request->validate($rules);
         $segmen = $validated['status_penerima'] ?? null;
@@ -909,15 +982,17 @@ class TugasController extends Controller
         ]);
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->all();
 
+        // highlight biasanya untuk pratinjau tertanam; aman: sembunyikan jika belum sah
+        $showSigns = $this->shouldShowSignatures($tugas);
+
         return response()
-            ->view('surat_tugas.highlight', compact('tugas', 'penerimaList'))
+            ->view('surat_tugas.highlight', compact('tugas', 'penerimaList', 'showSigns'))
             ->header('X-Frame-Options', 'ALLOWALL');
     }
 
 
     public function downloadPdf(TugasHeader $tugas)
     {
-        // $tugas sudah ada dari Route Model Binding. Kita hanya perlu load relasi.
         $tugas->load([
             'pembuat',
             'penandatanganUser',
@@ -925,35 +1000,49 @@ class TugasController extends Controller
             'tugasDetail.subTugas',
         ]);
 
-        // Cukup panggil renderTugasPdfWithSign yang sudah diperbaiki
-        $bytes = $this->renderTugasPdfWithSign($tugas);
-
         $safeNomor = preg_replace('/[\/\\\\]+/', '-', (string)($tugas->nomor ?? 'TanpaNomor'));
+
+        if ($this->shouldShowSignatures($tugas)) {
+            // Sudah disetujui: render PDF final dengan TTD/Cap
+            $bytes = $this->renderTugasPdfWithSign($tugas);
+            return response($bytes, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="SuratTugas_' . $safeNomor . '.pdf"',
+            ]);
+        }
+
+        // Belum disetujui: render PDF draft TANPA TTD/Cap (aman)
+        $bytes = $this->renderTugasPdfDraft($tugas);
         return response($bytes, 200, [
             'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="SuratTugas_' . $safeNomor . '.pdf"',
+            'Content-Disposition' => 'inline; filename="SuratTugas_DRAFT_' . $safeNomor . '.pdf"',
         ]);
     }
 
-    public function preview($tugasId)
+
+    public function preview(TugasHeader $tugas, Request $request)
     {
-        $tugas = TugasHeader::with([
+        $tugas->load([
             'pembuat',
             'penandatanganUser',
             'penerima.pengguna.peran',
             'tugasDetail.subTugas',
-        ])->findOrFail($tugasId);
+        ]);
 
-        // Panggil helper baru kita
-        $signAssets = $this->getSigningAssets($tugas);
+        $signAssets   = $this->getSigningAssets($tugas);
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
+
+        // Preview default: sembunyikan TTD/Cap (agar tidak "bocor" sebelum disetujui)
+        $override  = $this->resolveShowSignsOverride($request);
+        $showSigns = $override ? true : $this->shouldShowSignatures($tugas);
 
         return response()->view('surat_tugas.preview', array_merge(
             [
                 'tugas'        => $tugas,
                 'penerimaList' => $penerimaList,
+                'showSigns'    => $showSigns,
             ],
-            $signAssets // Langsung gabungkan semua aset dari helper
+            $signAssets
         ))->header('X-Frame-Options', 'ALLOWALL');
     }
 }

@@ -1,16 +1,30 @@
+{{-- resources/views/surat_tugas/surat_pdf.blade.php --}}
+
+{{-- === GUARD VISIBILITAS TTD/CAP (PDF) === --}}
+@php
+  // Controller idealnya mengirim 'showSigns' & 'isDraft'.
+  // Fallback aman bila belum dikirim:
+  if (!isset($showSigns)) {
+    $showSigns = isset($tugas)
+      ? (($tugas->status_surat ?? null) === 'disetujui' && !empty($tugas->signed_at ?? null))
+      : false;
+  }
+  // Jika controller tidak set isDraft, anggap draft bila showSigns=false
+  $isDraft = $isDraft ?? (!$showSigns);
+@endphp
+
 {{-- Surat Tugas - PDF (satu render, tanpa page-break tambahan) --}}
 @php
   $context = 'pdf';
-  // Ambil nilai ukuran & opacity yang sudah tersimpan di database untuk tugas ini
-  $ttdW = $ttdW ?? ($tugas->ttd_w_mm ?? null);
-  $capW = $capW ?? ($tugas->cap_w_mm ?? null);
+
+  // Ambil ukuran & opacity dari DB jika tidak di-override controller
+  $ttdW       = $ttdW       ?? ($tugas->ttd_w_mm ?? null);
+  $capW       = $capW       ?? ($tugas->cap_w_mm ?? null);
   $capOpacity = $capOpacity ?? ($tugas->cap_opacity ?? null);
 
-  // Controller harus menyediakan gambar TTD & Cap dalam format base64
-  // karena Dompdf lebih stabil menanganinya.
-  // Contoh di Controller:
-  // $data['ttdImageB64'] = Helper::pathToBase64(storage_path('app/public/' . $tugas->ttd_path));
-  // $data['capImageB64'] = Helper::pathToBase64(storage_path('app/public/' . $tugas->cap_path));
+  // HARDENING: Jangan oper gambar TTD/Cap ke partial jika belum boleh tampil
+  $ttdImageB64_safe = $showSigns ? ($ttdImageB64 ?? null) : null;
+  $capImageB64_safe = $showSigns ? ($capImageB64 ?? null) : null;
 @endphp
 
 @include('surat_tugas.partials._core', [
@@ -18,9 +32,24 @@
   'tugas'        => $tugas,
   'kop'          => $kop ?? null,
   'penerimaList' => $penerimaList ?? null,
+
+  // preferensi ukuran/opacity
   'ttdW'         => $ttdW,
   'capW'         => $capW,
   'capOpacity'   => $capOpacity,
-  'ttdImageB64'  => $ttdImageB64 ?? null, // Pastikan dikirim dari controller
-  'capImageB64'  => $capImageB64 ?? null, // Pastikan dikirim dari controller
+
+  // aset gambar (aman: akan null jika belum boleh tampil)
+  'ttdImageB64'  => $ttdImageB64_safe,
+  'capImageB64'  => $capImageB64_safe,
+
+  // flag kunci agar _core ikut patuh
+  'showSigns'    => $showSigns,
 ])
+
+@if ($isDraft)
+  <div style="
+    position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-20deg);
+    font-size: 80px; color: rgba(150,150,150,0.25); font-weight: 700; z-index: 0;
+    white-space: nowrap; pointer-events: none;
+  ">DRAFT / BELUM DISETUJUI</div>
+@endif

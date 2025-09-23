@@ -1,3 +1,13 @@
+{{-- === GUARD VISIBILITAS TTD/CAP (SHOW) === --}}
+@php
+  if (!isset($showSigns)) {
+    $showSigns = isset($tugas)
+      ? (($tugas->status_surat ?? null) === 'disetujui' && !empty($tugas->signed_at ?? null))
+      : false;
+  }
+@endphp
+
+
 @extends('layouts.app')
 
 @section('title', 'Detail Surat Tugas: ' . $tugas->nomor)

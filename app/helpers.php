@@ -96,4 +96,47 @@ if (!function_exists('logStatusChange')) {
             ]);
         }
     }
+
+/**
+ * Mengambil inisial dari nama lengkap.
+ * Contoh: "John Doe" menjadi "JD".
+ */
+if (!function_exists('get_initials')) {
+    function get_initials($name) {
+        $words = explode(' ', $name);
+        $initials = '';
+        $max = 2; // Ambil maksimal 2 huruf
+        for ($i = 0; $i < count($words) && $i < $max; $i++) {
+            $initials .= strtoupper(substr($words[$i], 0, 1));
+        }
+        return $initials;
+    }
 }
+
+/**
+ * Menghasilkan kode warna hex dari sebuah string (nama).
+ */
+if (!function_exists('generate_color_from_string')) {
+    function generate_color_from_string($string) {
+        $hash = md5($string);
+        return '#' . substr($hash, 0, 6);
+    }
+}
+
+/**
+ * Membuat badge untuk peran pengguna.
+ */
+if (!function_exists('badge_peran')) {
+    function badge_peran($peran) {
+        $colors = [
+            'Admin' => 'danger',
+            'Operator' => 'info',
+            'User' => 'secondary',
+            // tambahkan peran lain di sini
+        ];
+        $color = $colors[$peran] ?? 'light'; // Default color
+        return "<span class='badge badge-{$color} badge-peran'>{$peran}</span>";
+    }
+}
+}
+
