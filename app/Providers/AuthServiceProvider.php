@@ -28,38 +28,67 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // === BARU: Boleh melihat halaman Approve List (khusus Dekan/Wakil Dekan) ===
-        Gate::define('view-approve-list', function ($user) {
-            return in_array((int) $user->peran_id, [2, 3], true);
-        });
+        /** ===========================
+         *  Gates untuk SURAT TUGAS (Existing)
+         *  =========================== */
+        // Boleh melihat halaman Approve List (khusus Dekan/Wakil Dekan)
+        Gate::define('view-approve-list', fn($user) => in_array((int)$user->peran_id, [2, 3], true));
 
-        // === BARU: Boleh APPROVE satu surat tertentu ===
+        // Approve Tugas spesifik (existing)
         Gate::define('approve-tugas', function ($user, TugasHeader $tugas) {
-            // Hanya Dekan/Wakil Dekan
-            if (!in_array((int) $user->peran_id, [2, 3], true)) {
-                return false;
-            }
-
-            // Tidak boleh meng-approve surat yang dibuat sendiri
-            if ((int) $tugas->dibuat_oleh === (int) $user->id) {
-                return false;
-            }
-
-            // Hanya jika status pending & user adalah next_approver
-            return $tugas->status_surat === 'pending'
-                && (int) $tugas->next_approver === (int) $user->id;
+            return in_array((int)$user->peran_id, [2, 3], true)
+                && (string)$tugas->status_surat === 'pending'
+                && (int)$tugas->next_approver === (int)$user->id;
         });
 
-        // (SUDAH ADA) Gate: approver (2/3) boleh koreksi bila dia yang dituju & status draft/pending
+        // Approver (2/3) boleh koreksi bila dia yang dituju & status draft/pending
         Gate::define('edit-surat', function ($user, $tugas) {
-            return in_array((int) $user->peran_id, [2, 3], true)
-                && in_array((string) $tugas->status_surat, ['draft', 'pending'], true)
-                && (int) $tugas->next_approver === (int) $user->id;
+            return in_array((int)$user->peran_id, [2, 3], true)
+                && in_array((string)$tugas->status_surat, ['draft', 'pending'], true)
+                && (int)$tugas->next_approver === (int)$user->id;
         });
 
-        // (SUDAH ADA) Gate: kelola kop surat → Admin TU (id peran 1)
-        Gate::define('manage-kop-surat', function ($user) {
-            return in_array((int) $user->peran_id, [1], true);
-        });
+        // Kelola kop surat → Admin TU (peran 1)
+        Gate::define('manage-kop-surat', fn($user) => (int)$user->peran_id === 1);
+
+        /** ===========================
+         *  Gates praktis untuk SURAT KEPUTUSAN (SK)
+         *  (semua diarahkan ke Policy agar logic terkonsolidasi)
+         *  =========================== */
+        Gate::define('view-keputusan', fn($user, KeputusanHeader $k) =>
+            app(KeputusanHeaderPolicy::class)->view($user, $k)
+        );
+
+        Gate::define('create-keputusan', fn($user) =>
+            app(KeputusanHeaderPolicy::class)->create($user)
+        );
+
+        Gate::define('update-keputusan', fn($user, KeputusanHeader $k) =>
+            app(KeputusanHeaderPolicy::class)->update($user, $k)
+        );
+
+        Gate::define('submit-keputusan', fn($user, KeputusanHeader $k) =>
+            app(KeputusanHeaderPolicy::class)->submit($user, $k)
+        );
+
+        Gate::define('approve-keputusan', fn($user, KeputusanHeader $k) =>
+            app(KeputusanHeaderPolicy::class)->approve($user, $k)
+        );
+
+        Gate::define('reject-keputusan', fn($user, KeputusanHeader $k) =>
+            app(KeputusanHeaderPolicy::class)->reject($user, $k)
+        );
+
+        Gate::define('sign-keputusan', fn($user, KeputusanHeader $k) =>
+            app(KeputusanHeaderPolicy::class)->sign($user, $k)
+        );
+
+        Gate::define('publish-keputusan', fn($user, KeputusanHeader $k) =>
+            app(KeputusanHeaderPolicy::class)->publish($user, $k)
+        );
+
+        Gate::define('delete-keputusan', fn($user, KeputusanHeader $k) =>
+            app(KeputusanHeaderPolicy::class)->delete($user, $k)
+        );
     }
 }

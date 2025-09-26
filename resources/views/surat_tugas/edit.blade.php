@@ -277,9 +277,6 @@
             @can('edit-surat', $tugas)
               <div class="mt-2">
                 <button type="submit" class="btn btn-block btn-warning mb-2"><i class="fas fa-pen mr-2"></i>Simpan Koreksi</button>
-                <button type="submit" name="simpan_approve" value="1" class="btn btn-block btn-success">
-                  <i class="fas fa-check mr-2"></i>Simpan & Approve
-                </button>
               </div>
             @endcan
           @endif

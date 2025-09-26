@@ -94,9 +94,9 @@
                         </div>
                     </div>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#">
-                        <i class="fas fa-user-cog"></i> Pengaturan Akun
-                    </a>
+                    <a class="dropdown-item" href="{{ route('account.settings') }}">
+    <i class="fas fa-user-cog"></i> Pengaturan Akun
+</a>
                     <a class="dropdown-item text-danger" href="#" id="logout-link">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>

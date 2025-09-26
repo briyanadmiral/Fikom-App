@@ -26,7 +26,7 @@
         gap: 1rem;
         margin-bottom: 2rem;
     }
-    .stat-card { width:160px; border-radius:.75rem }
+    .stat-card { width:160px; border-radius:.75rem; cursor: pointer; }
     .stat-card .card-body { text-align:center; padding:1rem }
     .stat-card .icon { font-size:1.75rem; margin-bottom:.5rem }
     .stat-card .label { color:#6c757d; font-size:.85rem; margin-bottom:.25rem; font-weight:600 }
@@ -70,7 +70,7 @@
 
     {{-- Header Ungu --}}
     <h2 class="header-title">
-        <i class="fas fa-clipboard-list me-2"></i> Surat Keputusan Saya
+        <i class="fas fa-clipboard-list me-2" aria-hidden="true"></i> Surat Keputusan Saya
     </h2>
 
     {{-- Flash via SweetAlert --}}
@@ -87,11 +87,11 @@
             'draft'     => ['icon'=>'fa-file-alt','label'=>'Draft','count'=>$stats['draft'] ?? 0,'color'=>'secondary'],
             'pending'   => ['icon'=>'fa-hourglass-half','label'=>'Pending','count'=>$stats['pending'] ?? 0,'color'=>'warning'],
             'disetujui' => ['icon'=>'fa-check-circle','label'=>'Disetujui','count'=>$stats['disetujui'] ?? 0,'color'=>'success'],
-        ] as $info)
-        <div class="stat-card card shadow-sm">
+        ] as $statusKey => $info)
+        <div class="stat-card card shadow-sm" data-status="{{ $statusKey }}">
             <div class="card-body">
                 <div class="icon text-{{ $info['color'] }}">
-                    <i class="fas {{ $info['icon'] }}"></i>
+                    <i class="fas {{ $info['icon'] }}" aria-hidden="true"></i>
                 </div>
                 <div class="label">{{ $info['label'] }}</div>
                 <div class="value">{{ $info['count'] }}</div>
@@ -101,11 +101,11 @@
     </div>
 
     {{-- Tombol Tambah SK (Admin TU) --}}
-    @if(auth()->user()->peran_id === 1)
+    @if((int)auth()->user()->peran_id === 1)
     <div class="d-flex justify-content-end mb-4">
         <a href="{{ route('surat_keputusan.create') }}"
            class="btn btn-primary rounded-pill px-4">
-            <i class="fas fa-plus me-2"></i>Tambah Surat Keputusan
+            <i class="fas fa-plus me-2" aria-hidden="true"></i>Tambah Surat Keputusan
         </a>
     </div>
     @endif
@@ -114,17 +114,17 @@
     <div class="card mb-4 shadow-sm border-0">
         <div class="card-header bg-white border-0 py-3">
             <h5 class="mb-0 fw-bold">
-                <i class="fas fa-filter me-2 text-primary"></i>Filter & Pencarian
+                <i class="fas fa-filter me-2 text-primary" aria-hidden="true"></i>Filter & Pencarian
             </h5>
         </div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label small text-uppercase">Cari</label>
-                    <input id="globalSearch" class="form-control" placeholder="Ketikan nomor, judul...">
+                    <label class="form-label small text-uppercase" for="globalSearch">Cari</label>
+                    <input id="globalSearch" class="form-control" placeholder="Ketik nomor, judul...">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small text-uppercase">Status</label>
+                    <label class="form-label small text-uppercase" for="statusFilter">Status</label>
                     <select id="statusFilter" class="form-select w-100">
                         <option value="">Semua Status</option>
                         @foreach(['draft'=>'Draft','pending'=>'Pending','disetujui'=>'Disetujui'] as $val=>$lbl)
@@ -133,16 +133,16 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small text-uppercase">Dari Tgl Dibuat</label>
+                    <label class="form-label small text-uppercase" for="startDate">Dari Tgl Dibuat</label>
                     <input id="startDate" type="date" class="form-control">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small text-uppercase">Sampai Tgl Dibuat</label>
+                    <label class="form-label small text-uppercase" for="endDate">Sampai Tgl Dibuat</label>
                     <input id="endDate" type="date" class="form-control">
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button id="resetFilters" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-redo me-1"></i>Reset
+                    <button id="resetFilters" class="btn btn-outline-secondary w-100" type="button">
+                        <i class="fas fa-redo me-1" aria-hidden="true"></i>Reset
                     </button>
                 </div>
             </div>
@@ -172,56 +172,56 @@
                         <tr>
                             <td class="text-center">{{ $loop->iteration }}</td>
                             <td>{{ $sk->nomor }}</td>
-                            <td>
-                                {{ $sk->tanggal_sk
-                                    ? \Carbon\Carbon::parse($sk->tanggal_sk)->format('d-m-Y')
-                                    : '-' }}
-                            </td>
-                            <td>{{ $sk->judul ?? '-' }}</td>
+                            <td>{{ optional($sk->tanggal_asli)->format('d-m-Y') ?? '-' }}</td>
+                            <td>{{ \Illuminate\Support\Str::limit($sk->tentang ?? '-', 80) }}</td>
                             <td>{{ $sk->pembuat->nama_lengkap ?? '-' }}</td>
                             <td class="text-center">
                                 <span class="badge badge-status-{{ $sk->status_surat }}">
                                     {{ ucfirst($sk->status_surat) }}
                                 </span>
                             </td>
-                            <td>{{ $sk->created_at->format('d-m-Y H:i') }}</td>
+                            <td data-order="{{ optional($sk->created_at)->timestamp ?? 0 }}">
+                                {{ optional($sk->created_at)->format('d-m-Y H:i') ?? '-' }}
+                            </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-1">
                                     {{-- VIEW --}}
                                     <a href="{{ route('surat_keputusan.show', $sk->id) }}"
                                        class="btn btn-sm btn-outline-info" title="Lihat">
-                                        <i class="fas fa-eye"></i>
+                                        <i class="fas fa-eye" aria-hidden="true"></i>
                                     </a>
-                                    {{-- EDIT & DELETE --}}
-                                    @if($sk->status_surat==='draft' && auth()->user()->peran_id===1)
+
+                                    {{-- EDIT (hanya draft milik sendiri & Admin TU) --}}
+                                    @if($sk->status_surat==='draft' && (int)auth()->user()->peran_id===1 && (int)auth()->id()===(int)$sk->dibuat_oleh)
                                         <a href="{{ route('surat_keputusan.edit', $sk->id) }}"
                                            class="btn btn-sm btn-outline-warning" title="Edit">
-                                            <i class="fas fa-edit"></i>
+                                            <i class="fas fa-edit" aria-hidden="true"></i>
                                         </a>
-                                        <form action="{{ route('surat_keputusan.destroy', $sk->id) }}"
-                                              method="POST" class="d-inline form-delete">
-                                            @csrf @method('DELETE')
-                                            <button type="submit"
-                                                    class="btn btn-sm btn-outline-danger"
-                                                    title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
                                     @endif
-                                    {{-- APPROVE --}}
+
+                                    {{-- APPROVE (pending & penandatangan adalah user Dekan/Wadek) --}}
                                     @if($sk->status_surat==='pending'
-                                        && in_array(auth()->user()->peran_id,[2,3])
-                                        && $sk->penandatangan==auth()->user()->id)
+                                        && in_array((int)auth()->user()->peran_id,[2,3], true)
+                                        && (int)$sk->penandatangan === (int)auth()->user()->id)
                                         <form action="{{ route('surat_keputusan.approve', $sk->id) }}"
                                               method="POST" class="d-inline">
-                                            @csrf @method('PATCH')
+                                            @csrf
                                             <button type="submit"
                                                     class="btn btn-sm btn-outline-success"
                                                     title="Approve">
-                                                <i class="fas fa-check"></i>
+                                                <i class="fas fa-check" aria-hidden="true"></i>
                                             </button>
                                         </form>
                                     @endif
+
+                                    {{-- OPSIONAL: tombol PDF hanya jika sudah disetujui
+                                    @if($sk->status_surat==='disetujui')
+                                        <a href="{{ route('surat_keputusan.pdf', $sk->id) }}"
+                                           class="btn btn-sm btn-success" title="Unduh PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                    @endif
+                                    --}}
                                 </div>
                             </td>
                         </tr>
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     moment.locale('id');
-    // custom date filter
+    // Custom date filter untuk kolom "Tgl Dibuat" (index 6, format 'DD-MM-YYYY HH:mm')
     $.fn.dataTable.ext.search.push((settings,data) => {
         const min = $('#startDate').val(),
               max = $('#endDate').val(),
@@ -293,29 +293,20 @@ document.addEventListener('DOMContentLoaded', () => {
         pagingType:"simple_numbers"
     });
 
-    // filter events
+    // Filter dari panel filter
     $('#globalSearch').on('keyup',    () => table.search($('#globalSearch').val()).draw());
-    $('#statusFilter').on('change',   () => table.column(5).search($('#statusFilter').val() ? 
-        `^${$('#statusFilter').val()}$` : '', true,false).draw());
+    $('#statusFilter').on('change',   () => table.column(5).search($('#statusFilter').val()
+        ? `^${$('#statusFilter').val()}$` : '', true,false).draw());
     $('#startDate,#endDate').on('change', () => table.draw());
     $('#resetFilters').on('click',    () => {
         $('#globalSearch,#statusFilter,#startDate,#endDate').val('');
         table.search('').columns().search('').draw();
     });
 
-    // confirm delete
-    $(document).on('submit','.form-delete', function(e){
-        e.preventDefault();
-        const form = this;
-        Swal.fire({
-            title: 'Yakin hapus surat ini?',
-            text: 'Data yang sudah dihapus tidak dapat dikembalikan.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Ya, hapus!',
-            cancelButtonText: 'Batal',
-            reverseButtons: true
-        }).then(r => r.isConfirmed && form.submit());
+    // Klik kartu statistik -> set filter status
+    $('.stat-card').on('click', function() {
+        const status = $(this).data('status') || '';
+        $('#statusFilter').val(status).trigger('change');
     });
 });
 </script>

@@ -1,3 +1,5 @@
+{{-- resources/views/surat_tugas/partials/_core.blade.php --}}
+
 {{-- === GUARD VISIBILITAS TTD/CAP (fallback) === --}}
 @php
   if (!isset($showSigns)) {
@@ -11,25 +13,21 @@
   // ==== context: 'pdf' | 'web' (default 'web') ====
   $context = $context ?? 'web';
 
-  // Helper path gambar (header/logo/foot) untuk WEB/PDF
-  $img = function ($path) use ($context) {
-      if (!$path) return null;
-      return $context === 'pdf' ? public_path('storage/'.$path) : asset('storage/'.$path);
-  };
+  // Pakai daftar penerima yang dikirim controller jika ada; kalau tidak, hitung dari relasi
+  $penerimaList = isset($penerimaList) && is_array($penerimaList)
+      ? $penerimaList
+      : ($tugas->penerima?->pluck('pengguna.nama_lengkap')->filter()->values()->all() ?? []);
 
-  // Base64 untuk DomPDF (lebih stabil untuk gambar dinamis)
-  $img64 = function ($path) {
-      if (!$path) return null;
-      $file = public_path('storage/'.$path);
-      if (!is_file($file)) return null;
-      $ext = pathinfo($file, PATHINFO_EXTENSION);
-      return 'data:image/'.$ext.';base64,'.base64_encode(file_get_contents($file));
-  };
+  $roleNames = collect($tugas->penerima ?? [])
+      ->map(fn($p) => optional(optional($p->pengguna)->peran)->deskripsi)
+      ->filter()->unique()->values()->all();
 
-  $penerimaList = $tugas->penerima?->pluck('pengguna.nama_lengkap')->filter()->values()->all() ?? [];
-  $roleNames = collect($tugas->penerima ?? [])->map(fn($p) => optional(optional($p->pengguna)->peran)->deskripsi)->filter()->unique()->values()->all();
-  $statusDisplay = $roleNames ? implode(', ', $roleNames) : (\Illuminate\Support\Str::headline($tugas->status_penerima ?? '') ?: '-');
-  $tugasSpesifik = optional($tugas->subTugas)->nama ?? ($tugas->tugas ?? $tugas->nama_umum ?? '-');
+  $statusDisplay = $roleNames
+      ? implode(', ', $roleNames)
+      : (\Illuminate\Support\Str::headline($tugas->status_penerima ?? '') ?: '-');
+
+  $tugasSpesifik = optional($tugas->subTugas)->nama
+      ?? ($tugas->tugas ?? $tugas->nama_umum ?? '-');
 
   // Variabel TTD & Cap
   $ttdW_final       = $ttdW       ?? 42;
@@ -46,35 +44,12 @@
 {{-- ====================== STYLING & WRAPPER ====================== --}}
 @if($context === 'pdf')
   <style>
-    /* Menggunakan @page untuk margin cetak yang benar */
     @page { margin: 2cm; }
-
-    /* Hapus margin dari body, karena sudah diatur oleh @page */
-    body {
-        font-family: "Times New Roman", Times, serif;
-        margin: 0;
-        font-size: 16px;
-    }
-
+    body { font-family: "Times New Roman", Times, serif; margin: 0; font-size: 16px; }
     table { border-collapse: collapse; width: 100%; }
     td { padding: 4px 8px; vertical-align: top; }
 
-    /* Header */
-    .kop-wrap {
-        position: static;
-        width: 100%;
-        padding-bottom: 8px;
-        border-bottom: 2px solid #000;
-        margin-bottom: 20px;
-    }
-    .kop-td-text { width: calc(100% - 130px); }
-    .kop-td-logo { width: 130px; text-align: right; border-left: 2px solid #000; padding-left: 12px; }
-    .kop-text { line-height: 1.25; text-align: right; }
-    .kop-text .l1 { font-weight: 800; font-size: 21px; color: #6A2C8E; }
-    .kop-text .l2 { font-weight: 800; font-size: 15px; margin-top: -2px; color: #6A2C8E; }
-    .kop-text .addr { font-size: 11px; margin-top: 6px; color: #111; }
-    .logo-kanan { width: 92px; height: auto; }
-
+    /* Hanya elemen umum, kop ditangani oleh shared/_kop_surat */
     .judul { text-align: center; font-weight: 700; font-size: 22px; text-decoration: underline; }
     .nomor { text-align: center; margin: 6px 0 20px; }
     .isi-surat { line-height: 1.5; }
@@ -102,15 +77,12 @@
     .detail-tugas { margin: 1.2em 0 1.2em 40px; }
     table{ border-collapse:collapse; width: 100%; }
     td{ padding:4px 8px; vertical-align:top; }
-    .kop-wrap{ position:absolute; top:10mm; left:15mm; right:15mm; padding-bottom:8px; border-bottom:2px solid #000; }
-    .kop-tbl{ width:100%; border-collapse:collapse; }
-    .kop-td-text{ width: calc(100% - 130px); }
-    .kop-td-logo{ width:130px; text-align:right; border-left:2px solid #000; padding-left:12px; }
-    .kop-text{ line-height:1.25; text-align:right; }
-    .kop-text .l1{ font-weight:800; font-size:21px; letter-spacing:.4px; color:#6A2C8E; }
-    .kop-text .l2{ font-weight:800; font-size:15px; margin-top:-2px; color:#6A2C8E; }
-    .kop-text .addr{ font-size:11px; margin-top:6px; color:#111; text-align:right; }
-    .logo-kanan{ width:92px; height:auto; }
+
+    /* .kop-wrap disediakan oleh shared/_kop_surat; di web kita posisikan absolut seperti sebelumnya */
+    .kop-wrap{ position:absolute; top:10mm; left:15mm; right:15mm; }
+    /* shared/_kop_surat sudah menambahkan divider; jika ingin tambahan spacing, bisa margin-bottom di bawah ini */
+    .kop-wrap + .judul { margin-top: 12px; }
+
     .ttd-wrapper { display: table; width: 100%; margin-top: 25px; }
     .ttd-kolom-kiri { display: table-cell; width: 55%; }
     .ttd-kolom-kanan { display: table-cell; width: 45%; vertical-align: top; }
@@ -124,35 +96,14 @@
 @endif
 
 {{-- ====================== HTML KONTEN ====================== --}}
-@if($kop && ($kop->mode ?? null) === 'composed')
-    <div class="kop-wrap">
-        <table>
-            <tr>
-                <td class="kop-td-text">
-                    <div class="kop-text">
-                        <div class="l1">{{ strtoupper($kop->judul_atas ?? '') }}</div>
-                        <div class="l2">{{ strtoupper($kop->subjudul ?? '') }}</div>
-                        <div class="addr">
-                            {{ $kop->alamat ?? '' }}<br>
-                            Telp. {{ $kop->telepon ?? '' }}@if(!empty($kop?->fax)) , Fax. {{ $kop->fax }} @endif<br>
-                            email: {{ $kop->email ?? '' }} @if(!empty($kop?->website)) | {{ $kop->website }} @endif
-                        </div>
-                    </div>
-                </td>
-                <td class="kop-td-logo">
-                    @if(($kop->tampilkan_logo_kanan ?? false) && !empty($kop->logo_kanan_path))
-                        @if($context === 'pdf')
-                            @php $src = $img64($kop->logo_kanan_path); @endphp
-                            @if($src)<img class="logo-kanan" src="{{ $src }}">@endif
-                        @else
-                            <img class="logo-kanan" src="{{ $img($kop->logo_kanan_path) }}">
-                        @endif
-                    @endif
-                </td>
-            </tr>
-        </table>
-    </div>
-@endif
+
+{{-- === KOP SURAT (gunakan partial bersama) === --}}
+@include('shared._kop_surat', [
+  'kop'      => $kop ?? null,
+  'context'  => $context,
+  // Kalau ingin pakai logo kiri juga:
+  // 'showLeftLogo' => true,
+])
 
 <div class="judul">SURAT TUGAS</div>
 <div class="nomor">Nomor : {{ $tugas->nomor ?? '-' }}</div>
@@ -174,7 +125,7 @@
           @php
             $waktuList = [];
             if (!empty($tugas->semester)) $waktuList[] = $tugas->semester;
-            if (!empty($tugas->tahun)) $waktuList[] = $tugas->tahun;
+            if (!empty($tugas->tahun))    $waktuList[] = $tugas->tahun;
             echo !empty($waktuList) ? implode(' ', $waktuList) : '-';
           @endphp
         </td>

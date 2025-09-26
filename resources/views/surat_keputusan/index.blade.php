@@ -2,280 +2,234 @@
 @section('title', 'Daftar Surat Keputusan')
 
 @push('styles')
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
     <style>
-    /* ========== Header Ungu ========== */
-    .header-title {
-        color: #800080;
-        font-size: 2rem;
-        font-weight: 700;
-        border-bottom: 4px solid #800080;
-        display: inline-block;
-        padding-bottom: .25rem;
-        margin-bottom: 1.5rem;
-    }
+        /* Menggunakan kembali style dari halaman Surat Tugas untuk konsistensi */
+        .page-header {
+            background: #f3f6fa; padding: 1.3rem 2.2rem; border-radius: 1.1rem;
+            margin-bottom: 2.2rem; border: 1px solid #e0e6ed;
+            display: flex; align-items: center; gap: 1.3rem;
+        }
+        /* Warna ikon header untuk Surat Keputusan */
+        .page-header .icon {
+            background: linear-gradient(135deg, #6f42c1 0%, #9a6ee5 100%);
+            width: 54px; height: 54px; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; box-shadow: 0 1px 10px #6f42c14d; font-size: 2rem;
+        }
+        .page-header-title { font-weight: bold; color: #412674; font-size: 1.85rem; margin-bottom: 0.13rem; letter-spacing: -1px; }
+        .page-header-desc { color: #636e7b; font-size: 1.03rem; }
 
-    /* ========== Statistik Minimalis Centered ========== */
-    .stat-wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-    .stat-card { width:160px; border-radius:.75rem }
-    .stat-card .card-body { text-align:center; padding:1rem }
-    .stat-card .icon { font-size:1.75rem; margin-bottom:.5rem }
-    .stat-card .label { color:#6c757d; font-size:.85rem; margin-bottom:.25rem; font-weight:600 }
-    .stat-card .value { font-size:1.75rem; font-weight:700; line-height:1 }
+        .stat-card-lg {
+            background-color: #fff; border: 1px solid #e9ecef; border-left-width: 4px;
+            border-radius: .7rem; padding: 1rem 1.25rem; transition: all .2s ease; cursor: pointer;
+        }
+        .stat-card-lg:hover { transform: translateY(-3px); box-shadow: 0 7px 20px rgba(0,0,0,.08); }
+        .stat-card-lg .stat-value { font-size: 1.75rem; font-weight: 700; }
+        .stat-card-lg .stat-label { font-size: .9rem; color: #6c757d; font-weight: 500; }
 
-    /* ========== Override form-select ========== */
-    .form-select {
-      appearance:none; width:100% !important;
-      padding:.375rem .75rem !important;
-      border:1px solid #ced4da !important; border-radius:.375rem !important;
-      background:#fff url("data:image/svg+xml;charset=UTF-8,%3Csvg viewBox='0 0 4 5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 0L0 2h4zm0 5L0 3h4z' fill='%236c757d'/%3E%3C/svg%3E")
-        no-repeat right .75rem center !important;
-      background-size:.65em auto !important;
-    }
-    .form-select::-ms-expand { display:none }
-    .form-select:focus {
-      border-color:#800080 !important;
-      box-shadow:0 0 0 .2rem rgba(128,0,128,.25) !important;
-      outline:none !important;
-    }
+        .filter-card { border: none; border-radius: .8rem; background-color: #fff; box-shadow: 0 4px 25px rgba(0,0,0,.05); }
+        .filter-card .card-header { background-color: transparent; border-bottom: 1px solid #f0f0f0; }
 
-    /* ========== Badge Status ========== */
-    .badge-status-draft     { background:#f8f9fa; color:#6c757d }
-    .badge-status-pending   { background:#fff3cd; color:#856404 }
-    .badge-status-disetujui { background:#d1e7dd; color:#0f5132 }
+        .card-data { border: none; border-radius: .8rem; box-shadow: 0 4px 25px rgba(0,0,0, .07); }
+        .card-data .card-header { background-color: #fff; border-bottom: 1px solid #f0f0f0; padding: 1rem 1.5rem; }
+        .table-data thead th { background: #f8f9fa; color: #555; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.85rem; border-bottom: 2px solid #dee2e6; }
+        .table-data tbody td { vertical-align: middle; }
+        .surat-info .surat-nomor { font-weight: 600; color: #343a40; display: block; }
+        .surat-info .surat-perihal { font-size: .9rem; color: #6c757d; }
 
-    /* ========== DataTables tweak ========== */
-    #table-keputusan_wrapper .dataTables_length,
-    #table-keputusan_wrapper .dataTables_filter { display:none }
-    .dataTables_paginate .paginate_button.current,
-    .dataTables_paginate .paginate_button.current:hover {
-        background:#0d6efd !important; color:#fff !important;
-    }
-    .dataTables_paginate .paginate_button:hover {
-        background:rgba(13,110,253,.1) !important; color:#0d6efd !important;
-    }
+        .status-badge { font-size: .75rem; font-weight: 700; padding: .4em .8em; border-radius: 50px; text-transform: uppercase; letter-spacing: .5px; }
+        .status-badge-draft { background-color: #e9ecef; color: #6c757d; }
+        .status-badge-pending { background-color: #fff3cd; color: #856404; }
+        .status-badge-disetujui { background-color: #d4edda; color: #155724; }
+        .btn-action { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,.15); }
+        .stat-card-lg.border-left-primary   { border-left-color: #007bff !important; }
+.stat-card-lg.border-left-secondary { border-left-color: #6c757d !important; }
+.stat-card-lg.border-left-warning   { border-left-color: #ffc107 !important; }
+.stat-card-lg.border-left-success   { border-left-color: #28a745 !important; }
+
     </style>
 @endpush
 
+@section('content_header')
+<div class="page-header mt-2 mb-3">
+    <span class="icon"><i class="fas fa-gavel text-white" aria-hidden="true"></i></span>
+    <span>
+        <div class="page-header-title">Daftar Surat Keputusan</div>
+        <div class="page-header-desc">Kelola, filter, dan lacak status semua Surat Keputusan (SK) di sini.</div>
+    </span>
+</div>
+@endsection
+
 @section('content')
-<div class="container-fluid px-4">
-
-    {{-- Header Ungu --}}
-    <h2 class="header-title">
-        <i class="fas fa-list me-2"></i> Daftar Surat Keputusan
-    </h2>
-
-    {{-- Flash via SweetAlert --}}
-    @if(session('success') || session('error'))
-        <div class="d-none" id="swal-flash"
-             data-message="{{ session('success') ?? session('error') }}"
-             data-type="{{ session('success') ? 'success' : 'error' }}">
-        </div>
-    @endif
-
-    {{-- Statistik --}}
-    <div class="stat-wrapper">
+<div class="container-fluid">
+    {{-- Statistik Interaktif --}}
+    <div class="row mb-4">
+        @php
+            $total = isset($list) ? $list->count() : (($stats['draft'] ?? 0) + ($stats['pending'] ?? 0) + ($stats['disetujui'] ?? 0));
+        @endphp
         @foreach([
-            'draft'     => ['label'=>'Draft','count'=>$stats['draft'] ?? 0,'color'=>'secondary'],
-            'pending'   => ['label'=>'Pending','count'=>$stats['pending'] ?? 0,'color'=>'warning'],
-            'disetujui' => ['label'=>'Disetujui','count'=>$stats['disetujui'] ?? 0,'color'=>'success'],
-        ] as $key => $info)
-        <div class="stat-card card shadow-sm">
-            <div class="card-body">
-                <div class="icon text-{{ $info['color'] }}">
-                    @if($key==='draft')      <i class="fas fa-file-alt"></i>
-                    @elseif($key==='pending') <i class="fas fa-hourglass-half"></i>
-                    @else                     <i class="fas fa-check-circle"></i>
-                    @endif
+            'semua'     => ['label'=>'Total SK','count'=>$total,'color'=>'primary','icon'=>'fa-archive'],
+            'draft'     => ['label'=>'Draft','count'=>$stats['draft'] ?? 0,'color'=>'secondary','icon'=>'fa-file-alt'],
+            'pending'   => ['label'=>'Pending','count'=>$stats['pending'] ?? 0,'color'=>'warning','icon'=>'fa-hourglass-half'],
+            'disetujui' => ['label'=>'Disetujui','count'=>$stats['disetujui'] ?? 0,'color'=>'success','icon'=>'fa-check-circle'],
+        ] as $status => $info)
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stat-card-lg border-left-{{ $info['color'] }}" data-status="{{ $status === 'semua' ? '' : $status }}" role="button" tabindex="0" aria-label="Filter status {{ $status }}">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="stat-value text-{{ $info['color'] }}">{{ $info['count'] }}</div>
+                        <div class="stat-label">{{ $info['label'] }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas {{ $info['icon'] }} fa-2x text-gray-300" aria-hidden="true"></i>
+                    </div>
                 </div>
-                <div class="label">{{ $info['label'] }}</div>
-                <div class="value">{{ $info['count'] }}</div>
             </div>
         </div>
         @endforeach
     </div>
 
-    {{-- Tombol Tambah SK --}}
-    <div class="d-flex justify-content-end mb-4">
-        <a href="{{ route('surat_keputusan.create') }}"
-           class="btn btn-primary rounded-pill px-4">
-            <i class="fas fa-plus me-2"></i>Tambah Surat Keputusan
-        </a>
-    </div>
-
-    {{-- Filter/Search --}}
-    <div class="card mb-4 shadow-sm border-0">
-        <div class="card-header bg-white border-0 py-3">
-            <h5 class="mb-0 fw-bold">
-                <i class="fas fa-filter me-2 text-primary"></i>Filter & Pencarian
-            </h5>
+    {{-- Panel Filter --}}
+    <div class="card filter-card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0 font-weight-bold">
+                <i class="fas fa-filter text-primary mr-2" aria-hidden="true"></i>Filter & Pencarian
+            </h6>
         </div>
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label small text-uppercase">Cari</label>
-                    <input id="globalSearch" class="form-control" placeholder="Ketikan nomor, perihal...">
+            <div class="row align-items-end">
+                <div class="col-lg-6 form-group mb-lg-0">
+                    <label for="globalSearch">Cari Apa Saja</label>
+                    <input id="globalSearch" type="text" class="form-control" placeholder="Ketik nomor, perihal, atau pembuat...">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-uppercase">Status</label>
-                    <select id="statusFilter" class="form-select w-100">
+                <div class="col-lg-3 col-md-6 form-group mb-lg-0">
+                    <label for="statusFilter">Status Surat</label>
+                    <select id="statusFilter" class="custom-select">
                         <option value="">Semua Status</option>
-                        @foreach(['draft'=>'Draft','pending'=>'Pending','disetujui'=>'Disetujui'] as $val=>$lbl)
-                            <option value="{{ $val }}">{{ $lbl }}</option>
-                        @endforeach
+                        <option value="draft">Draft</option>
+                        <option value="pending">Pending</option>
+                        <option value="disetujui">Disetujui</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-uppercase">Dari Tgl Dibuat</label>
-                    <input id="startDate" type="date" class="form-control">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-uppercase">Sampai Tgl Dibuat</label>
-                    <input id="endDate" type="date" class="form-control">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button id="resetFilters" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-redo me-1"></i>Reset
+                <div class="col-lg-3 col-md-6">
+                    <button id="resetFilters" class="btn btn-outline-secondary w-100" type="button">
+                        <i class="fas fa-redo mr-2" aria-hidden="true"></i>Reset Filter
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Tabel Surat Keputusan --}}
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table id="table-keputusan" class="table table-hover align-middle w-100 mb-0">
-                    <thead class="table-light text-center">
-                        <tr>
-                            <th>#</th>
-                            <th>Nomor</th>
-                            <th>Perihal</th>
-                            <th>Pembuat</th>
-                            <th>Status</th>
-                            <th>Tgl Dibuat</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($list as $sk)
-                        <tr>
-                            <td class="text-center">{{ $loop->iteration }}</td>
-                            <td>{{ $sk->nomor }}</td>
-                            <td>{{ $sk->tentang ?? '-' }}</td>
-                            <td>{{ $sk->pembuat->nama_lengkap ?? '-' }}</td>
-                            <td class="text-center">
-                                <span class="badge badge-status-{{ $sk->status_surat }}">
-                                    {{ ucfirst($sk->status_surat) }}
-                                </span>
-                            </td>
-                            <td>{{ $sk->created_at->format('d-m-Y H:i') }}</td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center gap-1">
-                                    {{-- VIEW --}}
-                                    <a href="{{ route('surat_keputusan.show', $sk->id) }}"
-                                       class="btn btn-sm btn-outline-info" title="Lihat">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    {{-- EDIT & DELETE kalau draft --}}
-                                    @if($sk->status_surat==='draft')
-                                        <a href="{{ route('surat_keputusan.edit', $sk->id) }}"
-                                           class="btn btn-sm btn-outline-warning" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form action="{{ route('surat_keputusan.destroy', $sk->id) }}"
-                                              method="POST" class="d-inline form-delete">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger"
-                                                    title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                Belum ada surat keputusan.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+    {{-- Tabel Utama --}}
+    <div class="card card-data">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 font-weight-bold">Data Surat Keputusan</h5>
+            @if((int)auth()->user()->peran_id === 1)
+                <a href="{{ route('surat_keputusan.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus mr-2" aria-hidden="true"></i>Tambah SK Baru
+                </a>
+            @endif
+        </div>
+        <div class="card-body">
+            <table id="table-keputusan" class="table table-hover table-data" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Surat</th>
+                        <th>Pembuat</th>
+                        <th>Tanggal Dibuat</th>
+                        <th>Status</th>
+                        <th class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($list as $sk)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>
+                            <div class="surat-info">
+                                <a href="{{ route('surat_keputusan.show', $sk->id) }}" class="surat-nomor">{{ $sk->nomor }}</a>
+                                <span class="surat-perihal">{{ \Illuminate\Support\Str::limit($sk->tentang, 60) }}</span>
+                            </div>
+                        </td>
+                        <td>{{ $sk->pembuat->nama_lengkap ?? '-' }}</td>
+                        <td data-order="{{ optional($sk->created_at)->timestamp ?? 0 }}">
+                            {{ optional($sk->created_at)->isoFormat('D MMM YYYY') ?? '-' }}
+                        </td>
+                        <td>
+                            <span class="status-badge status-badge-{{ $sk->status_surat }}">{{ $sk->status_surat }}</span>
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ route('surat_keputusan.show', $sk->id) }}"
+                               class="btn btn-primary btn-action" data-toggle="tooltip" title="Lihat Detail" aria-label="Lihat Detail">
+                                <i class="fas fa-eye fa-sm" aria-hidden="true"></i>
+                            </a>
+
+                            {{-- Edit hanya jika draft milik sendiri (aman terhadap controller) --}}
+                            @if($sk->status_surat === 'draft' && (int)auth()->id() === (int)$sk->dibuat_oleh)
+                                <a href="{{ route('surat_keputusan.edit', $sk->id) }}"
+                                   class="btn btn-warning btn-action" data-toggle="tooltip" title="Edit Draft" aria-label="Edit Draft">
+                                    <i class="fas fa-pencil-alt fa-sm" aria-hidden="true"></i>
+                                </a>
+                            @endif
+
+                            {{-- Tidak ada tombol HAPUS di sini karena belum ada rute destroy di controller --}}
+                        </td>
+                    </tr>
+                    @empty
+                    {{-- Opsional: baris kosong/placeholder --}}
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
-
 </div>
 @endsection
 
 @push('scripts')
-    <!-- Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip();
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // SweetAlert2 flash
-    const flash = document.getElementById('swal-flash');
-    if (flash) {
-        Swal.fire({
-            icon: flash.dataset.type,
-            title: flash.dataset.type==='success' ? 'Berhasil!' : 'Error',
-            text: flash.dataset.message,
-            timer: 2500,
-            showConfirmButton: false
+        const table = $('#table-keputusan').DataTable({
+            responsive: true,
+            autoWidth: false,
+            language: { url: "/assets/datatables/i18n/id.json" },
+            columnDefs: [{ targets: [0, 5], orderable: false, searchable: false }]
         });
-    }
 
-    // Init DataTable & filters
-    const table = $('#table-keputusan').DataTable({
-        dom: 'rt<"d-flex justify-content-between align-items-center mt-3 px-3 pb-2"ip>',
-        language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json" },
-        columnDefs:[
-            { orderable:false, targets:[0,6] },
-            { searchable:false, targets:[0,4,6] }
-        ],
-        pagingType:"simple_numbers"
-    });
+        // Filter dari panel filter
+        $('#globalSearch').on('keyup', function() { table.search(this.value).draw(); });
+        $('#statusFilter').on('change', function() {
+            const status = this.value;
+            // kolom status = index 4
+            table.column(4).search(status ? '^' + status + '$' : '', true, false).draw();
+        });
+        $('#resetFilters').on('click', function() {
+            $('#globalSearch, #statusFilter').val('');
+            table.search('').columns().search('').draw();
+        });
 
-    $('#globalSearch').on('keyup', ()=>table.search($('#globalSearch').val()).draw());
-    $('#statusFilter').on('change', ()=>table.column(4).search($('#statusFilter').val()? `^${$('#statusFilter').val()}$` : '', true, false).draw());
-    $('#startDate,#endDate').on('change', ()=>table.draw());
-    $('#resetFilters').on('click', ()=>{
-        $('#globalSearch,#statusFilter,#startDate,#endDate').val('');
-        table.search('').columns().search('').draw();
-    });
+        // Filter dari klik kartu statistik
+        $('.stat-card-lg').on('click', function() {
+            const status = $(this).data('status');
+            $('#statusFilter').val(status).trigger('change');
+        });
 
-    // confirm delete
-    $(document).on('submit','.form-delete', function(e){
-        e.preventDefault();
-        const form = this;
-        Swal.fire({
-            title:'Yakin hapus surat ini?',
-            text:'Data yang sudah dihapus tidak dapat dikembalikan.',
-            icon:'warning',
-            showCancelButton:true,
-            confirmButtonText:'Ya, hapus!',
-            cancelButtonText:'Batal',
-            reverseButtons:true
-        }).then(r=> r.isConfirmed && form.submit());
+        // Notifikasi sukses
+        @if(session('success'))
+            Swal.fire({
+                toast: true, position: 'top-end',
+                icon: 'success', title: 'Berhasil!', text: @json(session('success')),
+                showConfirmButton: false, timer: 3000
+            });
+        @endif
     });
-});
-</script>
+    </script>
 @endpush

@@ -11,12 +11,11 @@
 @section('content')
 <div class="container-fluid">
     @php
-        // Decode JSON jika belum array
-        $menimbang = is_array($keputusan->menimbang) ? $keputusan->menimbang : (json_decode($keputusan->menimbang, true) ?? []);
-        $mengingat = is_array($keputusan->mengingat) ? $keputusan->mengingat : (json_decode($keputusan->mengingat, true) ?? []);
-        $memutuskan = isset($keputusan->memutuskan)
-            ? (is_array($keputusan->memutuskan) ? $keputusan->memutuskan : (json_decode($keputusan->memutuskan, true) ?? []))
-            : (isset($keputusan->menetapkan) ? (is_array($keputusan->menetapkan) ? $keputusan->menetapkan : (json_decode($keputusan->menetapkan, true) ?? [])) : []);
+        // Decode JSON jika kolom masih string
+        $menimbang  = is_array($keputusan->menimbang) ? $keputusan->menimbang : (json_decode($keputusan->menimbang, true) ?? []);
+        $mengingat  = is_array($keputusan->mengingat) ? $keputusan->mengingat : (json_decode($keputusan->mengingat, true) ?? []);
+        // memutuskan disimpan sebagai HTML string yang sudah disanitasi di controller
+        $memutuskanHtml = (string) ($keputusan->memutuskan ?? '');
     @endphp
 
     {{-- Flash Message --}}
@@ -113,6 +112,15 @@
                 <dt class="col-md-3">Pembuat</dt>
                 <dd class="col-md-9">{{ $keputusan->pembuat->nama_lengkap ?? '-' }}</dd>
 
+                <dt class="col-md-3">Penandatangan</dt>
+                <dd class="col-md-9">{{ $keputusan->penandatanganUser->nama_lengkap ?? '-' }}</dd>
+
+                <dt class="col-md-3">Tanggal SK (Asli)</dt>
+                <dd class="col-md-9">{{ optional($keputusan->tanggal_asli)->format('d-m-Y') ?? '-' }}</dd>
+
+                <dt class="col-md-3">Tanggal Surat (Final)</dt>
+                <dd class="col-md-9">{{ optional($keputusan->tanggal_surat)->format('d-m-Y') ?? '-' }}</dd>
+
                 <dt class="col-md-3">Tanggal Dibuat</dt>
                 <dd class="col-md-9">{{ $keputusan->created_at ? $keputusan->created_at->format('d-m-Y H:i') : '-' }}</dd>
             </dl>
@@ -127,7 +135,7 @@
         <div class="card-body">
             {{-- Menimbang --}}
             <h5 class="mb-2 mt-2">Menimbang</h5>
-            @if($menimbang && is_array($menimbang))
+            @if(!empty($menimbang))
                 <ol type="a" style="padding-left: 24px;">
                     @foreach($menimbang as $item)
                         <li>{{ $item }}</li>
@@ -139,7 +147,7 @@
 
             {{-- Mengingat --}}
             <h5 class="mb-2 mt-3">Mengingat</h5>
-            @if($mengingat && is_array($mengingat))
+            @if(!empty($mengingat))
                 <ol type="1" style="padding-left: 24px;">
                     @foreach($mengingat as $item)
                         <li>{{ $item }}</li>
@@ -149,17 +157,10 @@
                 <div class="text-muted"><em>Belum ada data mengingat.</em></div>
             @endif
 
-            {{-- Memutuskan --}}
+            {{-- Memutuskan (HTML siap cetak) --}}
             <h5 class="mb-2 mt-3">Memutuskan</h5>
-            @if($memutuskan && is_array($memutuskan))
-                <ol style="padding-left: 24px;">
-                    @foreach($memutuskan as $idx => $item)
-                        <li>
-                            <strong>{{ $item['judul'] ?? 'Keputusan' }} :</strong>
-                            <div>{{ $item['isi'] ?? '' }}</div>
-                        </li>
-                    @endforeach
-                </ol>
+            @if(trim($memutuskanHtml) !== '')
+                <div>{!! $memutuskanHtml !!}</div>
             @else
                 <div class="text-muted"><em>Belum ada keputusan.</em></div>
             @endif
@@ -189,10 +190,10 @@
                 <div class="accordion" id="historyAccordion">
                     @foreach($versList as $index => $v)
                         @php
-                            $konten     = is_string($v->konten_json) ? json_decode($v->konten_json, true) : $v->konten_json;
-                            $menimbangV  = $konten['menimbang'] ?? [];
-                            $mengingatV  = $konten['mengingat'] ?? [];
-                            $memutuskanV = $konten['memutuskan'] ?? ($konten['menetapkan'] ?? []);
+                            $konten       = is_string($v->konten_json) ? json_decode($v->konten_json, true) : $v->konten_json;
+                            $menimbangV   = $konten['menimbang']  ?? [];
+                            $mengingatV   = $konten['mengingat']  ?? [];
+                            $menetapkanV  = $konten['menetapkan'] ?? []; // struktur judul+isi
                         @endphp
 
                         <div class="accordion-item">
@@ -203,7 +204,7 @@
                                         data-bs-target="#collapse{{ $v->versi }}"
                                         aria-expanded="{{ $index===0 ? 'true' : 'false' }}"
                                         aria-controls="collapse{{ $v->versi }}">
-                                    Versi #{{ $v->versi }} ({{ $v->dibuat_pada }})
+                                    Versi #{{ $v->versi }} ({{ $v->dibuat_pada }}) {{ $v->is_final ? '— FINAL' : '' }}
                                 </button>
                             </h2>
                             <div id="collapse{{ $v->versi }}"
@@ -224,10 +225,10 @@
                                     </ul>
                                     <strong>Memutuskan:</strong>
                                     <ul>
-                                        @foreach($memutuskanV as $mi)
+                                        @foreach($menetapkanV as $mi)
                                             <li>
                                                 <strong>{{ $mi['judul'] ?? 'Keputusan' }}:</strong>
-                                                <div>{{ $mi['isi'] ?? '' }}</div>
+                                                <div>{!! nl2br(e($mi['isi'] ?? '')) !!}</div>
                                             </li>
                                         @endforeach
                                     </ul>
@@ -240,13 +241,13 @@
         </div>
     </div>
 
-    {{-- Tombol Edit & Hapus (Draft/Pending) --}}
+    {{-- Tombol Edit (tanpa Hapus) --}}
     @php
-        $peranId    = Auth::user()->peran_id;
-        $isEditable = ($keputusan->status_surat === 'draft' && $keputusan->dibuat_oleh == Auth::id())
+        $peranId    = auth()->user()->peran_id;
+        $isEditable = ($keputusan->status_surat === 'draft' && (int)$keputusan->dibuat_oleh === (int)auth()->id())
             || ($keputusan->status_surat === 'pending'
-                && in_array($peranId, [2,3])
-                && $keputusan->penandatangan == Auth::id());
+                && in_array((int)$peranId, [2,3], true)
+                && (int)$keputusan->penandatangan === (int)auth()->id());
     @endphp
 
     @if($isEditable)
@@ -255,15 +256,6 @@
                 <a href="{{ route('surat_keputusan.edit', $keputusan->id) }}" class="btn btn-warning">
                     <i class="fas fa-edit mr-1"></i>Edit Surat
                 </a>
-                <form action="{{ route('surat_keputusan.destroy', $keputusan->id) }}"
-                      method="POST"
-                      class="d-inline form-delete">
-                    @csrf
-                    @method('DELETE')
-                    <button class="btn btn-danger">
-                        <i class="fas fa-trash mr-1"></i>Hapus
-                    </button>
-                </form>
             </div>
         </div>
     @endif
@@ -285,12 +277,8 @@
         border-radius: 16px;
         border: none;
     }
-    #btn-download-pdf {
-        opacity: 0.9;
-    }
-    #btn-download-pdf:hover {
-        opacity: 1;
-    }
+    #btn-download-pdf { opacity: 0.9; }
+    #btn-download-pdf:hover { opacity: 1; }
     .bg-purple { background: #6f42c1 !important; color: #fff !important; }
 </style>
 @endpush
@@ -298,24 +286,27 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    $(function() {
-        let urlDownloadPdf = "{{ url('surat_keputusan/' . $keputusan->id . '/download-pdf') }}";
-        let pdfViewerUrl   = "/pdfjs/web/viewer.html?file=" + encodeURIComponent(urlDownloadPdf);
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlDownloadPdf = @json(url('surat_keputusan/' . $keputusan->id . '/download-pdf'));
+        const pdfViewerUrl   = "/pdfjs/web/viewer.html?file=" + encodeURIComponent(urlDownloadPdf);
 
-        $('#btn-preview-surat').on('click', function() {
-            $('#pdf-js-viewer').attr('src', pdfViewerUrl);
-            $('#modalPreviewSurat').modal('show');
+        const modalEl = document.getElementById('modalPreviewSurat');
+        const modal   = new bootstrap.Modal(modalEl);
+
+        document.getElementById('btn-preview-surat').addEventListener('click', function () {
+            document.getElementById('pdf-js-viewer').setAttribute('src', pdfViewerUrl);
+            modal.show();
         });
 
-        $('#modalPreviewSurat').on('hidden.bs.modal', function() {
-            $('#pdf-js-viewer').attr('src', '');
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('pdf-js-viewer').setAttribute('src', '');
         });
 
-        $('#btn-download-pdf').on('click', function() {
+        document.getElementById('btn-download-pdf').addEventListener('click', function () {
             window.open(urlDownloadPdf, '_blank');
         });
 
-        $('#btn-open-tab').on('click', function() {
+        document.getElementById('btn-open-tab').addEventListener('click', function () {
             window.open(pdfViewerUrl, '_blank');
         });
 

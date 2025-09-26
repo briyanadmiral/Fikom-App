@@ -1,157 +1,142 @@
-{{-- === GUARD VISIBILITAS TTD/CAP (SHOW) === --}}
+{{-- Guard visibilitas TTD/Cap --}}
 @php
-  if (!isset($showSigns)) {
-    $showSigns = isset($tugas)
-      ? (($tugas->status_surat ?? null) === 'disetujui' && !empty($tugas->signed_at ?? null))
-      : false;
-  }
+    if (!isset($showSigns)) {
+        $showSigns = ($tugas->status_surat ?? null) === 'disetujui' && !empty($tugas->signed_at ?? null);
+    }
 @endphp
-
 
 @extends('layouts.app')
 
-@section('title', 'Detail Surat Tugas: ' . $tugas->nomor)
+@section('title', 'Detail Surat Tugas: ' . ($tugas->nomor ?? '-'))
+
+@push('styles')
+<style>
+    /* Menggunakan kembali style header dan komponen dari halaman lain */
+    .page-header {
+        background: #f3f6fa; padding: 1.3rem 2.2rem; border-radius: 1.1rem;
+        margin-bottom: 2.2rem; border: 1px solid #e0e6ed;
+        display: flex; align-items: center; gap: 1.3rem;
+    }
+    .page-header .icon {
+        background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
+        width: 54px; height: 54px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; box-shadow: 0 1px 10px #17a2b84d; font-size: 2rem;
+    }
+    .page-header-title { font-weight: bold; color: #0c5460; font-size: 1.85rem; margin-bottom: 0.13rem; letter-spacing: -1px; }
+    .page-header-desc { color: #636e7b; font-size: 1.03rem; }
+    
+    #preview-canvas { background-color: #f0f4f9; padding: 2rem; border-radius: .8rem; }
+    #preview-document { background-color: #fff; box-shadow: 0 5px 25px rgba(0,0,0,0.1); }
+
+    .info-card {
+        border: none; border-radius: .8rem;
+        box-shadow: 0 4px 25px rgba(0,0,0, .05);
+        margin-bottom: 1.5rem;
+    }
+    .info-card .card-header { background-color: #fff; border-bottom: 1px solid #f0f0f0; padding: 1rem 1.25rem; font-weight: 600; }
+    .info-card .card-body { padding: 1.25rem; }
+    
+    .info-list { list-style: none; padding-left: 0; margin-bottom: 0; }
+    .info-list li { display: flex; justify-content: space-between; padding: .6rem 0; border-bottom: 1px solid #f0f0f0; }
+    .info-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-list li:first-child { padding-top: 0; }
+    .info-list .label { color: #6c757d; font-size: .9rem; }
+    .info-list .value { font-weight: 600; text-align: right; }
+    
+    /* [DISEMPURNAKAN] Jarak antar tombol blok */
+    .btn-block + .btn-block {
+        margin-top: 0.5rem;
+    }
+</style>
+@endpush
 
 @section('content_header')
-<div class="row mb-2">
-  <div class="col-sm-6"><h1>Detail Surat Tugas</h1></div>
-  <div class="col-sm-6">
-    <ol class="breadcrumb float-sm-right">
-      <li class="breadcrumb-item"><a href="{{ route('surat_tugas.index') }}">Surat Tugas</a></li>
-      <li class="breadcrumb-item active">Detail</li>
-    </ol>
-  </div>
+<div class="page-header mt-2 mb-3">
+    <span class="icon"><i class="fas fa-file-alt text-white"></i></span>
+    <span>
+        <div class="page-header-title">Detail Surat Tugas</div>
+        <div class="page-header-desc">Menampilkan rincian lengkap untuk surat <b>{{ $tugas->nomor }}</b>.</div>
+    </span>
 </div>
 @endsection
 
 @section('content')
 <div class="row">
-  {{-- ===== Kolom Kiri: Pratinjau Surat ===== --}}
-  <div class="col-lg-8" id="preview-container">
-    {{--
-      Logika Tampilan:
-      - Jika surat sudah disetujui, tampilkan preview final.
-      - Jika belum dan user adalah approver, tampilkan preview interaktif untuk approval.
-      - Jika belum dan user biasa, tampilkan preview standar.
-    --}}
-    @if ($tugas->status_surat === 'disetujui')
-      {{-- Tampilan final untuk semua orang setelah surat disetujui --}}
-      @include('surat_tugas.preview', [
-        'tugas' => $tugas,
-        'kop' => $kop,
-        'ttdW' => $tugas->ttd_w_mm,
-        'capW' => $tugas->cap_w_mm,
-        'capOpacity' => $tugas->cap_opacity,
-        'ttdImageB64' => $preview['ttd_image_b64'],
-        'capImageB64' => $preview['cap_image_b64'],
-      ])
-    @elseif (Gate::allows('approve', $tugas))
-      {{-- Tampilan interaktif khusus untuk approver --}}
-      @include('surat_tugas.partials.approve-preview', [
-        'tugas' => $tugas,
-        'kop' => $kop,
-        'preview' => $preview,
-      ])
-    @else
-      {{-- Tampilan standar untuk user lain jika surat belum disetujui --}}
-      @include('surat_tugas.preview', compact('tugas', 'kop'))
-    @endif
-  </div>
-
-  {{-- ===== Kolom Kanan: Informasi & Aksi ===== --}}
-  <div class="col-lg-4">
-    <div class="card sticky-top" style="top: 20px;">
-      <div class="card-header">
-        <h3 class="card-title font-weight-bold">
-          <i class="fas fa-info-circle mr-2"></i>Informasi & Aksi
-        </h3>
-      </div>
-      <div class="card-body">
-
-        {{-- Panel Approval hanya muncul untuk user yang berhak & surat yang 'pending' --}}
-        @if (Gate::allows('approve', $tugas))
-            <div class="mb-4 p-3 bg-light rounded">
-                <h5 class="mb-3">Panel Persetujuan</h5>
-                <p class="text-muted small">Sesuaikan ukuran dan opasitas TTD/Cap jika perlu. Pratinjau di sebelah kiri akan diperbarui secara otomatis.</p>
-                @include('surat_tugas.partials.approve-controls', [
-                    'tugas'      => $tugas,
-                    'ttdW'       => $preview['ttd_w_mm'],
-                    'capW'       => $preview['cap_w_mm'],
-                    'capOpacity' => $preview['cap_opacity'],
+    {{-- KOLOM KIRI: PRATINJAU SURAT --}}
+    <div class="col-lg-8">
+        <div id="preview-canvas">
+            <div id="preview-document">
+                @include('surat_tugas.partials._core', [
+                    'context'     => 'web',
+                    'tugas'       => $tugas,
+                    'kop'         => $kop ?? null,
+                    'ttdW'        => $preview['ttd_w_mm'] ?? null,
+                    'capW'        => $preview['cap_w_mm'] ?? null,
+                    'capOpacity'  => $preview['cap_opacity'] ?? null,
+                    'ttdImageB64' => $showSigns ? ($preview['ttd_image_b64'] ?? null) : null,
+                    'capImageB64' => $showSigns ? ($preview['cap_image_b64'] ?? null) : null,
+                    'showSigns'   => $showSigns,
                 ])
             </div>
-            <hr>
-        @endif
-
-        {{-- Tombol Aksi Umum --}}
-        <div class="d-grid gap-2">
-          <a href="{{ route('surat_tugas.downloadPdf', $tugas->id) }}" class="btn btn-danger btn-block" target="_blank">
-            <i class="fas fa-file-pdf mr-2"></i>Download PDF
-          </a>
-          <a href="{{ url()->previous() }}" class="btn btn-secondary btn-block">
-            <i class="fas fa-arrow-left mr-2"></i>Kembali
-          </a>
         </div>
-
-        <hr>
-
-        {{-- Detail Informasi Surat --}}
-        <dl>
-          <dt>Status</dt>
-          <dd><span class="badge badge-pill badge-{{ $tugas->status_surat == 'disetujui' ? 'success' : ($tugas->status_surat == 'pending' ? 'warning' : 'secondary') }}">{{ Str::ucfirst($tugas->status_surat) }}</span></dd>
-          <dt>Dibuat oleh</dt>
-          <dd>{{ optional($tugas->pembuat)->nama_lengkap ?? '-' }}</dd>
-          <dt>Tgl Diajukan</dt>
-          <dd>{{ optional($tugas->submitted_at)->translatedFormat('d M Y, H:i') ?? '-' }}</dd>
-           <dt>Disetujui pada</dt>
-          <dd>{{ optional($tugas->signed_at)->translatedFormat('d M Y, H:i') ?? '-' }}</dd>
-        </dl>
-      </div>
     </div>
-  </div>
+
+    {{-- KOLOM KANAN: INFORMASI & AKSI --}}
+    <div class="col-lg-4">
+        <div class="sticky-top" style="top: 20px;">
+            {{-- Kartu Aksi Utama --}}
+            <div class="card info-card">
+                <div class="card-header"><i class="fas fa-bolt mr-2 text-primary"></i>Aksi Utama</div>
+                <div class="card-body">
+                    {{-- [DIUBAH] Menghapus class `btn-lg` dari semua tombol di bawah ini --}}
+                    @if(($tugas->status_surat === 'pending') && Gate::allows('approve-tugas', $tugas))
+                        <a href="{{ route('surat_tugas.approveForm', $tugas->id) }}" class="btn btn-success btn-block"><i class="fas fa-check-double mr-2"></i>Tinjau & Setujui</a>
+                    @endif
+                    @can('update', $tugas)
+                        <a href="{{ route('surat_tugas.edit', $tugas->id) }}" class="btn btn-warning btn-block text-dark"><i class="fas fa-pencil-alt mr-2"></i>Edit Surat</a>
+                    @endcan
+                    <a href="{{ route('surat_tugas.downloadPdf', $tugas->id) }}" class="btn btn-danger btn-block" target="_blank"><i class="fas fa-file-pdf mr-2"></i>Download PDF</a>
+                    <a href="{{ url()->previous() }}" class="btn btn-secondary btn-block"><i class="fas fa-arrow-left mr-2"></i>Kembali</a>
+                </div>
+            </div>
+
+            {{-- Kartu Info Surat --}}
+            <div class="card info-card">
+                <div class="card-header"><i class="fas fa-info-circle mr-2 text-info"></i>Informasi Surat</div>
+                <div class="card-body">
+                    <ul class="info-list">
+                        <li><span class="label">Status</span><span class="value"><span class="badge badge-pill badge-{{ $tugas->status_surat == 'disetujui' ? 'success' : ($tugas->status_surat == 'pending' ? 'warning' : 'secondary') }}">{{ Str::ucfirst($tugas->status_surat) }}</span></span></li>
+                        <li><span class="label">Perihal</span><span class="value">{{ $tugas->nama_umum }}</span></li>
+                        <li><span class="label">Klasifikasi</span><span class="value">{{ optional($tugas->klasifikasi)->kode ?? '-' }}</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            {{-- Kartu Pihak Terkait --}}
+            <div class="card info-card">
+                <div class="card-header"><i class="fas fa-users mr-2 text-success"></i>Pihak Terkait</div>
+                <div class="card-body">
+                    <ul class="info-list">
+                        <li><span class="label">Dibuat oleh</span><span class="value">{{ optional($tugas->pembuat)->nama_lengkap ?? '-' }}</span></li>
+                        <li><span class="label">Penandatangan</span><span class="value">{{ optional($tugas->penandatanganUser)->nama_lengkap ?? '-' }}</span></li>
+                        <li><span class="label">Penerima</span><span class="value">{{ $tugas->penerima->count() }} Orang</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            {{-- Kartu Waktu & Tempat --}}
+            <div class="card info-card">
+                <div class="card-header"><i class="fas fa-calendar-alt mr-2 text-danger"></i>Waktu & Tempat</div>
+                <div class="card-body">
+                    <ul class="info-list">
+                        <li><span class="label">Mulai</span><span class="value">{{ optional($tugas->waktu_mulai)->isoFormat('D MMM YYYY, HH:mm') ?? '-' }}</span></li>
+                        <li><span class="label">Selesai</span><span class="value">{{ optional($tugas->waktu_selesai)->isoFormat('D MMM YYYY, HH:mm') ?? '-' }}</span></li>
+                        <li><span class="label">Tempat</span><span class="value">{{ $tugas->tempat ?? '-' }}</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
-{{-- Script untuk Live Preview (jika ada panel approval) --}}
-@if (Gate::allows('approve', $tugas))
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const ttdWInput = document.querySelector('input[name="ttd_w_mm"]');
-    const capWInput = document.querySelector('input[name="cap_w_mm"]');
-    const capOpacityInput = document.querySelector('input[name="cap_opacity"]');
-    const previewContainer = document.getElementById('preview-container');
-    const baseUrl = "{{ route('surat_tugas.show', $tugas->id) }}";
-
-    // Fungsi debounce untuk mencegah terlalu banyak request saat input diubah
-    function debounce(func, timeout = 300){
-      let timer;
-      return (...args) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => { func.apply(this, args); }, timeout);
-      };
-    }
-
-    const updatePreview = debounce(() => {
-        const params = new URLSearchParams({
-            ttd_w_mm: ttdWInput.value,
-            cap_w_mm: capWInput.value,
-            cap_opacity: capOpacityInput.value,
-            partial: 'true' // Flag untuk controller
-        });
-
-        fetch(`${baseUrl}?${params.toString()}`)
-            .then(response => response.text())
-            .then(html => {
-                previewContainer.innerHTML = html;
-            })
-            .catch(error => console.error('Error updating preview:', error));
-    });
-
-    [ttdWInput, capWInput, capOpacityInput].forEach(input => {
-        if(input) {
-            input.addEventListener('input', updatePreview);
-        }
-    });
-});
-</script>
-@endif
 @endsection
+

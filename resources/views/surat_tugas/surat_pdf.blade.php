@@ -49,7 +49,7 @@
 @if ($isDraft)
   <div style="
     position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-20deg);
-    font-size: 80px; color: rgba(150,150,150,0.25); font-weight: 700; z-index: 0;
+    font-size: 70px; color: rgba(214, 55, 50, 0.25); font-weight: 700; z-index: 0;
     white-space: nowrap; pointer-events: none;
-  ">DRAFT / BELUM DISETUJUI</div>
+  ">BELUM DISETUJUI</div>
 @endif

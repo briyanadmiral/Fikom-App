@@ -1,32 +1,26 @@
 {{-- resources/views/surat_tugas/approve-preview.blade.php --}}
 
-{{-- === GUARD VISIBILITAS TTD/CAP (APPROVE PREVIEW) === --}}
 @php
-  // Jika controller belum mengirim $showSigns, fallback ke status surat.
-  if (!isset($showSigns)) {
-    $showSigns = isset($tugas)
-      ? (($tugas->status_surat ?? null) === 'disetujui' && !empty($tugas->signed_at ?? null))
-      : false;
-  }
-@endphp
+  // === Halaman ini khusus APPROVER ===
+  // Paksa TTD & Cap SELALU tampak di halaman approve (meski status masih pending)
+  $showSigns = true;
 
-@php
-  // File ini tetap sebagai wrapper untuk _core saat approval
+  // Konteks web (pakai CSS web dari _core)
   $context = 'web';
 
-  // Ambil nilai dari array $preview yang dikirim Controller
-  $ttdW       = $preview['ttd_w_mm'] ?? 42;
-  $capW       = $preview['cap_w_mm'] ?? 35;
-  $capOpacity = $preview['cap_opacity'] ?? 0.95;
+  // Nilai preferensi ukuran & opacity yang diterima dari controller (approveForm/approvePreview)
+  $ttdW       = isset($preview['ttd_w_mm'])    ? (int)$preview['ttd_w_mm']    : 42;
+  $capW       = isset($preview['cap_w_mm'])    ? (int)$preview['cap_w_mm']    : 35;
+  $capOpacity = isset($preview['cap_opacity']) ? (float)$preview['cap_opacity'] : 0.95;
 
-  // HARDENING: jika belum boleh tampil, jangan oper gambar ke partial
-  $ttdImageB64 = $showSigns ? ($preview['ttd_image_b64'] ?? null) : null;
-  $capImageB64 = $showSigns ? ($preview['cap_image_b64'] ?? null) : null;
+  // Aset gambar base64 (controller sudah menyiapkan via getSigningAssets)
+  $ttdImageB64 = $preview['ttd_image_b64'] ?? null;
+  $capImageB64 = $preview['cap_image_b64'] ?? null;
 @endphp
 
 {{-- 
-  Kita tidak butuh div/container tambahan di sini.
-  Cukup panggil _core agar pratinjau surat (elemen .sheet) menjadi elemen teratas.
+  Tidak perlu wrapper tambahan.
+  Langsung panggil _core supaya seluruh konten diganti saat live-preview.
 --}}
 @include('surat_tugas.partials._core', [
   'context'     => $context,
@@ -38,10 +32,10 @@
   'capW'        => $capW,
   'capOpacity'  => $capOpacity,
 
-  // aset gambar (akan null jika belum boleh tampil)
+  // aset gambar
   'ttdImageB64' => $ttdImageB64,
   'capImageB64' => $capImageB64,
 
-  // kunci: oper flag supaya _core ikut patuh
+  // kunci: TTD/Cap HARUS tampak di halaman approve
   'showSigns'   => $showSigns,
 ])

@@ -4,16 +4,16 @@ namespace App\Services;
 
 use App\Models\TugasHeader;
 use App\Models\Notifikasi;
-use App\Models\User;
-use App\Mail\SuratTugasFinal; // PASTIKAN IMPORT INI ADA
-use Illuminate\Support\Facades\Mail; // PASTIKAN IMPORT INI ADA
+use App\Mail\SuratTugasFinal;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class NotifikasiService
 {
     /**
-     * Beri notifikasi ke Penandatangan bahwa ada surat baru menunggu.
+     * Notifikasi ke penandatangan (role 2/3) bahwa ada surat menunggu persetujuan.
      */
-    public function notifyApprovalRequest(TugasHeader $tugas)
+    public function notifyApprovalRequest(TugasHeader $tugas): void
     {
         if (!$tugas->penandatangan) {
             return;
@@ -25,18 +25,24 @@ class NotifikasiService
             'referensi_id' => $tugas->id,
             'pesan'        => "Surat Tugas {$tugas->nomor} menunggu persetujuan Anda.",
         ]);
-        
-        // (Opsional) Anda juga bisa mengirim email ke penandatangan di sini jika perlu
+
+        // (opsional) kirim email ke penandatangan di sini bila dibutuhkan
+        // contoh:
+        // if ($tugas->penandatanganUser?->email) {
+        //     Mail::to($tugas->penandatanganUser->email)->send(
+        //         new SuratTugasFinal("Permintaan Persetujuan: {$tugas->nomor}", (object) $tugas->toArray())
+        //     );
+        // }
     }
 
-
     /**
-     * (INI YANG PENTING)
-     * Beri notifikasi ke semua PENERIMA bahwa surat sudah disetujui & terbit.
+     * Notifikasi ke pembuat dan semua penerima internal setelah surat disetujui.
+     * - Buat notifikasi DB.
+     * - Kirim email dengan lampiran PDF final bila tersedia.
      */
-    public function notifyApproved(TugasHeader $tugas)
+    public function notifyApproved(TugasHeader $tugas): void
     {
-        // 1. Beri notifikasi ke PEMBUAT (admin_tu) bahwa suratnya sudah beres
+        // 1) Notifikasi ke pembuat
         Notifikasi::create([
             'pengguna_id'  => $tugas->dibuat_oleh,
             'tipe'         => 'surat_tugas',
@@ -44,42 +50,60 @@ class NotifikasiService
             'pesan'        => "Surat Tugas {$tugas->nomor} telah disetujui.",
         ]);
 
-        // 2. Ambil semua penerima internal (yang punya akun user/pengguna_id)
+        // 2) Ambil penerima internal (punya pengguna_id & email)
         $penerimaInternal = $tugas->penerima()
-                                 ->whereNotNull('pengguna_id')
-                                 ->with('pengguna') // Load relasi pengguna
-                                 ->get();
+            ->whereNotNull('pengguna_id')
+            ->with('pengguna:id,email')
+            ->get();
 
         if ($penerimaInternal->isEmpty()) {
-            return; // Tidak ada penerima internal, selesai.
+            return;
         }
 
-        // 3. Loop dan kirim Notif DB + Email ke setiap penerima
-        foreach ($penerimaInternal as $penerima) {
-            
-            // Cek jika relasi pengguna ada
-            if ($penerima->pengguna) {
-                
-                // A. Buat Notifikasi Database (untuk ikon lonceng di web)
-                Notifikasi::create([
-                    'pengguna_id'  => $penerima->pengguna_id,
-                    'tipe'         => 'surat_tugas',
-                    'referensi_id' => $tugas->id,
-                    'pesan'        => "Anda terdaftar sebagai penerima pada Surat Tugas {$tugas->nomor}."
-                ]);
+        // Siapkan subjek & path lampiran (relatif terhadap storage/app)
+        $subject = 'Surat Tugas Disetujui: ' . (($tugas->nomor ?? '') ?: '');
+        $attachmentPathRel = $tugas->signed_pdf_path ?: null; // contoh: "private/surat_tugas/signed/10_abcd.pdf"
 
-                // B. Kirim Email (Pastikan antrian/queue Anda berjalan)
-                if ($penerima->pengguna->email) {
-                    try {
-                        Mail::to($penerima->pengguna->email)
-                            ->queue(new SuratTugasFinal($tugas)); // Panggil Mailable Anda
-                    } catch (\Exception $e) {
-                        // Catat error jika email gagal terkirim, tapi jangan hentikan proses
-                        \Log::error('Gagal mengirim email Surat Tugas Final ke ' . $penerima->pengguna->email, [
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
+        // 3) Loop penerima: tulis notifikasi DB + kirim email (hindari duplikasi email)
+        $sentEmails = [];
+
+        foreach ($penerimaInternal as $row) {
+            $email = $row->pengguna?->email;
+            if (empty($email)) {
+                continue;
+            }
+            // Hindari kirim email ganda ke alamat yang sama
+            if (isset($sentEmails[$email])) {
+                continue;
+            }
+            $sentEmails[$email] = true;
+
+            // A) Notif DB “lonceng”
+            Notifikasi::create([
+                'pengguna_id'  => $row->pengguna_id,
+                'tipe'         => 'surat_tugas',
+                'referensi_id' => $tugas->id,
+                'pesan'        => "Anda terdaftar sebagai penerima pada Surat Tugas {$tugas->nomor}.",
+            ]);
+
+            // B) Email + Lampiran PDF (jika tersedia)
+            try {
+                // Gunakan konstruktor fleksibel:
+                // - kirim subjek eksplisit
+                // - lampiran via path relatif (argumen 3=filename opsional=NULL, argumen 4=$isPath=true)
+                $mailable = new SuratTugasFinal(
+                    $subject,
+                    (object) $tugas->toArray(),
+                    $attachmentPathRel // <<- bisa null; Mailable akan fallback ke signed_pdf_path
+                );
+                // Karena mailable kita tidak mengimplementasikan ShouldQueue, gunakan send() (sinkron).
+                Mail::to($email)->send($mailable);
+            } catch (\Throwable $e) {
+                Log::error('Gagal mengirim email Surat Tugas Final', [
+                    'email' => $email,
+                    'tugas_id' => $tugas->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
     }

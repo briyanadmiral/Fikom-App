@@ -234,9 +234,17 @@
                                             <i class="fas fa-search mr-2"></i> Lihat Cepat
                                         </a>
 
+                                        {{-- Halaman detail (tanpa kontrol approve) --}}
                                         <a class="dropdown-item" href="{{ route('surat_tugas.show', $h->id) }}">
                                             <i class="fas fa-fw fa-eye"></i> Halaman Detail
                                         </a>
+
+                                        {{-- Tinjau & Setujui: hanya jika pending dan user ini adalah next_approver --}}
+                                        @if($h->status_surat === 'pending' && (int)$h->next_approver === (int)auth()->id())
+                                            <a class="dropdown-item" href="{{ route('surat_tugas.approveForm', $h->id) }}">
+                                                <i class="fas fa-check mr-2 text-success"></i> Tinjau & Setujui
+                                            </a>
+                                        @endif
 
                                         @can('edit-surat', $h)
                                           <a class="dropdown-item"
@@ -250,14 +258,6 @@
                                         @if($h->status_surat == 'disetujui')
                                             <a class="dropdown-item" href="{{ route('surat_tugas.downloadPdf', $h->id) }}" target="_blank">
                                                 <i class="fas fa-fw fa-download"></i> Download PDF
-                                            </a>
-                                        @endif
-
-                                        {{-- Tinjau & Setujui: menuju halaman detail agar bisa atur ukuran TTD/CAP dulu --}}
-                                        @if($h->status_surat === 'pending' && in_array(auth()->user()->peran_id, [2, 3]) && $h->penandatangan == auth()->id())
-                                            <a class="dropdown-item goto-approve"
-                                               href="{{ route('surat_tugas.show', $h->id) }}?approve=1#approve-panel">
-                                                <i class="fas fa-fw fa-check text-success"></i> Tinjau &amp; Setujui
                                             </a>
                                         @endif
 
@@ -388,8 +388,7 @@
                 return;
             }
 
-            // Default: navigate to href (Detail / Tinjau & Setujui / Download / dsb.)
-            // Tidak preventDefault agar link berjalan normal
+            // Default: navigate to href
         });
 
         // Reset iframe saat modal ditutup
