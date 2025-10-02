@@ -14,8 +14,8 @@
       try {
         $disk = \Illuminate\Support\Facades\Storage::disk('public');
         $bin  = $disk->exists($path)
-                  ? $disk->get($path)
-                  : (\Illuminate\Support\Facades\Storage::exists($path) ? \Illuminate\Support\Facades\Storage::get($path) : null);
+              ? $disk->get($path)
+              : (\Illuminate\Support\Facades\Storage::exists($path) ? \Illuminate\Support\Facades\Storage::get($path) : null);
         if (!$bin) return null;
         $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $mime = $ext === 'png' ? 'image/png' : (($ext === 'svg' || $ext === 'svgz') ? 'image/svg+xml' : 'image/jpeg');
@@ -79,3 +79,4 @@
     @endif
   </div>
 @endif
+

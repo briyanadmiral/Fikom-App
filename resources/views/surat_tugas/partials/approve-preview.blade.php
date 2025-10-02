@@ -1,4 +1,4 @@
-{{-- resources/views/surat_tugas/approve-preview.blade.php --}}
+{{-- resources/views/surat_keputusan/partials/approve-preview.blade.php --}}
 
 @php
   // === Halaman ini khusus APPROVER ===
@@ -8,23 +8,20 @@
   // Konteks web (pakai CSS web dari _core)
   $context = 'web';
 
-  // Nilai preferensi ukuran & opacity yang diterima dari controller (approveForm/approvePreview)
-  $ttdW       = isset($preview['ttd_w_mm'])    ? (int)$preview['ttd_w_mm']    : 42;
-  $capW       = isset($preview['cap_w_mm'])    ? (int)$preview['cap_w_mm']    : 35;
-  $capOpacity = isset($preview['cap_opacity']) ? (float)$preview['cap_opacity'] : 0.95;
+  // Nilai preferensi ukuran & opacity yang diterima langsung dari controller (approveForm/approvePreview)
+  $ttdW       = isset($ttdW)       ? (int)$ttdW       : 42;
+  $capW       = isset($capW)       ? (int)$capW       : 35;
+  $capOpacity = isset($capOpacity) ? (float)$capOpacity : 0.95;
 
   // Aset gambar base64 (controller sudah menyiapkan via getSigningAssets)
-  $ttdImageB64 = $preview['ttd_image_b64'] ?? null;
-  $capImageB64 = $preview['cap_image_b64'] ?? null;
+  $ttdImageB64 = $ttdImageB64 ?? null;
+  $capImageB64 = $capImageB64 ?? null;
 @endphp
 
-{{-- 
-  Tidak perlu wrapper tambahan.
-  Langsung panggil _core supaya seluruh konten diganti saat live-preview.
---}}
-@include('surat_tugas.partials._core', [
+{{-- Panggil _core SK agar seluruh isi surat bisa live-preview --}}
+@include('surat_keputusan.partials._core', [
   'context'     => $context,
-  'tugas'       => $tugas,
+  'keputusan'   => $keputusan,
   'kop'         => $kop ?? null,
 
   // preferensi ukuran/opacity

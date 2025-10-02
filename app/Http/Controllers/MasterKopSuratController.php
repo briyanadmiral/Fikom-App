@@ -3,76 +3,81 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\MasterKopSurat; // pastikan ini ada
+use App\Models\MasterKopSurat;
+use Illuminate\Support\Facades\Schema;
 
 class MasterKopSuratController extends Controller
 {
     public function index()
     {
-        $kop = MasterKopSurat::first();
+        // Jika belum ada data sama sekali, buat satu record kosong
+        $kop = MasterKopSurat::firstOrCreate([]);
         return view('pengaturan.kop_surat', compact('kop'));
     }
 
-    // ======== GANTI METHOD INI =========
     public function update(Request $r)
     {
-        // 1) Validasi
+        // 1) Validasi yang sudah disesuaikan
         $data = $r->validate([
-            // composed fields
             'mode'       => ['required', 'in:image,composed'],
+            
+            // [MODIFIED] Hanya validasi field yang ada di mode 'composed' baru
             'judul_atas' => ['nullable','string','max:255'],
-            'subjudul'   => ['nullable','string','max:255'],
-            'alamat'     => ['nullable','string','max:255'],
-            'telepon'    => ['nullable','string','max:255'],
-            'fax'        => ['nullable','string','max:255'],
-            'email'      => ['nullable','email','max:255'],
-            'website'    => ['nullable','string','max:255'],
+            'alamat'     => ['nullable','string','max:1000'], // max diperbesar untuk textarea
 
-            // upload files (jangan masukkan ke kolom langsung)
-            'logo_kiri'  => ['sometimes','file','image','max:1024'],
+            // [REMOVED] Validasi untuk field lama yang sudah tidak ada di form
+            // 'subjudul', 'telepon', 'fax', 'email', 'website' dihapus
+
+            // Upload files (tetap sama)
             'logo_kanan' => ['sometimes','file','image','max:1024'],
             'header'     => ['sometimes','file','image','max:2048'],
-            'footer'     => ['sometimes','file','image','max:2048'],
             'cap'        => ['sometimes','file','image','max:1024'],
+            
+            // [REMOVED] Logo kiri sudah tidak dipakai di mode composed baru
+            // 'logo_kiri' => ['sometimes','file','image','max:1024'],
 
-            // checkbox tampilkan logo
-            'tampilkan_logo_kiri'  => ['nullable'],
+            // [MODIFIED] Checkbox tampilkan logo disederhanakan
             'tampilkan_logo_kanan' => ['nullable'],
         ]);
 
         $kop = MasterKopSurat::firstOrCreate([]);
 
-        // 2) Simpan file → isikan ke kolom *_path
+        // [NEW] Jika modenya composed, kosongkan field-field lama untuk kebersihan data
+        if ($data['mode'] === 'composed') {
+            $data['subjudul'] = null;
+            $data['telepon'] = null;
+            $data['fax'] = null;
+            $data['email'] = null;
+            $data['website'] = null;
+            // Secara default, logo kanan selalu tampil di mode ini
+            $data['tampilkan_logo_kanan'] = true;
+            $data['tampilkan_logo_kiri'] = false;
+        }
+
+        // 2) Simpan file (logika tetap sama, hanya input 'logo_kiri' yang dihilangkan)
         $map = [
-            'logo_kiri'  => 'logo_kiri_path',
             'logo_kanan' => 'logo_kanan_path',
             'header'     => 'header_path',
-            'footer'     => 'footer_path',
             'cap'        => 'cap_path',
+            // 'logo_kiri' tidak ada lagi di map
         ];
         foreach ($map as $input => $col) {
             if ($r->hasFile($input)) {
-                // simpan ke storage/app/public/kop/...
                 $data[$col] = $r->file($input)->store('kop', 'public');
             }
         }
 
-        // 3) Normalisasi checkbox
-        $data['tampilkan_logo_kiri']  = $r->boolean('tampilkan_logo_kiri');
-        $data['tampilkan_logo_kanan'] = $r->boolean('tampilkan_logo_kanan');
+        // 3) Hapus key file upload agar tidak dikirim ke update()
+        unset($data['logo_kanan'], $data['header'], $data['cap']);
 
-        // 4) Hapus key file upload agar tidak dikirim ke update() sebagai kolom
-        unset($data['logo_kiri'], $data['logo_kanan'], $data['header'], $data['footer'], $data['cap']);
-
-        // 5) Audit user (jika kolom ada)
-        if (\Schema::hasColumn('master_kop_surat', 'updated_by')) {
+        // 4) Audit user (tetap sama)
+        if (Schema::hasColumn('master_kop_surat', 'updated_by')) {
             $data['updated_by'] = auth()->id();
         }
 
-        // 6) Simpan
+        // 5) Simpan
         $kop->update($data);
 
-        return back()->with('success', 'Kop surat diperbarui.');
+        return back()->with('success', 'Pengaturan kop surat berhasil diperbarui.');
     }
-    // ======== /END GANTI =========
 }

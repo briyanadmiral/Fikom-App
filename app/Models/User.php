@@ -3,21 +3,26 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;  // Import SoftDeletes
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes; // Gunakan trait SoftDeletes
-
-    protected $table = 'pengguna';
-
-    // Laravel akan otomatis kelola created_at dan updated_at
-    public $timestamps = true;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
-     * Kolom yang dapat diisi massal.
+     * Nama tabel database yang terhubung dengan model ini.
+     *
+     * @var string
+     */
+    protected $table = 'pengguna';
+
+    /**
+     * Atribut yang dapat diisi secara massal (mass assignable).
      *
      * @var array<int, string>
      */
@@ -26,13 +31,14 @@ class User extends Authenticatable
         'sandi_hash',
         'nama_lengkap',
         'npp',
-        'jabatan',     // Tambahan kolom baru
+        'jabatan',
         'peran_id',
-        'status',      // Tambahan kolom baru
+        'status',
+        'last_activity',
     ];
 
     /**
-     * Kolom yang disembunyikan saat serialisasi.
+     * Atribut yang harus disembunyikan saat serialisasi.
      *
      * @var array<int, string>
      */
@@ -42,59 +48,87 @@ class User extends Authenticatable
     ];
 
     /**
-     * Casting atribut.
+     * Mendefinisikan cast tipe data untuk atribut.
      *
-     * @var array<string, string>
+     * @return array<string, string>
      */
-    protected $casts = [
-        'last_activity' => 'datetime',
-        // 'dibuat_pada' sudah tidak diperlukan, Laravel kelola created_at & updated_at
-    ];
-
-    /**
-     * Ambil password untuk autentikasi.
-     */
-    public function getAuthPassword()
+    protected function casts(): array
     {
-        return $this->sandi_hash;
+        return [
+            // Otomatis melakukan hashing saat atribut ini diisi
+            'sandi_hash' => 'hashed',
+            'last_activity' => 'datetime',
+            'peran_id' => 'integer',
+        ];
     }
 
     /**
-     * Relasi ke model Peran.
+     * Memberitahu sistem otentikasi Laravel nama kolom password yang digunakan.
+     *
+     * @return string
      */
-    public function peran()
+    public function getAuthPasswordName(): string
+    {
+        return 'sandi_hash';
+    }
+
+    /**
+     * Mendefinisikan relasi "belongsTo" ke model Peran.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function peran(): BelongsTo
     {
         return $this->belongsTo(Peran::class, 'peran_id');
     }
 
     /**
-     * Relasi ke model Notifikasi.
+     * Mendefinisikan relasi "hasMany" ke model Notifikasi.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function notifikasi()
+    public function notifikasi(): HasMany
     {
-        return $this->hasMany(\App\Models\Notifikasi::class, 'pengguna_id');
+        return $this->hasMany(Notifikasi::class, 'pengguna_id');
     }
 
-    // START PATCH: Relasi TTD
-public function signature()
-{
-    return $this->hasOne(\App\Models\UserSignature::class, 'pengguna_id');
-}
-// END PATCH
+    /**
+     * Mendefinisikan relasi "hasOne" ke model UserSignature.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function signature(): HasOne
+    {
+        return $this->hasOne(UserSignature::class, 'pengguna_id');
+    }
 
+    /**
+     * Memeriksa apakah pengguna memiliki peran 'Dekan'.
+     *
+     * @return bool
+     */
+    public function isDekan(): bool
+    {
+        return $this->peran_id === 2; // Asumsi ID 2 untuk 'dekan'
+    }
 
-public function isDekan(): bool
-{
-    return (int) $this->peran_id === 2; // tabel `peran`: id=2 -> dekan
-}
+    /**
+     * Memeriksa apakah pengguna memiliki peran 'Wakil Dekan'.
+     *
+     * @return bool
+     */
+    public function isWakilDekan(): bool
+    {
+        return $this->peran_id === 3; // Asumsi ID 3 untuk 'wakil_dekan'
+    }
 
-public function isWakilDekan(): bool
-{
-    return (int) $this->peran_id === 3; // tabel `peran`: id=3 -> wakil_dekan
-}
-
-public function canApproveSurat(): bool
-{
-    return $this->isDekan() || $this->isWakilDekan();
-}
+    /**
+     * Memeriksa apakah pengguna memiliki wewenang untuk menyetujui surat.
+     *
+     * @return bool
+     */
+    public function canApproveSurat(): bool
+    {
+        return $this->isDekan() || $this->isWakilDekan();
+    }
 }

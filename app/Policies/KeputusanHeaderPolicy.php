@@ -2,154 +2,108 @@
 
 namespace App\Policies;
 
-use App\Enums\SuratStatus; // jika belum ada enum, policy tetap aman dengan fallback string
 use App\Models\KeputusanHeader;
 use App\Models\User;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class KeputusanHeaderPolicy
 {
-    /**
-     * Admin TU (peran_id=1) boleh melihat daftar semua SK.
-     * Untuk halaman daftar "Approve List" milik Dekan/WD, gunakan Gate 'view-approve-list' di AuthServiceProvider.
-     */
+    use HandlesAuthorization;
+
+    /** Lihat daftar */
     public function viewAny(User $user): bool
     {
-        return (int)$user->peran_id === 1;
+        // Kalau ingin tetap khusus Admin TU saja, ganti jadi: return (int)$user->peran_id === 1;
+        return in_array((int)$user->peran_id, [1,2,3], true);
     }
 
-    /**
-     * Siapa yang boleh melihat 1 SK?
-     * - Admin TU
-     * - Pembuat SK
-     * - Penerima SK
-     * - Penandatangan SK
-     * - Dekan/WD yang berhak approve (cross-approval) saat status pending
-     */
-    public function view(User $user, KeputusanHeader $k = null): bool
+    /** Lihat detail: admin, pembuat, penandatangan, atau penerima */
+    public function view(User $user, KeputusanHeader $sk): bool
     {
-        if (is_null($k)) return true;
-
-        if ((int)$user->peran_id === 1) return true; // Admin TU
-        if ((int)$user->id === (int)$k->dibuat_oleh) return true; // pembuat
-        if ((int)$user->id === (int)($k->penandatangan ?? 0)) return true; // penandatangan
-
-        // penerima SK
-        if ($k->penerima()->where('pengguna_id', $user->id)->exists()) return true;
-
-        // approver (Dekan/WD) ketika pending
-        if ($this->bisaDiApproveOleh($user, $k)) return true;
-
-        return false;
+        if ((int)$user->peran_id === 1) return true;
+        if ((int)$user->id === (int)$sk->dibuat_oleh) return true;
+        if ((int)$user->id === (int)$sk->penandatangan) return true;
+        return $sk->penerima()->where('pengguna_id', $user->id)->exists();
     }
 
-    /**
-     * Hanya Admin TU yang boleh membuat SK.
-     */
+    /** Buat: hanya Admin TU */
     public function create(User $user): bool
     {
         return (int)$user->peran_id === 1;
     }
 
     /**
-     * Hanya Admin TU yang membuat SK & status masih draft yang boleh edit.
+     * Update (revisi):
+     * - Admin TU (peran 1) yang MEMBUAT boleh edit saat draft/pending/ditolak
+     * - Penandatangan (peran 2/3) yang ditunjuk boleh koreksi saat pending
      */
-    public function update(User $user, KeputusanHeader $k): bool
+    public function update(User $user, KeputusanHeader $sk): bool
+{
+    $isAdminTU   = (int) $user->peran_id === 1;
+    $isApprover  = in_array((int) $user->peran_id, [2,3], true) && (int)$user->id === (int)$sk->penandatangan;
+
+    // Admin TU boleh revisi DRAFT & PENDING, terbatas pada SK yang dia buat
+    $adminCan    = $isAdminTU
+                && (int)$user->id === (int)$sk->dibuat_oleh
+                && in_array($sk->status_surat, ['draft','pending'], true);
+
+    // Penandatangan (2/3) boleh koreksi saat pending
+    $approverCan = $isApprover && $sk->status_surat === 'pending';
+
+    return $adminCan || $approverCan;
+}
+
+    /** Hapus: opsional — admin & hanya draft miliknya */
+    public function delete(User $user, KeputusanHeader $sk): bool
     {
         return (int)$user->peran_id === 1
-            && (int)$user->id === (int)$k->dibuat_oleh
-            && $this->statusIs($k, 'draft');
+            && $sk->status_surat === 'draft'
+            && (int)$user->id === (int)$sk->dibuat_oleh;
     }
 
-    /**
-     * Submit draft → pending (Admin TU pembuat).
-     */
-    public function submit(User $user, KeputusanHeader $k): bool
+    /** Submit dari draft ke pending: pembuat (admin TU) */
+    public function submit(User $user, KeputusanHeader $sk): bool
     {
         return (int)$user->peran_id === 1
-            && (int)$user->id === (int)$k->dibuat_oleh
-            && $this->statusIs($k, 'draft');
+            && $sk->status_surat === 'draft'
+            && (int)$user->id === (int)$sk->dibuat_oleh;
+    }
+
+    /** Approve / Reject: hanya penandatangan (peran 2/3) saat pending */
+    public function approve(User $user, KeputusanHeader $sk): bool
+    {
+        return in_array((int)$user->peran_id, [2,3], true)
+            && (int)$user->id === (int)$sk->penandatangan
+            && $sk->status_surat === 'pending';
+    }
+    public function reject(User $user, KeputusanHeader $sk): bool
+    {
+        return $this->approve($user, $sk);
     }
 
     /**
-     * Cross-approval Dekan (2) ↔ Wakil Dekan (3). Tidak boleh self-approve. Hanya ketika pending.
+     * Reopen: tarik kembali ke draft untuk direvisi.
+     * Di sini saya izinkan Admin TU yang MEMBUAT.
+     * Jika ingin semua Admin TU bisa, hapus cek $isCreator.
      */
-    public function approve(User $user, KeputusanHeader $k): bool
+    public function reopen(User $user, KeputusanHeader $sk): bool
+{
+    // Admin TU (pembuat) boleh menarik ke Draft untuk direvisi dari status selain draft
+    return (int)$user->peran_id === 1
+        && (int)$user->id === (int)$sk->dibuat_oleh
+        && in_array($sk->status_surat, ['pending','ditolak','disetujui','terbit'], true);
+}
+
+    /** Publish: setelah disetujui oleh peran 2/3; admin juga boleh */
+    public function publish(User $user, KeputusanHeader $sk): bool
     {
-        return $this->bisaDiApproveOleh($user, $k);
+        return $sk->status_surat === 'disetujui'
+            && in_array((int)$user->peran_id, [1,2,3], true);
     }
 
-    /**
-     * Reject mengikuti aturan approve.
-     */
-    public function reject(User $user, KeputusanHeader $k): bool
+    /** Arsip: Admin TU / Dekan / WD */
+    public function archive(User $user, KeputusanHeader $sk): bool
     {
-        return $this->approve($user, $k);
-    }
-
-    /**
-     * Tanda tangan: hanya user yang ditetapkan sebagai penandatangan & status sudah disetujui.
-     */
-    public function sign(User $user, KeputusanHeader $k): bool
-    {
-        return (int)$user->id === (int)($k->penandatangan ?? 0)
-            && $this->statusIs($k, 'disetujui');
-    }
-
-    /**
-     * Publish: Admin TU, status disetujui, dan sudah ada signed_pdf_path.
-     */
-    public function publish(User $user, KeputusanHeader $k): bool
-    {
-        return (int)$user->peran_id === 1
-            && $this->statusIs($k, 'disetujui')
-            && !empty($k->signed_pdf_path);
-    }
-
-    /**
-     * Hapus: Admin TU pembuat & masih draft (biasanya soft delete).
-     */
-    public function delete(User $user, KeputusanHeader $k): bool
-    {
-        return (int)$user->peran_id === 1
-            && (int)$user->id === (int)$k->dibuat_oleh
-            && $this->statusIs($k, 'draft');
-    }
-
-    public function restore(User $user, KeputusanHeader $k): bool
-    {
-        return false;
-    }
-
-    public function forceDelete(User $user, KeputusanHeader $k): bool
-    {
-        return false;
-    }
-
-    /* ========================
-     * Helpers
-     * ======================== */
-
-    private function statusIs(KeputusanHeader $k, string $val): bool
-    {
-        // kompatibel enum atau string
-        if ($k->status_surat instanceof SuratStatus) {
-            return $k->status_surat->value === $val;
-        }
-        return (string)$k->status_surat === $val;
-    }
-
-    /**
-     * Aturan cross-approval Dekan (2) ↔ Wakil Dekan (3)
-     */
-    private function bisaDiApproveOleh(User $user, KeputusanHeader $k): bool
-    {
-        if (!$this->statusIs($k, 'pending')) return false;
-        if ((int)$user->id === (int)$k->dibuat_oleh) return false; // no self-approve
-
-        $pembuatRole = (int)optional($k->pembuat)->peran_id;
-        $isDekanApproveWD = ((int)$user->peran_id === 2) && ($pembuatRole === 3);
-        $isWDApproveDekan = ((int)$user->peran_id === 3) && ($pembuatRole === 2);
-
-        return $isDekanApproveWD || $isWDApproveDekan;
+        return in_array((int)$user->peran_id, [1,2,3], true);
     }
 }

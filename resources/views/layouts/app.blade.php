@@ -6,7 +6,6 @@
     <title>@yield('title', config('app.name', 'Arsip Surat SIEGA'))</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <!-- AdminLTE CSS & FontAwesome -->
     <link rel="stylesheet" href="{{ asset('vendor/fontawesome-free/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/adminlte/dist/css/adminlte.min.css') }}">
     @stack('styles')
@@ -20,33 +19,54 @@
     {{-- Sidebar --}}
     @include('layouts.sidebar')
 
-    <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper pt-2">
-        <!-- Content Header (Page header) -->
         <section class="content-header">
             <div class="container-fluid">
                 @yield('content_header')
             </div>
         </section>
-        <!-- Main content -->
         <section class="content">
             @yield('content')
         </section>
     </div>
-    <!-- /.content-wrapper -->
-
-    <!-- Main Footer -->
     <footer class="main-footer small">
         <div class="float-right d-none d-sm-inline">v1.0</div>
         <strong>&copy; {{ date('Y') }} {{ config('app.name') }}</strong>
     </footer>
 </div>
 
-<!-- AdminLTE JS, jQuery, Bootstrap -->
 <script src="{{ asset('vendor/jquery/jquery.min.js') }}"></script>
 <script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('vendor/adminlte/dist/js/adminlte.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+{{-- [PERBAIKAN] Blok notifikasi HTML dihapus dari sini dan dipindahkan ke dalam skrip di bawah --}}
+
 @stack('scripts')
+
+{{-- [PERBAIKAN] Tambahkan skrip ini untuk menangani notifikasi secara terpusat menggunakan SweetAlert2 --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        @if (session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '{{ session('success') }}',
+                timer: 2500,
+                showConfirmButton: false
+            });
+        @endif
+
+        @if (session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: '{{ session('error') }}',
+                showConfirmButton: true // Tampilkan tombol OK untuk pesan error
+            });
+        @endif
+    });
+</script>
+
 </body>
 </html>

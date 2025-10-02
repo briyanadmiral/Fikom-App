@@ -2,312 +2,292 @@
 @section('title', 'Surat Keputusan Saya')
 
 @push('styles')
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
+<style>
+  body { background: #f7faff; }
 
-    <style>
-    /* ========== Header Ungu ========== */
-    .header-title {
-        color: #800080;
-        font-size: 2rem;
-        font-weight: 700;
-        border-bottom: 4px solid #800080;
-        display: inline-block;
-        padding-bottom: .25rem;
-        margin-bottom: 1.5rem;
-    }
+  /* HEADER */
+  .surat-header{
+    background:#f3f6fa; padding:1.3rem 2.2rem 1.3rem 1.8rem; border-radius:1.1rem;
+    margin-bottom:2.2rem; border:1px solid #e0e6ed; display:flex; align-items:center; gap:1.3rem;
+  }
+  .surat-header .icon{
+    background:linear-gradient(135deg,#1498ff 0,#1fc8ff 100%); width:54px; height:54px;
+    display:flex; align-items:center; justify-content:center; border-radius:50%;
+    box-shadow:0 1px 10px #1498ff30; font-size:2rem; color:#fff;
+  }
+  .surat-header-title{ font-weight:bold; color:#0056b3; font-size:1.85rem; margin-bottom:.13rem; letter-spacing:-1px; }
+  .surat-header-desc{ color:#636e7b; font-size:1.03rem; }
+  @media (max-width:767.98px){
+    .surat-header{ flex-direction:column; align-items:flex-start; padding:1.2rem 1rem; gap:.7rem; }
+    .surat-header-title{ font-size:1.18rem; }
+    .surat-header-desc{ font-size:.99rem; }
+  }
 
-    /* ========== Statistik Minimalis Centered ========== */
-    .stat-wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-    .stat-card { width:160px; border-radius:.75rem; cursor: pointer; }
-    .stat-card .card-body { text-align:center; padding:1rem }
-    .stat-card .icon { font-size:1.75rem; margin-bottom:.5rem }
-    .stat-card .label { color:#6c757d; font-size:.85rem; margin-bottom:.25rem; font-weight:600 }
-    .stat-card .value { font-size:1.75rem; font-weight:700; line-height:1 }
+  /* STAT */
+  .stat-wrapper{
+    display:flex; justify-content:center; flex-wrap:wrap; gap:1rem; margin-bottom:2rem;
+  }
+  .stat-card{ width:160px; border-radius:.75rem; border:none; background:#fff; }
+  .stat-card .card-body{ text-align:center; padding:1.25rem 1rem; }
+  .stat-card .icon{ font-size:2rem; margin-bottom:.5rem; }
+  .stat-card .label{ color:#6c757d; font-size:.8rem; margin-bottom:.25rem; font-weight:600; text-transform:uppercase; }
+  .stat-card .value{ font-size:2rem; font-weight:700; line-height:1; }
 
-    /* ========== Override form-select ========== */
-    .form-select {
-      -webkit-appearance:none; -moz-appearance:none; appearance:none;
-      width:100% !important; padding:.375rem .75rem !important;
-      border:1px solid #ced4da !important; border-radius:.375rem !important;
-      background:#fff url("data:image/svg+xml;charset=UTF-8,%3Csvg viewBox='0 0 4 5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 0L0 2h4zm0 5L0 3h4z' fill='%236c757d'/%3E%3C/svg%3E") no-repeat right .75rem center !important;
-      background-size:.65em auto !important;
-    }
-    .form-select::-ms-expand { display:none }
-    .form-select:focus {
-      border-color:#800080 !important;
-      box-shadow:0 0 0 .2rem rgba(128,0,128,.25) !important;
-      outline:none !important;
-    }
+  /* TABEL */
+  .table th, .table td{ vertical-align:middle!important; }
+  .badge{ font-size:.8rem; padding:.4em .7em; }
 
-    /* ========== Badge Status ========== */
-    .badge-status-draft     { background:#f8f9fa; color:#6c757d }
-    .badge-status-pending   { background:#fff3cd; color:#856404 }
-    .badge-status-disetujui { background:#d1e7dd; color:#0f5132 }
+  .dropdown-menu a.dropdown-item{ cursor:pointer; }
+  .dropdown-menu .fa-fw{ margin-right:8px; }
+  #quickViewModal .modal-body{ height:75vh; }
 
-    /* ========== DataTables tweak ========== */
-    #table-sk_wrapper .dataTables_length,
-    #table-sk_wrapper .dataTables_filter { display:none }
-    .dataTables_paginate .paginate_button.current,
-    .dataTables_paginate .paginate_button.current:hover {
-        background:#0d6efd !important; color:#fff !important;
-    }
-    .dataTables_paginate .paginate_button:hover {
-        background:rgba(13,110,253,.1) !important; color:#0d6efd !important;
-    }
-    </style>
+  .badge-info{ background:#0bb1e3!important; color:#fff; }
+</style>
 @endpush
 
+@section('content_header')
+<div class="surat-header mt-2 mb-3">
+  <span class="icon"><i class="fas fa-user-check"></i></span>
+  <span>
+    <div class="surat-header-title">Surat Keputusan Saya</div>
+    <div class="surat-header-desc">
+      Daftar semua <b>Surat Keputusan</b> yang mencantumkan Anda sebagai penerima/terdampak. Lihat detail, unduh PDF, dan pantau statusnya di sini.
+    </div>
+  </span>
+</div>
+@endsection
+
 @section('content')
-<div class="container-fluid px-4">
+<div class="container-fluid">
 
-    {{-- Header Ungu --}}
-    <h2 class="header-title">
-        <i class="fas fa-clipboard-list me-2" aria-hidden="true"></i> Surat Keputusan Saya
-    </h2>
-
-    {{-- Flash via SweetAlert --}}
-    @if(session('success') || session('error'))
-        <div class="d-none" id="swal-flash"
-             data-message="{{ session('success') ?? session('error') }}"
-             data-type="{{ session('success') ? 'success' : 'error' }}">
-        </div>
-    @endif
-
-    {{-- Statistik --}}
-    <div class="stat-wrapper">
-        @foreach([
-            'draft'     => ['icon'=>'fa-file-alt','label'=>'Draft','count'=>$stats['draft'] ?? 0,'color'=>'secondary'],
-            'pending'   => ['icon'=>'fa-hourglass-half','label'=>'Pending','count'=>$stats['pending'] ?? 0,'color'=>'warning'],
-            'disetujui' => ['icon'=>'fa-check-circle','label'=>'Disetujui','count'=>$stats['disetujui'] ?? 0,'color'=>'success'],
-        ] as $statusKey => $info)
-        <div class="stat-card card shadow-sm" data-status="{{ $statusKey }}">
-            <div class="card-body">
-                <div class="icon text-{{ $info['color'] }}">
-                    <i class="fas {{ $info['icon'] }}" aria-hidden="true"></i>
-                </div>
-                <div class="label">{{ $info['label'] }}</div>
-                <div class="value">{{ $info['count'] }}</div>
-            </div>
-        </div>
-        @endforeach
-    </div>
-
-    {{-- Tombol Tambah SK (Admin TU) --}}
-    @if((int)auth()->user()->peran_id === 1)
-    <div class="d-flex justify-content-end mb-4">
-        <a href="{{ route('surat_keputusan.create') }}"
-           class="btn btn-primary rounded-pill px-4">
-            <i class="fas fa-plus me-2" aria-hidden="true"></i>Tambah Surat Keputusan
-        </a>
-    </div>
-    @endif
-
-    {{-- Filter/Search --}}
-    <div class="card mb-4 shadow-sm border-0">
-        <div class="card-header bg-white border-0 py-3">
-            <h5 class="mb-0 fw-bold">
-                <i class="fas fa-filter me-2 text-primary" aria-hidden="true"></i>Filter & Pencarian
-            </h5>
-        </div>
+  {{-- Statistik --}}
+  <div class="stat-wrapper">
+    @foreach([
+      'draft'     => ['icon'=>'fa-file-alt',       'label'=>'Draft',     'count'=>$stats['draft'] ?? 0,     'color'=>'secondary'],
+      'pending'   => ['icon'=>'fa-hourglass-half', 'label'=>'Pending',   'count'=>$stats['pending'] ?? 0,   'color'=>'warning'],
+      'disetujui' => ['icon'=>'fa-check-circle',   'label'=>'Disetujui', 'count'=>$stats['disetujui'] ?? 0, 'color'=>'success'],
+    ] as $status => $info)
+      <div class="stat-card card shadow-sm">
         <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label small text-uppercase" for="globalSearch">Cari</label>
-                    <input id="globalSearch" class="form-control" placeholder="Ketik nomor, judul...">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-uppercase" for="statusFilter">Status</label>
-                    <select id="statusFilter" class="form-select w-100">
-                        <option value="">Semua Status</option>
-                        @foreach(['draft'=>'Draft','pending'=>'Pending','disetujui'=>'Disetujui'] as $val=>$lbl)
-                            <option value="{{ $val }}">{{ $lbl }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-uppercase" for="startDate">Dari Tgl Dibuat</label>
-                    <input id="startDate" type="date" class="form-control">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small text-uppercase" for="endDate">Sampai Tgl Dibuat</label>
-                    <input id="endDate" type="date" class="form-control">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button id="resetFilters" class="btn btn-outline-secondary w-100" type="button">
-                        <i class="fas fa-redo me-1" aria-hidden="true"></i>Reset
-                    </button>
-                </div>
-            </div>
+          <div class="icon text-{{ $info['color'] }}"><i class="fas {{ $info['icon'] }}"></i></div>
+          <div class="label">{{ $info['label'] }}</div>
+          <div class="value text-{{ $info['color'] }}">{{ $info['count'] }}</div>
         </div>
+      </div>
+    @endforeach
+  </div>
+
+  {{-- Filter --}}
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header bg-white border-0 py-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="mb-0 font-weight-bold">
+          <i class="fas fa-filter mr-2 text-primary"></i>Filter & Pencarian
+        </h5>
+        {{-- Halaman ini khusus penerima — tidak ada tombol "Tambah SK" --}}
+      </div>
     </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 form-group">
+          <input id="globalSearch" type="text" class="form-control" placeholder="Cari nomor, tentang, pembuat, atau penerima...">
+        </div>
+        <div class="col-md-3 form-group">
+          <select id="statusFilter" class="form-control">
+            <option value="">Semua Status</option>
+            <option value="draft">Draft</option>
+            <option value="pending">Pending</option>
+            <option value="disetujui">Disetujui</option>
+          </select>
+        </div>
+        <div class="col-md-3 form-group">
+          <button id="resetFilters" class="btn btn-outline-secondary w-100" type="button">
+            <i class="fas fa-redo mr-1"></i>Reset Filter
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    {{-- Tabel Surat Keputusan --}}
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table id="table-sk"
-                       class="table table-hover align-middle w-100 mb-0">
-                    <thead class="table-light text-center">
-                        <tr>
-                            <th>#</th>
-                            <th>Nomor</th>
-                            <th>Tanggal SK</th>
-                            <th>Judul/Perihal</th>
-                            <th>Pembuat</th>
-                            <th>Status</th>
-                            <th>Tgl Dibuat</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($list as $sk)
-                        <tr>
-                            <td class="text-center">{{ $loop->iteration }}</td>
-                            <td>{{ $sk->nomor }}</td>
-                            <td>{{ optional($sk->tanggal_asli)->format('d-m-Y') ?? '-' }}</td>
-                            <td>{{ \Illuminate\Support\Str::limit($sk->tentang ?? '-', 80) }}</td>
-                            <td>{{ $sk->pembuat->nama_lengkap ?? '-' }}</td>
-                            <td class="text-center">
-                                <span class="badge badge-status-{{ $sk->status_surat }}">
-                                    {{ ucfirst($sk->status_surat) }}
-                                </span>
-                            </td>
-                            <td data-order="{{ optional($sk->created_at)->timestamp ?? 0 }}">
-                                {{ optional($sk->created_at)->format('d-m-Y H:i') ?? '-' }}
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center gap-1">
-                                    {{-- VIEW --}}
-                                    <a href="{{ route('surat_keputusan.show', $sk->id) }}"
-                                       class="btn btn-sm btn-outline-info" title="Lihat">
-                                        <i class="fas fa-eye" aria-hidden="true"></i>
-                                    </a>
+  {{-- Tabel --}}
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="table-sk-saya" class="table table-hover" style="width:100%">
+          <thead>
+            <tr class="text-center">
+              <th>No</th>
+              <th>Nomor SK</th>
+              <th>Tentang</th>
+              <th>Tgl Surat</th>
+              <th>Pembuat</th>
+              <th>Penerima</th>
+              <th>Status</th>
+              <th>Berkas</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach($list as $h)
+              @php
+                $tgl = $h->tanggal_surat ?? $h->tanggal_asli;
+                // Ambil nama penerima (relasi SK->penerima mengembalikan users)
+                $penerima = optional($h->penerima)->pluck('nama_lengkap')->filter();
+                $penerimaCount = $penerima?->count() ?? 0;
+              @endphp
+              <tr>
+                <td class="text-center">{{ $loop->iteration }}</td>
+                <td>{{ $h->nomor ?? '—' }}</td>
+                <td>{{ \Illuminate\Support\Str::limit($h->tentang, 60) }}</td>
+                <td class="text-center" data-sort="{{ $tgl ? $tgl->timestamp : 0 }}">
+                  {{ $tgl ? $tgl->format('d M Y') : '-' }}
+                </td>
+                <td>{{ $h->pembuat?->nama_lengkap ?? 'N/A' }}</td>
+                <td>
+                  @if($penerimaCount > 0)
+                    {{ $penerima->first() }}
+                    @if($penerimaCount > 1)
+                      <span class="badge badge-info ml-1">+{{ $penerimaCount - 1 }} lainnya</span>
+                    @endif
+                  @else
+                    -
+                  @endif
+                </td>
+                <td class="text-center">
+                  <span class="badge badge-pill badge-{{ $h->status_surat == 'disetujui' ? 'success' : ($h->status_surat == 'pending' ? 'warning' : 'secondary') }}">
+                    {{ ucfirst($h->status_surat) }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  @if($h->status_surat == 'disetujui' && $h->signed_pdf_path)
+                    <a href="{{ route('surat_keputusan.downloadPdf', $h->id) }}" class="btn btn-sm btn-danger" title="Download PDF" target="_blank">
+                      <i class="fas fa-file-pdf"></i>
+                    </a>
+                  @else
+                    -
+                  @endif
+                </td>
+                <td class="text-center">
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                      {{-- Quick View (opsional bila route preview tersedia) --}}
+                      {{-- 
+                      <a class="dropdown-item quick-view"
+                         href="{{ route('surat_keputusan.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}"
+                         data-url="{{ route('surat_keputusan.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}">
+                        <i class="fas fa-search mr-2"></i> Lihat Cepat
+                      </a>
+                      --}}
 
-                                    {{-- EDIT (hanya draft milik sendiri & Admin TU) --}}
-                                    @if($sk->status_surat==='draft' && (int)auth()->user()->peran_id===1 && (int)auth()->id()===(int)$sk->dibuat_oleh)
-                                        <a href="{{ route('surat_keputusan.edit', $sk->id) }}"
-                                           class="btn btn-sm btn-outline-warning" title="Edit">
-                                            <i class="fas fa-edit" aria-hidden="true"></i>
-                                        </a>
-                                    @endif
+                      {{-- Halaman detail (read-only atau detail edit sesuai policy) --}}
+                      <a class="dropdown-item" href="{{ route('surat_keputusan.edit', $h->id) }}">
+                        <i class="fas fa-fw fa-eye"></i> Halaman Detail
+                      </a>
 
-                                    {{-- APPROVE (pending & penandatangan adalah user Dekan/Wadek) --}}
-                                    @if($sk->status_surat==='pending'
-                                        && in_array((int)auth()->user()->peran_id,[2,3], true)
-                                        && (int)$sk->penandatangan === (int)auth()->user()->id)
-                                        <form action="{{ route('surat_keputusan.approve', $sk->id) }}"
-                                              method="POST" class="d-inline">
-                                            @csrf
-                                            <button type="submit"
-                                                    class="btn btn-sm btn-outline-success"
-                                                    title="Approve">
-                                                <i class="fas fa-check" aria-hidden="true"></i>
-                                            </button>
-                                        </form>
-                                    @endif
+                      {{-- Download PDF bila sudah disetujui --}}
+                      @if($h->status_surat == 'disetujui' && $h->signed_pdf_path)
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="{{ route('surat_keputusan.downloadPdf', $h->id) }}" target="_blank">
+                          <i class="fas fa-fw fa-download"></i> Download PDF
+                        </a>
+                      @endif
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-                                    {{-- OPSIONAL: tombol PDF hanya jika sudah disetujui
-                                    @if($sk->status_surat==='disetujui')
-                                        <a href="{{ route('surat_keputusan.pdf', $sk->id) }}"
-                                           class="btn btn-sm btn-success" title="Unduh PDF">
-                                            <i class="fas fa-file-pdf"></i>
-                                        </a>
-                                    @endif
-                                    --}}
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                Belum ada surat keputusan.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div><!-- /.table-responsive -->
-        </div><!-- /.card-body -->
-    </div><!-- /.card -->
+  {{-- Modal Quick View (opsional) --}}
+  <div class="modal fade" id="quickViewModal" tabindex="-1" role="dialog" aria-labelledby="quickViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="quickViewModalLabel">Pratinjau Surat Keputusan</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body p-0" style="position:relative;">
+          <div class="spinner-border text-primary quickview-spinner" style="position:absolute; top:48%; left:48%; display:none"></div>
+          <iframe src="about:blank" style="width: 100%; border: none; min-height:70vh"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
 
-</div><!-- /.container-fluid -->
+</div>
 @endsection
 
 @push('scripts')
-    <!-- Dependencies -->
-    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/id.js"></script>
-
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // SweetAlert2 flash
-    const flash = document.getElementById('swal-flash');
-    if (flash) {
-        Swal.fire({
-            icon: flash.dataset.type,
-            title: flash.dataset.type==='success' ? 'Berhasil!' : 'Error',
-            text: flash.dataset.message,
-            timer: 2500,
-            showConfirmButton: false
-        });
-    }
-
-    moment.locale('id');
-    // Custom date filter untuk kolom "Tgl Dibuat" (index 6, format 'DD-MM-YYYY HH:mm')
-    $.fn.dataTable.ext.search.push((settings,data) => {
-        const min = $('#startDate').val(),
-              max = $('#endDate').val(),
-              dateStr = data[6] || '';
-        if (!min && !max) return true;
-        const d = moment(dateStr, "DD-MM-YYYY HH:mm");
-        if (!d.isValid()) return false;
-        const s = min ? moment(min,"YYYY-MM-DD").startOf('day') : null;
-        const e = max ? moment(max,"YYYY-MM-DD").endOf('day')   : null;
-        if (s && e) return d.isBetween(s,e,null,'[]');
-        if (s)       return d.isSameOrAfter(s);
-        if (e)       return d.isSameOrBefore(e);
-        return true;
+  $(function(){
+    const table = $('#table-sk-saya').DataTable({
+      responsive: true,
+      autoWidth: false,
+      language: {
+        url: "/assets/datatables/i18n/id.json",
+        emptyTable: "Tidak ada Surat Keputusan untuk Anda."
+      },
+      columnDefs: [
+        { targets: [7, 8], orderable: false, searchable: false } // Berkas & Aksi
+      ]
     });
 
-    // init DataTable
-    const table = $('#table-sk').DataTable({
-        dom: 'rt<"d-flex justify-content-between align-items-center mt-3 px-3 pb-2"ip>',
-        language: { url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json" },
-        columnDefs:[
-            { orderable:false, targets:[0,7] },
-            { searchable:false, targets:[0,5,7] }
-        ],
-        pagingType:"simple_numbers"
+    // Global search
+    $('#globalSearch').on('keyup', function(){
+      table.search(this.value).draw();
     });
 
-    // Filter dari panel filter
-    $('#globalSearch').on('keyup',    () => table.search($('#globalSearch').val()).draw());
-    $('#statusFilter').on('change',   () => table.column(5).search($('#statusFilter').val()
-        ? `^${$('#statusFilter').val()}$` : '', true,false).draw());
-    $('#startDate,#endDate').on('change', () => table.draw());
-    $('#resetFilters').on('click',    () => {
-        $('#globalSearch,#statusFilter,#startDate,#endDate').val('');
-        table.search('').columns().search('').draw();
+    // Status filter (kolom 6)
+    $('#statusFilter').on('change', function(){
+      const v = this.value;
+      table.column(6).search(v ? '^'+v+'$' : '', true, false).draw();
     });
 
-    // Klik kartu statistik -> set filter status
-    $('.stat-card').on('click', function() {
-        const status = $(this).data('status') || '';
-        $('#statusFilter').val(status).trigger('change');
+    // Reset
+    $('#resetFilters').on('click', function(){
+      $('#globalSearch').val('');
+      $('#statusFilter').val('');
+      table.search('').columns().search('').draw();
     });
-});
+
+    // Quick View (opsional)
+    $('#table-sk-saya').on('click', '.quick-view', function(e){
+      e.preventDefault();
+      const url = $(this).data('url') || $(this).attr('href');
+      const $modal = $('#quickViewModal');
+      const $spinner = $modal.find('.quickview-spinner');
+      const $iframe = $modal.find('iframe');
+
+      $spinner.show();
+      $iframe.off('load').on('load', function(){ $spinner.hide(); });
+      $iframe.attr('src', url);
+      $modal.modal('show');
+    });
+
+    $('#quickViewModal').on('hidden.bs.modal', function(){
+      const $iframe = $(this).find('iframe');
+      $iframe.off('load').attr('src','about:blank');
+      $('.quickview-spinner').hide();
+    });
+
+    @if(session('success'))
+      Swal.fire({ icon:'success', title:'Berhasil!', text:"{{ session('success') }}", timer:2500, showConfirmButton:false });
+    @endif
+  });
 </script>
 @endpush
