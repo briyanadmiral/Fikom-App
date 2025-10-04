@@ -1,33 +1,35 @@
-{{-- resources/views/surat_keputusan/surat_pdf.blade.php --}}
+{{-- resources/views/surat_tugas/surat_pdf.blade.php --}}
 
+{{-- === GUARD VISIBILITAS TTD/CAP (PDF) === --}}
 @php
-  // === GUARD VISIBILITAS TTD/CAP (PDF) ===
-  // Controller idealnya mengirim 'showSigns'. Fallback aman bila belum dikirim:
+  // Controller idealnya mengirim 'showSigns' & 'isDraft'.
+  // Fallback aman bila belum dikirim:
   if (!isset($showSigns)) {
-    $showSigns = isset($keputusan)
-      ? (($keputusan->status_surat ?? null) === 'disetujui' && !empty($keputusan->signed_at ?? null))
+    $showSigns = isset($tugas)
+      ? (($tugas->status_surat ?? null) === 'disetujui' && !empty($tugas->signed_at ?? null))
       : false;
   }
   // Jika controller tidak set isDraft, anggap draft bila showSigns=false
   $isDraft = $isDraft ?? (!$showSigns);
 @endphp
 
+{{-- Surat Tugas - PDF (satu render, tanpa page-break tambahan) --}}
 @php
   $context = 'pdf';
 
-  // Ambil ukuran & opacity dari parameter atau fallback ke konfigurasi model
-  $ttdW       = $ttdW       ?? (method_exists($keputusan,'ttdWidthMm') ? $keputusan->ttdWidthMm() : (int)($keputusan->ttd_config['w_mm'] ?? 42));
-  $capW       = $capW       ?? (method_exists($keputusan,'capWidthMm') ? $keputusan->capWidthMm() : (int)($keputusan->cap_config['w_mm'] ?? 35));
-  $capOpacity = $capOpacity ?? (method_exists($keputusan,'capOpacity') ? $keputusan->capOpacity() : (float)($keputusan->cap_config['opacity'] ?? 0.95));
+  // Ambil ukuran & opacity dari DB jika tidak di-override controller
+  $ttdW       = $ttdW       ?? ($tugas->ttd_w_mm ?? null);
+  $capW       = $capW       ?? ($tugas->cap_w_mm ?? null);
+  $capOpacity = $capOpacity ?? ($tugas->cap_opacity ?? null);
 
   // HARDENING: Jangan oper gambar TTD/Cap ke partial jika belum boleh tampil
   $ttdImageB64_safe = $showSigns ? ($ttdImageB64 ?? null) : null;
   $capImageB64_safe = $showSigns ? ($capImageB64 ?? null) : null;
 @endphp
 
-@include('surat_keputusan.partials._core', [
+@include('surat_tugas.partials._core', [
   'context'      => $context,
-  'keputusan'    => $keputusan,
+  'tugas'        => $tugas,
   'kop'          => $kop ?? null,
   'penerimaList' => $penerimaList ?? null,
 

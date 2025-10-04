@@ -637,7 +637,7 @@
         }
 
         // --------- INISIALISASI PENERIMA (internal & eksternal) ---------
-        const allUsersData = @json($users - > keyBy('id'));
+        const allUsersData = @json($users->keyBy('id'));
         const oldInternalIds = @json(old('penerima_internal', []));
         const oldEksternal = @json(old('penerima_eksternal', []));
         let penerimaState = {

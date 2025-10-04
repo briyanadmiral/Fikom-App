@@ -15,19 +15,19 @@
 
   // Pakai daftar penerima yang dikirim controller jika ada; kalau tidak, hitung dari relasi
   $penerimaList = isset($penerimaList) && is_array($penerimaList)
-      ? $penerimaList
-      : ($tugas->penerima?->pluck('pengguna.nama_lengkap')->filter()->values()->all() ?? []);
+    ? $penerimaList
+    : ($tugas->penerima?->pluck('pengguna.nama_lengkap')->filter()->values()->all() ?? []);
 
   $roleNames = collect($tugas->penerima ?? [])
-      ->map(fn($p) => optional(optional($p->pengguna)->peran)->deskripsi)
-      ->filter()->unique()->values()->all();
+    ->map(fn($p) => optional(optional($p->pengguna)->peran)->deskripsi)
+    ->filter()->unique()->values()->all();
 
   $statusDisplay = $roleNames
-      ? implode(', ', $roleNames)
-      : (\Illuminate\Support\Str::headline($tugas->status_penerima ?? '') ?: '-');
+    ? implode(', ', $roleNames)
+    : (\Illuminate\Support\Str::headline($tugas->status_penerima ?? '') ?: '-');
 
   $tugasSpesifik = optional($tugas->subTugas)->nama
-      ?? ($tugas->tugas ?? $tugas->nama_umum ?? '-');
+    ?? ($tugas->tugas ?? $tugas->nama_umum ?? '-');
 
   // Variabel TTD & Cap
   $ttdW_final       = $ttdW       ?? 42;
@@ -43,7 +43,7 @@
 
 {{-- ====================== STYLING & WRAPPER ====================== --}}
 @if($context === 'pdf')
-  <style>
+<style>
     @page { margin: 2cm; }
     body { font-family: "Times New Roman", Times, serif; margin: 0; font-size: 16px; }
     table { border-collapse: collapse; width: 100%; }
@@ -62,12 +62,25 @@
     .ttd-teks { text-align: left; page-break-inside: avoid; line-height: 1.5; }
     .ttd-area-sign { position: relative; min-height: 28mm; margin-top: 6mm; text-align: center; }
     .ttd-area-sign .ttd, .ttd-area-sign .cap { display: inline-block; vertical-align: bottom; }
-    .ttd-area-sign .ttd { width: var(--ttd-w, 42mm); }
-    .ttd-area-sign .cap { width: var(--cap-w, 35mm); opacity: var(--cap-opacity, 0.95); margin-left: -40mm; margin-bottom: 6mm; position: relative; z-index: 2; }
-  </style>
+
+    /* [PERBAIKAN] Menyamakan style TTD & Cap dengan versi Web */
+    .ttd-area-sign .ttd {
+        width: var(--ttd-w, 42mm);
+        margin-left: -50mm;
+        margin-bottom: 10mm;
+    }
+    .ttd-area-sign .cap {
+        width: var(--cap-w, 35mm);
+        opacity: var(--cap-opacity, 0.95);
+        margin-left: -20mm;
+        margin-bottom: 6mm;
+        position: relative;
+        z-index: 2;
+    }
+</style>
 @else
-  {{-- CSS UNTUK WEB PREVIEW --}}
-  <style>
+{{-- CSS UNTUK WEB PREVIEW (SUDAH BENAR, TIDAK DIUBAH) --}}
+<style>
     body { margin:0; font-family:"Times New Roman", Times, serif; background:#f6f7fb; }
     .sheet{ width:210mm; min-height:297mm; margin:8mm auto; background:#fff; position:relative;
             box-shadow:0 10px 30px rgba(0,0,0,.08); padding:40mm 15mm 25mm 15mm; }
@@ -78,9 +91,7 @@
     table{ border-collapse:collapse; width: 100%; }
     td{ padding:4px 8px; vertical-align:top; }
 
-    /* .kop-wrap disediakan oleh shared/_kop_surat; di web kita posisikan absolut seperti sebelumnya */
     .kop-wrap{ position:absolute; top:10mm; left:15mm; right:15mm; }
-    /* shared/_kop_surat sudah menambahkan divider; jika ingin tambahan spacing, bisa margin-bottom di bawah ini */
     .kop-wrap + .judul { margin-top: 12px; }
 
     .ttd-wrapper { display: table; width: 100%; margin-top: 25px; }
@@ -91,90 +102,95 @@
     .ttd-area-sign .ttd, .ttd-area-sign .cap { display: inline-block; vertical-align: bottom; }
     .ttd-area-sign .ttd { width: var(--ttd-w, 42mm); margin-left: -50mm; margin-bottom: 10mm; }
     .ttd-area-sign .cap { width: var(--cap-w, 35mm); opacity: var(--cap-opacity, 0.95); margin-left: -20mm; margin-bottom: 6mm; position: relative; z-index: 2; }
-  </style>
-  <div class="sheet">
+</style>
+<div class="sheet">
 @endif
 
-{{-- ====================== HTML KONTEN ====================== --}}
-
-{{-- === KOP SURAT (gunakan partial bersama) === --}}
+{{-- ====================== HTML KONTEN (TIDAK ADA PERUBAHAN) ====================== --}}
 @include('shared._kop_surat', [
-  'kop'      => $kop ?? null,
-  'context'  => $context,
-  // Kalau ingin pakai logo kiri juga:
-  // 'showLeftLogo' => true,
+    'kop'      => $kop ?? null,
+    'context'  => $context,
 ])
 
 <div class="judul">SURAT TUGAS</div>
 <div class="nomor">Nomor : {{ $tugas->nomor ?? '-' }}</div>
 
 <div class="isi-surat">
-  Dekan Fakultas Ilmu Komputer Universitas Katolik Soegijapranata dengan ini memberikan tugas kepada:
-  <div class="detail-tugas">
-    <table>
-      <tr>
-        <td style="width: 15%;">Nama</td><td style="width: 2%;">:</td>
-        <td>{{ !empty($penerimaList) ? implode(', ', $penerimaList) : '—' }}</td>
-      </tr>
-      <tr><td>Status</td><td>:</td><td>{{ $statusDisplay }}</td></tr>
-      <tr><td>Tugas</td><td>:</td><td>{{ $tugasSpesifik }}</td></tr>
-      <tr>
-        <td>Waktu</td>
-        <td>:</td>
-        <td>
-          @php
-            $waktuList = [];
-            if (!empty($tugas->semester)) $waktuList[] = $tugas->semester;
-            if (!empty($tugas->tahun))    $waktuList[] = $tugas->tahun;
-            echo !empty($waktuList) ? implode(' ', $waktuList) : '-';
-          @endphp
-        </td>
-      </tr>
-    </table>
-  </div>
+    Dekan Fakultas Ilmu Komputer Universitas Katolik Soegijapranata dengan ini memberikan tugas kepada:
+    <div class="detail-tugas">
+        <table>
+            <tr>
+                <td style="width: 15%;">Nama</td>
+                <td style="width: 2%;">:</td>
+                <td>{{ !empty($penerimaList) ? implode(', ', $penerimaList) : '—' }}</td>
+            </tr>
+            <tr>
+                <td>Status</td>
+                <td>:</td>
+                <td>{{ $statusDisplay }}</td>
+            </tr>
+            <tr>
+                <td>Tugas</td>
+                <td>:</td>
+                <td>{{ $tugasSpesifik }}</td>
+            </tr>
+            <tr>
+                <td>Waktu</td>
+                <td>:</td>
+                <td>
+                    @php
+                        $waktuList = [];
+                        if (!empty($tugas->semester)) $waktuList[] = $tugas->semester;
+                        if (!empty($tugas->tahun))    $waktuList[] = $tugas->tahun;
+                        echo !empty($waktuList) ? implode(' ', $waktuList) : '-';
+                    @endphp
+                </td>
+            </tr>
+        </table>
+    </div>
 
-  Harap melaksanakan tugas dengan sebaik-baiknya dan penuh tanggung jawab serta memberikan laporan setelah selesai melaksanakan tugas.
+    Harap melaksanakan tugas dengan sebaik-baiknya dan penuh tanggung jawab serta memberikan laporan setelah selesai melaksanakan tugas.
 </div>
 
 <div class="ttd-wrapper">
-  <div class="ttd-kolom-kiri"></div>
-  <div class="ttd-kolom-kanan">
-    <div class="ttd-teks">
-      Semarang, {{ \Carbon\Carbon::parse($tugas->tanggal_surat ?? now())->translatedFormat('d F Y') }}
-      <br>
-      @php
-        $penandatangan = $tugas->penandatanganUser;
-        $jabatanTtd = 'Pejabat Penandatangan'; // Fallback default
-        if ($penandatangan) {
-            if ($penandatangan->peran_id == 2) {
-                $jabatanTtd = 'Dekan Fakultas Ilmu Komputer';
-            } elseif ($penandatangan->peran_id == 3) {
-                $jabatanTtd = 'a.n. Dekan Fakultas Ilmu Komputer<br>Wakil Dekan Fakultas Ilmu Komputer';
-            }
-        }
-      @endphp
-      {!! $jabatanTtd !!}
-    </div>
+    <div class="ttd-kolom-kiri"></div>
+    <div class="ttd-kolom-kanan">
+        <div class="ttd-teks">
+            Semarang, {{ \Carbon\Carbon::parse($tugas->tanggal_surat ?? now())->translatedFormat('d F Y') }}
+            <br>
+            @php
+                $penandatangan = $tugas->penandatanganUser;
+                $jabatanTtd = 'Pejabat Penandatangan'; // Fallback default
+                if ($penandatangan) {
+                    if ($penandatangan->peran_id == 2) {
+                        $jabatanTtd = 'Dekan Fakultas Ilmu Komputer';
+                    } elseif ($penandatangan->peran_id == 3) {
+                        $jabatanTtd = 'a.n. Dekan Fakultas Ilmu Komputer<br>Wakil Dekan Fakultas Ilmu Komputer';
+                    }
+                }
+            @endphp
+            {!! $jabatanTtd !!}
+        </div>
 
-    {{-- === AREA TTD & CAP === --}}
-    <div class="ttd-area-sign" style="--ttd-w: {{$ttdW_final}}mm; --cap-w: {{$capW_final}}mm; --cap-opacity: {{$capOpacity_final}};">
-      @if($showSigns)
-        @if(!empty($ttdImageB64))
-          <img class="ttd" src="{{ $ttdImageB64 }}" alt="TTD">
-        @endif
-        @if(!empty($capImageB64))
-          <img class="cap" src="{{ $capImageB64 }}" alt="Cap">
-        @endif
-      @endif
-    </div>
+        {{-- === AREA TTD & CAP === --}}
+        <div class="ttd-area-sign" style="--ttd-w: {{$ttdW_final}}mm; --cap-w: {{$capW_final}}mm; --cap-opacity: {{$capOpacity_final}};">
+            @if($showSigns)
+                @if(!empty($ttdImageB64))
+                <img class="ttd" src="{{ $ttdImageB64 }}" alt="TTD">
+                @endif
+                @if(!empty($capImageB64))
+                <img class="cap" src="{{ $capImageB64 }}" alt="Cap">
+                @endif
+            @endif
+        </div>
 
-    <div class="ttd-teks">
-      <strong>{{ optional($tugas->penandatanganUser)->nama_lengkap ?? '-' }}</strong><br>
-      NPP. {{ optional($tugas->penandatanganUser)->npp ?? '-' }}
+        <div class="ttd-teks">
+            <strong>{{ optional($tugas->penandatanganUser)->nama_lengkap ?? '-' }}</strong><br>
+            NPP. {{ optional($tugas->penandatanganUser)->npp ?? '-' }}
+        </div>
     </div>
-  </div>
 </div>
 
 @if($context === 'web')
-  </div>
+</div>
 @endif
