@@ -156,7 +156,7 @@
         {{-- TEMBUSAN --}}
 @php
     // Ambil yang paling rapi dulu (hasil preview Tagify), fallback ke kolom tembusan mentah
-    $text = $sk->tembusan_formatted ?? $sk->tembusan;
+    $text = $tugas->tembusan_formatted ?? $tugas->tembusan;
 
     $items = [];
     if (is_string($text) && trim($text) !== '') {

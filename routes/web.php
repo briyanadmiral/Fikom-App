@@ -22,6 +22,7 @@ use App\Models\KeputusanHeader;
 | Redirect root ('/') langsung ke login
 |--------------------------------------------------------------------------
 */
+
 Route::redirect('/', '/login');
 
 /*
@@ -59,6 +60,9 @@ Route::middleware('auth')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::resource('jenis_surat_tugas', JenisTugasController::class)->except(['show']);
+    Route::post('/ajax/nomor-surat/reserve', [NomorSuratController::class, 'reserve'])
+        ->name('ajax.nomor.reserve')
+        ->middleware(['throttle:20,1']);
 
     /*
     |----------------------------------------------------------------------
@@ -192,11 +196,6 @@ Route::middleware('auth')->group(function () {
     // Kompatibilitas URL lama (closure -> controller)
     Route::get('/surat-keputusan/{any?}', [RedirectController::class, 'legacySk'])
         ->where('any', '.*');
-
-    // Reserve nomor SK (tambahan throttle)
-    Route::post('/surat_keputusan/nomor/reserve', [NomorSuratController::class, 'reserve'])
-        ->name('surat_keputusan.nomor.reserve')
-        ->middleware(['throttle:20,1']); // sudah di dalam group auth, jadi tak perlu 'auth' lagi
 
     /*
     |----------------------------------------------------------------------

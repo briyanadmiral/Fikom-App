@@ -8,89 +8,81 @@ use Illuminate\Support\Str;
 class NomorSuratService
 {
     /**
-     * Reserve nomor dengan kunci: (kode_surat, unit, bulan_romawi, tahun).
-     * - Thread-safe: retry singkat saat race.
-     * - Format default: 001/{KLAS}/{UNIT}/UNIKA/{BULAN}/{TAHUN}
-     *   Bisa diubah via config('surat_sk.nomor_format', '...').
+     * Reserve nomor berikutnya untuk scope tertentu (unit+klas+bulan+tahun).
+     * Operasi ini concurrency-safe dengan transaksi + FOR UPDATE.
+     *
+     * @return array{no_urut:string, nomor:string, scope:array}
      */
-    public function reserve(string $kodeUnit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): array
+    public function reserve(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): array
     {
-        $retries = 3;
+        $unit  = trim($unit);
+        $klas  = trim($kodeKlasifikasi);
+        $bulan = strtoupper(trim($bulanRomawi));
+        $tahun = (int) $tahun;
 
-        while ($retries-- > 0) {
-            try {
-                return DB::transaction(function () use ($kodeUnit, $kodeKlasifikasi, $bulanRomawi, $tahun) {
-                    // lock baris scope counter
-                    $row = DB::table('nomor_surat_counters')
-                        ->where('kode_surat', $kodeKlasifikasi)
-                        ->where('unit', $kodeUnit)
-                        ->where('bulan_romawi', $bulanRomawi)
-                        ->where('tahun', $tahun)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if (!$row) {
-                        // inisialisasi scope
-                        DB::table('nomor_surat_counters')->insert([
-                            'kode_surat'   => $kodeKlasifikasi,
-                            'unit'         => $kodeUnit,
-                            'bulan_romawi' => $bulanRomawi,
-                            'tahun'        => $tahun,
-                            'last_number'  => 0,
-                            'created_at'   => now(),
-                            'updated_at'   => now(),
-                        ]);
-
-                        $row = DB::table('nomor_surat_counters')
-                            ->where('kode_surat', $kodeKlasifikasi)
-                            ->where('unit', $kodeUnit)
-                            ->where('bulan_romawi', $bulanRomawi)
-                            ->where('tahun', $tahun)
-                            ->lockForUpdate()
-                            ->first();
-                    }
-
-                    // next number
-                    $nextInt = (int) $row->last_number + 1;
-
-                    DB::table('nomor_surat_counters')
-                        ->where('id', $row->id)
-                        ->update(['last_number' => $nextInt, 'updated_at' => now()]);
-
-                    // padding 3 digit minimal (kalau sudah >=1000, biarkan natural)
-                    $noUrut = $nextInt < 1000 ? str_pad((string)$nextInt, 3, '0', STR_PAD_LEFT) : (string)$nextInt;
-
-                    // === FORMAT NOMOR ===
-                    // default (punyamu sekarang):
-                    // 001/{KLAS}/{UNIT}/UNIKA/{BULAN}/{TAHUN}
-                    $format = config('surat_sk.nomor_format', '{NO}/{KLAS}/{UNIT}/UNIKA/{BULAN}/{TAHUN}');
-
-                    // contoh kalau ingin format SK seperti: 001/{KLAS}/SK/UNIKA/{UNIT}/{BULAN}/{TAHUN}
-                    // set di config: 'surat_sk.nomor_format' => '{NO}/{KLAS}/SK/UNIKA/{UNIT}/{BULAN}/{TAHUN}'
-
-                    $map = [
-                        '{NO}'    => $noUrut,
-                        '{KLAS}'  => $kodeKlasifikasi,
-                        '{UNIT}'  => $kodeUnit,
-                        '{BULAN}' => $bulanRomawi,
-                        '{TAHUN}' => (string) $tahun,
-                    ];
-
-                    $nomor = strtr($format, $map);
-
-                    return ['no_urut' => $noUrut, 'nomor' => $nomor];
-                });
-            } catch (\Throwable $e) {
-                // deadlock / duplicate key -> retry
-                if ($retries <= 0) {
-                    throw $e;
-                }
-                // kecilkan jeda agar cepat namun memberi waktu lock release
-                usleep(100 * 1000); // 100 ms
-            }
+        // Validasi bulan romawi ringan
+        $valid = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+        if (!in_array($bulan, $valid, true)) {
+            throw new \InvalidArgumentException('Bulan Romawi tidak valid.');
         }
 
-        // Fallback (teoretis tak tercapai)
-        return ['no_urut' => '000', 'nomor' => '000/ERR'];
+        $scope = [
+            'kode_surat'   => $klas,
+            'unit'         => $unit,
+            'bulan_romawi' => $bulan,
+            'tahun'        => $tahun,
+        ];
+
+        $counterTable = 'nomor_surat_counters';
+
+        $noUrut = DB::transaction(function () use ($counterTable, $scope) {
+            // Lock baris counter untuk scope ini (kalau ada)
+            $row = DB::table($counterTable)
+                ->where($scope)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$row) {
+                // Inisialisasi scope baru (last_number = 0 → akan di-increment)
+                DB::table($counterTable)->insert(array_merge($scope, [
+                    'last_number' => 0,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ]));
+
+                // Ambil lagi dan lock
+                $row = DB::table($counterTable)
+                    ->where($scope)
+                    ->lockForUpdate()
+                    ->first();
+            }
+
+            $next = ((int)$row->last_number) + 1;
+
+            DB::table($counterTable)
+                ->where('id', $row->id)
+                ->update(['last_number' => $next, 'updated_at' => now()]);
+
+            return $next;
+        });
+
+        // Format nomor sesuai config
+        $fmt   = config('nomor_surat.format', '{NO}/{KLAS}/{UNIT}/UNIKA/{BULAN}/{TAHUN}');
+        $pad   = (int) config('nomor_surat.zero_pad', 3);
+        $noStr = str_pad((string)$noUrut, max(1, $pad), '0', STR_PAD_LEFT);
+
+        $nomor = strtr($fmt, [
+            '{NO}'    => $noStr,
+            '{KLAS}'  => $klas,
+            '{UNIT}'  => $unit,
+            '{BULAN}' => $bulan,
+            '{TAHUN}' => (string) $tahun,
+        ]);
+
+        return [
+            'no_urut' => $noStr,
+            'nomor'   => $nomor,
+            'scope'   => $scope,
+        ];
     }
 }

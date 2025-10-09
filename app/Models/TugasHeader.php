@@ -5,13 +5,58 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TugasHeader extends Model
 {
+    use SoftDeletes;
+
+    protected $dates = ['deleted_at'];
+
     protected $table = 'tugas_header';
 
-    // Guarded kosong agar mass assignment fleksibel (controller sudah validasi)
-    protected $guarded = [];
+    protected $fillable = [
+        // identitas & nomor surat
+        'nomor',
+        'nomor_status',
+        'kode_surat',
+        'bulan',
+        'tahun',
+        // status & alur persetujuan
+        'status_surat',
+        'next_approver',
+        // metadata pembuat
+        'dibuat_oleh',
+        'nama_pembuat',
+        'asal_surat',
+        // klasifikasi
+        'klasifikasi_surat_id',
+        'semester',
+        'no_surat_manual',
+        // konten tugas
+        'nama_umum',
+        'jenis_tugas',
+        'tugas',
+        'detail_tugas',
+        'detail_tugas_id',
+        'status_penerima',
+        'redaksi_pembuka',
+        'penutup',
+        'tembusan',
+        // waktu & tempat
+        'waktu_mulai',
+        'waktu_selesai',
+        'tempat',
+        // tanda tangan
+        'penandatangan',
+        'ttd_config',
+        'cap_config',
+        'ttd_w_mm',
+        'cap_w_mm',
+        'cap_opacity',
+    ];
+
+    protected $guarded = ['id'];
 
     protected $casts = [
         'tanggal_asli'        => 'datetime',
@@ -29,7 +74,7 @@ class TugasHeader extends Model
         'cap_config' => 'array',
 
         // jika ingin otomatis jadi array: uncomment berikut
-        // 'tembusan'            => 'array',
+        'tembusan'            => 'array',
     ];
 
     // ==================== RELASI =========================
@@ -94,14 +139,69 @@ class TugasHeader extends Model
         return $query->where('status_surat', 'disetujui');
     }
 
-    public function changeStatus(string $newStatus, ?int $nextApprover = null)
+    // Tambahkan scope untuk common queries
+    public function scopeByUser($query, $userId)
     {
+        return $query->where('dibuat_oleh', $userId);
+    }
+
+    public function scopeNeedsApprovalBy($query, $userId)
+    {
+        return $query->where('next_approver', $userId)
+            ->where('status_surat', 'pending');
+    }
+
+    public function scopeWithFullRelations($query)
+    {
+        return $query->with(['penerima.pengguna', 'pembuat', 'penandatanganUser', 'nextApprover']);
+    }
+
+
+    /**
+     * Change status with validation and proper error handling
+     * 
+     * @throws \InvalidArgumentException if status transition is invalid
+     */
+    public function changeStatus(string $newStatus, ?int $nextApprover = null): bool
+    {
+        // Validate status transition
+        $validTransitions = [
+            'draft' => ['pending'],
+            'pending' => ['disetujui', 'draft'],
+            'disetujui' => [], // Final state
+        ];
+
+        $currentStatus = $this->status_surat;
+
+        if (
+            !isset($validTransitions[$currentStatus]) ||
+            !in_array($newStatus, $validTransitions[$currentStatus])
+        ) {
+            throw new \InvalidArgumentException(
+                "Invalid status transition from {$currentStatus} to {$newStatus}"
+            );
+        }
+
         $old = $this->status_surat;
-        $this->update([
-            'status_surat'  => $newStatus,
-            'next_approver' => $nextApprover,
-        ]);
-        logStatusChange(null, $this->id, $old, $newStatus);
+
+        try {
+            $this->update([
+                'status_surat' => $newStatus,
+                'next_approver' => $nextApprover,
+            ]);
+
+            logStatusChange(null, $this->id, $old, $newStatus);
+
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Failed to change status', [
+                'tugas_id' => $this->id,
+                'old_status' => $old,
+                'new_status' => $newStatus,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
     }
 
     /**
@@ -109,9 +209,13 @@ class TugasHeader extends Model
      */
     public function getTembusanArrayAttribute(): array
     {
-        return $this->tembusan
-            ? array_filter(explode(',', (string)$this->tembusan))
-            : [];
+        if (empty($this->tembusan)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map('trim', explode(',', (string)$this->tembusan))
+        ));
     }
 
     /**

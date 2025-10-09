@@ -17,6 +17,11 @@ class AppServiceProvider extends ServiceProvider
     public function register()
     {
         //
+         // Register notification services
+    $this->app->singleton(\App\Services\BaseNotificationService::class);
+    $this->app->singleton(\App\Services\SuratTugasNotificationService::class);
+    $this->app->singleton(\App\Services\SuratKeputusanNotificationService::class);
+    $this->app->singleton(\App\Services\NomorSuratService::class);
     }
 
     /**

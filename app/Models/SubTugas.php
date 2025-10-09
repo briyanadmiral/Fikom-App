@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class SubTugas extends Model
 {
     protected $table = 'sub_tugas';
-    protected $fillable = ['jenis_tugas_id', 'nama'];
+    protected $fillable = ['jenis_tugas_id', 'nama', 'deskripsi'];
 
     /**
      * Jenis tugas induk
@@ -23,5 +23,10 @@ class SubTugas extends Model
     public function detail()
     {
         return $this->hasMany(TugasDetail::class, 'sub_tugas_id');
+    }
+
+    public function scopeByJenis($query, $jenisId)
+    {
+        return $query->where('jenis_tugas_id', $jenisId);
     }
 }

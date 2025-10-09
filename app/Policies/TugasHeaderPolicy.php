@@ -4,126 +4,267 @@ namespace App\Policies;
 
 use App\Models\TugasHeader;
 use App\Models\User;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * Policy untuk mengatur authorization Surat Tugas
+ * 
+ * Role ID:
+ * - 1: Admin TU (Admin Tata Usaha)
+ * - 2: Dekan
+ * - 3: Wakil Dekan
+ * 
+ * Status Surat:
+ * - draft: Baru dibuat, belum disubmit
+ * - pending: Menunggu approval
+ * - disetujui: Sudah diapprove dan final
+ */
 class TugasHeaderPolicy
 {
-    use HandlesAuthorization;
-
     /**
-     * Izinkan Admin Super (jika ada) untuk melakukan segalanya.
-     * Catatan: Untuk sistem ini, kita definisikan Role 1 (admin_tu) BUKAN super admin.
-     * Dia hanya admin untuk modul surat, jadi kita tidak pakai fungsi before() agar aturan spesifik berlaku.
+     * Determine whether the user can view any models (list page).
+     * Hanya Admin TU yang dapat melihat semua surat tugas.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
-    // public function before(User $user, $ability)
-    // {
-    //     if ($user->isAdminSuper()) { // Jika Anda punya role super admin sejati
-    //         return true;
-    //     }
-    // }
-
-    /**
-     * Aturan: Siapa yang boleh MELIHAT SEMUA surat di halaman 'index' (surat_tugas.all).
-     * Hanya admin_tu (Role 1).
-     */
-    public function viewAny(User $user)
+    public function viewAny(User $user): bool
     {
-        return $user->peran_id === 1; // Hanya admin_tu
+        return $user->isAdmin();
     }
 
     /**
-     * Aturan: Siapa yang boleh MELIHAT DETAIL satu surat.
-     * 1. Admin (Role 1).
-     * 2. Pembuat suratnya.
-     * 3. Penandatangan suratnya.
-     * 4. Penerima suratnya.
+     * Determine whether the user can view the model detail.
+     * 
+     * Yang boleh view:
+     * 1. Admin TU (Role 1)
+     * 2. Pembuat surat
+     * 3. Penandatangan surat
+     * 4. Next approver (yang ditugaskan untuk approve)
+     * 5. Penerima surat
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\TugasHeader  $tugas
+     * @return bool
      */
-    public function view(User $user, TugasHeader $tugas)
+    public function view(User $user, TugasHeader $tugas): bool
     {
-        if ($user->peran_id === 1) {
-            return true; // Admin boleh lihat semua detail
+        // Admin TU boleh lihat semua
+        if ($user->isAdmin()) {
+            return true;
         }
 
-        // Cek jika user adalah penerima
-        $isRecipient = $tugas->penerima()->where('pengguna_id', $user->id)->exists();
+        // Cek apakah user adalah penerima surat
+        $isRecipient = $tugas->penerima()
+            ->where('pengguna_id', $user->id)
+            ->exists();
 
-        return $user->id === $tugas->dibuat_oleh || // Dia pembuat
-               $user->id === $tugas->penandatangan || // Dia penandatangan
-               $isRecipient; // Dia penerima
+        // Allow jika user adalah pembuat, penandatangan, next_approver, atau penerima
+        return $user->id === $tugas->dibuat_oleh ||
+               $user->id === $tugas->penandatangan ||
+               $user->id === $tugas->next_approver ||  // FIXED: Ditambahkan
+               $isRecipient;
     }
 
     /**
-     * Aturan: Siapa yang boleh MEMBUAT surat.
-     * Hanya admin_tu (Role 1).
+     * Determine whether the user can create models.
+     * Hanya Admin TU yang dapat membuat surat tugas baru.
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
-    public function create(User $user)
+    public function create(User $user): bool
     {
-        return $user->peran_id === 1;
+        return $user->isAdmin();
     }
 
     /**
-     * Aturan: Siapa yang boleh UPDATE (Edit / Koreksi) surat.
-     * KASUS 1: Admin (Role 1) boleh edit, TAPI HANYA jika surat itu miliknya DAN statusnya masih 'draft'.
-     * KASUS 2: Dekan/Wakil Dekan (Roles 2, 3) boleh 'koreksi' (edit), TAPI HANYA jika surat itu ditujukan padanya DAN statusnya 'pending'.
+     * Determine whether the user can update the model.
+     * 
+     * KASUS 1: Admin TU dapat edit DRAFT yang dibuat sendiri
+     * KASUS 2: Approver (Dekan/WD) dapat edit surat PENDING untuk koreksi
+     * 
+     * Surat yang sudah DISETUJUI tidak boleh diubah oleh siapapun.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\TugasHeader  $tugas
+     * @return bool
      */
-    public function update(User $user, TugasHeader $tugas)
+    public function update(User $user, TugasHeader $tugas): bool
     {
-        // KASUS 1: Admin edit draft miliknya
-        $adminEditDraft = ($user->peran_id === 1 &&
-                           $user->id === $tugas->dibuat_oleh &&
-                           $tugas->status_surat === 'draft');
+        // GUARD: Surat yang sudah disetujui tidak boleh diubah
+        if ($tugas->status_surat === 'disetujui') {
+            $this->logUnauthorizedAttempt($user, 'update', $tugas, 'Surat sudah disetujui');
+            return false;
+        }
 
-        // KASUS 2: Approver (Dekan/WD) melakukan koreksi pada surat 'pending'
-        $approverCorrectsPending = (in_array($user->peran_id, [2, 3]) &&
-                                    $user->id === $tugas->penandatangan &&
-                                    $tugas->status_surat === 'pending');
+        // KASUS 1: Admin TU edit draft miliknya
+        $adminEditDraft = $user->isAdmin() &&
+                          $user->id === $tugas->dibuat_oleh &&
+                          $tugas->status_surat === 'draft';
+
+        // KASUS 2: Approver melakukan koreksi pada surat PENDING
+        // FIXED: Ganti penandatangan ke next_approver
+        $approverCorrectsPending = $user->canApproveSurat() &&
+                                   $user->id === $tugas->next_approver &&
+                                   $tugas->status_surat === 'pending';
 
         return $adminEditDraft || $approverCorrectsPending;
     }
 
     /**
-     * Aturan: Siapa yang boleh MENGHAPUS surat.
-     * Hanya Admin (Role 1), HANYA surat miliknya, dan HANYA saat status 'draft'.
-     * Selain itu, TIDAK BOLEH ada yang menghapus surat.
+     * Determine whether the user can delete the model.
+     * Hanya Admin TU yang dapat menghapus DRAFT miliknya sendiri.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\TugasHeader  $tugas
+     * @return bool
      */
-    public function delete(User $user, TugasHeader $tugas)
+    public function delete(User $user, TugasHeader $tugas): bool
     {
-        return $user->peran_id === 1 &&
-               $user->id === $tugas->dibuat_oleh &&
+        $canDelete = $user->isAdmin() &&
+                     $user->id === $tugas->dibuat_oleh &&
+                     $tugas->status_surat === 'draft';
+
+        if (!$canDelete && $tugas->status_surat !== 'draft') {
+            $this->logUnauthorizedAttempt($user, 'delete', $tugas, 'Hanya draft yang bisa dihapus');
+        }
+
+        return $canDelete;
+    }
+
+    /**
+     * Determine whether the user can approve the model.
+     * 
+     * Hanya Dekan/WD (Role 2, 3) yang merupakan next_approver
+     * dan surat berstatus PENDING yang dapat melakukan approval.
+     * 
+     * CRITICAL FIX: Sebelumnya check 'penandatangan', sekarang 'next_approver'
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\TugasHeader  $tugas
+     * @return bool
+     */
+    public function approve(User $user, TugasHeader $tugas): bool
+    {
+        $canApprove = $user->canApproveSurat() &&
+                      $user->id === $tugas->next_approver &&  // FIXED: Dari penandatangan
+                      $tugas->status_surat === 'pending';
+
+        if (!$canApprove) {
+            $reason = $this->getApprovalDenialReason($user, $tugas);
+            $this->logUnauthorizedAttempt($user, 'approve', $tugas, $reason);
+        }
+
+        return $canApprove;
+    }
+
+    /**
+     * Determine whether the user can add recipients to the model.
+     * Hanya pembuat surat yang dapat menambah penerima, dan hanya saat DRAFT.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\TugasHeader  $tugas
+     * @return bool
+     */
+    public function addRecipient(User $user, TugasHeader $tugas): bool
+    {
+        return $user->id === $tugas->dibuat_oleh &&
                $tugas->status_surat === 'draft';
     }
 
     /**
-     * Aturan: Siapa yang boleh MENYETUJUI (APPROVE) surat.
-     * HANYA Dekan/Wakil Dekan (Roles 2, 3), HANYA surat yang ditujukan padanya, dan HANYA saat status 'pending'.
-     * Ini adalah aturan yang akan menyembunyikan tombol approve dari Role 1.
+     * Determine whether the user can view the approval list.
+     * Hanya Dekan/WD yang dapat melihat daftar surat untuk diapprove.
+     * 
+     * NEW METHOD: Untuk replace Gate 'view-approve-list'
+     *
+     * @param  \App\Models\User  $user
+     * @return bool
      */
-    public function approve(User $user, TugasHeader $tugas)
+    public function viewApproveList(User $user): bool
     {
-        return in_array($user->peran_id, [2, 3]) &&       // Peran adalah Dekan atau WD
-               $user->id === $tugas->penandatangan &&      // Dia adalah penandatangan yang dituju
-               $tugas->status_surat === 'pending';       // Surat sedang menunggu persetujuan
+        return $user->canApproveSurat();
     }
 
     /**
-     * Aturan: Siapa yang boleh menambah penerima (fitur tambahan).
-     * Hanya pembuat surat dan hanya saat draft.
+     * Determine whether the user can restore the model.
+     * Currently disabled - soft delete not implemented.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\TugasHeader  $tugas
+     * @return bool
      */
-    public function addRecipient(User $user, TugasHeader $tugas)
+    public function restore(User $user, TugasHeader $tugas): bool
     {
-        return $user->id === $tugas->dibuat_oleh && $tugas->status_surat === 'draft';
+        // Jika nanti implement SoftDeletes, uncomment:
+        // return $user->isAdmin() && $user->id === $tugas->dibuat_oleh;
+        
+        return false;
     }
 
-
-    // --- (Abaikan fungsi restore/forceDelete jika tidak Anda gunakan) ---
-
-    public function restore(User $user, TugasHeader $tugas)
+    /**
+     * Determine whether the user can permanently delete the model.
+     * Currently disabled - soft delete not implemented.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\TugasHeader  $tugas
+     * @return bool
+     */
+    public function forceDelete(User $user, TugasHeader $tugas): bool
     {
-        return false; // Kita tidak pakai soft delete di sini
+        // Jika nanti implement SoftDeletes, uncomment:
+        // return $user->isAdmin() && $user->peran_id === 1; // Super admin only
+        
+        return false;
     }
 
-    public function forceDelete(User $user, TugasHeader $tugas)
+    // ==================== HELPER METHODS ====================
+
+    /**
+     * Get detailed reason why approval was denied.
+     *
+     * @param  \App\Models\User  $user
+     * @param  \App\Models\TugasHeader  $tugas
+     * @return string
+     */
+    private function getApprovalDenialReason(User $user, TugasHeader $tugas): string
     {
-        return false; // Kita tidak pakai soft delete di sini
+        if (!$user->canApproveSurat()) {
+            return 'User tidak memiliki role approver';
+        }
+
+        if ($tugas->status_surat !== 'pending') {
+            return "Status surat adalah '{$tugas->status_surat}', bukan pending";
+        }
+
+        if ($user->id !== $tugas->next_approver) {
+            return "User bukan next_approver yang ditunjuk (next_approver: {$tugas->next_approver})";
+        }
+
+        return 'Unknown reason';
+    }
+
+    /**
+     * Log unauthorized access attempts for audit trail.
+     *
+     * @param  \App\Models\User  $user
+     * @param  string  $action
+     * @param  \App\Models\TugasHeader  $tugas
+     * @param  string  $reason
+     * @return void
+     */
+    private function logUnauthorizedAttempt(User $user, string $action, TugasHeader $tugas, string $reason): void
+    {
+        Log::warning('Unauthorized access attempt to TugasHeader', [
+            'user_id' => $user->id,
+            'user_role' => $user->peran_id,
+            'action' => $action,
+            'tugas_id' => $tugas->id,
+            'tugas_status' => $tugas->status_surat,
+            'reason' => $reason,
+            'ip_address' => request()->ip(),
+            'timestamp' => now()->toDateTimeString()
+        ]);
     }
 }
