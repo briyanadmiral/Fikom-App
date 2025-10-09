@@ -18,18 +18,78 @@ use App\Services\NotifikasiService;
 use App\Models\MasterKopSurat;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 
 class TugasController extends Controller
 {
     // ------------------ Helpers ------------------
 
+    /**
+     * Normalisasi input Tembusan dari berbagai format (JSON Tagify / array / CSV / teks).
+     *
+     * @param mixed $raw
+     * @return array{items: array<int,string>, csv: string, lines: string}
+     */
+    private function normalizeTembusan($raw): array
+    {
+        $items = [];
+
+        // 1) Jika string JSON valid => decode
+        if (is_string($raw) && Str::startsWith(trim($raw), '[')) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $raw = $decoded;
+            }
+        }
+
+        // 2) Jika array dari Tagify
+        if (is_array($raw)) {
+            // Bentuk [{value: "..."}, ...] atau ["...", "..."]
+            foreach ($raw as $v) {
+                if (is_array($v) && array_key_exists('value', $v)) {
+                    $items[] = (string) $v['value'];
+                } elseif (is_string($v)) {
+                    $items[] = $v;
+                }
+            }
+        }
+        // 3) Jika string biasa (CSV atau multi-baris)
+        elseif (is_string($raw)) {
+            // pecah dengan koma atau newline
+            $parts = preg_split("/[\n,]+/u", $raw) ?: [];
+            foreach ($parts as $p) $items[] = $p;
+        }
+
+        // 4) Bersihkan: trim, buang kosong, unik case-insensitive, limit jumlah & panjang
+        $norm = collect($items)
+            ->map(fn($s) => trim((string) $s))
+            ->filter() // buang kosong
+            ->map(fn($s) => Str::limit($s, 255)) // jaga tiap item tidak kebablasan
+            ->unique(fn($s) => mb_strtolower($s)) // unik case-insensitive
+            ->values()
+            ->take(50) // maks 50 item
+            ->all();
+
+        // 5) Bentuk varian output
+        $csv   = implode(',', $norm);
+        $lines = implode("\n", $norm);
+
+        return ['items' => $norm, 'csv' => $csv, 'lines' => $lines];
+    }
+
+
     private function toRoman($number)
     {
-        $map = ['M'=>1000,'CM'=>900,'D'=>500,'CD'=>400,'C'=>100,'XC'=>90,'L'=>50,'XL'=>40,'X'=>10,'IX'=>9,'V'=>5,'IV'=>4,'I'=>1];
+        $map = ['M' => 1000, 'CM' => 900, 'D' => 500, 'CD' => 400, 'C' => 100, 'XC' => 90, 'L' => 50, 'XL' => 40, 'X' => 10, 'IX' => 9, 'V' => 5, 'IV' => 4, 'I' => 1];
         $returnValue = '';
         while ($number > 0) {
             foreach ($map as $roman => $int) {
-                if ($number >= $int) { $number -= $int; $returnValue .= $roman; break; }
+                if ($number >= $int) {
+                    $number -= $int;
+                    $returnValue .= $roman;
+                    break;
+                }
             }
         }
         return $returnValue;
@@ -72,10 +132,10 @@ class TugasController extends Controller
         $peranId = $user->peran_id;
 
         if ($peranId === 1) {
-            $list = TugasHeader::with(['penerima.pengguna','pembuat','penandatanganUser'])
+            $list = TugasHeader::with(['penerima.pengguna', 'pembuat', 'penandatanganUser'])
                 ->where('dibuat_oleh', $user->id)->orderByDesc('created_at')->get();
         } else {
-            $list = TugasHeader::with(['penerima.pengguna','pembuat','penandatanganUser'])
+            $list = TugasHeader::with(['penerima.pengguna', 'pembuat', 'penandatanganUser'])
                 ->where('status_surat', 'disetujui')
                 ->whereHas('penerima', fn($q) => $q->where('pengguna_id', $user->id))
                 ->orderByDesc('created_at')->get();
@@ -112,13 +172,21 @@ class TugasController extends Controller
         $deps = $this->getFormDependencies();
         extract($deps);
 
-        $tahun        = date('Y');
-        $semester     = (date('n') >= 8 || date('n') <= 1) ? 'Ganjil' : 'Genap';
-        $bulanRomawi  = $this->toRoman(date('n'));
-        $autoNomor    = sprintf('/TG/UNIKA/%s/%s', $bulanRomawi, $tahun);
+        $tahun       = date('Y');
+        $semester    = (date('n') >= 8 || date('n') <= 1) ? 'Ganjil' : 'Genap';
+        $bulanRomawi = $this->toRoman(date('n'));
+        $autoNomor   = sprintf('/TG/UNIKA/%s/%s', $bulanRomawi, $tahun);
 
         return view('surat_tugas.create', compact(
-            'admins','pejabat','users','taskMaster','autoNomor','tahun','semester','klasifikasi','bulanRomawi'
+            'admins',
+            'pejabat',
+            'users',
+            'taskMaster',
+            'autoNomor',
+            'tahun',
+            'semester',
+            'klasifikasi',
+            'bulanRomawi'
         ));
     }
 
@@ -128,44 +196,56 @@ class TugasController extends Controller
         $mode = $this->resolveMode($request);
 
         $rules = [
-            'klasifikasi_surat_id'   => 'required|exists:klasifikasi_surat,id',
-            'nama_umum'              => 'required|string|max:255',
-            'jenis_tugas'            => 'required|string',
-            'tugas'                  => 'required|string',
-            'detail_tugas'           => 'nullable|string|max:65000',
-            'redaksi_pembuka'        => 'nullable|string|max:2000',
-            'penutup'                => 'nullable|string|max:1000',
+            'klasifikasi_surat_id' => 'required|exists:klasifikasi_surat,id',
+            'nama_umum'            => 'required|string|max:255',
+            'jenis_tugas'          => 'required|string',
+            'tugas'                => 'required|string',
+            'detail_tugas'         => 'nullable|string|max:65000',
+            'redaksi_pembuka'      => 'nullable|string|max:2000',
+            'penutup'              => 'nullable|string|max:1000',
 
-            'penerima_internal'      => 'sometimes|array',
-            'penerima_internal.*'    => 'exists:pengguna,id',
+            'penerima_internal'   => 'sometimes|array',
+            'penerima_internal.*' => 'exists:pengguna,id',
 
-            'penerima_eksternal'                 => 'sometimes|array',
-            'penerima_eksternal.*.nama'          => 'required_with:penerima_eksternal|string|max:255',
-            'penerima_eksternal.*.instansi'      => 'nullable|string|max:255',
-            'penerima_eksternal.*.jabatan'       => 'nullable|string|max:255',
+            'penerima_eksternal'              => 'sometimes|array',
+            'penerima_eksternal.*.nama'       => 'required_with:penerima_eksternal|string|max:255',
+            'penerima_eksternal.*.instansi'   => 'nullable|string|max:255',
+            'penerima_eksternal.*.jabatan'    => 'nullable|string|max:255',
 
-            'status_penerima'         => 'nullable|string|max:50',
+            'status_penerima'      => 'nullable|string|max:50',
 
-            'tahun'                   => 'required|string',
-            'semester'                => 'required|string',
-            'bulan'                   => 'required|string',
-            'nomor'                   => 'required|string|max:255',
-            'no_surat_manual'         => 'nullable|string|max:255',
+            'tahun'                => 'required|integer|digits:4',
+            'semester'             => 'required|string',
+            'bulan'                => 'required|string',
+            'nomor'                => 'required|string|max:255',
+            'no_surat_manual'      => 'nullable|string|max:255',
+            'asal_surat'           => 'required|exists:pengguna,id',
+            'nama_pembuat'         => 'required|string',
 
-            // FIX: konsisten sebagai teks, lihat juga update()
-            'asal_surat'              => 'required|string',
-            'nama_pembuat'            => 'required|string',
+            'penandatangan'        => 'required|exists:pengguna,id',
+            'waktu_mulai'          => 'required|date',
+            'waktu_selesai'        => 'required|date|after_or_equal:waktu_mulai',
+            'tempat'               => 'required|string|max:255',
 
-            'penandatangan'           => 'required|exists:pengguna,id',
-            'waktu_mulai'             => 'required|date',
-            'waktu_selesai'           => 'required|date|after_or_equal:waktu_mulai',
-            'tempat'                  => 'required|string|max:255',
+            // BARU: Aturan validasi untuk tembusan
+            'tembusan'             => 'nullable',
+            'tembusan_formatted'   => 'nullable|string|max:10000',
         ];
 
         $validated = $request->validate($rules);
 
         if (isset($validated['penerima_internal']) && is_string($validated['penerima_internal'])) {
             $validated['penerima_internal'] = array_filter(array_map('trim', explode(',', $validated['penerima_internal'])));
+        }
+
+        // BARU: Logika untuk memproses dan membersihkan data tembusan dari Tagify
+        $tembusanString = '';
+        if ($request->has('tembusan')) {
+            $norm = $this->normalizeTembusan($request->input('tembusan'));
+            // Simpan sebagai baris-per-baris (konsisten dengan tampilan cetak)
+            $tembusanString = $norm['lines'];
+            // (Opsional) jika punya kolom 'tembusan_csv', bisa simpan $norm['csv']
+            // (Opsional) jika front-end kirim 'tembusan_formatted', bisa simpan juga—lihat di create() di bawah
         }
 
         $nomorSurat  = $validated['nomor'];
@@ -179,16 +259,22 @@ class TugasController extends Controller
             $validated['jenis_tugas'] ?? null
         );
         if (empty($detailId)) {
-            return back()->withInput()->with('error',
+            return back()->withInput()->with(
+                'error',
                 'Mapping detail tugas tidak ditemukan untuk: ' . ($validated['tugas'] ?? '(kosong)') .
-                '. Silakan pilih ulang jenis tugas atau hubungi admin untuk melengkapi master.'
+                    '. Silakan pilih ulang jenis tugas atau hubungi admin untuk melengkapi master.'
             );
         }
 
         $allowedSegmen = ['dosen', 'tendik', 'mahasiswa'];
-        $rawSegmen     = strtolower(trim($validated['status_penerima'] ?? ''));
-        $segmen        = in_array($rawSegmen, $allowedSegmen, true) ? $rawSegmen : null;
-
+        $raw = mb_strtolower((string)($validated['status_penerima'] ?? ''));
+        $segmen = null;
+        foreach (['dosen', 'tendik', 'mahasiswa'] as $opt) {
+            if (Str::contains($raw, $opt)) {
+                $segmen = $opt;
+                break;
+            }
+        }
         $status       = $mode === 'submit' ? 'pending' : 'draft';
         $nextApprover = $mode === 'submit' ? $validated['penandatangan'] : null;
 
@@ -203,8 +289,8 @@ class TugasController extends Controller
                 'klasifikasi_surat_id' => $validated['klasifikasi_surat_id'],
                 'status_surat'         => $status,
                 'dibuat_oleh'          => Auth::id(),
-                'nama_pembuat'         => $validated['nama_pembuat'], // teks
-                'asal_surat'           => $validated['asal_surat'],   // teks
+                'nama_pembuat'         => $validated['nama_pembuat'],
+                'asal_surat'           => $validated['asal_surat'],
                 'jenis_tugas'          => $validated['jenis_tugas'],
                 'tugas'                => $validated['tugas'],
                 'detail_tugas'         => $validated['detail_tugas'] ?? null,
@@ -217,17 +303,22 @@ class TugasController extends Controller
                 'tempat'               => $validated['tempat'],
                 'penandatangan'        => $validated['penandatangan'],
                 'next_approver'        => $nextApprover,
+                // BARU: Simpan data tembusan yang sudah bersih
+                'tembusan'             => $tembusanString,
             ]);
 
+            // (Opsional) simpan tembusan_formatted jika ada di DB & dikirim dari form
+            if ($request->filled('tembusan_formatted') && Schema::hasColumn('tugas_header', 'tembusan_formatted')) {
+                $tugas->tembusan_formatted = (string) $request->input('tembusan_formatted');
+                $tugas->save();
+            }
             $internal = $validated['penerima_internal'] ?? [];
             foreach ($internal as $uid) {
                 TugasPenerima::create([
-                    'tugas_id' => $tugas->id,
-                    'pengguna_id' => $uid,
-                    'tipe' => 'internal',
-                    'nama_penerima' => null,
-                    'instansi_penerima' => null,
-                    'jabatan_penerima' => null,
+                    'tugas_id'         => $tugas->id,
+                    'pengguna_id'      => $uid,
+                    'nama_penerima'    => '',          // jangan null
+                    'jabatan_penerima' => null,        // optional
                 ]);
             }
 
@@ -235,11 +326,9 @@ class TugasController extends Controller
             foreach ($eksternal as $p) {
                 if (!empty($p['nama'])) {
                     TugasPenerima::create([
-                        'tugas_id' => $tugas->id,
-                        'pengguna_id' => null,
-                        'tipe' => 'eksternal',
-                        'nama_penerima' => $p['nama'],
-                        'instansi_penerima' => $p['instansi'] ?? null,
+                        'tugas_id'         => $tugas->id,
+                        'pengguna_id'      => null,
+                        'nama_penerima'    => $p['nama'],
                         'jabatan_penerima' => $p['jabatan'] ?? null,
                     ]);
                 }
@@ -278,7 +367,8 @@ class TugasController extends Controller
             } catch (\Throwable $e) {
                 try {
                     $jenisId = DB::table('jenis_tugas')->whereRaw('LOWER(nama) = ?', [mb_strtolower($jenisTugas)])->value('id');
-                } catch (\Throwable $e2) { /* noop */ }
+                } catch (\Throwable $e2) { /* noop */
+                }
             }
         }
 
@@ -292,8 +382,9 @@ class TugasController extends Controller
                 $q = DB::table('sub_tugas')->whereRaw('LOWER(nama) = ?', [mb_strtolower($name)]);
                 if ($jenisId) $q->where('jenis_tugas_id', $jenisId);
                 $row = $q->first();
-                if ($row) $sub = (object) ['id'=>$row->id,'jenis_tugas_id'=>$row->jenis_tugas_id,'nama'=>$row->nama];
-            } catch (\Throwable $e2) { /* noop */ }
+                if ($row) $sub = (object) ['id' => $row->id, 'jenis_tugas_id' => $row->jenis_tugas_id, 'nama' => $row->nama];
+            } catch (\Throwable $e2) { /* noop */
+            }
         }
 
         if (!$sub) {
@@ -306,22 +397,31 @@ class TugasController extends Controller
                     $q2 = DB::table('sub_tugas')->where('nama', 'LIKE', '%' . $name . '%');
                     if ($jenisId) $q2->where('jenis_tugas_id', $jenisId);
                     $row = $q2->first();
-                    if ($row) $sub = (object) ['id'=>$row->id,'jenis_tugas_id'=>$row->jenis_tugas_id,'nama'=>$row->nama];
-                } catch (\Throwable $e2) { /* noop */ }
+                    if ($row) $sub = (object) ['id' => $row->id, 'jenis_tugas_id' => $row->jenis_tugas_id, 'nama' => $row->nama];
+                } catch (\Throwable $e2) { /* noop */
+                }
             }
         }
 
         if ($sub && isset($sub->id)) {
             $detail = null;
             $cariKataKunci = [
-                'jurnal nasional','artikel jurnal nasional','artikel nasional',
-                'reviewer jurnal nasional','review jurnal nasional','review artikel nasional','publikasi nasional'
+                'jurnal nasional',
+                'artikel jurnal nasional',
+                'artikel nasional',
+                'reviewer jurnal nasional',
+                'review jurnal nasional',
+                'review artikel nasional',
+                'publikasi nasional'
             ];
             try {
                 $dq = TugasDetail::query()->where('sub_tugas_id', $sub->id);
                 foreach ($cariKataKunci as $kw) {
                     $try = (clone $dq)->whereRaw('LOWER(nama) LIKE ?', ['%' . mb_strtolower($kw) . '%'])->first();
-                    if ($try) { $detail = $try; break; }
+                    if ($try) {
+                        $detail = $try;
+                        break;
+                    }
                 }
                 if (!$detail) $detail = TugasDetail::where('sub_tugas_id', $sub->id)->orderBy('id')->first();
             } catch (\Throwable $e) {
@@ -331,13 +431,17 @@ class TugasController extends Controller
                             ->where('sub_tugas_id', $sub->id)
                             ->whereRaw('LOWER(nama) LIKE ?', ['%' . mb_strtolower($kw) . '%'])
                             ->orderBy('id')->first();
-                        if ($row) { $detail = (object) ['id' => $row->id]; break; }
+                        if ($row) {
+                            $detail = (object) ['id' => $row->id];
+                            break;
+                        }
                     }
                     if (!$detail) {
                         $row = DB::table('tugas_detail')->where('sub_tugas_id', $sub->id)->orderBy('id')->first();
                         if ($row) $detail = (object) ['id' => $row->id];
                     }
-                } catch (\Throwable $e2) { /* noop */ }
+                } catch (\Throwable $e2) { /* noop */
+                }
             }
 
             if ($detail && isset($detail->id)) {
@@ -352,7 +456,8 @@ class TugasController extends Controller
             try {
                 $lainnya = DB::table('tugas_detail')->whereRaw('LOWER(nama) = ?', ['lainnya'])->value('id');
                 if ($lainnya) return (int) $lainnya;
-            } catch (\Throwable $e2) { /* noop */ }
+            } catch (\Throwable $e2) { /* noop */
+            }
         }
 
         try {
@@ -362,10 +467,11 @@ class TugasController extends Controller
             try {
                 $minId = DB::table('tugas_detail')->min('id');
                 if ($minId) return (int) $minId;
-            } catch (\Throwable $e2) { /* noop */ }
+            } catch (\Throwable $e2) { /* noop */
+            }
         }
 
-        \Log::warning('resolveDetailTugasId: gagal memetakan, semua fallback habis', ['tugas'=>$name,'jenis'=>$jenisTugas]);
+        \Log::warning('resolveDetailTugasId: gagal memetakan, semua fallback habis', ['tugas' => $name, 'jenis' => $jenisTugas]);
         return null;
     }
 
@@ -401,7 +507,7 @@ class TugasController extends Controller
     {
         Gate::authorize('view-approve-list');
 
-        $list = TugasHeader::with(['pembuat','penerima.pengguna'])
+        $list = TugasHeader::with(['pembuat', 'penerima.pengguna'])
             ->where('status_surat', 'pending')
             ->where('next_approver', Auth::id())
             ->orderByDesc('created_at')->get();
@@ -430,7 +536,7 @@ class TugasController extends Controller
         ];
 
         return view('surat_tugas.approve', [
-            'tugas'     => $tugas->load(['pembuat','penandatanganUser','penerima.pengguna']),
+            'tugas'     => $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna']),
             'kop'       => $assets['kop'],
             'preview'   => $previewData,
             'showSigns' => true, // wajib tampil di halaman approve
@@ -506,7 +612,7 @@ class TugasController extends Controller
             return redirect()->route('surat_tugas.approveList')->with('success', 'Surat berhasil disetujui & ditandatangani.');
         } catch (\Throwable $e) {
             DB::rollBack();
-            \Log::error('Gagal approve surat tugas #'.$tugas->id, ['error' => $e->getMessage()]);
+            \Log::error('Gagal approve surat tugas #' . $tugas->id, ['error' => $e->getMessage()]);
             return back()->with('error', 'Terjadi kesalahan sistem saat menyetujui surat.');
         }
     }
@@ -531,7 +637,7 @@ class TugasController extends Controller
         $capW = $tugas->cap_w_mm ?? 35;
         $capOpacity = $tugas->cap_opacity ?? 0.95;
 
-        return compact('ttdImageB64','capImageB64','ttdW','capW','capOpacity','kop');
+        return compact('ttdImageB64', 'capImageB64', 'ttdW', 'capW', 'capOpacity', 'kop');
     }
 
     private function b64FromStorage($pathPublicOrLocal)
@@ -556,7 +662,8 @@ class TugasController extends Controller
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
 
         $html = view('surat_tugas.surat_pdf', array_merge(
-            ['tugas'=>$tugas,'penerimaList'=>$penerimaList], $signAssets
+            ['tugas' => $tugas, 'penerimaList' => $penerimaList],
+            $signAssets
         ))->render();
 
         return Pdf::loadHTML($html)->setPaper('A4', 'portrait')->setOptions([
@@ -595,7 +702,7 @@ class TugasController extends Controller
 
     public function show(Request $request, TugasHeader $tugas)
     {
-        $tugas->load(['pembuat','penandatanganUser.peran','penerima.pengguna']);
+        $tugas->load(['pembuat', 'penandatanganUser.peran', 'penerima.pengguna']);
         $assets = $this->getSigningAssets($tugas);
 
         $showSigns = $this->shouldShowSignatures($tugas);
@@ -676,14 +783,21 @@ class TugasController extends Controller
         ];
 
         return view('surat_tugas.edit', compact(
-            'admins','pejabat','users','taskMaster','klasifikasi','data','tugas','baseNomor'
+            'admins',
+            'pejabat',
+            'users',
+            'taskMaster',
+            'klasifikasi',
+            'data',
+            'tugas',
+            'baseNomor'
         ));
     }
 
     // UPDATE
     public function update(Request $request, TugasHeader $tugas)
     {
-        \Log::info('Proses update Surat Tugas #'.$tugas->id.' dimulai.', $request->all());
+        \Log::info('Proses update Surat Tugas #' . $tugas->id . ' dimulai.', $request->all());
         $tugas->load(['penerima']);
         $mode = $this->resolveMode($request);
         $oldStatus = $tugas->status_surat;
@@ -714,16 +828,37 @@ class TugasController extends Controller
             'bulan' => 'required|string|max:10',
             'semester' => 'required|string|in:Ganjil,Genap',
 
-            // FIX: samakan dengan store => teks, bukan foreign key id
             'nama_pembuat' => 'required|string',
-            'asal_surat'   => 'required|string',
+            'asal_surat' => 'required|exists:pengguna,id',
 
-            'nomor' => ['required','string',Rule::unique('tugas_header')->ignore($tugas->id)],
+            'nomor' => ['required', 'string', Rule::unique('tugas_header')->ignore($tugas->id)],
+
+            // BARU: Aturan validasi untuk tembusan di update
+            'tembusan'           => 'nullable',
+            'tembusan_formatted' => 'nullable|string|max:10000',
         ];
         $validated = $request->validate($rules);
+        if (isset($validated['penerima_internal']) && is_string($validated['penerima_internal'])) {
+            $validated['penerima_internal'] = array_filter(array_map('trim', explode(',', $validated['penerima_internal'])));
+        }
 
-        $segmen = $validated['status_penerima'] ?? null;
-        if (is_array($segmen)) $segmen = implode(',', array_unique(array_map('strval', $segmen)));
+        // BARU: Logika untuk memproses dan membersihkan data tembusan dari Tagify (sama seperti di store)
+        // TEMBUSAN: normalisasi fleksibel (sama seperti store)
+        $tembusanString = '';
+        if ($request->has('tembusan')) {
+            $norm = $this->normalizeTembusan($request->input('tembusan'));
+            $tembusanString = $norm['lines'];
+        }
+
+
+        $raw = mb_strtolower((string)($validated['status_penerima'] ?? ''));
+        $segmen = null;
+        foreach (['dosen', 'tendik', 'mahasiswa'] as $opt) {
+            if (Str::contains($raw, $opt)) {
+                $segmen = $opt;
+                break;
+            }
+        }
 
         if ($mode === 'submit' && $oldStatus === 'draft') {
             $newStatus = 'pending';
@@ -739,8 +874,8 @@ class TugasController extends Controller
                 'nama_umum' => $validated['nama_umum'],
                 'klasifikasi_surat_id' => $validated['klasifikasi_surat_id'],
                 'status_surat' => $newStatus,
-                'nama_pembuat' => $validated['nama_pembuat'], // teks
-                'asal_surat'   => $validated['asal_surat'],   // teks
+                'nama_pembuat' => $validated['nama_pembuat'],
+                'asal_surat'   => $validated['asal_surat'],
                 'jenis_tugas' => $validated['jenis_tugas'],
                 'tugas' => $validated['tugas'],
                 'detail_tugas' => $validated['detail_tugas'] ?? null,
@@ -754,7 +889,14 @@ class TugasController extends Controller
                 'tempat' => $validated['tempat'] ?? null,
                 'submitted_at' => ($oldStatus === 'draft' && $newStatus === 'pending') ? now() : $tugas->submitted_at,
                 'semester' => $validated['semester'],
+                // MODIFIKASI: Tambahkan field tembusan ke update
+                'tembusan' => $tembusanString,
             ]);
+
+            if ($request->filled('tembusan_formatted') && Schema::hasColumn('tugas_header', 'tembusan_formatted')) {
+                $tugas->tembusan_formatted = (string) $request->input('tembusan_formatted');
+                $tugas->save();
+            }
 
             $tugas->penerima()->delete();
             if (!empty($validated['penerima_internal'])) {
@@ -810,17 +952,17 @@ class TugasController extends Controller
 
     public function highlight(TugasHeader $tugas)
     {
-        $tugas->load(['pembuat','penandatanganUser','asalSurat','penerima.pengguna']);
+        $tugas->load(['pembuat', 'penandatanganUser', 'asalSurat', 'penerima.pengguna']);
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->all();
         $showSigns = $this->shouldShowSignatures($tugas);
 
-        return response()->view('surat_tugas.highlight', compact('tugas','penerimaList','showSigns'))
-                         ->header('X-Frame-Options', 'ALLOWALL');
+        return response()->view('surat_tugas.highlight', compact('tugas', 'penerimaList', 'showSigns'))
+            ->header('X-Frame-Options', 'ALLOWALL');
     }
 
     public function downloadPdf(TugasHeader $tugas)
     {
-        $tugas->load(['pembuat','penandatanganUser','penerima.pengguna.peran','tugasDetail.subTugas']);
+        $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran', 'tugasDetail.subTugas']);
         $safeNomor = preg_replace('/[\/\\\\]+/', '-', (string)($tugas->nomor ?? 'TanpaNomor'));
 
         if ($this->shouldShowSignatures($tugas)) {
@@ -840,14 +982,15 @@ class TugasController extends Controller
 
     public function preview(TugasHeader $tugas, Request $request)
     {
-        $tugas->load(['pembuat','penandatanganUser','penerima.pengguna.peran','tugasDetail.subTugas']);
+        $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran', 'tugasDetail.subTugas']);
 
         $signAssets   = $this->getSigningAssets($tugas);
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
         $showSigns    = $this->shouldShowSignatures($tugas);
 
         return response()->view('surat_tugas.preview', array_merge(
-            ['tugas'=>$tugas,'penerimaList'=>$penerimaList,'showSigns'=>$showSigns], $signAssets
+            ['tugas' => $tugas, 'penerimaList' => $penerimaList, 'showSigns' => $showSigns],
+            $signAssets
         ))->header('X-Frame-Options', 'ALLOWALL');
     }
 }

@@ -4,13 +4,14 @@ namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
 use App\Mail\SuratTugasFinal;
 
 class SendSuratTugasEmail implements ShouldQueue
@@ -18,68 +19,78 @@ class SendSuratTugasEmail implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tugasId;
-    public string $mode; // 'to_recipients' | 'to_approver'
+    public string $mode; // 'to_recipients' (default), (opsional lain kalau nanti mau)
+
+    public int $tries = 3;
+    public int $timeout = 120; // detik
+    public $backoff = 60;      // detik
 
     public function __construct(int $tugasId, string $mode = 'to_recipients')
     {
         $this->tugasId = $tugasId;
-        $this->mode = $mode;
+        $this->mode    = $mode;
     }
 
     public function handle(): void
     {
-        $tugas = DB::table('tugas_header')->where('id', $this->tugasId)->first();
-        if (!$tugas) {
-            throw new ModelNotFoundException("tugas_header #{$this->tugasId} tidak ditemukan");
-        }
+        // Ambil header ST
+        $st = DB::table('tugas_header')->where('id', $this->tugasId)->first();
+        if (!$st) return;
 
-        $tos = [];
-        $ccs = [];
+        // Susun subject
+        $subject = 'Surat Tugas Disetujui: ' . ($st->nomor ?: '(tanpa nomor)');
 
-        if ($this->mode === 'to_approver' && $tugas->next_approver) {
-            $approver = DB::table('pengguna')->where('id', $tugas->next_approver)->value('email');
-            if ($approver) $tos[] = $approver;
-        } else {
-            // penerima internal dari tugas_penerima → pengguna.email
-            $tos = DB::table('tugas_penerima as tp')
-                ->join('pengguna as p', 'p.id', '=', 'tp.pengguna_id')
-                ->where('tp.tugas_id', $this->tugasId)
-                ->pluck('p.email')
-                ->filter()
-                ->unique()
-                ->values()
+        // Data untuk template email
+        $payload = (object) [
+            'nomor'          => $st->nomor,
+            'tugas'          => $st->tugas,
+            'tanggal_surat'  => $st->tanggal_surat,
+            'waktu_mulai'    => $st->waktu_mulai,
+            'waktu_selesai'  => $st->waktu_selesai,
+            'tempat'         => $st->tempat,
+            'redaksi_pembuka'=> $st->redaksi_pembuka,
+            'penutup'        => $st->penutup,
+        ];
+
+        // Lampiran PDF (bila ada)
+        $attachmentPath = $st->signed_pdf_path ?: null;
+
+        // Tentukan daftar penerima sesuai mode
+        $emails = [];
+
+        if ($this->mode === 'to_recipients') {
+            // Penerima internal terpilih dengan email
+            $rows = DB::table('tugas_penerima AS tp')
+                ->join('pengguna AS u', 'u.id', '=', 'tp.pengguna_id')
+                ->where('tp.tugas_id', $st->id)
+                ->whereNotNull('tp.pengguna_id')
+                ->whereNotNull('u.email')
+                ->where('u.status', '=', 'aktif')
+                ->pluck('u.email')
                 ->all();
 
-            // CC opsional: asal_surat & penandatangan
-            if ($tugas->asal_surat) {
-                $cc = DB::table('pengguna')->where('id', $tugas->asal_surat)->value('email');
-                if ($cc) $ccs[] = $cc;
-            }
-            if ($tugas->penandatangan) {
-                $cc = DB::table('pengguna')->where('id', $tugas->penandatangan)->value('email');
-                if ($cc) $ccs[] = $cc;
-            }
-            $ccs = array_values(array_unique($ccs));
+            $emails = array_values(array_unique(array_filter($rows)));
         }
 
-        if (empty($tos)) {
-            // Tidak ada tujuan, jangan kirim (silent)
+        if (empty($emails)) {
+            Log::info('SendSuratTugasEmail: tidak ada email penerima', [
+                'tugas_id' => $this->tugasId,
+                'mode'     => $this->mode,
+            ]);
             return;
         }
 
-        // Path relatif lampiran (storage/app/...)
-        $attachmentPathRel = $tugas->signed_pdf_path ?: null;
-        if ($attachmentPathRel && !Storage::exists($attachmentPathRel)) {
-            $attachmentPathRel = null; // aman: kirim tanpa lampiran jika file hilang
+        foreach ($emails as $email) {
+            try {
+                $mailable = new SuratTugasFinal($subject, $payload, $attachmentPath);
+                Mail::to($email)->send($mailable);
+            } catch (\Throwable $e) {
+                Log::error('Gagal kirim email ST', [
+                    'tugas_id' => $this->tugasId,
+                    'email'    => $email,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
         }
-
-        $subject = "[Surat Tugas] {$tugas->nomor} — {$tugas->tugas}";
-
-        // Kirim pakai mailable Markdown view: emails/surat_tugas/final
-        $mailable = new SuratTugasFinal($subject, $tugas, $attachmentPathRel);
-
-        $mailer = Mail::to($tos);
-        if (!empty($ccs)) $mailer->cc($ccs);
-        $mailer->send($mailable);
     }
 }

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 04, 2025 at 06:05 AM
+-- Generation Time: Oct 09, 2025 at 04:42 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.12
 
@@ -104,17 +104,19 @@ INSERT INTO `jobs` (`id`, `queue`, `payload`, `attempts`, `reserved_at`, `availa
 
 CREATE TABLE `keputusan_header` (
   `id` bigint UNSIGNED NOT NULL,
-  `nomor` varchar(255) NOT NULL,
+  `nomor` varchar(100) DEFAULT NULL,
   `tanggal_surat` date DEFAULT NULL,
   `signed_at` timestamp NULL DEFAULT NULL,
   `tanggal_asli` date NOT NULL,
   `tentang` varchar(255) NOT NULL,
-  `menimbang` json NOT NULL,
-  `mengingat` json NOT NULL,
+  `menimbang` json NOT NULL DEFAULT (json_array()),
+  `mengingat` json NOT NULL DEFAULT (json_array()),
   `menetapkan` json DEFAULT NULL,
   `memutuskan` longtext NOT NULL,
   `signed_pdf_path` varchar(255) DEFAULT NULL,
-  `tembusan` varchar(255) DEFAULT NULL,
+  `tembusan` text,
+  `tembusan_formatted` text,
+  `penerima_eksternal` json DEFAULT NULL,
   `status_surat` enum('draft','pending','disetujui','ditolak','terbit','arsip') NOT NULL,
   `dibuat_oleh` bigint UNSIGNED NOT NULL,
   `penandatangan` bigint UNSIGNED DEFAULT NULL,
@@ -138,19 +140,19 @@ CREATE TABLE `keputusan_header` (
 -- Dumping data for table `keputusan_header`
 --
 
-INSERT INTO `keputusan_header` (`id`, `nomor`, `tanggal_surat`, `signed_at`, `tanggal_asli`, `tentang`, `menimbang`, `mengingat`, `menetapkan`, `memutuskan`, `signed_pdf_path`, `tembusan`, `status_surat`, `dibuat_oleh`, `penandatangan`, `approved_by`, `approved_at`, `rejected_by`, `rejected_at`, `published_by`, `published_at`, `ttd_config`, `cap_config`, `ttd_w_mm`, `cap_w_mm`, `cap_opacity`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'SK-TEST/001/FIKOM/2025', NULL, NULL, '2025-09-25', 'Draft: Penetapan Tim Kebersihan', '[\"Perlu penataan kebersihan area fakultas.\", \"Menjamin kenyamanan kegiatan akademik.\"]', '[\"UU 12/2012 tentang Pendidikan Tinggi\", \"Kebijakan internal Fakultas\"]', '[{\"isi\": \"<p>Laksanakan</p>\", \"judul\": \"KESATU\"}]', '<p><strong>KESATU:</strong> <p>Laksanakan</p></p>', NULL, NULL, 'ditolak', 1, 10, NULL, NULL, 10, '2025-09-29 08:06:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-29 08:06:00', NULL),
-(2, 'SK-TEST/002/FIKOM/2025', NULL, NULL, '2025-09-26', 'Pending: Pembentukan Panitia Webinar', '[\"Meningkatkan literasi AI bagi sivitas.\", \"Butuh kepanitiaan lintas prodi.\"]', '[\"SN Dikti terkait kegiatan akademik\", \"Keputusan Rektor tentang kegiatan kemahasiswaan\"]', '[{\"isi\": \"Membentuk panitia.\", \"judul\": \"KESATU\"}, {\"isi\": \"Masa kerja 2 bulan.\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> Membentuk panitia webinar AI.</p>\r\n   <p><strong>KEDUA:</strong> Masa kerja 2 bulan.</p>', NULL, 'Rektor; Arsip', 'pending', 1, 10, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
-(3, 'SK-TEST/003/FIKOM/2025', '2025-09-27', '2025-09-27 15:56:03', '2025-09-27', 'Disetujui: Penetapan Tata Tertib Laboratorium', '[\"Meningkatkan keselamatan kerja di laboratorium.\", \"Menindaklanjuti evaluasi semester lalu.\"]', '[\"Kebijakan K3 Universitas\", \"Standar Operasional Prosedur Lab\"]', '[{\"isi\": \"Menetapkan tata tertib lab.\", \"judul\": \"KESATU\"}, {\"isi\": \"Berlaku sejak tanggal ditetapkan.\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> Menetapkan tata tertib laboratorium.</p>\r\n   <p><strong>KEDUA:</strong> Berlaku sejak tanggal ditetapkan.</p>', NULL, 'Kaprodi TI; Ka. Lab', 'disetujui', 1, 10, 10, '2025-09-27 15:46:03', NULL, NULL, NULL, NULL, '{\"w_mm\": 42}', '{\"w_mm\": 35, \"opacity\": 0.95}', NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
-(4, 'SK-TEST/004/FIKOM/2025', NULL, NULL, '2025-09-26', 'Ditolak: Penetapan Subsidi Kegiatan Ekstrakurikuler', '[\"Keterbatasan anggaran.\", \"Perlu prioritas program.\"]', '[\"Pedoman Keuangan Internal\"]', NULL, '<p><strong>KESATU:</strong> Usulan skema subsidi (DITOLAK).</p>', NULL, NULL, 'ditolak', 1, 10, NULL, NULL, 3, '2025-09-26 16:16:03', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
-(5, 'SK-TEST/005/FIKOM/2025', '2025-09-20', '2025-09-20 00:10:00', '2025-09-18', 'Terbit: Penetapan Kurikulum 2025', '[\"Kurikulum lama perlu pemutakhiran.\", \"Rekomendasi akreditasi 2024.\"]', '[\"Permendikbud 3/2020\", \"Panduan MBKM\"]', '[{\"isi\": \"Menetapkan kurikulum 2025.\", \"judul\": \"KESATU\"}, {\"isi\": \"Berlaku semester ganjil 2025/2026.\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> Menetapkan kurikulum 2025.</p>\r\n   <p><strong>KEDUA:</strong> Berlaku mulai Semester Ganjil 2025/2026.</p>', NULL, 'Rektor; Arsip', 'terbit', 1, 10, 10, '2025-09-20 00:05:00', NULL, NULL, 1, '2025-09-21 02:00:00', '{\"w_mm\": 40}', '{\"w_mm\": 32, \"opacity\": 0.9}', NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
-(6, 'SK-TEST/006/FIKOM/2025', '2025-07-05', '2025-07-04 19:00:00', '2025-07-03', 'Arsip: Panitia Yudisium Juli 2025', '[\"Menjamin kelancaran yudisium.\", \"Kebutuhan kepanitiaan.\"]', '[\"Kalender Akademik 2025\", \"Pedoman Akademik Fakultas\"]', '[{\"isi\": \"Menetapkan panitia yudisium.\", \"judul\": \"KESATU\"}, {\"isi\": \"Tugas & wewenang ada di lampiran.\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> Menetapkan panitia yudisium Juli 2025.</p>\r\n   <p><strong>KEDUA:</strong> Tugas dan wewenang terlampir.</p>', NULL, 'BAAK; Arsip', 'arsip', 1, 10, 10, '2025-07-04 18:50:00', NULL, NULL, 1, '2025-07-05 20:00:00', '{\"w_mm\": 42}', '{\"w_mm\": 35, \"opacity\": 0.85}', NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
-(7, '001/B.10.1/TG/UNIKA/IX/2025', NULL, NULL, '2025-09-28', 'Test', '[\"Test\"]', '[\"Test\", \"hasi\"]', '[{\"isi\": \"<p>twe</p>\", \"judul\": \"KESATU\"}, {\"isi\": \"<p>test</p>\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> <p>twe</p></p>\n<p><strong>KEDUA:</strong> <p>test</p></p>', NULL, NULL, 'draft', 1, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-28 07:39:22', '2025-09-28 08:04:12', NULL),
-(8, '2644/F.1.2/FIKOM/XI/2023', '2025-10-03', '2025-10-02 19:19:53', '2023-11-29', 'Penetapan Visi, Misi, Tujuan Fakultas Ilmu Komputer Universitas Katolik Soegijapranata dan seluruh Program Studi yang bernaung di bawahnya', '[\"bahwa Fakultas Ilmu Komputer menaungi 2 (dua) program studi, yaitu Teknik Informatika dan Sistem Informasi sejak 25 Juni 2013 dengan kekhasan dan sumber daya masing-masing;\", \"bahwa Fakultas Ilmu Komputer memerlukan media untuk menyatakan tujuan, arah serta sasaran sebagai landasan program studi guna memanfaatkan dan mengalokasikan sumber daya yang mereka miliki beserta proses pengendaliannya serta untuk membentuk serta membangun budaya institusi;\", \"bahwa berdasarkan keputusan Rapat Senat Fakultas Ilmu Komputer pada tanggal 31 Oktober 2023 yang menetapkan perlunya penyesuaian dan peninjauan Visi dan Misi Fakultas Ilmu Komputer dan seluruh Program Studi yang bernaung di bawahnya serta keputusan Rapat Kerja Fakultas Ilmu Komputer Tahun 2023;\", \"bahwa berdasarkan pertimbangan sebagaimana dimaksud dalam huruf a, huruf b, dan huruf c, perlu diterbitkan Surat Keputusan Dekan Fakultas Ilmu Komputer tentang Visi dan Misi Fakultas Ilmu Komputer;\"]', '[\"Undang-Undang No. 20 tahun 2013 tentang Pendidikan Tinggi;\", \"Undang-Undang Republik Indonesia Nomor 12 Tahun 2012 tentang Pendidikan Tinggi;\", \"Peraturan Pemerintah No. 14 tahun 2014 tentang Penyelenggaraan Pendidikan Tinggi dan Pengelolaan Perguruan Tinggi;\", \"Keputusan Yayasan Sandjojo No. 66/PER/YS/05/VII/2013 tentang Statuta Universitas Katolik Soegijapranata;\", \"Peraturan Universitas No. E.2/1616/UKS.01/VII/2001 tentang Organisasi dan Tata Laksana Universitas Katolik Soegijapranata;\"]', '[{\"isi\": \"<p>KEPUTUSAN DEKAN TENTANG PENETAPAN VISI, MISI, DAN TUJUAN FAKULTAS ILMU KOMPUTER UNIVERSITAS KATOLIK SOEGIJAPRANATA DAN SELURUH PROGRAM STUDI YANG BERNAUNG DI BAWAHNYA.</p>\", \"judul\": \"KESATU\"}, {\"isi\": \"<p>Misi Fakultas Ilmu Komputer adalah sebagai berikut:</p>\\r\\n\\r\\n<ol><li>Menyelenggarakan kegiatan pendidikan yang bermutu, terencana, dan konsisten secara akademis dalam lingkungan yang mendukung pengembangan versi terbaik dari masing-masing pribadi di masyarakat.</li><li>Melakukan penelitian untuk mengembangkan Teknologi Informasi terkini yang sesuai dengan kebutuhan masyarakat dan ilmu pengetahuan.</li><li>Menerapkan Teknologi Informasi dalam lingkup pengabdian masyarakat ataupun komersial (hilirisasi).</li><li>Menjalin kerjasama dengan berbagai instansi untuk meningkatkan kualitas Tri Dharma Perguruan Tinggi.</li></ol>\", \"judul\": \"KEDUA\"}, {\"isi\": \"<p>Tujuan Fakultas Ilmu Komputer adalah sebagai berikut:</p>\\r\\n\\r\\n<ol><li>Menghasilkan lulusan yang jujur, adaptif, kreatif, dan peduli kepada masyarakat melalui kompetensinya di bidang Teknologi Informasi.</li><li>Mewujudkan mutu pendidikan yang paripurna berdasar pada standar nasional pendidikan.</li><li>Menghasilkan penelitian di bidang Teknologi Informasi yang bermanfaat bagi masyarakat dan mampu bersaing di tingkat nasional dan internasional.</li><li>Menghasilkan publikasi ilmiah dalam bidang teknologi informasi yang dapat meningkatkan kapasitas dosen, mahasiswa, dan masyarakat di tingkat nasional dan internasional.</li><li>Menerapkan Teknologi Informasi yang dapat menjadi solusi atas kebutuhan-kebutuhan masyarakat dalam lingkup pengabdian masyarakat ataupun komersial (hilirisasi).</li><li>Berjejaring dengan institusi pendidikan, industri dan pemerintah untuk meningkatkan kualitas pendidikan, penelitian dan pengabdian di bidang Teknologi Informasi.</li></ol>\", \"judul\": \"KETIGA\"}, {\"isi\": \"<p>Keputusan ini berlaku sejak tanggal ditetapkan.</p>\", \"judul\": \"KEEMPAT\"}]', '<p><strong>KESATU:</strong> <p>KEPUTUSAN DEKAN TENTANG PENETAPAN VISI, MISI, DAN TUJUAN FAKULTAS ILMU KOMPUTER UNIVERSITAS KATOLIK SOEGIJAPRANATA DAN SELURUH PROGRAM STUDI YANG BERNAUNG DI BAWAHNYA.</p></p>\n<p><strong>KEDUA:</strong> <p>Misi Fakultas Ilmu Komputer adalah sebagai berikut:</p>\r\n\r\n<ol><li>Menyelenggarakan kegiatan pendidikan yang bermutu, terencana, dan konsisten secara akademis dalam lingkungan yang mendukung pengembangan versi terbaik dari masing-masing pribadi di masyarakat.</li><li>Melakukan penelitian untuk mengembangkan Teknologi Informasi terkini yang sesuai dengan kebutuhan masyarakat dan ilmu pengetahuan.</li><li>Menerapkan Teknologi Informasi dalam lingkup pengabdian masyarakat ataupun komersial (hilirisasi).</li><li>Menjalin kerjasama dengan berbagai instansi untuk meningkatkan kualitas Tri Dharma Perguruan Tinggi.</li></ol></p>\n<p><strong>KETIGA:</strong> <p>Tujuan Fakultas Ilmu Komputer adalah sebagai berikut:</p>\r\n\r\n<ol><li>Menghasilkan lulusan yang jujur, adaptif, kreatif, dan peduli kepada masyarakat melalui kompetensinya di bidang Teknologi Informasi.</li><li>Mewujudkan mutu pendidikan yang paripurna berdasar pada standar nasional pendidikan.</li><li>Menghasilkan penelitian di bidang Teknologi Informasi yang bermanfaat bagi masyarakat dan mampu bersaing di tingkat nasional dan internasional.</li><li>Menghasilkan publikasi ilmiah dalam bidang teknologi informasi yang dapat meningkatkan kapasitas dosen, mahasiswa, dan masyarakat di tingkat nasional dan internasional.</li><li>Menerapkan Teknologi Informasi yang dapat menjadi solusi atas kebutuhan-kebutuhan masyarakat dalam lingkup pengabdian masyarakat ataupun komersial (hilirisasi).</li><li>Berjejaring dengan institusi pendidikan, industri dan pemerintah untuk meningkatkan kualitas pendidikan, penelitian dan pengabdian di bidang Teknologi Informasi.</li></ol></p>\n<p><strong>KEEMPAT:</strong> <p>Keputusan ini berlaku sejak tanggal ditetapkan.</p></p>', 'private/surat_keputusan/signed/8_7ae37f64de56414ff6f683ee2fd8876e.pdf', NULL, 'disetujui', 1, 10, 10, '2025-10-02 19:19:53', NULL, NULL, NULL, NULL, NULL, NULL, 37, 37, 0.95, '2025-09-29 04:34:22', '2025-10-02 19:19:58', NULL),
-(13, 'UT-SK-PEN-001/FIKOM/2025', NULL, NULL, '2025-10-01', 'UJI: Revisi oleh penandatangan saat pending', '[\"Alasan A (direvisi)\", \"Alasan B\", \"Alasan C (baru)\"]', '[\"Dasar 1\", \"Dasar 2\", \"Dasr 3\"]', '[{\"isi\": \"<p>Lakukan A</p>\", \"judul\": \"KESATU\"}]', '<p><strong>KESATU:</strong> <p>Lakukan A</p></p>', NULL, NULL, 'pending', 1, 10, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-02 17:59:50', '2025-10-02 18:06:07', NULL),
-(14, 'UT-SK-APP-001/FIKOM/2025', '2025-10-03', '2025-10-02 17:59:50', '2025-10-01', 'UJI: Approve SK', '[\"Alasan Approve A\"]', '[\"Dasar Approve 1\"]', '[{\"isi\": \"<p>Approve tugas X</p>\", \"judul\": \"KESATU\"}]', '<p><strong>KESATU:</strong> Approve tugas X.</p>', NULL, NULL, 'draft', 1, 10, 10, '2025-10-02 17:59:50', NULL, NULL, NULL, NULL, '{\"w_mm\": 42}', '{\"w_mm\": 35, \"opacity\": 0.95}', NULL, NULL, NULL, '2025-10-02 17:59:50', '2025-10-02 17:59:50', NULL),
-(15, 'UT-SK-REJ-001/FIKOM/2025', NULL, NULL, '2025-10-01', 'UJI: Reject SK', '[\"Alasan perlu revisi\"]', '[\"Dasar X\"]', NULL, '<p><strong>KESATU:</strong> Draft awal (butuh perbaikan).</p>', NULL, NULL, 'ditolak', 1, 10, NULL, NULL, 10, '2025-10-02 17:59:50', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-02 17:59:50', '2025-10-02 17:59:50', NULL),
-(16, '001/B.10.1/SK/UNIKA/FIKOM/X/2025', NULL, NULL, '2025-10-02', 'UJI: Publish SK', '[\"Sudah final\"]', '[\"Dasar lengkap\"]', NULL, '<p><strong>KESATU:</strong> Berlaku sejak ditetapkan.</p>', NULL, NULL, 'arsip', 1, 10, 10, '2025-10-02 17:59:51', NULL, NULL, 1, '2025-10-02 17:59:51', NULL, NULL, NULL, NULL, NULL, '2025-10-02 17:59:50', '2025-10-02 17:59:51', NULL);
+INSERT INTO `keputusan_header` (`id`, `nomor`, `tanggal_surat`, `signed_at`, `tanggal_asli`, `tentang`, `menimbang`, `mengingat`, `menetapkan`, `memutuskan`, `signed_pdf_path`, `tembusan`, `tembusan_formatted`, `penerima_eksternal`, `status_surat`, `dibuat_oleh`, `penandatangan`, `approved_by`, `approved_at`, `rejected_by`, `rejected_at`, `published_by`, `published_at`, `ttd_config`, `cap_config`, `ttd_w_mm`, `cap_w_mm`, `cap_opacity`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'SK-TEST/001/FIKOM/2025', NULL, NULL, '2025-09-25', 'Draft: Penetapan Tim Kebersihan', '[\"Perlu penataan kebersihan area fakultas.\", \"Menjamin kenyamanan kegiatan akademik.\"]', '[\"UU 12/2012 tentang Pendidikan Tinggi\", \"Kebijakan internal Fakultas\"]', '[{\"isi\": \"<p>Laksanakan</p>\", \"judul\": \"KESATU\"}]', '<p><strong>KESATU:</strong> <p>Laksanakan</p></p>', NULL, NULL, NULL, NULL, 'ditolak', 1, 10, NULL, NULL, 10, '2025-09-29 08:06:00', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-29 08:06:00', NULL),
+(2, 'SK-TEST/002/FIKOM/2025', NULL, NULL, '2025-09-26', 'Pending: Pembentukan Panitia Webinar', '[\"Meningkatkan literasi AI bagi sivitas.\", \"Butuh kepanitiaan lintas prodi.\"]', '[\"SN Dikti terkait kegiatan akademik\", \"Keputusan Rektor tentang kegiatan kemahasiswaan\"]', '[{\"isi\": \"Membentuk panitia.\", \"judul\": \"KESATU\"}, {\"isi\": \"Masa kerja 2 bulan.\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> Membentuk panitia webinar AI.</p>\r\n   <p><strong>KEDUA:</strong> Masa kerja 2 bulan.</p>', NULL, 'Rektor; Arsip', NULL, NULL, 'pending', 1, 10, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
+(3, 'SK-TEST/003/FIKOM/2025', '2025-09-27', '2025-09-27 15:56:03', '2025-09-27', 'Disetujui: Penetapan Tata Tertib Laboratorium', '[\"Meningkatkan keselamatan kerja di laboratorium.\", \"Menindaklanjuti evaluasi semester lalu.\"]', '[\"Kebijakan K3 Universitas\", \"Standar Operasional Prosedur Lab\"]', '[{\"isi\": \"Menetapkan tata tertib lab.\", \"judul\": \"KESATU\"}, {\"isi\": \"Berlaku sejak tanggal ditetapkan.\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> Menetapkan tata tertib laboratorium.</p>\r\n   <p><strong>KEDUA:</strong> Berlaku sejak tanggal ditetapkan.</p>', NULL, 'Kaprodi TI; Ka. Lab', NULL, NULL, 'disetujui', 1, 10, 10, '2025-09-27 15:46:03', NULL, NULL, NULL, NULL, '{\"w_mm\": 42}', '{\"w_mm\": 35, \"opacity\": 0.95}', NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
+(4, 'SK-TEST/004/FIKOM/2025', NULL, NULL, '2025-09-26', 'Ditolak: Penetapan Subsidi Kegiatan Ekstrakurikuler', '[\"Keterbatasan anggaran.\", \"Perlu prioritas program.\"]', '[\"Pedoman Keuangan Internal\"]', NULL, '<p><strong>KESATU:</strong> Usulan skema subsidi (DITOLAK).</p>', NULL, NULL, NULL, NULL, 'ditolak', 1, 10, NULL, NULL, 3, '2025-09-26 16:16:03', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
+(5, 'SK-TEST/005/FIKOM/2025', '2025-09-20', '2025-09-20 00:10:00', '2025-09-18', 'Terbit: Penetapan Kurikulum 2025', '[\"Kurikulum lama perlu pemutakhiran.\", \"Rekomendasi akreditasi 2024.\"]', '[\"Permendikbud 3/2020\", \"Panduan MBKM\"]', '[{\"isi\": \"Menetapkan kurikulum 2025.\", \"judul\": \"KESATU\"}, {\"isi\": \"Berlaku semester ganjil 2025/2026.\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> Menetapkan kurikulum 2025.</p>\r\n   <p><strong>KEDUA:</strong> Berlaku mulai Semester Ganjil 2025/2026.</p>', NULL, 'Rektor; Arsip', NULL, NULL, 'terbit', 1, 10, 10, '2025-09-20 00:05:00', NULL, NULL, 1, '2025-09-21 02:00:00', '{\"w_mm\": 40}', '{\"w_mm\": 32, \"opacity\": 0.9}', NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
+(6, 'SK-TEST/006/FIKOM/2025', '2025-07-05', '2025-07-04 19:00:00', '2025-07-03', 'Arsip: Panitia Yudisium Juli 2025', '[\"Menjamin kelancaran yudisium.\", \"Kebutuhan kepanitiaan.\"]', '[\"Kalender Akademik 2025\", \"Pedoman Akademik Fakultas\"]', '[{\"isi\": \"Menetapkan panitia yudisium.\", \"judul\": \"KESATU\"}, {\"isi\": \"Tugas & wewenang ada di lampiran.\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> Menetapkan panitia yudisium Juli 2025.</p>\r\n   <p><strong>KEDUA:</strong> Tugas dan wewenang terlampir.</p>', NULL, 'BAAK; Arsip', NULL, NULL, 'arsip', 1, 10, 10, '2025-07-04 18:50:00', NULL, NULL, 1, '2025-07-05 20:00:00', '{\"w_mm\": 42}', '{\"w_mm\": 35, \"opacity\": 0.85}', NULL, NULL, NULL, '2025-09-27 16:16:03', '2025-09-27 16:16:03', NULL),
+(7, '001/B.10.1/TG/UNIKA/IX/2025', NULL, NULL, '2025-09-28', 'Test', '[\"Test\"]', '[\"Test\", \"hasi\"]', '[{\"isi\": \"<p>twe</p>\", \"judul\": \"KESATU\"}, {\"isi\": \"<p>test</p>\", \"judul\": \"KEDUA\"}]', '<p><strong>KESATU:</strong> <p>twe</p></p>\n<p><strong>KEDUA:</strong> <p>test</p></p>', NULL, NULL, NULL, NULL, 'draft', 1, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-28 07:39:22', '2025-09-28 08:04:12', NULL),
+(8, '2644/F.1.2/FIKOM/XI/2023', '2025-10-03', '2025-10-02 19:19:53', '2023-11-29', 'Penetapan Visi, Misi, Tujuan Fakultas Ilmu Komputer Universitas Katolik Soegijapranata dan seluruh Program Studi yang bernaung di bawahnya', '[\"bahwa Fakultas Ilmu Komputer menaungi 2 (dua) program studi, yaitu Teknik Informatika dan Sistem Informasi sejak 25 Juni 2013 dengan kekhasan dan sumber daya masing-masing;\", \"bahwa Fakultas Ilmu Komputer memerlukan media untuk menyatakan tujuan, arah serta sasaran sebagai landasan program studi guna memanfaatkan dan mengalokasikan sumber daya yang mereka miliki beserta proses pengendaliannya serta untuk membentuk serta membangun budaya institusi;\", \"bahwa berdasarkan keputusan Rapat Senat Fakultas Ilmu Komputer pada tanggal 31 Oktober 2023 yang menetapkan perlunya penyesuaian dan peninjauan Visi dan Misi Fakultas Ilmu Komputer dan seluruh Program Studi yang bernaung di bawahnya serta keputusan Rapat Kerja Fakultas Ilmu Komputer Tahun 2023;\", \"bahwa berdasarkan pertimbangan sebagaimana dimaksud dalam huruf a, huruf b, dan huruf c, perlu diterbitkan Surat Keputusan Dekan Fakultas Ilmu Komputer tentang Visi dan Misi Fakultas Ilmu Komputer;\"]', '[\"Undang-Undang No. 20 tahun 2013 tentang Pendidikan Tinggi;\", \"Undang-Undang Republik Indonesia Nomor 12 Tahun 2012 tentang Pendidikan Tinggi;\", \"Peraturan Pemerintah No. 14 tahun 2014 tentang Penyelenggaraan Pendidikan Tinggi dan Pengelolaan Perguruan Tinggi;\", \"Keputusan Yayasan Sandjojo No. 66/PER/YS/05/VII/2013 tentang Statuta Universitas Katolik Soegijapranata;\", \"Peraturan Universitas No. E.2/1616/UKS.01/VII/2001 tentang Organisasi dan Tata Laksana Universitas Katolik Soegijapranata;\"]', '[{\"isi\": \"<p>KEPUTUSAN DEKAN TENTANG PENETAPAN VISI, MISI, DAN TUJUAN FAKULTAS ILMU KOMPUTER UNIVERSITAS KATOLIK SOEGIJAPRANATA DAN SELURUH PROGRAM STUDI YANG BERNAUNG DI BAWAHNYA.</p>\", \"judul\": \"KESATU\"}, {\"isi\": \"<p>Misi Fakultas Ilmu Komputer adalah sebagai berikut:</p>\\r\\n\\r\\n<ol><li>Menyelenggarakan kegiatan pendidikan yang bermutu, terencana, dan konsisten secara akademis dalam lingkungan yang mendukung pengembangan versi terbaik dari masing-masing pribadi di masyarakat.</li><li>Melakukan penelitian untuk mengembangkan Teknologi Informasi terkini yang sesuai dengan kebutuhan masyarakat dan ilmu pengetahuan.</li><li>Menerapkan Teknologi Informasi dalam lingkup pengabdian masyarakat ataupun komersial (hilirisasi).</li><li>Menjalin kerjasama dengan berbagai instansi untuk meningkatkan kualitas Tri Dharma Perguruan Tinggi.</li></ol>\", \"judul\": \"KEDUA\"}, {\"isi\": \"<p>Tujuan Fakultas Ilmu Komputer adalah sebagai berikut:</p>\\r\\n\\r\\n<ol><li>Menghasilkan lulusan yang jujur, adaptif, kreatif, dan peduli kepada masyarakat melalui kompetensinya di bidang Teknologi Informasi.</li><li>Mewujudkan mutu pendidikan yang paripurna berdasar pada standar nasional pendidikan.</li><li>Menghasilkan penelitian di bidang Teknologi Informasi yang bermanfaat bagi masyarakat dan mampu bersaing di tingkat nasional dan internasional.</li><li>Menghasilkan publikasi ilmiah dalam bidang teknologi informasi yang dapat meningkatkan kapasitas dosen, mahasiswa, dan masyarakat di tingkat nasional dan internasional.</li><li>Menerapkan Teknologi Informasi yang dapat menjadi solusi atas kebutuhan-kebutuhan masyarakat dalam lingkup pengabdian masyarakat ataupun komersial (hilirisasi).</li><li>Berjejaring dengan institusi pendidikan, industri dan pemerintah untuk meningkatkan kualitas pendidikan, penelitian dan pengabdian di bidang Teknologi Informasi.</li></ol>\", \"judul\": \"KETIGA\"}, {\"isi\": \"<p>Keputusan ini berlaku sejak tanggal ditetapkan.</p>\", \"judul\": \"KEEMPAT\"}]', '<p><strong>KESATU:</strong> <p>KEPUTUSAN DEKAN TENTANG PENETAPAN VISI, MISI, DAN TUJUAN FAKULTAS ILMU KOMPUTER UNIVERSITAS KATOLIK SOEGIJAPRANATA DAN SELURUH PROGRAM STUDI YANG BERNAUNG DI BAWAHNYA.</p></p>\n<p><strong>KEDUA:</strong> <p>Misi Fakultas Ilmu Komputer adalah sebagai berikut:</p>\r\n\r\n<ol><li>Menyelenggarakan kegiatan pendidikan yang bermutu, terencana, dan konsisten secara akademis dalam lingkungan yang mendukung pengembangan versi terbaik dari masing-masing pribadi di masyarakat.</li><li>Melakukan penelitian untuk mengembangkan Teknologi Informasi terkini yang sesuai dengan kebutuhan masyarakat dan ilmu pengetahuan.</li><li>Menerapkan Teknologi Informasi dalam lingkup pengabdian masyarakat ataupun komersial (hilirisasi).</li><li>Menjalin kerjasama dengan berbagai instansi untuk meningkatkan kualitas Tri Dharma Perguruan Tinggi.</li></ol></p>\n<p><strong>KETIGA:</strong> <p>Tujuan Fakultas Ilmu Komputer adalah sebagai berikut:</p>\r\n\r\n<ol><li>Menghasilkan lulusan yang jujur, adaptif, kreatif, dan peduli kepada masyarakat melalui kompetensinya di bidang Teknologi Informasi.</li><li>Mewujudkan mutu pendidikan yang paripurna berdasar pada standar nasional pendidikan.</li><li>Menghasilkan penelitian di bidang Teknologi Informasi yang bermanfaat bagi masyarakat dan mampu bersaing di tingkat nasional dan internasional.</li><li>Menghasilkan publikasi ilmiah dalam bidang teknologi informasi yang dapat meningkatkan kapasitas dosen, mahasiswa, dan masyarakat di tingkat nasional dan internasional.</li><li>Menerapkan Teknologi Informasi yang dapat menjadi solusi atas kebutuhan-kebutuhan masyarakat dalam lingkup pengabdian masyarakat ataupun komersial (hilirisasi).</li><li>Berjejaring dengan institusi pendidikan, industri dan pemerintah untuk meningkatkan kualitas pendidikan, penelitian dan pengabdian di bidang Teknologi Informasi.</li></ol></p>\n<p><strong>KEEMPAT:</strong> <p>Keputusan ini berlaku sejak tanggal ditetapkan.</p></p>', 'private/surat_keputusan/signed/8_7ae37f64de56414ff6f683ee2fd8876e.pdf', NULL, NULL, NULL, 'disetujui', 1, 10, 10, '2025-10-02 19:19:53', NULL, NULL, NULL, NULL, NULL, NULL, 37, 37, 0.95, '2025-09-29 04:34:22', '2025-10-02 19:19:58', NULL),
+(13, 'UT-SK-PEN-001/FIKOM/2025', NULL, NULL, '2025-10-01', 'UJI: Revisi oleh penandatangan saat pending', '[\"Alasan A (direvisi)\", \"Alasan B\", \"Alasan C (baru)\"]', '[\"Dasar 1\", \"Dasar 2\", \"Dasr 3\"]', '[{\"isi\": \"<p>Lakukan A</p>\", \"judul\": \"KESATU\"}]', '<p><strong>KESATU:</strong> <p>Lakukan A</p></p>', NULL, NULL, NULL, NULL, 'pending', 1, 10, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-02 17:59:50', '2025-10-02 18:06:07', NULL),
+(14, 'UT-SK-APP-001/FIKOM/2025', '2025-10-03', '2025-10-02 17:59:50', '2025-10-01', 'UJI: Approve SK', '[\"Test\"]', '[\"Dasar Approve 1\"]', '[{\"isi\": \"<p>Approve tugas X</p>\", \"judul\": \"KESATU\"}]', '<p><strong>KESATU:</strong> <p>Approve tugas X</p></p>', NULL, 'Test', 'Tembusan Yth:\r\n1. Test', NULL, 'draft', 1, 10, 10, '2025-10-02 17:59:50', NULL, NULL, NULL, NULL, '{\"w_mm\": 42}', '{\"w_mm\": 35, \"opacity\": 0.95}', NULL, NULL, NULL, '2025-10-02 17:59:50', '2025-10-07 11:26:52', NULL),
+(15, 'UT-SK-REJ-001/FIKOM/2025', NULL, NULL, '2025-10-01', 'UJI: Reject SK', '[\"Alasan perlu revisi\"]', '[\"Dasar X\"]', NULL, '<p><strong>KESATU:</strong> Draft awal (butuh perbaikan).</p>', NULL, NULL, NULL, NULL, 'ditolak', 1, 10, NULL, NULL, 10, '2025-10-02 17:59:50', NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-02 17:59:50', '2025-10-02 17:59:50', NULL),
+(16, '001/B.10.1/SK/UNIKA/FIKOM/X/2025', NULL, NULL, '2025-10-02', 'UJI: Publish SK', '[\"Sudah final\"]', '[\"Dasar lengkap\"]', NULL, '<p><strong>KESATU:</strong> Berlaku sejak ditetapkan.</p>', NULL, NULL, NULL, NULL, 'arsip', 1, 10, 10, '2025-10-02 17:59:51', NULL, NULL, 1, '2025-10-02 17:59:51', NULL, NULL, NULL, NULL, NULL, '2025-10-02 17:59:50', '2025-10-02 17:59:51', NULL);
 
 -- --------------------------------------------------------
 
@@ -188,7 +190,17 @@ INSERT INTO `keputusan_penerima` (`id`, `keputusan_id`, `pengguna_id`, `read_at`
 (25, 1, 5, NULL, '2025-09-29 03:12:51', '2025-09-29 03:12:51', 0),
 (30, 16, 5, NULL, '2025-10-02 17:59:51', '2025-10-02 17:59:51', 0),
 (31, 16, 6, NULL, '2025-10-02 17:59:51', '2025-10-02 17:59:51', 0),
-(43, 8, 5, NULL, '2025-10-02 18:56:40', '2025-10-02 18:56:40', 0);
+(43, 8, 5, NULL, '2025-10-02 18:56:40', '2025-10-02 18:56:40', 0),
+(74, 14, 6, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0),
+(75, 14, 7, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0),
+(76, 14, 8, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0),
+(77, 14, 9, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0),
+(78, 14, 11, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0),
+(79, 14, 12, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0),
+(80, 14, 13, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0),
+(81, 14, 15, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0),
+(82, 14, 17, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0),
+(83, 14, 22, NULL, '2025-10-07 11:26:52', '2025-10-07 11:26:52', 0);
 
 -- --------------------------------------------------------
 
@@ -466,6 +478,8 @@ CREATE TABLE `notifikasi` (
   `referensi_id` int NOT NULL,
   `pesan` varchar(255) NOT NULL,
   `dibaca` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `dibuat_pada` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -473,34 +487,34 @@ CREATE TABLE `notifikasi` (
 -- Dumping data for table `notifikasi`
 --
 
-INSERT INTO `notifikasi` (`id`, `pengguna_id`, `tipe`, `referensi_id`, `pesan`, `dibaca`, `dibuat_pada`) VALUES
-(1, 3, 'surat_tugas', 9, 'Surat Tugas 001/B.10.6/TG/UNIKA/IX/2025 menunggu persetujuan Anda.', 0, '2025-09-13 23:47:54'),
-(2, 10, 'surat_tugas', 7, 'Surat Tugas 006/B.3.5/TG/UNIKA/VIII/2025 menunggu persetujuan Anda.', 0, '2025-09-14 06:55:01'),
-(3, 1, 'surat_tugas', 11, 'Surat Tugas 003/B.8.2/TG/UNIKA/IX/2025 telah disetujui.', 0, '2025-09-14 22:34:13'),
-(4, 16, 'surat_tugas', 11, 'Anda terdaftar sebagai penerima pada Surat Tugas 003/B.8.2/TG/UNIKA/IX/2025.', 0, '2025-09-14 22:34:13'),
-(5, 17, 'surat_tugas', 11, 'Anda terdaftar sebagai penerima pada Surat Tugas 003/B.8.2/TG/UNIKA/IX/2025.', 0, '2025-09-14 22:34:13'),
-(6, 18, 'surat_tugas', 11, 'Anda terdaftar sebagai penerima pada Surat Tugas 003/B.8.2/TG/UNIKA/IX/2025.', 0, '2025-09-14 22:34:13'),
-(15, 1, 'surat_tugas', 10, 'Surat Tugas 002/B.7.2/TG/UNIKA/IX/2025 telah disetujui.', 0, '2025-09-24 08:45:23'),
-(16, 8, 'surat_tugas', 10, 'Anda terdaftar sebagai penerima pada Surat Tugas 002/B.7.2/TG/UNIKA/IX/2025.', 0, '2025-09-24 08:45:23'),
-(17, 9, 'surat_tugas', 10, 'Anda terdaftar sebagai penerima pada Surat Tugas 002/B.7.2/TG/UNIKA/IX/2025.', 0, '2025-09-24 08:45:29'),
-(18, 10, 'surat_keputusan', 1, 'Surat Keputusan SK-TEST/001/FIKOM/2025 menunggu persetujuan Anda.', 0, '2025-09-29 03:12:51'),
-(19, 10, 'surat_keputusan', 8, 'Surat Keputusan 2644/F.1.2/FIKOM/XI/2023 menunggu persetujuan Anda.', 0, '2025-09-29 04:34:22'),
-(20, 1, 'surat_keputusan', 1, 'Surat Keputusan SK-TEST/001/FIKOM/2025 ditolak. Catatan: Kurang jelas', 0, '2025-09-29 08:06:00'),
-(21, 1, 'surat_keputusan', 10, 'Surat Keputusan UT-SK-APP-001/FIKOM/2025 telah disetujui.', 0, '2025-10-02 17:58:21'),
-(22, 1, 'surat_keputusan', 11, 'Surat Keputusan UT-SK-REJ-001/FIKOM/2025 ditolak. Catatan: Kurang jelas pada bagian dasar hukum.', 0, '2025-10-02 17:58:21'),
-(23, 1, 'surat_keputusan', 14, 'Surat Keputusan UT-SK-APP-001/FIKOM/2025 telah disetujui.', 0, '2025-10-02 17:59:50'),
-(24, 1, 'surat_keputusan', 15, 'Surat Keputusan UT-SK-REJ-001/FIKOM/2025 ditolak. Catatan: Kurang jelas pada bagian dasar hukum.', 0, '2025-10-02 17:59:50'),
-(25, 10, 'surat_keputusan', 13, 'SK UT-SK-PEN-001/FIKOM/2025 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:06:07'),
-(26, 10, 'surat_keputusan', 8, 'SK 2644/F.1.2/FIKOM/XI/2023 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:45:29'),
-(27, 10, 'surat_keputusan', 8, 'SK 2644/F.1.2/FIKOM/XI/2023 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:45:31'),
-(28, 10, 'surat_keputusan', 8, 'SK 2644/F.1.2/FIKOM/XI/2023 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:45:43'),
-(29, 10, 'surat_keputusan', 8, 'SK 2644/F.1.2/FIKOM/XI/2023 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:54:17'),
-(30, 1, 'surat_keputusan', 8, 'Surat Keputusan 2644/F.1.2/FIKOM/XI/2023 telah disetujui.', 0, '2025-10-02 19:19:58'),
-(31, 5, 'surat_keputusan', 8, 'Anda mendapat tembusan Surat Keputusan 2644/F.1.2/FIKOM/XI/2023.', 0, '2025-10-02 19:19:58'),
-(32, 10, 'surat_tugas', 14, 'Surat Tugas 001/B.3.5/TG/UNIKA/X/2025 menunggu persetujuan Anda.', 0, '2025-10-03 02:58:07'),
-(33, 1, 'surat_tugas', 14, 'Surat Tugas 001/B.3.5/TG/UNIKA/X/2025 telah disetujui.', 0, '2025-10-03 04:14:39'),
-(34, 13, 'surat_tugas', 14, 'Anda terdaftar sebagai penerima pada Surat Tugas 001/B.3.5/TG/UNIKA/X/2025.', 0, '2025-10-03 04:14:39'),
-(35, 14, 'surat_tugas', 14, 'Anda terdaftar sebagai penerima pada Surat Tugas 001/B.3.5/TG/UNIKA/X/2025.', 0, '2025-10-03 04:14:46');
+INSERT INTO `notifikasi` (`id`, `pengguna_id`, `tipe`, `referensi_id`, `pesan`, `dibaca`, `created_at`, `updated_at`, `dibuat_pada`) VALUES
+(1, 3, 'surat_tugas', 9, 'Surat Tugas 001/B.10.6/TG/UNIKA/IX/2025 menunggu persetujuan Anda.', 0, '2025-09-13 23:47:54', '2025-09-13 23:47:54', '2025-09-13 23:47:54'),
+(2, 10, 'surat_tugas', 7, 'Surat Tugas 006/B.3.5/TG/UNIKA/VIII/2025 menunggu persetujuan Anda.', 0, '2025-09-14 06:55:01', '2025-09-14 06:55:01', '2025-09-14 06:55:01'),
+(3, 1, 'surat_tugas', 11, 'Surat Tugas 003/B.8.2/TG/UNIKA/IX/2025 telah disetujui.', 0, '2025-09-14 22:34:13', '2025-09-14 22:34:13', '2025-09-14 22:34:13'),
+(4, 16, 'surat_tugas', 11, 'Anda terdaftar sebagai penerima pada Surat Tugas 003/B.8.2/TG/UNIKA/IX/2025.', 0, '2025-09-14 22:34:13', '2025-09-14 22:34:13', '2025-09-14 22:34:13'),
+(5, 17, 'surat_tugas', 11, 'Anda terdaftar sebagai penerima pada Surat Tugas 003/B.8.2/TG/UNIKA/IX/2025.', 0, '2025-09-14 22:34:13', '2025-09-14 22:34:13', '2025-09-14 22:34:13'),
+(6, 18, 'surat_tugas', 11, 'Anda terdaftar sebagai penerima pada Surat Tugas 003/B.8.2/TG/UNIKA/IX/2025.', 0, '2025-09-14 22:34:13', '2025-09-14 22:34:13', '2025-09-14 22:34:13'),
+(15, 1, 'surat_tugas', 10, 'Surat Tugas 002/B.7.2/TG/UNIKA/IX/2025 telah disetujui.', 0, '2025-09-24 08:45:23', '2025-09-24 08:45:23', '2025-09-24 08:45:23'),
+(16, 8, 'surat_tugas', 10, 'Anda terdaftar sebagai penerima pada Surat Tugas 002/B.7.2/TG/UNIKA/IX/2025.', 0, '2025-09-24 08:45:23', '2025-09-24 08:45:23', '2025-09-24 08:45:23'),
+(17, 9, 'surat_tugas', 10, 'Anda terdaftar sebagai penerima pada Surat Tugas 002/B.7.2/TG/UNIKA/IX/2025.', 0, '2025-09-24 08:45:29', '2025-09-24 08:45:29', '2025-09-24 08:45:29'),
+(18, 10, 'surat_keputusan', 1, 'Surat Keputusan SK-TEST/001/FIKOM/2025 menunggu persetujuan Anda.', 0, '2025-09-29 03:12:51', '2025-09-29 03:12:51', '2025-09-29 03:12:51'),
+(19, 10, 'surat_keputusan', 8, 'Surat Keputusan 2644/F.1.2/FIKOM/XI/2023 menunggu persetujuan Anda.', 0, '2025-09-29 04:34:22', '2025-09-29 04:34:22', '2025-09-29 04:34:22'),
+(20, 1, 'surat_keputusan', 1, 'Surat Keputusan SK-TEST/001/FIKOM/2025 ditolak. Catatan: Kurang jelas', 0, '2025-09-29 08:06:00', '2025-09-29 08:06:00', '2025-09-29 08:06:00'),
+(21, 1, 'surat_keputusan', 10, 'Surat Keputusan UT-SK-APP-001/FIKOM/2025 telah disetujui.', 0, '2025-10-02 17:58:21', '2025-10-02 17:58:21', '2025-10-02 17:58:21'),
+(22, 1, 'surat_keputusan', 11, 'Surat Keputusan UT-SK-REJ-001/FIKOM/2025 ditolak. Catatan: Kurang jelas pada bagian dasar hukum.', 0, '2025-10-02 17:58:21', '2025-10-02 17:58:21', '2025-10-02 17:58:21'),
+(23, 1, 'surat_keputusan', 14, 'Surat Keputusan UT-SK-APP-001/FIKOM/2025 telah disetujui.', 0, '2025-10-02 17:59:50', '2025-10-02 17:59:50', '2025-10-02 17:59:50'),
+(24, 1, 'surat_keputusan', 15, 'Surat Keputusan UT-SK-REJ-001/FIKOM/2025 ditolak. Catatan: Kurang jelas pada bagian dasar hukum.', 0, '2025-10-02 17:59:50', '2025-10-02 17:59:50', '2025-10-02 17:59:50'),
+(25, 10, 'surat_keputusan', 13, 'SK UT-SK-PEN-001/FIKOM/2025 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:06:07', '2025-10-02 18:06:07', '2025-10-02 18:06:07'),
+(26, 10, 'surat_keputusan', 8, 'SK 2644/F.1.2/FIKOM/XI/2023 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:45:29', '2025-10-02 18:45:29', '2025-10-02 18:45:29'),
+(27, 10, 'surat_keputusan', 8, 'SK 2644/F.1.2/FIKOM/XI/2023 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:45:31', '2025-10-02 18:45:31', '2025-10-02 18:45:31'),
+(28, 10, 'surat_keputusan', 8, 'SK 2644/F.1.2/FIKOM/XI/2023 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:45:43', '2025-10-02 18:45:43', '2025-10-02 18:45:43'),
+(29, 10, 'surat_keputusan', 8, 'SK 2644/F.1.2/FIKOM/XI/2023 telah direvisi oleh Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC.', 0, '2025-10-02 18:54:17', '2025-10-02 18:54:17', '2025-10-02 18:54:17'),
+(30, 1, 'surat_keputusan', 8, 'Surat Keputusan 2644/F.1.2/FIKOM/XI/2023 telah disetujui.', 0, '2025-10-02 19:19:58', '2025-10-02 19:19:58', '2025-10-02 19:19:58'),
+(31, 5, 'surat_keputusan', 8, 'Anda mendapat tembusan Surat Keputusan 2644/F.1.2/FIKOM/XI/2023.', 0, '2025-10-02 19:19:58', '2025-10-02 19:19:58', '2025-10-02 19:19:58'),
+(32, 10, 'surat_tugas', 14, 'Surat Tugas 001/B.3.5/TG/UNIKA/X/2025 menunggu persetujuan Anda.', 0, '2025-10-03 02:58:07', '2025-10-03 02:58:07', '2025-10-03 02:58:07'),
+(33, 1, 'surat_tugas', 14, 'Surat Tugas 001/B.3.5/TG/UNIKA/X/2025 telah disetujui.', 0, '2025-10-03 04:14:39', '2025-10-03 04:14:39', '2025-10-03 04:14:39'),
+(34, 13, 'surat_tugas', 14, 'Anda terdaftar sebagai penerima pada Surat Tugas 001/B.3.5/TG/UNIKA/X/2025.', 0, '2025-10-03 04:14:39', '2025-10-03 04:14:39', '2025-10-03 04:14:39'),
+(35, 14, 'surat_tugas', 14, 'Anda terdaftar sebagai penerima pada Surat Tugas 001/B.3.5/TG/UNIKA/X/2025.', 0, '2025-10-03 04:14:46', '2025-10-03 04:14:46', '2025-10-03 04:14:46');
 
 -- --------------------------------------------------------
 
@@ -529,16 +543,16 @@ CREATE TABLE `pengguna` (
 --
 
 INSERT INTO `pengguna` (`id`, `email`, `sandi_hash`, `nama_lengkap`, `npp`, `jabatan`, `peran_id`, `status`, `created_at`, `updated_at`, `last_activity`, `deleted_at`, `remember_token`) VALUES
-(1, 'agustina.anggitasari@unika.ac.id', '$2y$12$0rYDf0RqcBpaABHw3vaOxe3LV6UxLazy9R85vBmmwA8juagm6Xadq', 'AGUSTINA ALAM ANGGITASARI, SE., MM', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-10-04 05:55:01', '2025-10-04 12:55:01', NULL, 'vEDIf6g3BvXeBa5wXELnk1Du0HfQKluiONJK8Wk6YZOQEMktCalhWFqtXj9b'),
+(1, 'agustina.anggitasari@unika.ac.id', '$2y$12$0rYDf0RqcBpaABHw3vaOxe3LV6UxLazy9R85vBmmwA8juagm6Xadq', 'AGUSTINA ALAM ANGGITASARI, SE., MM', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-10-09 04:22:12', '2025-10-09 11:22:12', NULL, 'f9zWJpQGPGHliWD4SdHQT3OukT7lx6Vf5y27VQaG2dTbY11LHQAo6r6V3Tnb'),
 (2, 'kariyani.spd@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'KARIYANI, S.Pd', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-08-01 23:28:10', NULL, NULL, NULL),
-(3, 'bernhardinus.harnadi@unika.ac.id', '$2y$12$rr.ntE7OagwdG25kLxSLwOnZwIaq72oImrbM8jXOkn6AEM62QRIY2', 'Prof. BERNARDINUS HARNADI, ST., MT., Ph.D.', NULL, NULL, 3, 'aktif', '2025-04-22 03:15:27', '2025-10-02 20:21:08', '2025-10-02 20:21:08', NULL, NULL),
+(3, 'bernhardinus.harnadi@unika.ac.id', '$2y$12$rr.ntE7OagwdG25kLxSLwOnZwIaq72oImrbM8jXOkn6AEM62QRIY2', 'Prof. BERNARDINUS HARNADI, ST., MT., Ph.D.', NULL, NULL, 3, 'aktif', '2025-04-22 03:15:27', '2025-10-04 08:46:59', '2025-10-04 15:46:59', NULL, NULL),
 (4, 'muh.khudori@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'MUH KHUDORI', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:31', NULL, NULL, NULL),
 (5, 'paulus.sapto@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'PAULUS SAPTO NUGROHO', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:36', NULL, NULL, NULL),
 (6, 'bambang.setiawan@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'BAMBANG SETIAWAN, ST', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:39', NULL, NULL, NULL),
 (7, 'erdhi.nugroho@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'ERDHI WIDYARTO NUGROHO, ST., MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:43', NULL, NULL, NULL),
 (8, 'fx.hendra@unika.ac.id', '$2y$12$yzabxjVXeAkmIgQmvCQBuOwjSU1cUnGqowliut934gE1bnbNMZ9M.', 'FX. HENDRA PRASETYA, ST, MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-09-24 09:19:29', '2025-09-24 16:19:29', NULL, NULL),
 (9, 'tecla.chandrawati@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'Dr. TECLA BRENDA CHANDRAWATI, S.T., MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:51', NULL, NULL, NULL),
-(10, 'ridwan.sanjaya@unika.ac.id', '$2y$12$VRlxXvgiT0gdC3mVx0vp6Oct3Q/VPnmvACYjDz3n.DKotAIkG1QrS', 'Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC', '058.1.2002.255', 'Dekan Fakultas Ilmu Komputer', 2, 'aktif', '2025-04-22 03:15:27', '2025-10-03 04:14:46', '2025-10-03 11:14:46', NULL, NULL),
+(10, 'ridwan.sanjaya@unika.ac.id', '$2y$12$VRlxXvgiT0gdC3mVx0vp6Oct3Q/VPnmvACYjDz3n.DKotAIkG1QrS', 'Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC', '058.1.2002.255', 'Dekan Fakultas Ilmu Komputer', 2, 'aktif', '2025-04-22 03:15:27', '2025-10-04 08:46:50', '2025-10-04 15:46:50', NULL, NULL),
 (11, 'alb.dwiw@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'ALBERTUS DWIYOGA WIDIANTORO, S.Kom., M.Kom', NULL, NULL, 4, 'aktif', '2025-04-22 03:15:27', NULL, NULL, NULL, NULL),
 (12, 'agus.cahyo@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'AGUS CAHYO NUGROHO, S.Kom., M.T', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:40:02', NULL, NULL, NULL),
 (13, 'andre.pamudji@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'ANDRE KURNIAWAN PAMUDJI, S.Kom., M.Ling', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:40:10', NULL, NULL, NULL),
@@ -597,7 +611,10 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('P7N9tVi1DwQb3VrEEsfrhmj8rsrLK7QB4FIvarbf', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoieGI1QTd0b3YxM0U1d1k2WWp5cWZxelllMkNZM0g5ZG1selRUeGlVNSI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDQ6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9zdXJhdF9rZXB1dHVzYW4vY3JlYXRlIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1759557301);
+('hJbSwSjbfxSmZhVTwtmqkBhelgkDE4njfNN5VhxP', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoidlpkRFhzYmthOHRTalREeU5OT09acHRKNHlBRUNUajl0N1BDbmdKWSI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czozOToiaHR0cDovLzEyNy4wLjAuMTo4MDAwL3N1cmF0X3R1Z2FzL3NlbXVhIjt9czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mzk6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9zdXJhdF90dWdhcy9zZW11YSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1759913518),
+('HRMoQBLTzl7bL4zhIwP8wYBZGpDr4YCNmg05HOPJ', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoidmN0elNZU1UxUkhNRUw4NGJYYktBSG9pTVprQnZ5SmQ3SVIwaWJ1VCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mzk6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9zdXJhdF90dWdhcy9zZW11YSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE7fQ==', 1759896109),
+('SQmyqIlGb4xqiVw34IUOhcT37KHcn41oJns3Agwo', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoidWFsSXc0aVVId0hyQTZUOVdKMVF3UzdDclVlQk5ZQ2t3RmYyQjl0VSI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjQ0OiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvc3VyYXRfa2VwdXR1c2FuL2NyZWF0ZSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE7fQ==', 1759914959),
+('Ww05f5s2wj2YHt9t2Q0NZ8BdeJlbSHNzPNcr8Q6M', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoia05LQ1hScHF2dEN2SkxXeVU0enBZS2lITmczMmlhTmo3S3djSzM0cCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6MjY6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9ob21lIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1759983732);
 
 -- --------------------------------------------------------
 
@@ -741,7 +758,10 @@ INSERT INTO `tugas_header` (`id`, `nomor`, `tanggal_asli`, `status_surat`, `nomo
 (11, '003/B.8.2/TG/UNIKA/IX/2025', NULL, 'disetujui', NULL, '2025-09-15', '2025-09-15 12:04:37', '2025-09-14 22:34:11', 1, '2025-09-15 05:04:37', NULL, NULL, 'private/surat_tugas/signed/11_.pdf', 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Panitia Pengabdian Masyarakat', 1, NULL, 'Pengabdian', 'Validator BKD', NULL, 15, '2025-09-22 08:00:00', '2025-09-22 17:00:00', 'Desa Binaan ABC', NULL, NULL, NULL, 3, NULL, NULL, 45, 38, 0.70, 3, '2025-09-15 05:04:37', '2025-09-14 22:34:13', NULL, 'IX', 63),
 (12, '004/B.9.4/TG/UNIKA/IX/2025', NULL, 'disetujui', NULL, '2025-09-12', '2025-09-15 12:04:37', '2025-09-12 03:00:00', 1, '2025-09-15 05:04:37', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Panitia Wisuda', 1, NULL, 'Lainnya', 'Lainnya', NULL, 16, '2025-09-15 08:00:00', '2025-09-20 17:00:00', 'Auditorium Albertus', NULL, NULL, NULL, 3, NULL, NULL, 45, 38, 0.90, NULL, '2025-09-15 05:04:37', '2025-09-15 05:04:37', NULL, 'IX', 75),
 (13, '001/B.1.5/TG/UNIKA/IX/2025', NULL, 'draft', NULL, NULL, NULL, NULL, 1, '2025-09-16 19:15:15', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Bimbingan 2', 10, 'dosen', 'Bimbingan', 'Koordinator MK', '<p>Bimbingan dimulai</p>', 2, '2025-09-16 19:14:00', '2025-09-16 21:14:00', 'Ruang HC', 'Bimbingan', 'Terimakasih', NULL, 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-16 12:15:15', '2025-09-16 12:41:17', NULL, 'IX', 7),
-(14, '001/B.3.5/TG/UNIKA/X/2025', NULL, 'disetujui', NULL, '2025-10-03', NULL, '2025-10-03 04:14:37', 1, '2025-10-03 02:58:07', NULL, NULL, 'private/surat_tugas/signed/14_5fe72d188901a2722362f9f759809923.pdf', 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Bimbingan Di Luar Kota', 10, 'dosen', 'Bimbingan', 'Bimbingan Mahasiswa/Akademik', NULL, 4, '2025-10-03 02:54:00', '2025-10-03 04:54:00', 'Ruang Theater', 'halo', 'siap', NULL, 10, NULL, NULL, 42, 35, 0.95, NULL, '2025-10-02 19:58:07', '2025-10-03 04:14:39', NULL, 'X', 30);
+(14, '001/B.3.5/TG/UNIKA/X/2025', NULL, 'disetujui', NULL, '2025-10-03', NULL, '2025-10-03 04:14:37', 1, '2025-10-03 02:58:07', NULL, NULL, 'private/surat_tugas/signed/14_5fe72d188901a2722362f9f759809923.pdf', 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Bimbingan Di Luar Kota', 10, 'dosen', 'Bimbingan', 'Bimbingan Mahasiswa/Akademik', NULL, 4, '2025-10-03 02:54:00', '2025-10-03 04:54:00', 'Ruang Theater', 'halo', 'siap', NULL, 10, NULL, NULL, 42, 35, 0.95, NULL, '2025-10-02 19:58:07', '2025-10-03 04:14:39', NULL, 'X', 30),
+(15, '001/B.1.7/TG/UNIKA/X/2025', NULL, 'draft', NULL, NULL, NULL, NULL, 1, '2025-10-04 09:15:55', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Draft Panitia Acara Dies Natalis', 10, 'tendik', 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', NULL, 16, '2025-10-10 08:00:00', '2025-12-20 17:00:00', 'Ruang Teater dan sekitarnya', 'Dalam rangka persiapan Dies Natalis FIKOM ke-30, maka dibentuklah kepanitiaan.', 'Demikian surat tugas ini dibuat untuk dilaksanakan.', 'Yth. Rektor', 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-04 09:15:55', '2025-10-07 07:16:55', NULL, 'X', 9),
+(16, '002/PENDING/ST/UNIKA/X/2025', NULL, 'pending', NULL, NULL, '2025-10-04 16:15:55', NULL, 1, '2025-10-04 09:15:55', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Dosen Pembimbing Kerja Praktik', 10, NULL, 'Bimbingan', 'Bimbingan Mahasiswa/Akademik', NULL, 4, '2025-10-05 00:00:00', '2026-01-31 23:59:59', 'Fakultas Ilmu Komputer', 'Sehubungan dengan pelaksanaan Kerja Praktik semester Ganjil 2025/2026, dengan ini menugaskan dosen sebagai pembimbing.', 'Harap melaksanakan tugas dengan sebaik-baiknya.', 'Kepala Program Studi Sistem Informasi\nKoordinator Kerja Praktik\nArsip', 3, NULL, NULL, NULL, NULL, NULL, 3, '2025-10-04 09:15:55', '2025-10-04 09:15:55', NULL, 'X', 30),
+(17, '003/DONE/ST/UNIKA/X/2025', NULL, 'disetujui', NULL, '2025-10-04', '2025-10-04 16:15:55', '2025-10-04 09:15:55', 1, '2025-10-04 09:15:55', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Tim Pengabdian Masyarakat', 10, NULL, 'Pengabdian', 'Reviewer Penelitian dan Pengabdian di lingkungan Unika', NULL, 13, '2025-11-01 09:00:00', '2025-11-01 15:00:00', 'Desa Rowosari, Kendal', 'Menindaklanjuti program kerja fakultas bidang pengabdian kepada masyarakat, maka ditugaskan tim untuk melaksanakan kegiatan.', 'Atas perhatian dan kerjasamanya diucapkan terima kasih.', 'LPPM Unika Soegijapranata\nKepala Desa Rowosari\nArsip', 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-04 09:15:55', '2025-10-04 09:15:55', NULL, 'X', 63);
 
 -- --------------------------------------------------------
 
@@ -813,7 +833,8 @@ INSERT INTO `tugas_penerima` (`id`, `tugas_id`, `pengguna_id`, `nama_penerima`, 
 (31, 12, 5, '', NULL, 'I#5', 0),
 (33, 13, 9, '', 'Dosen Pengajar', 'I#9', 0),
 (40, 14, 13, '', 'Dosen Pengajar', 'I#13', 0),
-(41, 14, 14, '', 'Dosen Pengajar', 'I#14', 0);
+(41, 14, 14, '', 'Dosen Pengajar', 'I#14', 0),
+(43, 15, 6, '', 'Tenaga Kependidikan', 'I#6', 0);
 
 --
 -- Triggers `tugas_penerima`
@@ -915,13 +936,15 @@ ALTER TABLE `keputusan_header`
   ADD KEY `idx_keputusan_published_at` (`published_at`),
   ADD KEY `idx_keph_approved_by` (`approved_by`),
   ADD KEY `idx_keph_rejected_by` (`rejected_by`),
-  ADD KEY `idx_keph_published_by` (`published_by`);
+  ADD KEY `idx_keph_published_by` (`published_by`),
+  ADD KEY `idx_keph_tanggal` (`tanggal_surat`,`tanggal_asli`);
 
 --
 -- Indexes for table `keputusan_penerima`
 --
 ALTER TABLE `keputusan_penerima`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `ux_keputusan_penerima_unique` (`keputusan_id`,`pengguna_id`),
   ADD KEY `keputusan_penerima_keputusan_id_foreign` (`keputusan_id`),
   ADD KEY `keputusan_penerima_pengguna_id_foreign` (`pengguna_id`),
   ADD KEY `idx_keputusan_id` (`keputusan_id`),
@@ -967,7 +990,8 @@ ALTER TABLE `notifikasi`
   ADD PRIMARY KEY (`id`),
   ADD KEY `notifikasi_pengguna_id_foreign` (`pengguna_id`),
   ADD KEY `idx_notif_dibaca` (`dibaca`),
-  ADD KEY `idx_notif_tipe_ref` (`tipe`,`referensi_id`);
+  ADD KEY `idx_notif_tipe_ref` (`tipe`,`referensi_id`),
+  ADD KEY `idx_notif_user_read_created` (`pengguna_id`,`dibaca`,`created_at`);
 
 --
 -- Indexes for table `pengguna`
@@ -1073,7 +1097,7 @@ ALTER TABLE `keputusan_header`
 -- AUTO_INCREMENT for table `keputusan_penerima`
 --
 ALTER TABLE `keputusan_penerima`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
 
 --
 -- AUTO_INCREMENT for table `klasifikasi_surat`
@@ -1139,7 +1163,7 @@ ALTER TABLE `tugas_detail`
 -- AUTO_INCREMENT for table `tugas_header`
 --
 ALTER TABLE `tugas_header`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `tugas_log`
@@ -1151,7 +1175,7 @@ ALTER TABLE `tugas_log`
 -- AUTO_INCREMENT for table `tugas_penerima`
 --
 ALTER TABLE `tugas_penerima`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT for table `user_signatures`
@@ -1177,8 +1201,6 @@ ALTER TABLE `keputusan_header`
 -- Constraints for table `keputusan_penerima`
 --
 ALTER TABLE `keputusan_penerima`
-  ADD CONSTRAINT `fk_kp_keputusan` FOREIGN KEY (`keputusan_id`) REFERENCES `keputusan_header` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_kp_pengguna` FOREIGN KEY (`pengguna_id`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `keputusan_penerima_keputusan_id_foreign` FOREIGN KEY (`keputusan_id`) REFERENCES `keputusan_header` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `keputusan_penerima_pengguna_id_foreign` FOREIGN KEY (`pengguna_id`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE;
 

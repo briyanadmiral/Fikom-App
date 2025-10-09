@@ -2,77 +2,108 @@
 
 namespace App\Services;
 
+use App\Mail\SuratKeputusanMail;
 use App\Models\KeputusanHeader;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-// use App\Mail\SuratTugasFinal; // <- aktifkan hanya kalau memang ada mailable ini
+use App\Jobs\SendSkEmail;
+use Illuminate\Support\Facades\URL;
 
 class SkNotifikasiService
 {
     public function notifyApprovalRequest(KeputusanHeader $sk): void
     {
-        if (!$sk->penandatangan) {
-            return;
-        }
-
-        $nomorTeks = $sk->nomor ?: '(draft)';
+        if (!$sk->penandatangan) return;
 
         DB::table('notifikasi')->insert([
             'pengguna_id'  => $sk->penandatangan,
             'tipe'         => 'surat_keputusan',
             'referensi_id' => $sk->id,
-            'pesan'        => 'Surat Keputusan ' . $nomorTeks . ' menunggu persetujuan Anda.',
+            'pesan'        => 'Surat Keputusan ' . ($sk->nomor ?: '(draft)') . ' menunggu persetujuan Anda.',
             'dibaca'       => 0,
-            // ganti ke 'created_at' bila kolom 'dibuat_pada' tidak ada di tabel
             'dibuat_pada'  => now(),
         ]);
     }
 
     public function notifyApproved(KeputusanHeader $sk): void
     {
+        // Notif ke pembuat
         DB::table('notifikasi')->insert([
             'pengguna_id'  => $sk->dibuat_oleh,
             'tipe'         => 'surat_keputusan',
             'referensi_id' => $sk->id,
             'pesan'        => 'Surat Keputusan ' . ($sk->nomor ?: '(tanpa nomor)') . ' telah disetujui.',
             'dibaca'       => 0,
-            // ganti ke 'created_at' bila kolom 'dibuat_pada' tidak ada
             'dibuat_pada'  => now(),
         ]);
 
-        // Kirim notifikasi ke penerima internal (kalau relasi ada)
-        // Jika relasi/table Anda bernama selain 'users', sesuaikan query ini.
-        foreach ($sk->penerima as $u) {
-            DB::table('notifikasi')->insert([
-                'pengguna_id'  => $u->id,
-                'tipe'         => 'surat_keputusan',
-                'referensi_id' => $sk->id,
-                'pesan'        => 'Anda mendapat tembusan Surat Keputusan ' . ($sk->nomor ?: '(tanpa nomor)') . '.',
-                'dibaca'       => 0,
-                'dibuat_pada'  => now(),
-            ]);
+        // Kirim email via queue (jalankan queue:work)
+        dispatch(new SendSkEmail($sk->id))->onQueue('mail');
+    }
 
-            // OPTIONAL: kirim email jika memang ada mailable & email user
-            /*
-            if ($u->email) {
-                try {
-                    Mail::to($u->email)->send(
-                        new SuratTugasFinal(
-                            'Surat Keputusan Disetujui: ' . ($sk->nomor ?: '(tanpa nomor)'),
-                            (object) $sk->toArray(),
-                            $sk->signed_pdf_path
-                        )
-                    );
-                } catch (\Throwable $e) {
-                    Log::error('Gagal kirim email SK', [
-                        'email' => $u->email,
-                        'sk_id' => $sk->id,
-                        'err'   => $e->getMessage(),
-                    ]);
-                }
-            }
-            */
+    public function notifyRejected(KeputusanHeader $sk, ?string $note = null): void
+    {
+        // Notifikasi in-app ke pembuat
+        DB::table('notifikasi')->insert([
+            'pengguna_id'  => (int) $sk->dibuat_oleh,
+            'tipe'         => 'surat_keputusan',
+            'referensi_id' => (int) $sk->id,
+            'pesan'        => 'Surat Keputusan ' . ($sk->nomor ?: '(tanpa nomor)') . ' ditolak.' .
+                              ($note ? ' Catatan: ' . $note : ''),
+            'dibaca'       => 0,
+            'dibuat_pada'  => now(),
+        ]);
+
+        // Email ke pembuat
+        $creator = $sk->pembuat;
+        if ($creator && filter_var($creator->email, FILTER_VALIDATE_EMAIL)) {
+            $ctaUrl = route('surat_keputusan.edit', $sk->id);
+
+            $line = 'SK Anda ditolak.' . ($note ? ' Catatan: ' . $note : '');
+            Mail::to($creator->email)->queue(
+                new SuratKeputusanMail(
+                    sk: $sk,
+                    subject: 'SK ' . ($sk->nomor ?: '(tanpa nomor)') . ' ditolak',
+                    heading: 'Surat Keputusan Ditolak',
+                    messageLine: $line,
+                    ctaUrl: $ctaUrl,
+                    ctaText: 'Perbaiki SK',
+                    attachSignedPdf: false
+                )
+            );
+        }
+    }
+
+    // Optional: notifikasi saat pembuat merevisi dokumen pending
+    public function notifyRevised(KeputusanHeader $sk, $byUser): void
+    {
+        if (! $sk->penandatangan) return;
+
+        DB::table('notifikasi')->insert([
+            'pengguna_id'  => (int) $sk->penandatangan,
+            'tipe'         => 'surat_keputusan',
+            'referensi_id' => (int) $sk->id,
+            'pesan'        => 'SK ' . ($sk->nomor ?? '(tanpa nomor)') .
+                              ' telah direvisi oleh ' . ($byUser->nama_lengkap ?? 'pengguna') . '.',
+            'dibaca'       => 0,
+            'dibuat_pada'  => now(),
+        ]);
+
+        $pen = $sk->penandatanganUser;
+        if ($pen && filter_var($pen->email, FILTER_VALIDATE_EMAIL)) {
+            $ctaUrl = route('surat_keputusan.approveForm', $sk->id);
+
+            Mail::to($pen->email)->queue(
+                new SuratKeputusanMail(
+                    sk: $sk,
+                    subject: 'Revisi SK ' . ($sk->nomor ?? '(tanpa nomor)'),
+                    heading: 'SK Direvisi dan Menunggu Tinjauan',
+                    messageLine: 'Pembuat telah memperbarui SK yang sedang menunggu persetujuan.',
+                    ctaUrl: $ctaUrl,
+                    ctaText: 'Tinjau Revisi',
+                    attachSignedPdf: false
+                )
+            );
         }
     }
 }

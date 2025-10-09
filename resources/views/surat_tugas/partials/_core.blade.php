@@ -54,32 +54,26 @@
     .nomor { text-align: center; margin: 6px 0 20px; }
     .isi-surat { line-height: 1.5; }
     .detail-tugas { margin: 1.2em 0 1.2em 40px; }
+    
+    /* Blok Tembusan (di dalam kolom kiri) */
+    .tembusan-wrapper { margin-top: 0; page-break-inside: avoid; }
+    .tembusan-wrapper strong { font-size: 1em; }
+    .tembusan-wrapper ol { margin: 5px 0 0 0; padding-left: 20px; }
+    .tembusan-wrapper li { margin-bottom: 2px; }
 
     /* Blok TTD */
     .ttd-wrapper { display: table; width: 100%; margin-top: 25px; page-break-inside: avoid; }
-    .ttd-kolom-kiri { display: table-cell; width: 55%; }
+    .ttd-kolom-kiri { display: table-cell; width: 55%; vertical-align: bottom; } /* Diubah ke bottom */
     .ttd-kolom-kanan { display: table-cell; width: 45%; vertical-align: top; page-break-inside: avoid; }
     .ttd-teks { text-align: left; page-break-inside: avoid; line-height: 1.5; }
     .ttd-area-sign { position: relative; min-height: 28mm; margin-top: 6mm; text-align: center; }
     .ttd-area-sign .ttd, .ttd-area-sign .cap { display: inline-block; vertical-align: bottom; }
 
-    /* [PERBAIKAN] Menyamakan style TTD & Cap dengan versi Web */
-    .ttd-area-sign .ttd {
-        width: var(--ttd-w, 42mm);
-        margin-left: -50mm;
-        margin-bottom: 10mm;
-    }
-    .ttd-area-sign .cap {
-        width: var(--cap-w, 35mm);
-        opacity: var(--cap-opacity, 0.95);
-        margin-left: -20mm;
-        margin-bottom: 6mm;
-        position: relative;
-        z-index: 2;
-    }
+    .ttd-area-sign .ttd { width: var(--ttd-w, 42mm); margin-left: -50mm; margin-bottom: 10mm; }
+    .ttd-area-sign .cap { width: var(--cap-w, 35mm); opacity: var(--cap-opacity, 0.95); margin-left: -20mm; margin-bottom: 6mm; position: relative; z-index: 2; }
 </style>
 @else
-{{-- CSS UNTUK WEB PREVIEW (SUDAH BENAR, TIDAK DIUBAH) --}}
+{{-- CSS UNTUK WEB PREVIEW --}}
 <style>
     body { margin:0; font-family:"Times New Roman", Times, serif; background:#f6f7fb; }
     .sheet{ width:210mm; min-height:297mm; margin:8mm auto; background:#fff; position:relative;
@@ -93,9 +87,14 @@
 
     .kop-wrap{ position:absolute; top:10mm; left:15mm; right:15mm; }
     .kop-wrap + .judul { margin-top: 12px; }
+    
+    .tembusan-wrapper { margin-top: 0; }
+    .tembusan-wrapper strong { font-size: 1em; }
+    .tembusan-wrapper ol { margin: 5px 0 0 0; padding-left: 20px; }
+    .tembusan-wrapper li { margin-bottom: 2px; }
 
     .ttd-wrapper { display: table; width: 100%; margin-top: 25px; }
-    .ttd-kolom-kiri { display: table-cell; width: 55%; }
+    .ttd-kolom-kiri { display: table-cell; width: 55%; vertical-align: bottom; } /* Diubah ke bottom */
     .ttd-kolom-kanan { display: table-cell; width: 45%; vertical-align: top; }
     .ttd-teks { text-align: left; line-height: 1.5; }
     .ttd-area-sign { position: relative; min-height: 28mm; margin-top: 6mm; text-align: center; }
@@ -106,7 +105,7 @@
 <div class="sheet">
 @endif
 
-{{-- ====================== HTML KONTEN (TIDAK ADA PERUBAHAN) ====================== --}}
+{{-- ====================== HTML KONTEN ====================== --}}
 @include('shared._kop_surat', [
     'kop'      => $kop ?? null,
     'context'  => $context,
@@ -153,7 +152,52 @@
 </div>
 
 <div class="ttd-wrapper">
-    <div class="ttd-kolom-kiri"></div>
+    <div class="ttd-kolom-kiri">
+        {{-- TEMBUSAN --}}
+@php
+    // Ambil yang paling rapi dulu (hasil preview Tagify), fallback ke kolom tembusan mentah
+    $text = $sk->tembusan_formatted ?? $sk->tembusan;
+
+    $items = [];
+    if (is_string($text) && trim($text) !== '') {
+        $s = trim($text);
+
+        // Kasus string berlapis tanda kutip:  "\"[{\"value\":\"Test\"}]\""  -> buang kutip luar
+        if (strlen($s) >= 2 && $s[0] === '"' && substr($s, -1) === '"') {
+            $s = substr($s, 1, -1);
+        }
+
+        // Coba decode JSON: [{"value":"..."}] / ["nama1","nama2"] / dsb
+        $decoded = json_decode($s, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            foreach ((array) $decoded as $it) {
+                $items[] = trim(
+                    is_array($it) ? ($it['value'] ?? $it['text'] ?? $it['name'] ?? (string)reset($it))
+                                  : (string) $it
+                );
+            }
+        } else {
+            // Bukan JSON -> split pakai koma / titik koma / newline
+            $items = preg_split('/[,\n;]+/', $s);
+        }
+    }
+
+    // Bersihkan & unik
+    $items = array_values(array_filter(array_unique(array_map('trim', $items))));
+@endphp
+
+@if(!empty($items))
+    <p><strong>Tembusan:</strong></p>
+    <ol style="margin:0; padding-left:18px">
+        @foreach($items as $i)
+            @if($i !== '')
+                <li>{{ $i }}</li>
+            @endif
+        @endforeach
+    </ol>
+@endif
+
+    </div>
     <div class="ttd-kolom-kanan">
         <div class="ttd-teks">
             Semarang, {{ \Carbon\Carbon::parse($tugas->tanggal_surat ?? now())->translatedFormat('d F Y') }}

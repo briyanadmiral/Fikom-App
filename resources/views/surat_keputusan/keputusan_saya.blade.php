@@ -53,7 +53,7 @@
   <span>
     <div class="surat-header-title">Surat Keputusan Saya</div>
     <div class="surat-header-desc">
-      Daftar semua <b>Surat Keputusan</b> yang mencantumkan Anda sebagai penerima/terdampak. Lihat detail, unduh PDF, dan pantau statusnya di sini.
+      Daftar <b>Surat Keputusan</b> yang terkait dengan akun Anda. Lihat detail, unduh PDF, dan pantau statusnya di sini.
     </div>
   </span>
 </div>
@@ -86,13 +86,14 @@
         <h5 class="mb-0 font-weight-bold">
           <i class="fas fa-filter mr-2 text-primary"></i>Filter & Pencarian
         </h5>
-        {{-- Halaman ini khusus penerima — tidak ada tombol "Tambah SK" --}}
+        {{-- Tidak ada tombol "Tambah SK" di halaman ini --}}
       </div>
     </div>
     <div class="card-body">
       <div class="row">
         <div class="col-md-6 form-group">
-          <input id="globalSearch" type="text" class="form-control" placeholder="Cari nomor, tentang, pembuat, atau penerima...">
+          {{-- [CHANGED] hapus “penerima” dari placeholder --}}
+          <input id="globalSearch" type="text" class="form-control" placeholder="Cari nomor, tentang, atau pembuat...">
         </div>
         <div class="col-md-3 form-group">
           <select id="statusFilter" class="form-control">
@@ -123,7 +124,7 @@
               <th>Tentang</th>
               <th>Tgl Surat</th>
               <th>Pembuat</th>
-              <th>Penerima</th>
+              {{-- [REMOVED] Penerima --}}
               <th>Status</th>
               <th>Berkas</th>
               <th>Aksi</th>
@@ -131,12 +132,7 @@
           </thead>
           <tbody>
             @foreach($list as $h)
-              @php
-                $tgl = $h->tanggal_surat ?? $h->tanggal_asli;
-                // Ambil nama penerima (relasi SK->penerima mengembalikan users)
-                $penerima = optional($h->penerima)->pluck('nama_lengkap')->filter();
-                $penerimaCount = $penerima?->count() ?? 0;
-              @endphp
+              @php $tgl = $h->tanggal_surat ?? $h->tanggal_asli; @endphp
               <tr>
                 <td class="text-center">{{ $loop->iteration }}</td>
                 <td>{{ $h->nomor ?? '—' }}</td>
@@ -145,23 +141,18 @@
                   {{ $tgl ? $tgl->format('d M Y') : '-' }}
                 </td>
                 <td>{{ $h->pembuat?->nama_lengkap ?? 'N/A' }}</td>
-                <td>
-                  @if($penerimaCount > 0)
-                    {{ $penerima->first() }}
-                    @if($penerimaCount > 1)
-                      <span class="badge badge-info ml-1">+{{ $penerimaCount - 1 }} lainnya</span>
-                    @endif
-                  @else
-                    -
-                  @endif
+
+                {{-- [REMOVED] kolom penerima --}}
+
+                <td class="text-center">
+                  @php
+                    $badgeMap=['draft'=>'secondary','pending'=>'warning','disetujui'=>'success','ditolak'=>'danger','terbit'=>'primary','arsip'=>'dark'];
+                    $badge=$badgeMap[$h->status_surat] ?? 'secondary';
+                  @endphp
+                  <span class="badge badge-pill badge-{{ $badge }}">{{ ucfirst($h->status_surat) }}</span>
                 </td>
                 <td class="text-center">
-                  <span class="badge badge-pill badge-{{ $h->status_surat == 'disetujui' ? 'success' : ($h->status_surat == 'pending' ? 'warning' : 'secondary') }}">
-                    {{ ucfirst($h->status_surat) }}
-                  </span>
-                </td>
-                <td class="text-center">
-                  @if($h->status_surat == 'disetujui' && $h->signed_pdf_path)
+                  @if(in_array($h->status_surat, ['disetujui','terbit','arsip']) && $h->signed_pdf_path)
                     <a href="{{ route('surat_keputusan.downloadPdf', $h->id) }}" class="btn btn-sm btn-danger" title="Download PDF" target="_blank">
                       <i class="fas fa-file-pdf"></i>
                     </a>
@@ -175,22 +166,13 @@
                       <i class="fas fa-cog"></i>
                     </button>
                     <div class="dropdown-menu dropdown-menu-right">
-                      {{-- Quick View (opsional bila route preview tersedia) --}}
-                      {{-- 
-                      <a class="dropdown-item quick-view"
-                         href="{{ route('surat_keputusan.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}"
-                         data-url="{{ route('surat_keputusan.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}">
-                        <i class="fas fa-search mr-2"></i> Lihat Cepat
-                      </a>
-                      --}}
-
-                      {{-- Halaman detail (read-only atau detail edit sesuai policy) --}}
-                      <a class="dropdown-item" href="{{ route('surat_keputusan.edit', $h->id) }}">
-                        <i class="fas fa-fw fa-eye"></i> Halaman Detail
+                      {{-- Halaman detail (read-only atau sesuai policy) --}}
+                      <a class="dropdown-item" href="{{ route('surat_keputusan.preview', $h->id) }}">
+                        <i class="fas fa-fw fa-eye"></i> Lihat Detail
                       </a>
 
-                      {{-- Download PDF bila sudah disetujui --}}
-                      @if($h->status_surat == 'disetujui' && $h->signed_pdf_path)
+                      {{-- Download PDF bila ada --}}
+                      @if(in_array($h->status_surat, ['disetujui','terbit','arsip']) && $h->signed_pdf_path)
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="{{ route('surat_keputusan.downloadPdf', $h->id) }}" target="_blank">
                           <i class="fas fa-fw fa-download"></i> Download PDF
@@ -243,7 +225,7 @@
         emptyTable: "Tidak ada Surat Keputusan untuk Anda."
       },
       columnDefs: [
-        { targets: [7, 8], orderable: false, searchable: false } // Berkas & Aksi
+        { targets: [6, 7], orderable: false, searchable: false } // [CHANGED] Berkas & Aksi setelah kolom Penerima dihapus
       ]
     });
 
@@ -252,10 +234,10 @@
       table.search(this.value).draw();
     });
 
-    // Status filter (kolom 6)
+    // Status filter (kolom 5 sekarang)
     $('#statusFilter').on('change', function(){
       const v = this.value;
-      table.column(6).search(v ? '^'+v+'$' : '', true, false).draw();
+      table.column(5).search(v ? '^'+v+'$' : '', true, false).draw();
     });
 
     // Reset
