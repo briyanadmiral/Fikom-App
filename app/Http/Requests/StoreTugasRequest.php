@@ -4,57 +4,88 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StoreTugasRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // Asumsikan otorisasi ditangani di controller/route
+        return true;
     }
 
     public function rules(): array
     {
-        // Pindahkan semua rules dari method store() di controller ke sini
         return [
-            'klasifikasi_surat_id' => 'required|exists:klasifikasi_surat,id',
-            'nama_umum'            => 'required|string|max:255',
-            'jenis_tugas'          => 'required|string',
-            'tugas'                => 'required|string',
-            'detail_tugas'         => 'nullable|string|max:65000',
-            'redaksi_pembuka'      => 'nullable|string|max:2000',
-            'penutup'              => 'nullable|string|max:1000',
+            // === ID yang dipakai ===
+            'pembuat_id'        => ['required', 'integer', 'exists:pengguna,id'],
+            'asal_surat_id'     => ['required', 'integer', 'exists:pengguna,id'],
+            'penandatangan_id'  => ['required', 'integer', 'exists:pengguna,id'],
 
-            'penerima_internal'   => 'sometimes|array',
-            'penerima_internal.*' => 'exists:pengguna,id',
+            'klasifikasi_surat_id' => ['required', 'integer', 'exists:klasifikasi_surat,id'],
+            'nama_umum'            => ['required', 'string', 'max:255'],
 
-            'penerima_eksternal'              => 'sometimes|array',
-            'penerima_eksternal.*.nama'       => 'required_with:penerima_eksternal|string|max:255',
-            'penerima_eksternal.*.instansi'   => 'nullable|string|max:255',
-            'penerima_eksternal.*.jabatan'    => 'nullable|string|max:255',
+            'jenis_tugas'    => ['required', 'string'],
+            'tugas'          => ['required', 'string'],
+            'detail_tugas'   => ['nullable', 'string', 'max:65000'],
+            'redaksi_pembuka'=> ['nullable', 'string', 'max:2000'],
+            'penutup'        => ['nullable', 'string', 'max:1000'],
 
-            'status_penerima'      => 'nullable|string|max:50',
+            'penerima_internal'    => ['sometimes', 'array'],
+            'penerima_internal.*'  => ['integer', 'exists:pengguna,id'],
 
-            'tahun'                => 'required|integer|digits:4',
-            'semester'             => 'required|string',
-            'bulan'                => 'required|string',
-            'nomor'                => 'required|string|max:255',
-            'no_surat_manual'      => 'nullable|string|max:255',
-            'asal_surat'           => 'required|exists:pengguna,id',
-            'nama_pembuat'         => 'required|string',
+            'penerima_eksternal'            => ['sometimes', 'array'],
+            'penerima_eksternal.*.nama'     => ['required_with:penerima_eksternal', 'string', 'max:255'],
+            'penerima_eksternal.*.jabatan'  => ['required_with:penerima_eksternal', 'string', 'max:255'],
+            'penerima_eksternal.*.instansi' => ['nullable', 'string', 'max:255'],
 
-            'penandatangan'        => 'required|exists:pengguna,id',
-            'waktu_mulai'          => 'required|date',
-            'waktu_selesai'        => 'required|date|after_or_equal:waktu_mulai',
-            'tempat'               => 'required|string|max:255',
+            'status_penerima' => ['nullable', 'string', 'max:50'],
 
-            'tembusan'             => 'nullable',
-            'tembusan_formatted'   => 'nullable|string|max:10000',
+            'tahun'    => ['required', 'integer', 'digits:4'],
+            'semester' => ['required', 'string', 'in:Ganjil,Genap'],
+            'bulan'    => ['required', 'string', 'max:10'],
+
+            // Nomor unik saat store (tanpa ignore)
+            'nomor'           => ['required', 'string', Rule::unique('tugas_header', 'nomor')],
+            'no_surat_manual' => ['nullable', 'string', Rule::unique('tugas_header', 'nomor')],
+
+            // Field tanpa _id dibiarkan opsional & bertipe ID juga (akan diisi di prepare)
+            'nama_pembuat'   => ['sometimes', 'nullable', 'integer', 'exists:pengguna,id'],
+            'asal_surat'     => ['sometimes', 'nullable', 'integer', 'exists:pengguna,id'],
+            'penandatangan'  => ['sometimes', 'nullable', 'integer', 'exists:pengguna,id'],
+
+            'waktu_mulai'   => ['required', 'date'],
+            'waktu_selesai' => ['required', 'date', 'after_or_equal:waktu_mulai'],
+            'tempat'        => ['required', 'string', 'max:255'],
+
+            'tembusan'           => ['nullable'],
+            'tembusan_formatted' => ['nullable', 'string', 'max:10000'],
         ];
     }
 
     protected function prepareForValidation(): void
     {
-        // ✅ Pindahkan logika normalisasi tembusan ke sini
+        // Normalisasi string 'null' -> null
+        foreach (['pembuat_id','asal_surat_id','penandatangan_id'] as $k) {
+            if ($this->input($k) === 'null') {
+                $this->merge([$k => null]);
+            }
+        }
+
+        // Pastikan ID utama terisi (fallback dari field tanpa _id bila ada)
+        $this->merge([
+            'pembuat_id'       => $this->input('pembuat_id')       ?: $this->input('nama_pembuat'),
+            'asal_surat_id'    => $this->input('asal_surat_id')    ?: $this->input('asal_surat'),
+            'penandatangan_id' => $this->input('penandatangan_id') ?: $this->input('penandatangan'),
+        ]);
+
+        // Duplikasi ke key tanpa _id (untuk kompatibilitas service/model). Nilai tetap ID (integer).
+        $this->merge([
+            'nama_pembuat'  => $this->input('pembuat_id'),
+            'asal_surat'    => $this->input('asal_surat_id'),
+            'penandatangan' => $this->input('penandatangan_id'),
+        ]);
+
+        // Normalisasi tembusan
         if ($this->has('tembusan')) {
             $this->merge([
                 'tembusan' => $this->normalizeTembusanLines($this->input('tembusan')),
@@ -67,21 +98,32 @@ class StoreTugasRequest extends FormRequest
         $items = [];
         if (is_string($raw) && Str::startsWith(trim($raw), '[')) {
             $decoded = json_decode($raw, true);
-            if (json_last_error() === JSON_ERROR_NONE) $raw = $decoded;
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $raw = $decoded;
+            }
         }
 
         if (is_array($raw)) {
             foreach ($raw as $v) {
-                if (is_array($v) && isset($v['value'])) $items[] = (string) $v['value'];
-                elseif (is_string($v)) $items[] = $v;
+                if (is_array($v) && isset($v['value'])) {
+                    $items[] = (string) $v['value'];
+                } elseif (is_string($v)) {
+                    $items[] = $v;
+                }
             }
         } elseif (is_string($raw)) {
             $parts = preg_split("/[\n,]+/u", $raw) ?: [];
-            foreach ($parts as $p) $items[] = $p;
+            foreach ($parts as $p) {
+                $items[] = $p;
+            }
         }
 
-        $norm = collect($items)->map(fn($s) => trim((string) $s))->filter()
-            ->unique(fn($s) => mb_strtolower($s))->values()->all();
+        $norm = collect($items)
+            ->map(fn($s) => trim((string) $s))
+            ->filter()
+            ->unique(fn($s) => mb_strtolower($s))
+            ->values()
+            ->all();
 
         return implode("\n", $norm);
     }
