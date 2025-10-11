@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 09, 2025 at 07:00 PM
+-- Generation Time: Oct 11, 2025 at 05:55 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.12
 
@@ -32,14 +32,6 @@ CREATE TABLE `cache` (
   `value` mediumtext NOT NULL,
   `expiration` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `cache`
---
-
-INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('356a192b7913b04c54574d18c28d46e6395428ab:timer', 'i:1760036398;', 1760036398),
-('356a192b7913b04c54574d18c28d46e6395428ab', 'i:3;', 1760036398);
 
 -- --------------------------------------------------------
 
@@ -102,7 +94,9 @@ CREATE TABLE `jobs` (
 
 INSERT INTO `jobs` (`id`, `queue`, `payload`, `attempts`, `reserved_at`, `available_at`, `created_at`) VALUES
 (17, 'default', '{\"uuid\":\"3ead451a-b5b4-4d81-99fb-d1d7669090bc\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":null,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":null,\"timeout\":null,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:10;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1758703523, 1758703523),
-(18, 'default', '{\"uuid\":\"b613900f-8c39-4810-b6a2-5eb76ce78492\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":null,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":null,\"timeout\":null,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:14;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1759464879, 1759464879);
+(18, 'default', '{\"uuid\":\"b613900f-8c39-4810-b6a2-5eb76ce78492\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":null,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":null,\"timeout\":null,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:14;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1759464879, 1759464879),
+(19, 'default', '{\"uuid\":\"800672d2-9eda-428a-a442-19197f1af981\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:15;s:4:\\\"mode\\\";s:11:\\\"to_approver\\\";}\"}}', 0, NULL, 1760179425, 1760179425),
+(20, 'default', '{\"uuid\":\"9cf4a431-ff1c-43da-ac23-f6ff84a31067\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:18;s:4:\\\"mode\\\";s:11:\\\"to_approver\\\";}\"}}', 0, NULL, 1760179498, 1760179498);
 
 -- --------------------------------------------------------
 
@@ -229,7 +223,7 @@ CREATE TABLE `klasifikasi_surat` (
 --
 
 INSERT INTO `klasifikasi_surat` (`id`, `kode`, `deskripsi`, `created_at`, `updated_at`) VALUES
-(1, 'A.4', 'Program Terpadu Mahasiswa Baru (PTMB)', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
+(1, 'A.4', 'Program Terpadu Mahasiswa Baru (PTMB)', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
 (2, 'A.4.--', 'Program Terpadu Mahasiswa Baru (PTMB)', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
 (3, 'B.1.1', 'Penawaran Matakuliah', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
 (4, 'B.1.2', 'Jadwal Kuliah (revisi/pengganti/tambahan)', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
@@ -281,57 +275,88 @@ INSERT INTO `klasifikasi_surat` (`id`, `kode`, `deskripsi`, `created_at`, `updat
 (50, 'B.6.7', 'Hasil Studi (KHS)', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
 (51, 'B.6.8', 'Daftar Kumpulan Nilai (Transkrip)', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
 (52, 'B.6.9', 'Pedoman Penilaian', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(53, 'B.7.1', 'Informasi/Penawaran Penelitian', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(54, 'B.7.2', 'Tim Peneliti/Reviewer/Konsultan', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(55, 'B.7.3', 'Ijin Penelitian/Survey/Data', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(56, 'B.7.4', 'Usulan Proyek Penelitian', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(57, 'B.7.5', 'Review/Revisi', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(58, 'B.7.6', 'Laporan Hasil Penelitian', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(59, 'B.7.7', 'Publikasi (Seminar/Diskusi/Lokakarya) Hasil Penelitian', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(60, 'B.7.8', 'Pelatihan Pembuatan Proposal', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(61, 'B.7.9', 'Penulisan Ilmiah/Jurnal', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(62, 'B.8.1', 'Informasi/Penawaran Kegiatan Pengabdian', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(63, 'B.8.2', 'Tim Pengabdian/Reviewer/Konsultan', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(64, 'B.8.3', 'Ijin Kegiatan Pengabdian/Survey/Data', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(65, 'B.8.4', 'Usulan Kegiatan Pengabdian', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(66, 'B.8.5', 'Review/Revisi/Presentasi Hasil Kegiatan Pengabdian', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(67, 'B.8.6', 'Laporan Hasil Kegiatan Pengabdian', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(68, 'B.8.7', 'Publikasi (Seminar/Diskusi/Lokakarya) Hasil Kegiatan', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(69, 'B.8.8', 'Ceramah/Bimbingan/Penyuluhan/Pelatihan', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(70, 'B.8.9', 'Pelatihan Pembuatan Proposal', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(71, 'B.8.10', 'Penulisan Ilmiah/Jumat', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(72, 'B.9.1', 'Penetapan Keputusan (SK Kelulusan)', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(73, 'B.9.2', 'Lulusan Terbaik/Tercepat', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(74, 'B.9.3', 'Keterangan Lulus', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(75, 'B.9.4', 'Wisuda/Pelepasan', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(76, 'B.9.5', 'Ijazah/Bukti Kelulusan', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(77, 'B.9.6', 'Legalisasi', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(78, 'B.9.7', 'Keterangan Pengganti Ijazah', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(79, 'B.9.8', 'Penggunaan Gelar', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(80, 'B.9.9', 'Kartu Alumni', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(81, 'B.10.1', 'Pengadaan Buku/Jumat', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(82, 'B.10.2', 'Pengotahan', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(83, 'B.10.3', 'Peminjaman', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(84, 'B.10.4', 'Tagihan Buku', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(85, 'B.10.5', 'Bedah/Resensi Buku', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(86, 'B.10.6', 'Pelatihan', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(87, 'B.10.7', 'Pameran Buku/Bursa Buku', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(88, 'B.10.8', 'Koleksi', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(89, 'B.10.9', 'Sumbangan Koleksi', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(90, 'B.10.10', 'Stock Opname', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(91, 'B.10.11', 'Statistik', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(92, 'B.10.12', 'Tata Tertib', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(93, 'B.10.13', 'Keanggotaan', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(94, 'B.11.1', 'Kalender Akademik', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(95, 'B.12.1', 'Dispensasi (Perkuliahan/Tugas/Praktikum)', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(96, 'B.13.1', 'Heregistrasi', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(97, 'B.13.2', 'Aktif Kuliah', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(98, 'B.13.3', 'Mahasiswa Asing/Pendengar', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(99, 'B.13.4', 'Cuti Kuliah', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(100, 'B.13.5', 'Sedang Skripsi', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(101, 'B.13.6', 'Pernah Kuliah', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(102, 'B.13.7', 'Double Degree', '2025-08-02 15:41:34', '2025-08-02 15:41:34'),
-(103, 'B.13.8', 'Penyerahan ijazah sma/smk/paket c', '2025-08-02 15:41:34', '2025-08-02 15:41:34');
+(53, 'B.7.1', 'Informasi/Penawaran Penelitian', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(54, 'B.7.2', 'Tim Peneliti/Reviewer/Konsultan', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(55, 'B.7.3', 'Ijin Penelitian/Survey/Data', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(56, 'B.7.4', 'Usulan Proyek Penelitian', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(57, 'B.7.5', 'Review/Revisi', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(58, 'B.7.6', 'Laporan Hasil Penelitian', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(59, 'B.7.7', 'Publikasi (Seminar/Diskusi/Lokakarya) Hasil Penelitian', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(60, 'B.7.8', 'Pelatihan Pembuatan Proposal', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(61, 'B.7.9', 'Penulisan Ilmiah/Jurnal', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(62, 'B.8.1', 'Informasi/Penawaran Kegiatan Pengabdian', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(63, 'B.8.2', 'Tim Pengabdian/Reviewer/Konsultan', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(64, 'B.8.3', 'Ijin Kegiatan Pengabdian/Survey/Data', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(65, 'B.8.4', 'Usulan Kegiatan Pengabdian', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(66, 'B.8.5', 'Review/Revisi/Presentasi Hasil Kegiatan Pengabdian', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(67, 'B.8.6', 'Laporan Hasil Kegiatan Pengabdian', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(68, 'B.8.7', 'Publikasi (Seminar/Diskusi/Lokakarya) Hasil Kegiatan', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(69, 'B.8.8', 'Ceramah/Bimbingan/Penyuluhan/Pelatihan', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(70, 'B.8.9', 'Pelatihan Pembuatan Proposal', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(71, 'B.8.10', 'Penulisan Ilmiah/Jurnal', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(72, 'B.9.1', 'Penetapan Keputusan (SK Kelulusan)', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(73, 'B.9.2', 'Lulusan Terbaik/Tercepat', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(74, 'B.9.3', 'Keterangan Lulus', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(75, 'B.9.4', 'Wisuda/Pelepasan', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(76, 'B.9.5', 'Ijazah/Bukti Kelulusan', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(77, 'B.9.6', 'Legalisasi', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(78, 'B.9.7', 'Keterangan Pengganti Ijazah', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(79, 'B.9.8', 'Penggunaan Gelar', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(80, 'B.9.9', 'Kartu Alumni', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(81, 'B.10.1', 'Pengadaan Buku/Jurnal', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(82, 'B.10.2', 'Pengolahan', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(83, 'B.10.3', 'Peminjaman', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(84, 'B.10.4', 'Tagihan Buku', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(85, 'B.10.5', 'Bedah/Resensi Buku', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(86, 'B.10.6', 'Pelatihan', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(87, 'B.10.7', 'Pameran Buku/Bursa Buku', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(88, 'B.10.8', 'Koleksi', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(89, 'B.10.9', 'Sumbangan Koleksi', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(90, 'B.10.10', 'Stock Opname', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(91, 'B.10.11', 'Statistik', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(92, 'B.10.12', 'Tata Tertib', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(93, 'B.10.13', 'Keanggotaan', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(94, 'B.11.1', 'Kalender Akademik', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(95, 'B.12.1', 'Dispensasi (Perkuliahan/Tugas/Praktikum/Pengisian KRS)', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(96, 'B.13.1', 'Heregistrasi', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(97, 'B.13.2', 'Aktif Kuliah', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(98, 'B.13.3', 'Mahasiswa Asing/Pendengar', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(99, 'B.13.4', 'Cuti Kuliah', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(100, 'B.13.5', 'Sedang Skripsi', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(101, 'B.13.6', 'Pernah Kuliah', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(102, 'B.13.7', 'Double Degree', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(103, 'B.13.8', 'Penyerahan ijazah sma/smk/paket c', '2025-08-02 15:41:34', '2025-10-11 05:21:41'),
+(104, 'A.1.1', 'Promosi', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(105, 'A.1.2', 'Open House', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(106, 'A.1.3', 'Pameran', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(107, 'A.1.4', 'Kunjungan/Safari ke SMU', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(108, 'A.1.5', 'Pertandingan/Lomba antar SMU', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(109, 'A.1.6', 'Diskusi/Seminar/Ceramah/Dialog', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(110, 'A.2.1', 'Jalur PMDK', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(111, 'A.2.2', 'Jalur Kerja Sama', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(112, 'A.2.3', 'Reguler/Umum', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(113, 'A.2.4', 'Materi/Soal Tes', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(114, 'A.2.5', 'Tester/Pengawas', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(115, 'A.2.6', 'Koordinasi Tugas', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(116, 'A.3.1', 'Pengumuman Tes', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(117, 'A.3.2', 'Ketetapan Diterima', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(118, 'A.3.3', 'Hasil Seleksi', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(119, 'A.3.4', 'Registrasi', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(120, 'C.1.1', 'Karya Ilmiah Mahasiswa', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(121, 'C.1.2', 'Diskusi/Konferensi/Dialog Ilmiah Mahasiswa', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(122, 'C.1.3', 'Simposium', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(123, 'C.2.1', 'Beasiswa Yayasan Sandjojo', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(124, 'C.2.2', 'Beasiswa Swasta (KWI, Djarum, Bank, dll)', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(125, 'C.2.3', 'Beasiswa Pemerintah (Supersemar, Dikti, Kopertis)', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(126, 'C.2.4', 'Beasiswa Luar Negeri', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(127, 'C.3.1', 'Pertukaran Mahasiswa', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(128, 'C.3.2', 'Mahasiswa Berprestasi/Mahasiswa Teladan', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(129, 'C.3.3', 'Pertandingan/Kompetisi', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(130, 'C.3.4', 'Pentas Seni/Musik Festival', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(131, 'C.3.5', 'Pelatihan Mahasiswa', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(132, 'C.3.6', 'Kemah Bhakti', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(133, 'C.3.7', 'Duta/Utusan/Perwakilan Mahasiswa', '2025-10-11 05:21:41', '2025-10-11 05:21:41'),
+(134, 'C.4', 'Pelatihan Pengembangan Kepribadian Mahasiswa', '2025-10-11 05:21:41', '2025-10-11 05:21:41');
 
 -- --------------------------------------------------------
 
@@ -473,7 +498,9 @@ CREATE TABLE `nomor_surat_counters` (
 INSERT INTO `nomor_surat_counters` (`id`, `kode_surat`, `unit`, `bulan_romawi`, `tahun`, `last_number`, `created_at`, `updated_at`) VALUES
 (1, 'B.10.1', 'TG', 'IX', 2025, 4, '2025-09-27 17:41:23', '2025-09-28 08:08:49'),
 (2, 'B.10.1', 'TG', 'X', 2025, 2, '2025-10-09 16:35:54', '2025-10-09 16:36:06'),
-(3, 'B.10.1', 'ST.IKOM', 'X', 2025, 3, '2025-10-09 18:58:58', '2025-10-09 18:59:19');
+(3, 'B.10.1', 'ST.IKOM', 'X', 2025, 3, '2025-10-09 18:58:58', '2025-10-09 18:59:19'),
+(4, 'C.3.5', 'ST.IKOM', 'X', 2025, 1, '2025-10-11 07:09:19', '2025-10-11 07:09:19'),
+(5, 'B.1.10', 'ST.IKOM', 'X', 2025, 2, '2025-10-11 16:32:58', '2025-10-11 16:34:05');
 
 -- --------------------------------------------------------
 
@@ -553,16 +580,16 @@ CREATE TABLE `pengguna` (
 --
 
 INSERT INTO `pengguna` (`id`, `email`, `sandi_hash`, `nama_lengkap`, `npp`, `jabatan`, `peran_id`, `status`, `created_at`, `updated_at`, `last_activity`, `deleted_at`, `remember_token`) VALUES
-(1, 'agustina.anggitasari@unika.ac.id', '$2y$12$0rYDf0RqcBpaABHw3vaOxe3LV6UxLazy9R85vBmmwA8juagm6Xadq', 'AGUSTINA ALAM ANGGITASARI, SE., MM', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-10-09 18:59:19', '2025-10-10 01:59:19', NULL, 'f9zWJpQGPGHliWD4SdHQT3OukT7lx6Vf5y27VQaG2dTbY11LHQAo6r6V3Tnb'),
+(1, 'agustina.anggitasari@unika.ac.id', '$2y$12$0rYDf0RqcBpaABHw3vaOxe3LV6UxLazy9R85vBmmwA8juagm6Xadq', 'AGUSTINA ALAM ANGGITASARI, SE., MM', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-10-11 16:34:16', '2025-10-11 23:34:16', NULL, 'WBYSiVSHoadXLldvCmYf1OoydDCX2uFCyxVWbmFTgUtUnO8fBdxLk5HfgTzJ'),
 (2, 'kariyani.spd@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'KARIYANI, S.Pd', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-08-01 23:28:10', NULL, NULL, NULL),
 (3, 'bernhardinus.harnadi@unika.ac.id', '$2y$12$rr.ntE7OagwdG25kLxSLwOnZwIaq72oImrbM8jXOkn6AEM62QRIY2', 'Prof. BERNARDINUS HARNADI, ST., MT., Ph.D.', NULL, NULL, 3, 'aktif', '2025-04-22 03:15:27', '2025-10-04 08:46:59', '2025-10-04 15:46:59', NULL, NULL),
 (4, 'muh.khudori@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'MUH KHUDORI', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:31', NULL, NULL, NULL),
 (5, 'paulus.sapto@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'PAULUS SAPTO NUGROHO', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:36', NULL, NULL, NULL),
 (6, 'bambang.setiawan@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'BAMBANG SETIAWAN, ST', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:39', NULL, NULL, NULL),
 (7, 'erdhi.nugroho@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'ERDHI WIDYARTO NUGROHO, ST., MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:43', NULL, NULL, NULL),
-(8, 'fx.hendra@unika.ac.id', '$2y$12$yzabxjVXeAkmIgQmvCQBuOwjSU1cUnGqowliut934gE1bnbNMZ9M.', 'FX. HENDRA PRASETYA, ST, MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-09-24 09:19:29', '2025-09-24 16:19:29', NULL, NULL),
+(8, 'fx.hendra@unika.ac.id', '$2y$12$yzabxjVXeAkmIgQmvCQBuOwjSU1cUnGqowliut934gE1bnbNMZ9M.', 'FX. HENDRA PRASETYA, ST, MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-10-11 17:50:27', '2025-10-12 00:50:27', NULL, NULL),
 (9, 'tecla.chandrawati@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'Dr. TECLA BRENDA CHANDRAWATI, S.T., MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:51', NULL, NULL, NULL),
-(10, 'ridwan.sanjaya@unika.ac.id', '$2y$12$VRlxXvgiT0gdC3mVx0vp6Oct3Q/VPnmvACYjDz3n.DKotAIkG1QrS', 'Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC', '058.1.2002.255', 'Dekan Fakultas Ilmu Komputer', 2, 'aktif', '2025-04-22 03:15:27', '2025-10-04 08:46:50', '2025-10-04 15:46:50', NULL, NULL),
+(10, 'ridwan.sanjaya@unika.ac.id', '$2y$12$VRlxXvgiT0gdC3mVx0vp6Oct3Q/VPnmvACYjDz3n.DKotAIkG1QrS', 'Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC', '058.1.2002.255', 'Dekan Fakultas Ilmu Komputer', 2, 'aktif', '2025-04-22 03:15:27', '2025-10-11 17:45:55', '2025-10-12 00:45:55', NULL, NULL),
 (11, 'alb.dwiw@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'ALBERTUS DWIYOGA WIDIANTORO, S.Kom., M.Kom', NULL, NULL, 4, 'aktif', '2025-04-22 03:15:27', NULL, NULL, NULL, NULL),
 (12, 'agus.cahyo@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'AGUS CAHYO NUGROHO, S.Kom., M.T', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:40:02', NULL, NULL, NULL),
 (13, 'andre.pamudji@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'ANDRE KURNIAWAN PAMUDJI, S.Kom., M.Ling', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:40:10', NULL, NULL, NULL),
@@ -621,7 +648,7 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('C8Cg08R5wx08KMGc541Sn0MR0Cq5XXF54IGfEhve', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiOEkyaUIxc2lqeUY3M3ZQOWZRVWNuQlFCN3lueTdYeVlzN1NXNWExUyI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjQwOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvc3VyYXRfdHVnYXMvY3JlYXRlIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1760036359);
+('pZbHAAdWMFWSMVLgFPMKJYGE1t30DOTcbFMDRBMV', 8, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoieWNqNzZkWm9KNDVKWlVxYjcwYld3N1dBazhuazRFZ21XZEFZNGIwcSI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDk6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9zdXJhdF90dWdhcy8xOS9kb3dubG9hZC1wZGYiO31zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aTo4O30=', 1760205029);
 
 -- --------------------------------------------------------
 
@@ -647,7 +674,7 @@ INSERT INTO `sub_tugas` (`id`, `jenis_tugas_id`, `nama`, `created_at`, `updated_
 (3, 1, 'Koordinator Tugas MK', NULL, NULL),
 (4, 1, 'Bimbingan Mahasiswa/Akademik', NULL, NULL),
 (5, 7, 'Pendampingan dosen dalam KKL', NULL, NULL),
-(6, 7, 'DPL untuk KKN, KKU, KAPKI, atau lainnya yang setara', NULL, NULL),
+(6, 1, 'Koordinator Kerja Praktik/KKL', NULL, '2025-10-11 05:28:34'),
 (7, 5, 'Reviewer Kenaikan Jabatan Fungsional Lektor Kepala', NULL, NULL),
 (8, 5, 'Reviewer Kenaikan Jabatan Fungsional Guru Besar', NULL, NULL),
 (9, 5, 'Reviewer Kenaikan Jabatan Fungsional Asisten Ahli', NULL, NULL),
@@ -657,7 +684,31 @@ INSERT INTO `sub_tugas` (`id`, `jenis_tugas_id`, `nama`, `created_at`, `updated_
 (13, 3, 'Reviewer Penelitian dan Pengabdian di lingkungan Unika', NULL, NULL),
 (14, 6, 'Reviewer Jurnal Nasional', NULL, NULL),
 (15, 6, 'Reviewer Jurnal Internasional', NULL, NULL),
-(16, 8, 'Lainnya', '2025-08-25 08:59:05', '2025-08-25 08:59:05');
+(16, 8, 'Lainnya', '2025-08-25 08:59:05', '2025-08-25 08:59:05'),
+(90, 1, 'Pembimbing Akademik (PA)', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(91, 1, 'Pembimbing Skripsi', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(92, 1, 'Penguji Skripsi', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(93, 1, 'Pembimbing Kerja Praktik', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(94, 2, 'Ketua Penelitian (Internal/Eksternal)', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(95, 2, 'Anggota Penelitian', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(96, 2, 'Penyusun Proposal Penelitian', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(97, 3, 'Ketua Pengabdian', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(98, 3, 'Anggota Pengabdian', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(99, 3, 'Narasumber/Pemateri Pengabdian', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(100, 4, 'Panitia Kegiatan Fakultas/Prodi', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(101, 4, 'Pembina/Koordinator UKM/Komunitas', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(102, 4, 'Pembicara Tamu/Kuliah Umum', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(103, 5, 'Sekretaris/Koordinator Program Studi', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(104, 5, 'Panitia Seleksi/Asesor Internal', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(105, 5, 'Pengembang Kurikulum/Perangkat Akademik', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(106, 6, 'Editor/Section Editor Jurnal', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(107, 6, 'Pemakalah Seminar Nasional', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(108, 6, 'Pemakalah Seminar Internasional', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(109, 6, 'Penulis Jurnal Nasional', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(110, 6, 'Penulis Jurnal Internasional', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(111, 7, 'Narasumber/Trainer Eksternal', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(112, 7, 'Konsultan/Reviewer Eksternal', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(113, 8, 'Tugas Khusus Pimpinan', '2025-10-11 05:32:06', '2025-10-11 05:32:06');
 
 -- --------------------------------------------------------
 
@@ -693,7 +744,32 @@ INSERT INTO `tugas_detail` (`id`, `sub_tugas_id`, `nama`, `created_at`, `updated
 (13, 13, 'Jumlah usulan kenaikan jabatan Lektor', NULL, NULL),
 (14, 14, 'Jumlah asesor BKD', NULL, NULL),
 (15, 15, 'Jumlah validator BKD', NULL, NULL),
-(16, 16, 'Lainnya', '2025-08-25 08:59:05', '2025-08-25 08:59:05');
+(16, 16, 'Lainnya', '2025-08-25 08:59:05', '2025-08-25 08:59:05'),
+(92, 90, 'Jumlah mahasiswa bimbingan (PA)', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(93, 91, 'Jumlah mahasiswa bimbingan skripsi', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(94, 92, 'Jumlah sidang/mahasiswa diuji', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(95, 6, 'Jumlah kegiatan KKL/KP dikoordinasi', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(96, 93, 'Jumlah kelompok/mahasiswa KP dibimbing', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(97, 94, 'Judul/Skema (ketua) – jumlah luaran', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(98, 95, 'Jumlah kegiatan sebagai anggota', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(99, 96, 'Jumlah proposal disusun/diajukan', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(100, 97, 'Jumlah kegiatan (ketua)', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(101, 98, 'Jumlah kegiatan (anggota)', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(102, 99, 'Jumlah sesi narasumber/pelatihan', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(103, 100, 'Jumlah kegiatan kepanitiaan', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(104, 101, 'Jumlah unit/UKM dibina', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(105, 102, 'Jumlah undangan kuliah umum/ceramah', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(106, 103, 'Jumlah dokumen/rapat/produk manajemen', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(107, 104, 'Jumlah asesmen/seleksi yang ditangani', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(108, 105, 'Jumlah dokumen kurikulum/perangkat disusun', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(109, 106, 'Jumlah naskah dikelola (editor)', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(110, 107, 'Jumlah pemakalah seminar nasional', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(111, 108, 'Jumlah pemakalah seminar internasional', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(112, 109, 'Jumlah artikel jurnal nasional (penulis)', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(113, 110, 'Jumlah artikel jurnal internasional (penulis)', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(114, 111, 'Jumlah sesi narasumber/pelatihan (eksternal)', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(115, 112, 'Jumlah penugasan konsultan/reviewer', '2025-10-11 05:32:06', '2025-10-11 05:32:06'),
+(116, 113, 'Uraian tugas & keluaran', '2025-10-11 05:32:06', '2025-10-11 05:32:06');
 
 -- --------------------------------------------------------
 
@@ -765,11 +841,13 @@ INSERT INTO `tugas_header` (`id`, `nomor`, `tanggal_asli`, `status_surat`, `nomo
 (10, '002/B.7.2/TG/UNIKA/IX/2025', NULL, 'disetujui', NULL, '2025-09-24', '2025-09-15 12:04:37', '2025-09-24 08:45:21', 1, '2025-09-15 05:04:37', NULL, NULL, 'private/surat_tugas/signed/10_a469cf7c2029a003015973fe7c042a1c.pdf', 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Tim Reviewer Jurnal Internal', 1, NULL, 'Penelitian', 'Reviewer Kenaikan Jabatan Fungsional Lektor', NULL, 13, '2025-09-20 08:00:00', '2025-10-20 17:00:00', 'Fakultas Ilmu Komputer', NULL, NULL, NULL, 10, NULL, NULL, 42, 35, 0.95, NULL, '2025-09-15 05:04:37', '2025-09-24 08:45:23', NULL, 'IX', 54, NULL),
 (11, '003/B.8.2/TG/UNIKA/IX/2025', NULL, 'disetujui', NULL, '2025-09-15', '2025-09-15 12:04:37', '2025-09-14 22:34:11', 1, '2025-09-15 05:04:37', NULL, NULL, 'private/surat_tugas/signed/11_.pdf', 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Panitia Pengabdian Masyarakat', 1, NULL, 'Pengabdian', 'Validator BKD', NULL, 15, '2025-09-22 08:00:00', '2025-09-22 17:00:00', 'Desa Binaan ABC', NULL, NULL, NULL, 3, NULL, NULL, 45, 38, 0.70, 3, '2025-09-15 05:04:37', '2025-09-14 22:34:13', NULL, 'IX', 63, NULL),
 (12, '004/B.9.4/TG/UNIKA/IX/2025', NULL, 'disetujui', NULL, '2025-09-12', '2025-09-15 12:04:37', '2025-09-12 03:00:00', 1, '2025-09-15 05:04:37', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Panitia Wisuda', 1, NULL, 'Lainnya', 'Lainnya', NULL, 16, '2025-09-15 08:00:00', '2025-09-20 17:00:00', 'Auditorium Albertus', NULL, NULL, NULL, 3, NULL, NULL, 45, 38, 0.90, NULL, '2025-09-15 05:04:37', '2025-09-15 05:04:37', NULL, 'IX', 75, NULL),
-(13, '001/B.1.5/TG/UNIKA/IX/2025', NULL, 'draft', NULL, NULL, NULL, NULL, 1, '2025-09-16 19:15:15', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Bimbingan 2', 10, 'dosen', 'Bimbingan', 'Koordinator MK', '<p>Bimbingan dimulai</p>', 2, '2025-09-16 19:14:00', '2025-09-16 21:14:00', 'Ruang HC', 'Bimbingan', 'Terimakasih', NULL, 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-16 12:15:15', '2025-09-16 12:41:17', NULL, 'IX', 7, NULL),
+(13, '001/B.1.5/TG/UNIKA/IX/2025', NULL, 'draft', NULL, NULL, NULL, NULL, 1, '2025-09-16 19:15:15', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Bimbingan 2', 10, NULL, 'Bimbingan', 'Koordinator MK', '<p>Bimbingan dimulai</p>', 2, '2025-09-16 19:14:00', '2025-09-16 21:14:00', 'Ruang HC', 'Bimbingan', 'Terimakasih', '\"\"', 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-16 12:15:15', '2025-10-11 10:43:39', NULL, 'IX', 7, NULL),
 (14, '001/B.3.5/TG/UNIKA/X/2025', NULL, 'disetujui', NULL, '2025-10-03', NULL, '2025-10-03 04:14:37', 1, '2025-10-03 02:58:07', NULL, NULL, 'private/surat_tugas/signed/14_5fe72d188901a2722362f9f759809923.pdf', 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Bimbingan Di Luar Kota', 10, 'dosen', 'Bimbingan', 'Bimbingan Mahasiswa/Akademik', NULL, 4, '2025-10-03 02:54:00', '2025-10-03 04:54:00', 'Ruang Theater', 'halo', 'siap', NULL, 10, NULL, NULL, 42, 35, 0.95, NULL, '2025-10-02 19:58:07', '2025-10-03 04:14:39', NULL, 'X', 30, NULL),
-(15, '001/B.1.7/TG/UNIKA/X/2025', NULL, 'draft', NULL, NULL, NULL, NULL, 1, '2025-10-04 09:15:55', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Draft Panitia Acara Dies Natalis', 10, 'tendik', 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', NULL, 16, '2025-10-10 08:00:00', '2025-12-20 17:00:00', 'Ruang Teater dan sekitarnya', 'Dalam rangka persiapan Dies Natalis FIKOM ke-30, maka dibentuklah kepanitiaan.', 'Demikian surat tugas ini dibuat untuk dilaksanakan.', '\"Yth. Wakil Rektor I\"', 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-04 09:15:55', '2025-10-09 15:53:34', NULL, 'X', 9, NULL),
+(15, '001/B.1.7/TG/UNIKA/X/2025', NULL, 'pending', NULL, NULL, NULL, NULL, 1, '2025-10-04 09:15:55', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Draft Panitia Acara Dies Natalis', 10, NULL, 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', NULL, 16, '2025-10-10 08:00:00', '2025-12-20 17:00:00', 'Ruang Teater dan sekitarnya', 'Dalam rangka persiapan Dies Natalis FIKOM ke-30, maka dibentuklah kepanitiaan.', 'Demikian surat tugas ini dibuat untuk dilaksanakan.', '\"Yth. Wakil Rektor I\"', 10, NULL, NULL, NULL, NULL, NULL, 10, '2025-10-04 09:15:55', '2025-10-11 10:43:45', NULL, 'X', 9, NULL),
 (16, '002/PENDING/ST/UNIKA/X/2025', NULL, 'pending', NULL, NULL, '2025-10-04 16:15:55', NULL, 1, '2025-10-04 09:15:55', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Dosen Pembimbing Kerja Praktik', 10, NULL, 'Bimbingan', 'Bimbingan Mahasiswa/Akademik', NULL, 4, '2025-10-05 00:00:00', '2026-01-31 23:59:59', 'Fakultas Ilmu Komputer', 'Sehubungan dengan pelaksanaan Kerja Praktik semester Ganjil 2025/2026, dengan ini menugaskan dosen sebagai pembimbing.', 'Harap melaksanakan tugas dengan sebaik-baiknya.', 'Kepala Program Studi Sistem Informasi\nKoordinator Kerja Praktik\nArsip', 3, NULL, NULL, NULL, NULL, NULL, 3, '2025-10-04 09:15:55', '2025-10-04 09:15:55', NULL, 'X', 30, NULL),
-(17, '003/DONE/ST/UNIKA/X/2025', NULL, 'disetujui', NULL, '2025-10-04', '2025-10-04 16:15:55', '2025-10-04 09:15:55', 1, '2025-10-04 09:15:55', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Tim Pengabdian Masyarakat', 10, NULL, 'Pengabdian', 'Reviewer Penelitian dan Pengabdian di lingkungan Unika', NULL, 13, '2025-11-01 09:00:00', '2025-11-01 15:00:00', 'Desa Rowosari, Kendal', 'Menindaklanjuti program kerja fakultas bidang pengabdian kepada masyarakat, maka ditugaskan tim untuk melaksanakan kegiatan.', 'Atas perhatian dan kerjasamanya diucapkan terima kasih.', 'LPPM Unika Soegijapranata\nKepala Desa Rowosari\nArsip', 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-04 09:15:55', '2025-10-04 09:15:55', NULL, 'X', 63, NULL);
+(17, '003/DONE/ST/UNIKA/X/2025', NULL, 'disetujui', NULL, '2025-10-04', '2025-10-04 16:15:55', '2025-10-04 09:15:55', 1, '2025-10-04 09:15:55', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Penugasan Tim Pengabdian Masyarakat', 10, NULL, 'Pengabdian', 'Reviewer Penelitian dan Pengabdian di lingkungan Unika', NULL, 13, '2025-11-01 09:00:00', '2025-11-01 15:00:00', 'Desa Rowosari, Kendal', 'Menindaklanjuti program kerja fakultas bidang pengabdian kepada masyarakat, maka ditugaskan tim untuk melaksanakan kegiatan.', 'Atas perhatian dan kerjasamanya diucapkan terima kasih.', 'LPPM Unika Soegijapranata\nKepala Desa Rowosari\nArsip', 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-10-04 09:15:55', '2025-10-04 09:15:55', NULL, 'X', 63, NULL),
+(18, '001/C.3.5/TG/UNIKA/X/2025', NULL, 'pending', NULL, NULL, NULL, NULL, 1, '2025-10-11 07:10:50', NULL, NULL, NULL, 'reserved', 1, NULL, 2025, 'Ganjil', NULL, 'Surat Tugas Pelatihan Mahasiswa Tahun 2025', 10, NULL, 'Penunjang Almamater', 'Panitia Kegiatan Fakultas/Prodi', NULL, 103, '2025-10-11 13:06:00', '2025-10-11 15:06:00', 'Ruang Theater Albertus', 'Penugasan PTMB', 'Demikian', '\"\"', 10, NULL, NULL, NULL, NULL, NULL, 10, '2025-10-11 07:10:50', '2025-10-11 10:44:58', NULL, 'X', 131, NULL),
+(19, '002/B.1.10/TG/UNIKA/X/2025', NULL, 'disetujui', NULL, NULL, NULL, '2025-10-11 17:43:35', 1, '2025-10-11 16:34:06', NULL, NULL, NULL, 'locked', 1, NULL, 2025, 'Ganjil', NULL, 'UAS Akhir Semestar', 3, NULL, 'Penunjang Almamater', 'Panitia Kegiatan Fakultas/Prodi', NULL, 103, '2025-10-11 23:32:00', '2025-10-12 01:32:00', 'Ruang HC', 'Test', 'TYER', '\"Yth. Rektor\"', 10, NULL, NULL, 42, 35, 0.95, NULL, '2025-10-11 16:34:06', '2025-10-11 17:43:35', NULL, 'X', 12, NULL);
 
 -- --------------------------------------------------------
 
@@ -840,10 +918,20 @@ INSERT INTO `tugas_penerima` (`id`, `tugas_id`, `pengguna_id`, `nama_penerima`, 
 (29, 11, 18, '', NULL, NULL, 'I#18', 0),
 (30, 12, 4, '', NULL, NULL, 'I#4', 0),
 (31, 12, 5, '', NULL, NULL, 'I#5', 0),
-(33, 13, 9, '', 'Dosen Pengajar', NULL, 'I#9', 0),
 (40, 14, 13, '', 'Dosen Pengajar', NULL, 'I#13', 0),
 (41, 14, 14, '', 'Dosen Pengajar', NULL, 'I#14', 0),
-(48, 15, 6, '', NULL, NULL, 'I#6', 0);
+(50, 13, 9, '', NULL, NULL, 'I#9', 0),
+(51, 15, 6, '', NULL, NULL, 'I#6', 0),
+(52, 18, 11, '', NULL, NULL, 'I#11', 0),
+(71, 19, 3, '', NULL, NULL, 'I#3', 0),
+(72, 19, 4, '', NULL, NULL, 'I#4', 0),
+(73, 19, 5, '', NULL, NULL, 'I#5', 0),
+(74, 19, 6, '', NULL, NULL, 'I#6', 0),
+(75, 19, 7, '', NULL, NULL, 'I#7', 0),
+(76, 19, 8, '', NULL, NULL, 'I#8', 0),
+(77, 19, 9, '', NULL, NULL, 'I#9', 0),
+(78, 19, 11, '', NULL, NULL, 'I#11', 0),
+(79, 19, 12, '', NULL, NULL, 'I#12', 0);
 
 --
 -- Triggers `tugas_penerima`
@@ -930,7 +1018,9 @@ ALTER TABLE `jenis_tugas`
 --
 ALTER TABLE `jobs`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `jobs_queue_index` (`queue`);
+  ADD KEY `jobs_queue_index` (`queue`),
+  ADD KEY `idx_jobs__queue_time` (`queue`,`reserved_at`,`available_at`),
+  ADD KEY `idx_jobs__created` (`created_at`);
 
 --
 -- Indexes for table `keputusan_header`
@@ -946,7 +1036,10 @@ ALTER TABLE `keputusan_header`
   ADD KEY `idx_keph_approved_by` (`approved_by`),
   ADD KEY `idx_keph_rejected_by` (`rejected_by`),
   ADD KEY `idx_keph_published_by` (`published_by`),
-  ADD KEY `idx_keph_tanggal` (`tanggal_surat`,`tanggal_asli`);
+  ADD KEY `idx_keph_tanggal` (`tanggal_surat`,`tanggal_asli`),
+  ADD KEY `idx_keph__status_tgl` (`status_surat`,`tanggal_asli`),
+  ADD KEY `idx_keph__penandatangan` (`penandatangan`),
+  ADD KEY `idx_keph__nomor` (`nomor`);
 
 --
 -- Indexes for table `keputusan_penerima`
@@ -954,10 +1047,13 @@ ALTER TABLE `keputusan_header`
 ALTER TABLE `keputusan_penerima`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `ux_keputusan_penerima_unique` (`keputusan_id`,`pengguna_id`),
+  ADD UNIQUE KEY `uq_kepp` (`keputusan_id`,`pengguna_id`),
   ADD KEY `keputusan_penerima_keputusan_id_foreign` (`keputusan_id`),
   ADD KEY `keputusan_penerima_pengguna_id_foreign` (`pengguna_id`),
   ADD KEY `idx_keputusan_id` (`keputusan_id`),
-  ADD KEY `idx_pengguna_id` (`pengguna_id`);
+  ADD KEY `idx_pengguna_id` (`pengguna_id`),
+  ADD KEY `idx_kepp__keputusan` (`keputusan_id`),
+  ADD KEY `idx_kepp__pengguna` (`pengguna_id`);
 
 --
 -- Indexes for table `klasifikasi_surat`
@@ -983,14 +1079,16 @@ ALTER TABLE `migrations`
 --
 ALTER TABLE `nomor_counters`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uq_tipe_tahun_prefix` (`tipe`,`tahun`,`prefix`);
+  ADD UNIQUE KEY `uq_tipe_tahun_prefix` (`tipe`,`tahun`,`prefix`),
+  ADD UNIQUE KEY `uq_counter_skst` (`tipe`,`tahun`,`prefix`);
 
 --
 -- Indexes for table `nomor_surat_counters`
 --
 ALTER TABLE `nomor_surat_counters`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `ux_counter_scope` (`kode_surat`,`unit`,`bulan_romawi`,`tahun`);
+  ADD UNIQUE KEY `ux_counter_scope` (`kode_surat`,`unit`,`bulan_romawi`,`tahun`),
+  ADD UNIQUE KEY `uq_counter_surat` (`kode_surat`,`unit`,`bulan_romawi`,`tahun`);
 
 --
 -- Indexes for table `notifikasi`
@@ -1000,7 +1098,8 @@ ALTER TABLE `notifikasi`
   ADD KEY `notifikasi_pengguna_id_foreign` (`pengguna_id`),
   ADD KEY `idx_notif_dibaca` (`dibaca`),
   ADD KEY `idx_notif_tipe_ref` (`tipe`,`referensi_id`),
-  ADD KEY `idx_notif_user_read_created` (`pengguna_id`,`dibaca`,`created_at`);
+  ADD KEY `idx_notif_user_read_created` (`pengguna_id`,`dibaca`,`created_at`),
+  ADD KEY `idx_notif__user_baca_tipe_waktu` (`pengguna_id`,`dibaca`,`tipe`,`dibuat_pada`);
 
 --
 -- Indexes for table `pengguna`
@@ -1024,7 +1123,8 @@ ALTER TABLE `peran`
 ALTER TABLE `sessions`
   ADD PRIMARY KEY (`id`),
   ADD KEY `sessions_user_id_index` (`user_id`),
-  ADD KEY `sessions_last_activity_index` (`last_activity`);
+  ADD KEY `sessions_last_activity_index` (`last_activity`),
+  ADD KEY `idx_sessions__user` (`user_id`);
 
 --
 -- Indexes for table `sub_tugas`
@@ -1054,7 +1154,14 @@ ALTER TABLE `tugas_header`
   ADD KEY `idx_tugas_dibuat_oleh` (`dibuat_oleh`),
   ADD KEY `idx_tugas_next_approver` (`next_approver`),
   ADD KEY `idx_tugas_penandatangan` (`penandatangan`),
-  ADD KEY `idx_tugas_created_status` (`created_at`,`status_surat`);
+  ADD KEY `idx_tugas_created_status` (`created_at`,`status_surat`),
+  ADD KEY `idx_tugas__status_tgl` (`status_surat`,`tanggal_surat`),
+  ADD KEY `idx_tugas__dibuat_oleh` (`dibuat_oleh`),
+  ADD KEY `idx_tugas__penandatangan` (`penandatangan`),
+  ADD KEY `idx_tugas__next_approver` (`next_approver`),
+  ADD KEY `idx_tugas__waktu` (`waktu_mulai`,`waktu_selesai`),
+  ADD KEY `idx_tugas__klasifikasi` (`klasifikasi_surat_id`),
+  ADD KEY `idx_tugas__kode_bulan_tahun` (`kode_surat`,`bulan`,`tahun`);
 
 --
 -- Indexes for table `tugas_log`
@@ -1094,7 +1201,7 @@ ALTER TABLE `jenis_tugas`
 -- AUTO_INCREMENT for table `jobs`
 --
 ALTER TABLE `jobs`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `keputusan_header`
@@ -1112,7 +1219,7 @@ ALTER TABLE `keputusan_penerima`
 -- AUTO_INCREMENT for table `klasifikasi_surat`
 --
 ALTER TABLE `klasifikasi_surat`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=104;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=187;
 
 --
 -- AUTO_INCREMENT for table `master_kop_surat`
@@ -1136,7 +1243,7 @@ ALTER TABLE `nomor_counters`
 -- AUTO_INCREMENT for table `nomor_surat_counters`
 --
 ALTER TABLE `nomor_surat_counters`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `notifikasi`
@@ -1160,19 +1267,19 @@ ALTER TABLE `peran`
 -- AUTO_INCREMENT for table `sub_tugas`
 --
 ALTER TABLE `sub_tugas`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=114;
 
 --
 -- AUTO_INCREMENT for table `tugas_detail`
 --
 ALTER TABLE `tugas_detail`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117;
 
 --
 -- AUTO_INCREMENT for table `tugas_header`
 --
 ALTER TABLE `tugas_header`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `tugas_log`
@@ -1184,7 +1291,7 @@ ALTER TABLE `tugas_log`
 -- AUTO_INCREMENT for table `tugas_penerima`
 --
 ALTER TABLE `tugas_penerima`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
 
 --
 -- AUTO_INCREMENT for table `user_signatures`
@@ -1200,6 +1307,11 @@ ALTER TABLE `user_signatures`
 -- Constraints for table `keputusan_header`
 --
 ALTER TABLE `keputusan_header`
+  ADD CONSTRAINT `fk_keph__approved_by` FOREIGN KEY (`approved_by`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_keph__dibuat` FOREIGN KEY (`dibuat_oleh`) REFERENCES `pengguna` (`id`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_keph__published_by` FOREIGN KEY (`published_by`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_keph__rejected_by` FOREIGN KEY (`rejected_by`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_keph__ttd` FOREIGN KEY (`penandatangan`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_keph_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_keph_published_by` FOREIGN KEY (`published_by`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_keph_rejected_by` FOREIGN KEY (`rejected_by`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL,
@@ -1210,6 +1322,8 @@ ALTER TABLE `keputusan_header`
 -- Constraints for table `keputusan_penerima`
 --
 ALTER TABLE `keputusan_penerima`
+  ADD CONSTRAINT `fk_kepp__header` FOREIGN KEY (`keputusan_id`) REFERENCES `keputusan_header` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_kepp__user` FOREIGN KEY (`pengguna_id`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `keputusan_penerima_keputusan_id_foreign` FOREIGN KEY (`keputusan_id`) REFERENCES `keputusan_header` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `keputusan_penerima_pengguna_id_foreign` FOREIGN KEY (`pengguna_id`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE;
 
@@ -1223,24 +1337,35 @@ ALTER TABLE `notifikasi`
 -- Constraints for table `pengguna`
 --
 ALTER TABLE `pengguna`
+  ADD CONSTRAINT `fk_pengguna__peran` FOREIGN KEY (`peran_id`) REFERENCES `peran` (`id`) ON DELETE RESTRICT,
   ADD CONSTRAINT `pengguna_peran_id_foreign` FOREIGN KEY (`peran_id`) REFERENCES `peran` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `sessions`
+--
+ALTER TABLE `sessions`
+  ADD CONSTRAINT `fk_sessions__user` FOREIGN KEY (`user_id`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `sub_tugas`
 --
 ALTER TABLE `sub_tugas`
+  ADD CONSTRAINT `fk_sub_tugas__jenis` FOREIGN KEY (`jenis_tugas_id`) REFERENCES `jenis_tugas` (`id`) ON DELETE RESTRICT,
   ADD CONSTRAINT `sub_tugas_jenis_tugas_id_foreign` FOREIGN KEY (`jenis_tugas_id`) REFERENCES `jenis_tugas` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `tugas_detail`
 --
 ALTER TABLE `tugas_detail`
+  ADD CONSTRAINT `fk_tugas_detail__sub` FOREIGN KEY (`sub_tugas_id`) REFERENCES `sub_tugas` (`id`) ON DELETE RESTRICT,
   ADD CONSTRAINT `tugas_detail_sub_tugas_id_foreign` FOREIGN KEY (`sub_tugas_id`) REFERENCES `sub_tugas` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `tugas_header`
 --
 ALTER TABLE `tugas_header`
+  ADD CONSTRAINT `fk_tugas_header__detail` FOREIGN KEY (`detail_tugas_id`) REFERENCES `tugas_detail` (`id`) ON DELETE RESTRICT,
+  ADD CONSTRAINT `fk_tugas_header__klasifikasi` FOREIGN KEY (`klasifikasi_surat_id`) REFERENCES `klasifikasi_surat` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tugas_header_asal_surat_foreign` FOREIGN KEY (`asal_surat`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `tugas_header_detail_tugas_id_foreign` FOREIGN KEY (`detail_tugas_id`) REFERENCES `tugas_detail` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `tugas_header_dibuat_oleh_foreign` FOREIGN KEY (`dibuat_oleh`) REFERENCES `pengguna` (`id`),

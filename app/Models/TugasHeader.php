@@ -60,7 +60,7 @@ class TugasHeader extends Model
 
     protected $casts = [
         'tanggal_asli'        => 'datetime',
-        'tanggal_surat'         => 'date',
+        'tanggal_surat'       => 'datetime',
         'waktu_mulai'         => 'datetime',
         'waktu_selesai'       => 'datetime',
         'submitted_at'        => 'datetime',

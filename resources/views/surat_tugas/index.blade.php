@@ -299,7 +299,7 @@
                                     <td class="text-center">{{ $loop->iteration }}</td>
                                     <td>{{ $h->nomor }}</td>
                                     <td>{{ $h->nama_umum }}</td>
-                                    @php $tgl = $h->tanggal_utama; @endphp
+                                    @php $tgl = $h->tanggal_surat; @endphp
                                     <td class="text-center" data-sort="{{ $tgl ? $tgl->timestamp : 0 }}">
                                         {{ $tgl ? $tgl->format('d M Y') : '-' }}
                                         @if ($tgl)

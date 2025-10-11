@@ -15,8 +15,7 @@
     $mode = $mode ?? ($isEdit ? 'edit' : 'create');
 
     // Lock structural fields dalam kondisi tertentu
-    $lockStructural =
-        $isEdit && ($mode === 'koreksi' || in_array($tugas->status_surat ?? '', ['pending', 'disetujui']));
+    $lockStructural = $isEdit && in_array($tugas->status_surat ?? '', ['disetujui']); // Hanya lock jika sudah disetujui
 
     // Route & method
     $formAction = $isEdit
@@ -238,7 +237,6 @@
                                         <input type="text" id="pembuat_id_display" class="form-control"
                                             value="{{ $pembuatLabel }}" readonly>
                                         <input type="hidden" name="pembuat_id" value="{{ $pembuatIdOld }}">
-                                        {{-- ✅ kirim juga nama pembuat --}}
                                         <input type="hidden" name="nama_pembuat" id="nama_pembuat_hidden"
                                             value="{{ $pembuatLabel }}">
                                     @else
@@ -249,11 +247,9 @@
                                                     {{ $nama }}</option>
                                             @endforeach
                                         </select>
-                                        {{-- ✅ akan diisi via JS saat pilih admin --}}
                                         <input type="hidden" name="nama_pembuat" id="nama_pembuat_hidden"
                                             value="">
                                     @endif
-
                                 </div>
 
                                 {{-- ✅ Asal Surat (standar: asal_surat_id) --}}
@@ -263,13 +259,12 @@
                                         $asalIdOld = old('asal_surat_id', $isEdit ? $tugas->asal_surat ?? null : null);
                                         $asalLabel =
                                             optional($pejabat->firstWhere('id', $asalIdOld))->nama_lengkap ??
-                                            (optional($tugas->asalSurat)->nama_lengkap ?? '');
+                                            ($isEdit ? optional($tugas->asalSurat)->nama_lengkap ?? '' : '');
                                     @endphp
                                     @if ($isEdit)
                                         <input type="text" id="asal_surat_id_display" class="form-control"
                                             value="{{ $asalLabel }}" readonly>
                                         <input type="hidden" name="asal_surat_id" value="{{ $asalIdOld }}">
-                                        {{-- ✅ kirim juga nama asal surat --}}
                                         <input type="hidden" name="asal_surat" id="asal_surat_hidden"
                                             value="{{ $asalLabel }}">
                                     @else
@@ -282,11 +277,28 @@
                                                     {{ $p->nama_lengkap }} ({{ $p->peran->nama }})</option>
                                             @endforeach
                                         </select>
-                                        {{-- ✅ akan diisi via JS saat pilih pejabat --}}
                                         <input type="hidden" name="asal_surat" id="asal_surat_hidden" value="">
                                     @endif
                                 </div>
+                            </div>
 
+                            {{-- ✅ TANGGAL SURAT --}}
+                            <div class="row">
+                                <div class="col-md-6 form-group">
+                                    <label for="tanggal_surat">Tanggal Surat <span class="text-danger">*</span></label>
+                                    <input type="date" id="tanggal_surat" name="tanggal_surat" class="form-control"
+                                        value="{{ old('tanggal_surat', $isEdit ? optional($tugas)->tanggal_surat?->format('Y-m-d') : $tanggalHariIni ?? now()->format('Y-m-d')) }}"
+                                        {{ $lockStructural ? 'readonly' : '' }} required>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle"></i> Tanggal pembuatan surat tugas
+                                    </small>
+                                    @error('tanggal_surat')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="col-md-6 form-group">
+                                    {{-- Kolom kosong untuk alignment --}}
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -479,39 +491,53 @@
                                 <div class="col-md-7">
                                     <div class="form-group">
                                         <label for="jenis_tugas">Jenis Tugas</label>
-                                        <select name="jenis_tugas" id="jenis_tugas" class="form-control select2bs4"
-                                            {{ $lockStructural ? 'disabled' : '' }}>
-                                            @if ($lockStructural)
-                                                <input type="hidden" name="jenis_tugas"
-                                                    value="{{ old('jenis_tugas', $isEdit ? $tugas->jenis_tugas : null) }}">
-                                            @endif
-                                            <option value="" disabled
-                                                {{ old('jenis_tugas', $isEdit ? $tugas->jenis_tugas : null) ? '' : 'selected' }}>
-                                                Pilih Jenis...</option>
-                                            @foreach ($taskMaster as $jt)
-                                                <option value="{{ $jt->nama }}" @selected(old('jenis_tugas', $isEdit ? $tugas->jenis_tugas : null) == $jt->nama)>
-                                                    {{ $jt->nama }}</option>
-                                            @endforeach
-                                        </select>
+                                        @if ($lockStructural)
+                                            {{-- Mode locked: readonly display --}}
+                                            <input type="text" class="form-control"
+                                                value="{{ old('jenis_tugas', $isEdit ? $tugas->jenis_tugas ?? null : null) }}"
+                                                readonly style="background:#e9ecef;cursor:not-allowed;">
+                                            <input type="hidden" name="jenis_tugas" id="jenis_tugas"
+                                                value="{{ old('jenis_tugas', $isEdit ? $tugas->jenis_tugas ?? null : null) }}">
+                                        @else
+                                            <select name="jenis_tugas" id="jenis_tugas"
+                                                class="form-control select2bs4">
+                                                <option value="" disabled
+                                                    {{ old('jenis_tugas', $isEdit ? $tugas->jenis_tugas ?? null : null) ? '' : 'selected' }}>
+                                                    -- Pilih Jenis...--</option>
+                                                @foreach ($taskMaster as $jt)
+                                                    <option value="{{ $jt->nama }}" @selected(old('jenis_tugas', $isEdit ? $tugas->jenis_tugas ?? null : null) == $jt->nama)>
+                                                        {{ $jt->nama }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        @endif
                                     </div>
+
                                     <div class="form-group">
                                         <label for="tugas">Tugas</label>
-                                        <select name="tugas" id="tugas" class="form-control select2bs4"
-                                            {{ $lockStructural ? 'disabled' : (old('tugas', $isEdit ? $tugas->tugas : null) ? '' : 'disabled') }}>
-                                            @if ($lockStructural)
-                                                <input type="hidden" name="tugas"
-                                                    value="{{ old('tugas', $isEdit ? $tugas->tugas : null) }}">
-                                            @endif
-                                            <option value="">
-                                                {{ old('tugas', $isEdit ? $tugas->tugas : null) ? '' : 'Pilih Tugas...' }}
-                                            </option>
-                                        </select>
+                                        @if ($lockStructural)
+                                            {{-- Mode locked: readonly display --}}
+                                            <input type="text" class="form-control"
+                                                value="{{ old('tugas', $isEdit ? $tugas->tugas ?? null : null) }}"
+                                                readonly style="background:#e9ecef;cursor:not-allowed;">
+                                            <input type="hidden" name="tugas" id="tugas"
+                                                value="{{ old('tugas', $isEdit ? $tugas->tugas ?? null : null) }}">
+                                        @else
+                                            <select name="tugas" id="tugas" class="form-control select2bs4"
+                                                {{ old('tugas', $isEdit ? $tugas->tugas ?? null : null) ? '' : 'disabled' }}>
+                                                <option value="">
+                                                    {{ old('tugas', $isEdit ? $tugas->tugas ?? null : null) ? '' : '-- Pilih Tugas... --' }}
+                                                </option>
+                                            </select>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="col-md-5">
                                     <label>Pratinjau Pilihan Tugas</label>
-                                    <div id="task-preview"><span class="placeholder-text text-center">Pilih jenis &
-                                            tugas untuk melihat pratinjau.</span></div>
+                                    <div id="task-preview">
+                                        <span class="placeholder-text text-center">Pilih jenis & tugas untuk melihat
+                                            pratinjau.</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -603,32 +629,44 @@
                                 </option>
                             @endforeach
                         </select>
-
                     </div>
                     <hr>
+                    @php
+                        $userRole = Auth::user()->peran_id ?? null;
+                        $isPembuat = $userRole === 1; // Admin/Pembuat
+                        $isPenandatangan = in_array($userRole, [2, 3]); // Dekan/Wadek
+                    @endphp
 
-                    {{-- Tombol aksi --}}
-                    <button type="button" name="action" value="draft" class="btn btn-block btn-secondary mb-2">
-                        <i class="fas fa-save mr-2"></i>Simpan Draft
-                    </button>
-                    <button type="button" name="action" value="submit" class="btn btn-block btn-primary">
-                        <i class="fas fa-check-circle mr-2"></i>Ajukan
-                    </button>
-
-                    @if ($mode === 'koreksi')
-                        @can('edit-surat', $tugas ?? null)
-                            <div class="mt-2">
-                                <button type="submit" class="btn btn-block btn-warning mb-2">
-                                    <i class="fas fa-pen mr-2"></i>Simpan Koreksi
-                                </button>
-                            </div>
-                        @endcan
+                    @if ($mode === 'koreksi' && $isPenandatangan)
+                        {{-- Mode koreksi oleh penandatangan: hanya Simpan Koreksi --}}
+                        <button type="button" name="action" value="submit" class="btn btn-block btn-warning mb-2">
+                            <i class="fas fa-pen mr-2"></i>Simpan Koreksi
+                        </button>
+                    @elseif ($isEdit && $isPembuat)
+                        {{-- Edit oleh pembuat: Draft + Ajukan Ulang --}}
+                        <button type="button" name="action" value="draft"
+                            class="btn btn-block btn-secondary mb-2">
+                            <i class="fas fa-save mr-2"></i>Simpan Draft
+                        </button>
+                        <button type="button" name="action" value="submit" class="btn btn-block btn-primary">
+                            <i class="fas fa-check-circle mr-2"></i>Ajukan Ulang
+                        </button>
+                    @elseif (!$isEdit)
+                        {{-- Create baru: Draft + Ajukan --}}
+                        <button type="button" name="action" value="draft"
+                            class="btn btn-block btn-secondary mb-2">
+                            <i class="fas fa-save mr-2"></i>Simpan Draft
+                        </button>
+                        <button type="button" name="action" value="submit" class="btn btn-block btn-primary">
+                            <i class="fas fa-check-circle mr-2"></i>Ajukan
+                        </button>
                     @endif
                 </div>
             </div>
         </div>
     </div>
 </form>
+
 
 {{-- MODAL PENERIMA EKSTERNAL --}}
 <div class="modal fade" id="penerimaEksternalModal" tabindex="-1" role="dialog"
@@ -1188,22 +1226,22 @@
                     const d = penerimaState.internal[id];
                     list.append(
                         `<li class="list-group-item d-flex justify-content-between align-items-center">
-                                                                            <div><i class="fas fa-user-tie mr-2 text-info"></i>${d.nama}</div>
-                                                                            <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="internal" data-id="${id}">
-                                                                                <i class="fas fa-times"></i>
-                                                                            </button>
-                                                                        </li>`
+                                                                                                                <div><i class="fas fa-user-tie mr-2 text-info"></i>${d.nama}</div>
+                                                                                                                <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="internal" data-id="${id}">
+                                                                                                                    <i class="fas fa-times"></i>
+                                                                                                                </button>
+                                                                                                            </li>`
                     );
                     $('#tugasForm').append(`<input type="hidden" name="penerima_internal[]" value="${id}">`);
                 }
                 penerimaState.eksternal.forEach((p, i) => {
                     list.append(
                         `<li class="list-group-item d-flex justify-content-between align-items-center">
-                                                                            <div><i class="fas fa-user mr-2 text-success"></i>${p.nama} <span class="eksternal-label">(${p.jabatan})</span></div>
-                                                                            <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="eksternal" data-id="${i}">
-                                                                                <i class="fas fa-times"></i>
-                                                                            </button>
-                                                                        </li>`
+                                                                                                                <div><i class="fas fa-user mr-2 text-success"></i>${p.nama} <span class="eksternal-label">(${p.jabatan})</span></div>
+                                                                                                                <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="eksternal" data-id="${i}">
+                                                                                                                    <i class="fas fa-times"></i>
+                                                                                                                </button>
+                                                                                                            </li>`
                     );
                     $('#tugasForm').append(
                         `<input type="hidden" name="penerima_eksternal[${i}][nama]" value="${p.nama}">`
@@ -1325,6 +1363,24 @@
                     $('#asal_surat_hidden').val($('#asal_surat_id_display').val());
                 }
             });
+
+            @if ($isEdit && !empty(old('jenis_tugas', $tugas->jenis_tugas ?? null)) && !empty(old('tugas', $tugas->tugas ?? null)))
+                $(document).ready(function() {
+                    // Trigger update pratinjau setelah halaman load
+                    setTimeout(function() {
+                        const jenisValue = @json(old('jenis_tugas', $tugas->jenis_tugas ?? null));
+                        const tugasValue = @json(old('tugas', $tugas->tugas ?? null));
+
+                        if (jenisValue && tugasValue) {
+                            // Populate dropdown tugas
+                            populateSpecificTask(jenisValue, tugasValue);
+
+                            // Update preview
+                            updateTaskPreview();
+                        }
+                    }, 300);
+                });
+            @endif
 
             // =========================================================
             //               Submit (auto-reserve kalau perlu)

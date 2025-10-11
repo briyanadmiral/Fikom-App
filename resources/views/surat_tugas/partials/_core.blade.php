@@ -63,7 +63,7 @@
 
     /* Blok TTD */
     .ttd-wrapper { display: table; width: 100%; margin-top: 25px; page-break-inside: avoid; }
-    .ttd-kolom-kiri { display: table-cell; width: 55%; vertical-align: bottom; } /* Diubah ke bottom */
+    .ttd-kolom-kiri { display: table-cell; width: 55%; vertical-align: bottom; }
     .ttd-kolom-kanan { display: table-cell; width: 45%; vertical-align: top; page-break-inside: avoid; }
     .ttd-teks { text-align: left; page-break-inside: avoid; line-height: 1.5; }
     .ttd-area-sign { position: relative; min-height: 28mm; margin-top: 6mm; text-align: center; }
@@ -94,7 +94,7 @@
     .tembusan-wrapper li { margin-bottom: 2px; }
 
     .ttd-wrapper { display: table; width: 100%; margin-top: 25px; }
-    .ttd-kolom-kiri { display: table-cell; width: 55%; vertical-align: bottom; } /* Diubah ke bottom */
+    .ttd-kolom-kiri { display: table-cell; width: 55%; vertical-align: bottom; }
     .ttd-kolom-kanan { display: table-cell; width: 45%; vertical-align: top; }
     .ttd-teks { text-align: left; line-height: 1.5; }
     .ttd-area-sign { position: relative; min-height: 28mm; margin-top: 6mm; text-align: center; }
@@ -121,7 +121,15 @@
             <tr>
                 <td style="width: 15%;">Nama</td>
                 <td style="width: 2%;">:</td>
-                <td>{{ !empty($penerimaList) ? implode(', ', $penerimaList) : '—' }}</td>
+                <td>
+                    @if(!empty($penerimaList))
+                        @foreach($penerimaList as $index => $nama)
+                            {{ $index + 1 }}. {{ $nama }}<br>
+                        @endforeach
+                    @else
+                        —
+                    @endif
+                </td>
             </tr>
             <tr>
                 <td>Status</td>
