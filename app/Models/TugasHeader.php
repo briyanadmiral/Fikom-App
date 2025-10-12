@@ -16,66 +16,83 @@ class TugasHeader extends Model
     protected $table = 'tugas_header';
 
     protected $fillable = [
-        // identitas & nomor surat
-        'nomor',
-        'nomor_status',
-        'kode_surat',
-        'bulan',
-        'tahun',
-        // status & alur persetujuan
-        'status_surat',
-        'next_approver',
-        // metadata pembuat
-        'dibuat_oleh',
-        'nama_pembuat',
-        'asal_surat',
-        // klasifikasi
-        'klasifikasi_surat_id',
-        'semester',
-        'no_surat_manual',
-        // konten tugas
-        'nama_umum',
-        'jenis_tugas',
-        'tugas',
-        'detail_tugas',
-        'detail_tugas_id',
-        'status_penerima',
-        'redaksi_pembuka',
-        'penutup',
-        'tembusan',
-        // waktu & tempat
-        'waktu_mulai',
-        'waktu_selesai',
-        'tempat',
-        // tanda tangan
-        'penandatangan',
-        'ttd_config',
-        'cap_config',
-        'ttd_w_mm',
-        'cap_w_mm',
-        'cap_opacity',
-    ];
+    // identitas & nomor surat
+    'nomor',
+    'nomor_status',
+    'kode_surat',
+    'bulan',
+    'tahun',
+    
+    // ✅ TAMBAHKAN INI - tanggal surat
+    'tanggal_surat',
+    'tanggal_asli',
+    
+    // status & alur persetujuan
+    'status_surat',
+    'next_approver',
+    'submitted_at',
+    'signed_at',
+    'signed_pdf_path',
+    
+    // metadata pembuat
+    'dibuat_oleh',
+    'nama_pembuat',
+    'asal_surat',
+    
+    // klasifikasi
+    'klasifikasi_surat_id',
+    'semester',
+    'no_surat_manual',
+    
+    // konten tugas
+    'nama_umum',
+    'jenis_tugas',
+    'tugas',
+    'detail_tugas',
+    'detail_tugas_id',
+    'status_penerima',
+    'redaksi_pembuka',
+    'penutup',
+    'tembusan',
+    'tembusan_formatted',
+    
+    // waktu & tempat
+    'waktu_mulai',
+    'waktu_selesai',
+    'tempat',
+    
+    // tanda tangan
+    'penandatangan',
+    'ttd_config',
+    'cap_config',
+    'ttd_w_mm',
+    'cap_w_mm',
+    'cap_opacity',
+];
 
-    protected $guarded = ['id'];
+protected $guarded = ['id'];
 
-    protected $casts = [
-        'tanggal_asli'        => 'datetime',
-        'tanggal_surat'       => 'datetime',
-        'waktu_mulai'         => 'datetime',
-        'waktu_selesai'       => 'datetime',
-        'submitted_at'        => 'datetime',
-        'created_at'          => 'datetime',
-        'updated_at'          => 'datetime',
-        'dikunci_pada'        => 'datetime',
-        // Kolom baru dari migration:
-        'kode_surat'          => 'string',
-        'bulan'               => 'string',
-        'ttd_config' => 'array',
-        'cap_config' => 'array',
+protected $casts = [
+    'tanggal_asli'        => 'datetime',
+    'tanggal_surat'       => 'datetime', // ✅ Sudah ada, bagus!
+    'waktu_mulai'         => 'datetime',
+    'waktu_selesai'       => 'datetime',
+    'submitted_at'        => 'datetime',
+    'created_at'          => 'datetime',
+    'updated_at'          => 'datetime',
+    'signed_at'           => 'datetime',
+    'dikunci_pada'        => 'datetime',
+    
+    // Kolom baru dari migration:
+    'kode_surat'          => 'string',
+    'bulan'               => 'string',
+    'ttd_config'          => 'array',
+    'cap_config'          => 'array',
+    
+    // jika ingin otomatis jadi array: uncomment berikut
+    // 'tembusan'         => 'array', // ❌ Lebih baik jangan, karena di service masih pakai string
+];
 
-        // jika ingin otomatis jadi array: uncomment berikut
-        'tembusan'            => 'array',
-    ];
 
     // ==================== RELASI =========================
 

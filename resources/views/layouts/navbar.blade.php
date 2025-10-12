@@ -20,10 +20,8 @@
     <ul class="navbar-nav ml-auto">
         @auth
             @php
-                // SELALU definisikan $user agar tidak undefined
                 $user = Auth::user();
 
-                // Fallback isi notifikasi jika belum di-provide dari controller/composer
                 if (!isset($unreadCount) || !isset($recentNotifs)) {
                     $unreadCount  = $user->notifikasi()->where('dibaca', false)->count();
                     $recentNotifs = $user->notifikasi()
@@ -35,37 +33,50 @@
 
             <!-- Notifikasi: ikon lonceng + dropdown -->
             <li class="nav-item dropdown">
-                <a class="nav-link" data-toggle="dropdown" href="#" aria-expanded="false">
+                <a class="nav-link position-relative" data-toggle="dropdown" href="#" aria-expanded="false">
                     <i class="far fa-bell"></i>
                     @if(($unreadCount ?? 0) > 0)
-                        <span class="badge badge-warning navbar-badge">{{ $unreadCount }}</span>
+                        <span class="badge badge-warning position-absolute" 
+                              style="top: 5px; right: 5px; font-size: 0.65rem; padding: 2px 5px; border-radius: 10px;">
+                            {{ $unreadCount > 9 ? '9+' : $unreadCount }}
+                        </span>
                     @endif
                 </a>
-                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right animate__animated animate__fadeIn">
-                    <span class="dropdown-header">{{ $unreadCount ?? 0 }} Notifikasi Belum Dibaca</span>
-                    <div class="dropdown-divider"></div>
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right animate__animated animate__fadeIn" 
+                     style="max-height: 400px; overflow-y: auto; min-width: 320px;">
+                    <span class="dropdown-header bg-light py-2">
+                        <strong>{{ $unreadCount ?? 0 }}</strong> Notifikasi Belum Dibaca
+                    </span>
+                    <div class="dropdown-divider m-0"></div>
 
                     @forelse(($recentNotifs ?? collect()) as $notif)
                         <a href="{{ route('notifikasi.read', $notif->id) }}"
-                           class="dropdown-item {{ !$notif->dibaca ? 'font-weight-bold' : '' }}">
-                            <i class="fas fa-envelope mr-2"></i>
-                            {{ Str::limit($notif->pesan, 40) }}
-                            <span class="float-right text-muted text-sm">
-                                {{-- Robust: parse ke Carbon kalau masih string --}}
-                                {{ ($notif->dibuat_pada instanceof \Illuminate\Support\Carbon)
-                                    ? $notif->dibuat_pada->diffForHumans()
-                                    : \Carbon\Carbon::parse($notif->dibuat_pada)->diffForHumans()
-                                }}
-                            </span>
+                           class="dropdown-item py-2 {{ !$notif->dibaca ? 'bg-light font-weight-bold' : '' }}">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-envelope mt-1 mr-2 text-primary"></i>
+                                <div class="flex-grow-1">
+                                    <p class="mb-1 text-sm">{{ Str::limit($notif->pesan, 50) }}</p>
+                                    <span class="text-muted text-xs">
+                                        <i class="far fa-clock"></i>
+                                        {{ ($notif->dibuat_pada instanceof \Illuminate\Support\Carbon)
+                                            ? $notif->dibuat_pada->diffForHumans()
+                                            : \Carbon\Carbon::parse($notif->dibuat_pada)->diffForHumans()
+                                        }}
+                                    </span>
+                                </div>
+                            </div>
                         </a>
-                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-divider m-0"></div>
                     @empty
-                        <span class="dropdown-item text-center text-muted">Tidak ada notifikasi</span>
-                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item text-center text-muted py-3">
+                            <i class="far fa-bell-slash fa-2x mb-2 d-block"></i>
+                            Tidak ada notifikasi
+                        </div>
+                        <div class="dropdown-divider m-0"></div>
                     @endforelse
 
-                    <a href="{{ route('notifikasi.index') }}" class="dropdown-item dropdown-footer">
-                        Lihat Semua Notifikasi
+                    <a href="{{ route('notifikasi.index') }}" class="dropdown-item dropdown-footer text-center py-2 bg-light">
+                        <strong>Lihat Semua Notifikasi</strong>
                     </a>
                 </div>
             </li>
@@ -95,8 +106,8 @@
                     </div>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="{{ route('account.settings') }}">
-    <i class="fas fa-user-cog"></i> Pengaturan Akun
-</a>
+                        <i class="fas fa-user-cog"></i> Pengaturan Akun
+                    </a>
                     <a class="dropdown-item text-danger" href="#" id="logout-link">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
@@ -119,7 +130,6 @@
 <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(function(){
-    // Konfirmasi Logout
     $('#logout-link').on('click', function(e){
         e.preventDefault();
         Swal.fire({

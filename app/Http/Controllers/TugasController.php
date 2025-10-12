@@ -150,10 +150,15 @@ class TugasController extends Controller
     public function store(StoreTugasRequest $request)
     {
         $mode = $this->resolveMode($request);
-        $validatedData = $request->validated();
+        $validated = $request->validated();
+
+        // ✅ Pastikan tanggal_surat masuk ke validated
+        if (!isset($validated['tanggal_surat'])) {
+            $validated['tanggal_surat'] = $request->input('tanggal_surat') ?? now()->format('Y-m-d');
+        }
 
         try {
-            $tugas = $this->tugasService->createTugas($validatedData, $mode);
+            $tugas = $this->tugasService->createTugas($validated, $mode);
             $message = $tugas->status_surat === 'pending' ? 'Surat tugas berhasil diajukan!' : 'Surat tugas disimpan sebagai draft!';
             return redirect()->route('surat_tugas.index')->with('success', $message);
         } catch (\Exception $e) {
@@ -437,23 +442,21 @@ class TugasController extends Controller
     // UPDATE
     public function update(UpdateTugasRequest $request, TugasHeader $tugas)
     {
-        // 🔒 blokir perubahan jika sudah locked
-        if ($tugas->nomor_status === 'locked') {
-            return back()->with('error', 'Surat sudah terkunci (locked) dan tidak dapat diedit lagi.');
-        }
-
         $mode = $this->resolveMode($request);
-        $validatedData = $request->validated();
+        $validated = $request->validated();
+
+        // 🟢 Merge juga tanggal_surat saat update
+        $validated['tanggal_surat'] = $request->input('tanggal_surat');
 
         try {
-            $tugas = $this->tugasService->updateTugas($tugas, $validatedData, $mode);
-            $message = $tugas->status_surat === 'pending' ? 'Surat tugas diajukan ulang.' : 'Perubahan draft disimpan.';
+            $tugas = $this->tugasService->updateTugas($tugas, $validated, $mode);
+            $message = $mode === 'submit' ? 'Surat tugas berhasil diajukan ulang!' : 'Perubahan surat tugas disimpan sebagai draft!';
             return redirect()->route('surat_tugas.index')->with('success', $message);
         } catch (\Exception $e) {
-            \Log::error('Gagal update Surat Tugas #' . $tugas->id, ['error' => $e->getMessage()]);
+            \Log::error('Gagal memperbarui Surat Tugas', ['error' => $e->getMessage()]);
             return back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan saat update: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 

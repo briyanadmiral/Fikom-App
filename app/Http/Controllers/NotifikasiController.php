@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Notifikasi;   // Model notifikasi Anda
+use App\Models\Notifikasi;
 use Illuminate\Support\Facades\Auth;
 
 class NotifikasiController extends Controller
@@ -18,7 +18,7 @@ class NotifikasiController extends Controller
             return redirect()->route('login');
         }
 
-        // Ambil notifikasi milik user yang belum dibaca
+        // Ambil semua notifikasi milik user, diurutkan dari yang terbaru
         $notifs = Notifikasi::where('pengguna_id', $user->id)
             ->orderByDesc('dibuat_pada')
             ->get();
@@ -52,5 +52,29 @@ class NotifikasiController extends Controller
 
         return redirect()->route('notifikasi.index')
             ->with('success', 'Notifikasi telah ditandai dibaca.');
+    }
+
+    /**
+     * Tandai semua notifikasi sebagai sudah dibaca.
+     */
+    public function markAllAsRead()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        // Update semua notifikasi yang belum dibaca milik user
+        $updated = Notifikasi::where('pengguna_id', $user->id)
+            ->where('dibaca', false)
+            ->update(['dibaca' => true]);
+
+        if ($updated > 0) {
+            return redirect()->route('notifikasi.index')
+                ->with('success', "{$updated} notifikasi telah ditandai sebagai dibaca.");
+        }
+
+        return redirect()->route('notifikasi.index')
+            ->with('info', 'Semua notifikasi sudah dibaca.');
     }
 }

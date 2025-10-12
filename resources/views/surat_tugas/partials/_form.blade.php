@@ -769,748 +769,759 @@
 @push('scripts')
     <script>
         $(function() {
-            let isSubmitting = false;
+                    let isSubmitting = false;
 
-            // Select2
-            $('.select2bs4').select2({
-                theme: 'bootstrap4',
-                width: '100%'
-            });
-
-            // Datetime guard
-            $('#waktu_selesai').on('change', function() {
-                const mulai = $('#waktu_mulai').val(),
-                    selesai = $(this).val();
-                if (mulai && selesai && new Date(selesai) < new Date(mulai)) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Waktu Tidak Valid',
-                        text: 'Waktu selesai harus setelah waktu mulai'
+                    // Select2
+                    $('.select2bs4').select2({
+                        theme: 'bootstrap4',
+                        width: '100%'
                     });
-                    $(this).val('');
-                }
-            });
-            $('#waktu_mulai').on('change', function() {
-                $('#waktu_selesai').attr('min', $(this).val());
-            });
 
-            // DataTable - dengan pemeriksaan reinisialisasi
-            let table;
-            if ($.fn.DataTable.isDataTable('#penerima-table')) {
-                table = $('#penerima-table').DataTable();
-            } else {
-                table = $('#penerima-table').DataTable({
-                    responsive: true,
-                    lengthChange: true,
-                    autoWidth: false,
-                    stateSave: true, // ✅ simpan state (paging/filter)
-                    order: [], // ✅ tanpa sorting awal agar header checkbox tidak aneh
-                    language: {
-                        search: 'Cari:',
-                        lengthMenu: 'Tampilkan _MENU_ data',
-                        info: 'Menampilkan _START_-_END_ dari _TOTAL_',
-                        zeroRecords: 'Tidak ditemukan',
-                        paginate: {
-                            next: '>>',
-                            previous: '<<'
+                    // Datetime guard
+                    $('#waktu_selesai').on('change', function() {
+                        const mulai = $('#waktu_mulai').val(),
+                            selesai = $(this).val();
+                        if (mulai && selesai && new Date(selesai) < new Date(mulai)) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Waktu Tidak Valid',
+                                text: 'Waktu selesai harus setelah waktu mulai'
+                            });
+                            $(this).val('');
                         }
-                    },
-                    columnDefs: [{
-                        orderable: false,
-                        targets: 0
-                    }]
-                });
-            }
-
-            // SELECT-ALL (hanya halaman aktif)
-            $('#select-all-penerima').on('change', function() {
-                const checked = this.checked;
-                table.rows({
-                        page: 'current'
-                    }).nodes().to$()
-                    .find('.penerima-checkbox').prop('checked', checked);
-            });
-
-            // FIXED: Sync checkbox select-all saat individual checkbox berubah
-            $('#penerima-table').on('change', '.penerima-checkbox', function() {
-                const totalOnPage = table.rows({
-                    page: 'current'
-                }).nodes().to$().find('.penerima-checkbox').length;
-                const checkedOnPage = table.rows({
-                    page: 'current'
-                }).nodes().to$().find('.penerima-checkbox:checked').length;
-                $('#select-all-penerima').prop('checked', totalOnPage === checkedOnPage && totalOnPage > 0);
-            });
-
-            // Saat tabel redraw (pindah halaman/ filter), sync centang sesuai state
-            table.on('draw.dt', function() {
-                $('#select-all-penerima').prop('checked', false);
-                table.rows({
-                        page: 'current'
-                    }).nodes().to$()
-                    .find('.penerima-checkbox').each(function() {
-                        const id = $(this).val();
-                        $(this).prop('checked', !!penerimaState.internal[id]);
                     });
-            });
-
-            // Saat modal dibuka ulang, pre-check sesuai state terkini
-            $('#penerimaModal').on('shown.bs.modal', function() {
-                table.rows().every(function() {
-                    $(this.node()).find('.penerima-checkbox').each(function() {
-                        const id = $(this).val();
-                        $(this).prop('checked', !!penerimaState.internal[id]);
+                    $('#waktu_mulai').on('change', function() {
+                        $('#waktu_selesai').attr('min', $(this).val());
                     });
-                });
-            });
 
-            // CKEditor (secure)
-            const editorEl = document.querySelector('#detail_tugas_editor');
-            if (editorEl && window.ClassicEditor) {
-                ClassicEditor.create(editorEl, {
-                    toolbar: {
-                        items: ['heading', '|', 'bold', 'italic', 'link', '|', 'bulletedList',
-                            'numberedList', '|', 'undo', 'redo'
-                        ],
-                        shouldNotGroupWhenFull: true
-                    },
-                    htmlSupport: {
-                        disallow: [{
-                            name: 'script'
-                        }, {
-                            name: 'iframe'
-                        }, {
-                            attributes: [{
-                                key: /^on.*$/,
-                                value: true
+                    // DataTable - dengan pemeriksaan reinisialisasi
+                    let table;
+                    if ($.fn.DataTable.isDataTable('#penerima-table')) {
+                        table = $('#penerima-table').DataTable();
+                    } else {
+                        table = $('#penerima-table').DataTable({
+                            responsive: true,
+                            lengthChange: true,
+                            autoWidth: false,
+                            stateSave: true, // ✅ simpan state (paging/filter)
+                            order: [], // ✅ tanpa sorting awal agar header checkbox tidak aneh
+                            language: {
+                                search: 'Cari:',
+                                lengthMenu: 'Tampilkan _MENU_ data',
+                                info: 'Menampilkan _START_-_END_ dari _TOTAL_',
+                                zeroRecords: 'Tidak ditemukan',
+                                paginate: {
+                                    next: '>>',
+                                    previous: '<<'
+                                }
+                            },
+                            columnDefs: [{
+                                orderable: false,
+                                targets: 0
                             }]
-                        }]
-                    },
-                    link: {
-                        addTargetToExternalLinks: true,
-                        decorators: {
-                            isExternal: {
-                                mode: 'automatic',
-                                callback: url => url.startsWith('http'),
-                                attributes: {
-                                    rel: 'noopener noreferrer'
+                        });
+                    }
+
+                    // SELECT-ALL (hanya halaman aktif)
+                    $('#select-all-penerima').on('change', function() {
+                        const checked = this.checked;
+                        table.rows({
+                                page: 'current'
+                            }).nodes().to$()
+                            .find('.penerima-checkbox').prop('checked', checked);
+                    });
+
+                    // FIXED: Sync checkbox select-all saat individual checkbox berubah
+                    $('#penerima-table').on('change', '.penerima-checkbox', function() {
+                        const totalOnPage = table.rows({
+                            page: 'current'
+                        }).nodes().to$().find('.penerima-checkbox').length;
+                        const checkedOnPage = table.rows({
+                            page: 'current'
+                        }).nodes().to$().find('.penerima-checkbox:checked').length;
+                        $('#select-all-penerima').prop('checked', totalOnPage === checkedOnPage && totalOnPage > 0);
+                    });
+
+                    // Saat tabel redraw (pindah halaman/ filter), sync centang sesuai state
+                    table.on('draw.dt', function() {
+                        $('#select-all-penerima').prop('checked', false);
+                        table.rows({
+                                page: 'current'
+                            }).nodes().to$()
+                            .find('.penerima-checkbox').each(function() {
+                                const id = $(this).val();
+                                $(this).prop('checked', !!penerimaState.internal[id]);
+                            });
+                    });
+
+                    // Saat modal dibuka ulang, pre-check sesuai state terkini
+                    $('#penerimaModal').on('shown.bs.modal', function() {
+                        table.rows().every(function() {
+                            $(this.node()).find('.penerima-checkbox').each(function() {
+                                const id = $(this).val();
+                                $(this).prop('checked', !!penerimaState.internal[id]);
+                            });
+                        });
+                    });
+
+                    // CKEditor (secure)
+                    const editorEl = document.querySelector('#detail_tugas_editor');
+                    if (editorEl && window.ClassicEditor) {
+                        ClassicEditor.create(editorEl, {
+                            toolbar: {
+                                items: ['heading', '|', 'bold', 'italic', 'link', '|', 'bulletedList',
+                                    'numberedList', '|', 'undo', 'redo'
+                                ],
+                                shouldNotGroupWhenFull: true
+                            },
+                            htmlSupport: {
+                                disallow: [{
+                                    name: 'script'
+                                }, {
+                                    name: 'iframe'
+                                }, {
+                                    attributes: [{
+                                        key: /^on.*$/,
+                                        value: true
+                                    }]
+                                }]
+                            },
+                            link: {
+                                addTargetToExternalLinks: true,
+                                decorators: {
+                                    isExternal: {
+                                        mode: 'automatic',
+                                        callback: url => url.startsWith('http'),
+                                        attributes: {
+                                            rel: 'noopener noreferrer'
+                                        }
+                                    }
                                 }
                             }
+                        }).catch(console.error);
+                    }
+
+                    // ===== Nomor surat =====
+                    const isEdit = @json($isEdit);
+                    const $disp = $('#nomor_surat_lengkap_display');
+                    const $hidden = $('#nomor_surat_lengkap_hidden');
+                    const $urut = $('#nomor_urut');
+                    const $manual = $('#no_surat_manual');
+
+                    function extractNoUrut(nomor) {
+                        const m = (nomor || '').trim().match(/^([0-9]{1,4}[A-Z]?)/);
+                        return m ? m[1] : '';
+                    }
+
+                    function markNomorStale() {
+                        $disp.val('(belum disiapkan)');
+                        $hidden.val('');
+                        if (!isEdit) $urut.val('');
+                    }
+
+                    // FIXED: Template literal menggunakan backticks
+                    function buildNomorFromParts() {
+                        const noUrut = String($('#nomor_urut').val() || '').padStart(3, '0');
+                        const kode = $('#klasifikasi_surat').find(':selected').data('kode') || '...';
+                        const bulan = ($('#bulan').val() || '').toUpperCase() || '...';
+                        const tahun = $('#tahun-nomor').val() || '....';
+                        return `${noUrut}/${kode}/TG/UNIKA/${bulan}/${tahun}`;
+                    }
+
+                    async function reserveNomor(showToast = true) {
+                        const manual = $manual.val().trim();
+                        if (manual) {
+                            $disp.val(manual);
+                            $hidden.val(manual);
+                            $urut.val(extractNoUrut(manual));
+                            if (showToast) Swal.fire({
+                                icon: 'success',
+                                title: 'Nomor Manual Dipakai',
+                                text: manual,
+                                timer: 1400,
+                                showConfirmButton: false
+                            });
+                            return {
+                                nomor: manual,
+                                manual: true
+                            };
                         }
-                    }
-                }).catch(console.error);
-            }
+                        const kodeKlas = $('#klasifikasi_surat').find(':selected').data('kode');
+                        const bulan = ($('#bulan').val() || '').toUpperCase();
+                        const tahun = parseInt($('#tahun-nomor').val(), 10) || new Date().getFullYear();
+                        if (!kodeKlas || !bulan || !tahun) {
+                            Swal.fire('Lengkapi Kode/Bulan/Tahun dahulu', '', 'info');
+                            return null;
+                        }
 
-            // ===== Nomor surat =====
-            const isEdit = @json($isEdit);
-            const $disp = $('#nomor_surat_lengkap_display');
-            const $hidden = $('#nomor_surat_lengkap_hidden');
-            const $urut = $('#nomor_urut');
-            const $manual = $('#no_surat_manual');
+                        try {
+                            $('#btn-reserve-nomor').prop('disabled', true);
+                            const csrf = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]')
+                                .val();
+                            const res = await fetch(@json(route('ajax.nomor.reserve')), {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': csrf
+                                },
+                                credentials: 'same-origin',
+                                body: JSON.stringify({
+                                    doc_type: 'ST',
+                                    unit_display: 'ST.IKOM',
+                                    kode_klasifikasi: kodeKlas,
+                                    bulan_romawi: bulan,
+                                    tahun
+                                })
+                            });
+                            if (!res.ok) throw new Error('Reserve nomor gagal');
+                            const data = await res.json();
+                            $disp.val(data.nomor);
+                            $hidden.val(data.nomor);
+                            $urut.val(extractNoUrut(data.nomor));
+                            if (showToast) Swal.fire({
+                                icon: 'success',
+                                title: 'Nomor Disiapkan',
+                                text: data.nomor,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            return data;
+                        }.catch(e => {
+                                Swal.fire('Gagal', 'Tidak bisa menyiapkan nomor. Coba lagi.', 'error');
+                                return null;
+                            } finally {
+                                $('#btn-reserve-nomor').prop('disabled', false);
+                            }
+                        }
 
-            function extractNoUrut(nomor) {
-                const m = (nomor || '').trim().match(/^([0-9]{1,4}[A-Z]?)/);
-                return m ? m[1] : '';
-            }
+                        if (isEdit) {
+                            // edit → rebuild dari komponen
+                            function updateNomorSurat() {
+                                const nomor = buildNomorFromParts();
+                                $disp.val(nomor);
+                                $hidden.val(nomor);
+                            }
+                            $('#nomor_urut, #klasifikasi_surat, #bulan, #tahun-nomor').on('change keyup input',
+                                updateNomorSurat);
+                            // render awal
+                            if ($manual.val().trim()) {
+                                const v = $manual.val().trim();
+                                $disp.val(v);
+                                $hidden.val(v);
+                                $urut.val(extractNoUrut(v));
+                            } else {
+                                $disp.val(buildNomorFromParts());
+                                $hidden.val(buildNomorFromParts());
+                            }
+                        } else {
+                            // create → default stale, tombol reserve aktif
+                            function onScopeChange() {
+                                if (!$manual.val().trim()) markNomorStale();
+                            }
+                            $('#klasifikasi_surat, #bulan, #tahun-nomor').on('change keyup input', onScopeChange);
+                            $(document).on('click', '#btn-reserve-nomor', () => reserveNomor(true));
+                            $(document).on('click', '#btn-reset-nomor', () => markNomorStale());
+                            $manual.on('input', function() {
+                                const v = $(this).val().trim();
+                                if (v === '') {
+                                    markNomorStale();
+                                    return;
+                                }
+                                $disp.val(v);
+                                $hidden.val(v);
+                                $urut.val(extractNoUrut(v));
+                            });
+                            markNomorStale();
+                        }
 
-            function markNomorStale() {
-                $disp.val('(belum disiapkan)');
-                $hidden.val('');
-                if (!isEdit) $urut.val('');
-            }
+                        // ===== Dropdown tugas & preview =====
+                        const taskData = @json($taskMaster);
+                        const $tugasPreview = $('#task-preview');
+                        const placeholderText =
+                            '<span class="placeholder-text text-center">Pilih jenis & tugas untuk melihat pratinjau.</span>';
 
-            // FIXED: Template literal menggunakan backticks
-            function buildNomorFromParts() {
-                const noUrut = String($('#nomor_urut').val() || '').padStart(3, '0');
-                const kode = $('#klasifikasi_surat').find(':selected').data('kode') || '...';
-                const bulan = ($('#bulan').val() || '').toUpperCase() || '...';
-                const tahun = $('#tahun-nomor').val() || '....';
-                return `${noUrut}/${kode}/TG/UNIKA/${bulan}/${tahun}`;
-            }
-
-            async function reserveNomor(showToast = true) {
-                const manual = $manual.val().trim();
-                if (manual) {
-                    $disp.val(manual);
-                    $hidden.val(manual);
-                    $urut.val(extractNoUrut(manual));
-                    if (showToast) Swal.fire({
-                        icon: 'success',
-                        title: 'Nomor Manual Dipakai',
-                        text: manual,
-                        timer: 1400,
-                        showConfirmButton: false
-                    });
-                    return {
-                        nomor: manual,
-                        manual: true
-                    };
-                }
-                const kodeKlas = $('#klasifikasi_surat').find(':selected').data('kode');
-                const bulan = ($('#bulan').val() || '').toUpperCase();
-                const tahun = parseInt($('#tahun-nomor').val(), 10) || new Date().getFullYear();
-                if (!kodeKlas || !bulan || !tahun) {
-                    Swal.fire('Lengkapi Kode/Bulan/Tahun dahulu', '', 'info');
-                    return null;
-                }
-
-                try {
-                    $('#btn-reserve-nomor').prop('disabled', true);
-                    const csrf = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]')
-                        .val();
-                    const res = await fetch(@json(route('ajax.nomor.reserve')), {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrf
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            doc_type: 'ST',
-                            unit_display: 'ST.IKOM',
-                            kode_klasifikasi: kodeKlas,
-                            bulan_romawi: bulan,
-                            tahun
-                        })
-                    });
-                    if (!res.ok) throw new Error('Reserve nomor gagal');
-                    const data = await res.json();
-                    $disp.val(data.nomor);
-                    $hidden.val(data.nomor);
-                    $urut.val(extractNoUrut(data.nomor));
-                    if (showToast) Swal.fire({
-                        icon: 'success',
-                        title: 'Nomor Disiapkan',
-                        text: data.nomor,
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                    return data;
-                } catch (e) {
-                    console.error(e);
-                    Swal.fire('Gagal', 'Tidak bisa menyiapkan nomor. Coba lagi.', 'error');
-                    return null;
-                } finally {
-                    $('#btn-reserve-nomor').prop('disabled', false);
-                }
-            }
-
-            if (isEdit) {
-                // edit → rebuild dari komponen
-                function updateNomorSurat() {
-                    const nomor = buildNomorFromParts();
-                    $disp.val(nomor);
-                    $hidden.val(nomor);
-                }
-                $('#nomor_urut, #klasifikasi_surat, #bulan, #tahun-nomor').on('change keyup input',
-                    updateNomorSurat);
-                // render awal
-                if ($manual.val().trim()) {
-                    const v = $manual.val().trim();
-                    $disp.val(v);
-                    $hidden.val(v);
-                    $urut.val(extractNoUrut(v));
-                } else {
-                    $disp.val(buildNomorFromParts());
-                    $hidden.val(buildNomorFromParts());
-                }
-            } else {
-                // create → default stale, tombol reserve aktif
-                function onScopeChange() {
-                    if (!$manual.val().trim()) markNomorStale();
-                }
-                $('#klasifikasi_surat, #bulan, #tahun-nomor').on('change keyup input', onScopeChange);
-                $(document).on('click', '#btn-reserve-nomor', () => reserveNomor(true));
-                $(document).on('click', '#btn-reset-nomor', () => markNomorStale());
-                $manual.on('input', function() {
-                    const v = $(this).val().trim();
-                    if (v === '') {
-                        markNomorStale();
-                        return;
-                    }
-                    $disp.val(v);
-                    $hidden.val(v);
-                    $urut.val(extractNoUrut(v));
-                });
-                markNomorStale();
-            }
-
-            // ===== Dropdown tugas & preview =====
-            const taskData = @json($taskMaster);
-            const $tugasPreview = $('#task-preview');
-            const placeholderText =
-                '<span class="placeholder-text text-center">Pilih jenis & tugas untuk melihat pratinjau.</span>';
-
-            function updateTaskPreview() {
-                const kategori = $('#jenis_tugas').val(),
-                    tugas = $('#tugas').val();
-                if (kategori && tugas) {
-                    $tugasPreview.html(`<div>
+                        function updateTaskPreview() {
+                            const kategori = $('#jenis_tugas').val(),
+                                tugas = $('#tugas').val();
+                            if (kategori && tugas) {
+                                $tugasPreview.html(`<div>
                     <p class="mb-1 text-muted">Jenis Tugas:</p>
                     <h5 class="preview-title mb-3"><i class="fas fa-layer-group mr-2"></i>${kategori}</h5>
                     <p class="mb-1 text-muted">Tugas:</p>
                     <p class="preview-content font-weight-bold">${tugas}</p>
                 </div>`).addClass('has-content');
-                } else {
-                    $tugasPreview.html(placeholderText).removeClass('has-content');
-                }
-            }
-
-            function populateSpecificTask(selectedKategori, preselectedTugas) {
-                const $tugasSelect = $('#tugas');
-                $tugasSelect.empty().append(new Option('Pilih Tugas...', ''));
-                const found = (taskData || []).find(jt => jt.nama === selectedKategori);
-                if (found && Array.isArray(found.subtugas) && found.subtugas.length) {
-                    found.subtugas.forEach(st => {
-                        const selected = preselectedTugas === st.nama;
-                        $tugasSelect.append(new Option(st.nama, st.nama, selected, selected));
-                    });
-                    $tugasSelect.prop('disabled', false);
-                } else {
-                    $tugasSelect.prop('disabled', true);
-                }
-                $tugasSelect.trigger('change.select2');
-                updateTaskPreview();
-            }
-            $('#jenis_tugas').on('change', function() {
-                populateSpecificTask($(this).val(), null);
-            });
-            $('#tugas').on('change', updateTaskPreview);
-            @if ($isEdit)
-                populateSpecificTask(@json(old('jenis_tugas', $tugas->jenis_tugas)), @json(old('tugas', $tugas->tugas)));
-            @else
-                if (@json(old('jenis_tugas', ''))) {
-                    populateSpecificTask(@json(old('jenis_tugas', '')), @json(old('tugas', '')));
-                }
-            @endif
-
-            // ===== TEMBUSAN (Tagify) =====
-            window._ = window._ || {};
-            if (!_.escape) {
-                _.escape = s => String(s).replace(/[&<>"'=\/]/g, c => ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#39;',
-                    '/': '&#x2F;',
-                    '=': '&#x3D;',
-                    '`': '&#x60;'
-            } [c]));
-        }
-        const tembusanPresets = @json($tembusanPresets ?? []);
-        const tembusanInput = document.querySelector('#tembusan-input');
-        if (tembusanInput) {
-            const tagify = new Tagify(tembusanInput, {
-                enforceWhitelist: false,
-                whitelist: tembusanPresets,
-                trim: true,
-                duplicates: false,
-                delimiters: ",|\n",
-                editTags: 1,
-                dropdown: {
-                    enabled: 1,
-                    maxItems: 20,
-                    fuzzySearch: true,
-                    highlightFirst: true,
-                    placeAbove: false
-                },
-                placeholder: "Misal: Yth. Rektor, BAAK, Arsip",
-                transformTag: (t) => {
-                    let v = (t.value || '').trim();
-                    if (!v) return;
-                    v = v.toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
-                    const needsYth =
-                        /^(Rektor|Wakil Rektor|Dekan|Kepala|Direktur|Ketua|Sekretaris)\b/i.test(
-                            v) && !/^Yth\.\s/i.test(v);
-                    if (needsYth) v = 'Yth. ' + v;
-                    t.value = v;
-                }
-            });
-            const renderTembusanPreview = () => {
-                const data = tagify.value.map(t => (t.value || '').trim()).filter(Boolean);
-                const showTitle = $('#tembusanShowTitle').is(':checked');
-                const $preview = $('#tembusanPreview');
-                if (!data.length) {
-                    $preview.html(
-                        '<h6 class="mb-2" style="font-weight:700;color:#3b5bdb"><i class="fas fa-eye mr-1"></i>Pratinjau</h6><div class="text-muted">Belum ada tembusan. Tambahkan minimal satu.</div>'
-                    );
-                    $('#tembusan_formatted').val('');
-                    return;
-                }
-                const titleHtml = showTitle ? '<div class="mb-2 font-weight-bold">Tembusan Yth:</div>' : '';
-                const listHtml = '<ol class="mb-0">' + data.map(v => `<li>${_.escape(v)}</li>`).join('') +
-                    '</ol>';
-                $preview.html(
-                    `<h6 class="mb-2" style="font-weight:700;color:#3b5bdb"><i class="fas fa-eye mr-1"></i>Pratinjau</h6>${titleHtml}${listHtml}`
-                );
-                const plain = (showTitle ? 'Tembusan Yth:\n' : '') + data.map((v, i) => `${i+1}. ${v}`)
-                    .join('\n');
-                $('#tembusan_formatted').val(plain);
-            };
-            tagify.on('add', renderTembusanPreview).on('remove', renderTembusanPreview).on('edit:updated',
-                renderTembusanPreview);
-            $(document).on('change', '#tembusanShowTitle', renderTembusanPreview);
-            $(document).on('click', '#btnPasteTembusan', async function() {
-                try {
-                    const txt = await navigator.clipboard.readText();
-                    if (!txt) return;
-                    const items = txt.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
-                    const existing = new Set(tagify.value.map(t => (t.value || '').toLowerCase()));
-                    const toAdd = items.filter(s => !existing.has(s.toLowerCase())).map(s => ({
-                        value: s
-                    }));
-                    tagify.addTags(toAdd);
-                } catch (e) {
-                    Swal.fire('Tidak bisa mengakses clipboard', 'Izinkan akses atau tempel manual.',
-                        'info');
-                }
-            });
-            $(document).on('click', '#btnClearTembusan', () => tagify.removeAllTags());
-            setTimeout(renderTembusanPreview, 0);
-        }
-
-        // ===== Penerima =====
-        const allUsersData = @json($usersMap);
-        const initialInternal = @json($initialInternal);
-        const initialEksternal = @json($initialEksternal);
-        let penerimaState = {
-            internal: {},
-            eksternal: Array.isArray(initialEksternal) ? initialEksternal : []
-        };
-
-        (initialInternal || []).forEach(id => {
-            const u = allUsersData[id];
-            if (u) penerimaState.internal[id] = {
-                nama: u.nama_lengkap,
-                peran_id: u.peran_id
-            };
-        });
-
-        // FIXED: Tambahkan fungsi updateStatusPenerima
-        function updateStatusPenerima() {
-            const internalCount = Object.keys(penerimaState.internal).length;
-            const eksternalCount = penerimaState.eksternal.length;
-            const total = internalCount + eksternalCount;
-
-            const $display = $('#status_penerima_display');
-            const $hidden = $('#status_penerima_hidden');
-
-            if (total === 0) {
-                $display.val('Belum ada penerima');
-                $hidden.val('');
-            } else {
-                const parts = [];
-                if (internalCount > 0) parts.push(`${internalCount} Internal`);
-                if (eksternalCount > 0) parts.push(`${eksternalCount} Eksternal`);
-                const statusText = `${total} Penerima (${parts.join(', ')})`;
-                $display.val(statusText);
-                $hidden.val(statusText);
-            }
-        }
-
-        function renderPenerimaList() {
-            const list = $('#penerima-list');
-            const placeholder = $('#penerima-placeholder');
-            list.empty();
-            $('input[name^="penerima_internal"],input[name^="penerima_eksternal"]').remove();
-
-            const internalCount = Object.keys(penerimaState.internal).length;
-            const eksternalCount = penerimaState.eksternal.length;
-
-            if (internalCount === 0 && eksternalCount === 0) {
-                placeholder.show();
-            } else {
-                placeholder.hide();
-                for (const id in penerimaState.internal) {
-                    const d = penerimaState.internal[id];
-                    list.append(
-                        `<li class="list-group-item d-flex justify-content-between align-items-center">
-                                                                                                                <div><i class="fas fa-user-tie mr-2 text-info"></i>${d.nama}</div>
-                                                                                                                <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="internal" data-id="${id}">
-                                                                                                                    <i class="fas fa-times"></i>
-                                                                                                                </button>
-                                                                                                            </li>`
-                    );
-                    $('#tugasForm').append(`<input type="hidden" name="penerima_internal[]" value="${id}">`);
-                }
-                penerimaState.eksternal.forEach((p, i) => {
-                    list.append(
-                        `<li class="list-group-item d-flex justify-content-between align-items-center">
-                                                                                                                <div><i class="fas fa-user mr-2 text-success"></i>${p.nama} <span class="eksternal-label">(${p.jabatan})</span></div>
-                                                                                                                <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="eksternal" data-id="${i}">
-                                                                                                                    <i class="fas fa-times"></i>
-                                                                                                                </button>
-                                                                                                            </li>`
-                    );
-                    $('#tugasForm').append(
-                        `<input type="hidden" name="penerima_eksternal[${i}][nama]" value="${p.nama}">`
-                    );
-                    $('#tugasForm').append(
-                        `<input type="hidden" name="penerima_eksternal[${i}][jabatan]" value="${p.jabatan}">`
-                    );
-                });
-            }
-            updateStatusPenerima();
-        }
-
-        $('#simpanPenerima').on('click', function() {
-            penerimaState.internal = {};
-            table.$('.penerima-checkbox:checked').each(function() {
-                const id = $(this).val();
-                const nama = $(this).data('nama');
-                const peranId = $(this).data('peran-id');
-                penerimaState.internal[id] = {
-                    nama,
-                    peran_id: peranId
-                };
-            });
-            renderPenerimaList();
-            $('#penerimaModal').modal('hide');
-            Swal.fire({
-                icon: 'success',
-                title: 'Penerima Disimpan!',
-                text: 'Daftar penerima berhasil diperbarui.',
-                showConfirmButton: false,
-                timer: 1500
-            });
-        });
-
-        $('#simpanPenerimaEksternal').on('click', function() {
-            const nama = $('#nama_eksternal').val().trim();
-            const jabatan = $('#jabatan_eksternal').val().trim();
-            if (nama && jabatan) {
-                penerimaState.eksternal.push({
-                    nama,
-                    jabatan
-                });
-                renderPenerimaList();
-                $('#form-penerima-eksternal')[0].reset();
-                $('#penerimaEksternalModal').modal('hide');
-            } else {
-                Swal.fire('Lengkapi Nama & Jabatan', '', 'warning');
-            }
-        });
-
-        $('#penerima-list').on('click', '.remove-penerima', function() {
-            const type = $(this).data('type'),
-                id = $(this).data('id');
-            if (type === 'internal') {
-                delete penerimaState.internal[id];
-                $('#penerima-table .penerima-checkbox[value="' + id + '"]').prop('checked', false);
-            } else {
-                penerimaState.eksternal.splice(id, 1);
-            }
-            renderPenerimaList();
-        });
-
-        function validateForm() {
-            const errors = [];
-            const namaUmum = $('#nama_umum').val().trim();
-            if (!namaUmum || namaUmum.length < 10) errors.push('Judul Umum Surat minimal 10 karakter');
-            if (!$('#klasifikasi_surat').val()) errors.push('Klasifikasi surat wajib dipilih');
-
-            // ✅ perbaikan di sini:
-            const penandatanganVal = String($('#penandatangan_id').val() || '').trim();
-            if (!penandatanganVal) errors.push('Penandatangan wajib dipilih');
-
-            const mulai = $('#waktu_mulai').val(),
-                selesai = $('#waktu_selesai').val();
-            if (mulai && selesai && new Date(selesai) < new Date(mulai)) {
-                errors.push('Waktu selesai harus setelah waktu mulai');
-            }
-            if (errors.length) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Validasi Gagal',
-                    html: '<ul style="text-align:left;">' + errors.map(e => `<li>${e}</li>`).join('') +
-                            '</ul>'
-                    });
-                    return false;
-                }
-                return true;
-            }
-
-            // --- sinkron nama pembuat & asal surat ke hidden ---
-            function syncNamaPembuat() {
-                const $opt = $('#pembuat_id').find(':selected');
-                if ($opt.length) $('#nama_pembuat_hidden').val(($opt.text() || '').trim());
-            }
-
-            function syncAsalSurat() {
-                const $opt = $('#asal_surat_id').find(':selected');
-                if ($opt.length) {
-                    // ambil seluruh teks option (boleh beserta peran)
-                    const txt = ($opt.text() || '').trim();
-                    $('#asal_surat_hidden').val(txt);
-                }
-            }
-
-            // Saat create: update ketika berubah
-            $('#pembuat_id').on('change', syncNamaPembuat);
-            $('#asal_surat_id').on('change', syncAsalSurat);
-
-            // Render awal (kalau default sudah terpilih)
-            syncNamaPembuat();
-            syncAsalSurat();
-
-            // Safeguard: sebelum submit pastikan hidden terisi walau readonly display
-            $('#tugasForm').on('submit', function() {
-                if (!$('#nama_pembuat_hidden').val() && $('#pembuat_id_display').length) {
-                    $('#nama_pembuat_hidden').val($('#pembuat_id_display').val());
-                }
-                if (!$('#asal_surat_hidden').val() && $('#asal_surat_id_display').length) {
-                    $('#asal_surat_hidden').val($('#asal_surat_id_display').val());
-                }
-            });
-
-            @if ($isEdit && !empty(old('jenis_tugas', $tugas->jenis_tugas ?? null)) && !empty(old('tugas', $tugas->tugas ?? null)))
-                $(document).ready(function() {
-                    // Trigger update pratinjau setelah halaman load
-                    setTimeout(function() {
-                        const jenisValue = @json(old('jenis_tugas', $tugas->jenis_tugas ?? null));
-                        const tugasValue = @json(old('tugas', $tugas->tugas ?? null));
-
-                        if (jenisValue && tugasValue) {
-                            // Populate dropdown tugas
-                            populateSpecificTask(jenisValue, tugasValue);
-
-                            // Update preview
-                            updateTaskPreview();
-                        }
-                    }, 300);
-                });
-            @endif
-
-            // =========================================================
-            //               Submit (auto-reserve kalau perlu)
-            // =========================================================
-            let clickedAction = null;
-
-            $('button[name="action"]').on('click', function(e) {
-                e.preventDefault();
-                clickedAction = $(this).val();
-
-                const internalCount = Object.keys(penerimaState.internal).length;
-                const eksternalCount = penerimaState.eksternal.length;
-                if (internalCount === 0 && eksternalCount === 0) {
-                    Swal.fire('Peringatan', 'Anda harus memilih setidaknya satu penerima tugas.',
-                        'warning');
-                    return;
-                }
-                if (clickedAction === 'submit' && !validateForm()) return;
-
-                const isSubmit = clickedAction === 'submit';
-                Swal.fire({
-                    title: isSubmit ? 'Ajukan Surat Tugas?' : 'Simpan sebagai Draft?',
-                    text: isSubmit ?
-                        'Setelah diajukan, surat akan masuk alur persetujuan. Lanjutkan?' :
-                        'Draft bisa diubah nanti. Simpan sekarang?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: isSubmit ? 'Ya, ajukan' : 'Ya, simpan draft',
-                    cancelButtonText: 'Batal',
-                    reverseButtons: true,
-                }).then(async (result) => {
-                    if (!result.isConfirmed) return;
-
-                    if (isSubmitting) return;
-                    isSubmitting = true;
-
-                    Swal.fire({
-                        title: 'Sedang diproses…',
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading(),
-                        showConfirmButton: false
-                    });
-
-                    // pastikan ada nomor
-                    if (!$hidden.val() && !$manual.val().trim()) {
-                        const ok = await reserveNomor(false);
-                        if (!ok) {
-                            isSubmitting = false;
-                            Swal.close();
-                            return;
-                        }
-                    }
-                    if ($manual.val().trim()) { // sinkronkan manual
-                        const v = $manual.val().trim();
-                        $disp.val(v);
-                        $hidden.val(v);
-                        $urut.val(extractNoUrut(v));
-                    }
-
-                    $('input[name="action"]', '#tugasForm').remove();
-                    $('<input>').attr({
-                        type: 'hidden',
-                        name: 'action',
-                        value: clickedAction
-                    }).appendTo('#tugasForm');
-
-                    $('#tugasForm').find('button[type="button"]').prop('disabled', true)
-                        .addClass('disabled');
-                    $('#tugasForm')[0].submit();
-                });
-            });
-
-            $('#tugasForm').on('submit', function(e) {
-                if (!clickedAction) {
-                    e.preventDefault();
-                    Swal.fire({
-                        title: 'Pilih Aksi',
-                        text: 'Anda belum memilih apakah ingin menyimpan draft atau mengajukan surat tugas.',
-                        icon: 'warning',
-                        showDenyButton: true,
-                        showCancelButton: true,
-                        confirmButtonText: 'Simpan Draft',
-                        denyButtonText: 'Ajukan',
-                        cancelButtonText: 'Batal',
-                        reverseButtons: true,
-                    }).then(async (res) => {
-                        if (!res.isConfirmed && !res.isDenied) return;
-                        clickedAction = res.isConfirmed ? 'draft' : 'submit';
-
-                        if (isSubmitting) return;
-                        isSubmitting = true;
-
-                        Swal.fire({
-                            title: 'Sedang diproses…',
-                            allowOutsideClick: false,
-                            didOpen: () => Swal.showLoading(),
-                            showConfirmButton: false
-                        });
-
-                        if (!$hidden.val() && !$manual.val().trim()) {
-                            const ok = await reserveNomor(false);
-                            if (!ok) {
-                                isSubmitting = false;
-                                Swal.close();
-                                return;
+                            } else {
+                                $tugasPreview.html(placeholderText).removeClass('has-content');
                             }
                         }
-                        if ($manual.val().trim()) {
-                            const v = $manual.val().trim();
-                            $disp.val(v);
-                            $hidden.val(v);
-                            $urut.val(extractNoUrut(v));
+
+                        function populateSpecificTask(selectedKategori, preselectedTugas) {
+                            const $tugasSelect = $('#tugas');
+                            $tugasSelect.empty().append(new Option('Pilih Tugas...', ''));
+                            const found = (taskData || []).find(jt => jt.nama === selectedKategori);
+                            if (found && Array.isArray(found.subtugas) && found.subtugas.length) {
+                                found.subtugas.forEach(st => {
+                                    const selected = preselectedTugas === st.nama;
+                                    $tugasSelect.append(new Option(st.nama, st.nama, selected, selected));
+                                });
+                                $tugasSelect.prop('disabled', false);
+                            } else {
+                                $tugasSelect.prop('disabled', true);
+                            }
+                            $tugasSelect.trigger('change.select2');
+                            updateTaskPreview();
+                        }
+                        $('#jenis_tugas').on('change', function() {
+                            populateSpecificTask($(this).val(), null);
+                        });
+                        $('#tugas').on('change', updateTaskPreview);
+                        @if ($isEdit)
+                            populateSpecificTask(@json(old('jenis_tugas', $tugas->jenis_tugas)), @json(old('tugas', $tugas->tugas)));
+                        @else
+                            if (@json(old('jenis_tugas', ''))) {
+                                populateSpecificTask(@json(old('jenis_tugas', '')), @json(old('tugas', '')));
+                            }
+                        @endif
+
+                        // ===== TEMBUSAN (Tagify) =====
+                        window._ = window._ || {};
+                        if (!_.escape) {
+                            _.escape = s => String(s).replace(/[&<>"'=\/]/g, c => ({
+                                '&': '&amp;',
+                                '<': '&lt;',
+                                '>': '&gt;',
+                                '"': '&quot;',
+                                "'": '&#39;',
+                                '/': '&#x2F;',
+                                '=': '&#x3D;',
+                                '`': '&#x60;'
+                        } [c]));
+                    }
+                    const tembusanPresets = @json($tembusanPresets ?? []);
+                    const tembusanInput = document.querySelector('#tembusan-input');
+                    if (tembusanInput) {
+                        const tagify = new Tagify(tembusanInput, {
+                            enforceWhitelist: false,
+                            whitelist: tembusanPresets,
+                            trim: true,
+                            duplicates: false,
+                            delimiters: ",|\n",
+                            editTags: 1,
+                            dropdown: {
+                                enabled: 1,
+                                maxItems: 20,
+                                fuzzySearch: true,
+                                highlightFirst: true,
+                                placeAbove: false
+                            },
+                            placeholder: "Misal: Yth. Rektor, BAAK, Arsip",
+                            transformTag: (t) => {
+                                let v = (t.value || '').trim();
+                                if (!v) return;
+                                v = v.toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
+                                const needsYth =
+                                    /^(Rektor|Wakil Rektor|Dekan|Kepala|Direktur|Ketua|Sekretaris)\b/i
+                                    .test(
+                                        v) && !/^Yth\.\s/i.test(v);
+                                if (needsYth) v = 'Yth. ' + v;
+                                t.value = v;
+                            }
+                        });
+                        const renderTembusanPreview = () => {
+                            const data = tagify.value.map(t => (t.value || '').trim()).filter(Boolean);
+                            const showTitle = $('#tembusanShowTitle').is(':checked');
+                            const $preview = $('#tembusanPreview');
+                            if (!data.length) {
+                                $preview.html(
+                                    '<h6 class="mb-2" style="font-weight:700;color:#3b5bdb"><i class="fas fa-eye mr-1"></i>Pratinjau</h6><div class="text-muted">Belum ada tembusan. Tambahkan minimal satu.</div>'
+                                );
+                                $('#tembusan_formatted').val('');
+                                return;
+                            }
+                            const titleHtml = showTitle ?
+                                '<div class="mb-2 font-weight-bold">Tembusan Yth:</div>' : '';
+                            const listHtml = '<ol class="mb-0">' + data.map(v => `<li>${_.escape(v)}</li>`)
+                                .join('') +
+                                '</ol>';
+                            $preview.html(
+                                `<h6 class="mb-2" style="font-weight:700;color:#3b5bdb"><i class="fas fa-eye mr-1"></i>Pratinjau</h6>${titleHtml}${listHtml}`
+                            );
+                            const plain = (showTitle ? 'Tembusan Yth:\n' : '') + data.map((v, i) =>
+                                    `${i+1}. ${v}`)
+                                .join('\n');
+                            $('#tembusan_formatted').val(plain);
+                        };
+                        tagify.on('add', renderTembusanPreview).on('remove', renderTembusanPreview).on(
+                            'edit:updated',
+                            renderTembusanPreview);
+                        $(document).on('change', '#tembusanShowTitle', renderTembusanPreview);
+                        $(document).on('click', '#btnPasteTembusan', async function() {
+                            try {
+                                const txt = await navigator.clipboard.readText();
+                                if (!txt) return;
+                                const items = txt.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+                                const existing = new Set(tagify.value.map(t => (t.value || '')
+                                    .toLowerCase()));
+                                const toAdd = items.filter(s => !existing.has(s.toLowerCase())).map(s =>
+                                    ({
+                                        value: s
+                                    }));
+                                tagify.addTags(toAdd);
+                            } catch (e) {
+                                Swal.fire('Tidak bisa mengakses clipboard',
+                                    'Izinkan akses atau tempel manual.',
+                                    'info');
+                            }
+                        });
+                        $(document).on('click', '#btnClearTembusan', () => tagify.removeAllTags());
+                        setTimeout(renderTembusanPreview, 0);
+                    }
+
+                    // ===== Penerima =====
+                    const allUsersData = @json($usersMap);
+                    const initialInternal = @json($initialInternal);
+                    const initialEksternal = @json($initialEksternal);
+                    let penerimaState = {
+                        internal: {},
+                        eksternal: Array.isArray(initialEksternal) ? initialEksternal : []
+                    };
+
+                    (initialInternal || []).forEach(id => {
+                        const u = allUsersData[id];
+                        if (u) penerimaState.internal[id] = {
+                            nama: u.nama_lengkap,
+                            peran_id: u.peran_id
+                        };
+                    });
+
+                    // FIXED: Tambahkan fungsi updateStatusPenerima
+                    function updateStatusPenerima() {
+                        const internalCount = Object.keys(penerimaState.internal).length;
+                        const eksternalCount = penerimaState.eksternal.length;
+                        const total = internalCount + eksternalCount;
+
+                        const $display = $('#status_penerima_display');
+                        const $hidden = $('#status_penerima_hidden');
+
+                        if (total === 0) {
+                            $display.val('Belum ada penerima');
+                            $hidden.val('');
+                        } else {
+                            const parts = [];
+                            if (internalCount > 0) parts.push(`${internalCount} Internal`);
+                            if (eksternalCount > 0) parts.push(`${eksternalCount} Eksternal`);
+                            const statusText = `${total} Penerima (${parts.join(', ')})`;
+                            $display.val(statusText);
+                            $hidden.val(statusText);
+                        }
+                    }
+
+                    function renderPenerimaList() {
+                        const list = $('#penerima-list');
+                        const placeholder = $('#penerima-placeholder');
+                        list.empty();
+                        $('input[name^="penerima_internal"],input[name^="penerima_eksternal"]').remove();
+
+                        const internalCount = Object.keys(penerimaState.internal).length;
+                        const eksternalCount = penerimaState.eksternal.length;
+
+                        if (internalCount === 0 && eksternalCount === 0) {
+                            placeholder.show();
+                        } else {
+                            placeholder.hide();
+                            for (const id in penerimaState.internal) {
+                                const d = penerimaState.internal[id];
+                                list.append(
+                                    `<li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                                                                        <div><i class="fas fa-user-tie mr-2 text-info"></i>${d.nama}</div>
+                                                                                                                        <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="internal" data-id="${id}">
+                                                                                                                            <i class="fas fa-times"></i>
+                                                                                                                        </button>
+                                                                                                                    </li>`
+                                );
+                                $('#tugasForm').append(
+                                    `<input type="hidden" name="penerima_internal[]" value="${id}">`);
+                            }
+                            penerimaState.eksternal.forEach((p, i) => {
+                                list.append(
+                                    `<li class="list-group-item d-flex justify-content-between align-items-center">
+                                                                                                                        <div><i class="fas fa-user mr-2 text-success"></i>${p.nama} <span class="eksternal-label">(${p.jabatan})</span></div>
+                                                                                                                        <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="eksternal" data-id="${i}">
+                                                                                                                            <i class="fas fa-times"></i>
+                                                                                                                        </button>
+                                                                                                                    </li>`
+                                );
+                                $('#tugasForm').append(
+                                    `<input type="hidden" name="penerima_eksternal[${i}][nama]" value="${p.nama}">`
+                                );
+                                $('#tugasForm').append(
+                                    `<input type="hidden" name="penerima_eksternal[${i}][jabatan]" value="${p.jabatan}">`
+                                );
+                            });
+                        }
+                        updateStatusPenerima();
+                    }
+
+                    $('#simpanPenerima').on('click', function() {
+                        penerimaState.internal = {};
+                        table.$('.penerima-checkbox:checked').each(function() {
+                            const id = $(this).val();
+                            const nama = $(this).data('nama');
+                            const peranId = $(this).data('peran-id');
+                            penerimaState.internal[id] = {
+                                nama,
+                                peran_id: peranId
+                            };
+                        });
+                        renderPenerimaList();
+                        $('#penerimaModal').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Penerima Disimpan!',
+                            text: 'Daftar penerima berhasil diperbarui.',
+                            showConfirmButton: false,
+                            timer: 1500
+                        });
+                    });
+
+                    $('#simpanPenerimaEksternal').on('click', function() {
+                        const nama = $('#nama_eksternal').val().trim();
+                        const jabatan = $('#jabatan_eksternal').val().trim();
+                        if (nama && jabatan) {
+                            penerimaState.eksternal.push({
+                                nama,
+                                jabatan
+                            });
+                            renderPenerimaList();
+                            $('#form-penerima-eksternal')[0].reset();
+                            $('#penerimaEksternalModal').modal('hide');
+                        } else {
+                            Swal.fire('Lengkapi Nama & Jabatan', '', 'warning');
+                        }
+                    });
+
+                    $('#penerima-list').on('click', '.remove-penerima', function() {
+                        const type = $(this).data('type'),
+                            id = $(this).data('id');
+                        if (type === 'internal') {
+                            delete penerimaState.internal[id];
+                            $('#penerima-table .penerima-checkbox[value="' + id + '"]').prop('checked',
+                                false);
+                        } else {
+                            penerimaState.eksternal.splice(id, 1);
+                        }
+                        renderPenerimaList();
+                    });
+
+                    function validateForm() {
+                        const errors = [];
+                        const namaUmum = $('#nama_umum').val().trim();
+                        if (!namaUmum || namaUmum.length < 10) errors.push('Judul Umum Surat minimal 10 karakter');
+                        if (!$('#klasifikasi_surat').val()) errors.push('Klasifikasi surat wajib dipilih');
+
+                        // ✅ perbaikan di sini:
+                        const penandatanganVal = String($('#penandatangan_id').val() || '').trim();
+                        if (!penandatanganVal) errors.push('Penandatangan wajib dipilih');
+
+                        const mulai = $('#waktu_mulai').val(),
+                            selesai = $('#waktu_selesai').val();
+                        if (mulai && selesai && new Date(selesai) < new Date(mulai)) {
+                            errors.push('Waktu selesai harus setelah waktu mulai');
+                        }
+                        if (errors.length) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Validasi Gagal',
+                                html: '<ul style="text-align:left;">' + errors.map(e => `<li>${e}</li>`)
+                                        .join('') +
+                                        '</ul>'
+                                });
+                                return false;
+                            }
+                            return true;
                         }
 
-                        $('input[name="action"]', '#tugasForm').remove();
-                        $('<input>').attr({
-                            type: 'hidden',
-                            name: 'action',
-                            value: clickedAction
-                        }).appendTo('#tugasForm');
+                        // --- sinkron nama pembuat & asal surat ke hidden ---
+                        function syncNamaPembuat() {
+                            const $opt = $('#pembuat_id').find(':selected');
+                            if ($opt.length) $('#nama_pembuat_hidden').val(($opt.text() || '').trim());
+                        }
 
-                        $('#tugasForm').find('button[type="button"]').prop('disabled', true)
-                            .addClass('disabled');
-                        $('#tugasForm')[0].submit();
+                        function syncAsalSurat() {
+                            const $opt = $('#asal_surat_id').find(':selected');
+                            if ($opt.length) {
+                                // ambil seluruh teks option (boleh beserta peran)
+                                const txt = ($opt.text() || '').trim();
+                                $('#asal_surat_hidden').val(txt);
+                            }
+                        }
+
+                        // Saat create: update ketika berubah
+                        $('#pembuat_id').on('change', syncNamaPembuat);
+                        $('#asal_surat_id').on('change', syncAsalSurat);
+
+                        // Render awal (kalau default sudah terpilih)
+                        syncNamaPembuat();
+                        syncAsalSurat();
+
+                        // Safeguard: sebelum submit pastikan hidden terisi walau readonly display
+                        $('#tugasForm').on('submit', function() {
+                            if (!$('#nama_pembuat_hidden').val() && $('#pembuat_id_display').length) {
+                                $('#nama_pembuat_hidden').val($('#pembuat_id_display').val());
+                            }
+                            if (!$('#asal_surat_hidden').val() && $('#asal_surat_id_display').length) {
+                                $('#asal_surat_hidden').val($('#asal_surat_id_display').val());
+                            }
+                        });
+
+                        @if ($isEdit && !empty(old('jenis_tugas', $tugas->jenis_tugas ?? null)) && !empty(old('tugas', $tugas->tugas ?? null)))
+                            $(document).ready(function() {
+                                // Trigger update pratinjau setelah halaman load
+                                setTimeout(function() {
+                                    const jenisValue = @json(old('jenis_tugas', $tugas->jenis_tugas ?? null));
+                                    const tugasValue = @json(old('tugas', $tugas->tugas ?? null));
+
+                                    if (jenisValue && tugasValue) {
+                                        // Populate dropdown tugas
+                                        populateSpecificTask(jenisValue, tugasValue);
+
+                                        // Update preview
+                                        updateTaskPreview();
+                                    }
+                                }, 300);
+                            });
+                        @endif
+
+                        // =========================================================
+                        //               Submit (auto-reserve kalau perlu)
+                        // =========================================================
+                        let clickedAction = null;
+
+                        $('button[name="action"]').on('click', function(e) {
+                            e.preventDefault();
+                            clickedAction = $(this).val();
+
+                            const internalCount = Object.keys(penerimaState.internal).length;
+                            const eksternalCount = penerimaState.eksternal.length;
+                            if (internalCount === 0 && eksternalCount === 0) {
+                                Swal.fire('Peringatan', 'Anda harus memilih setidaknya satu penerima tugas.',
+                                    'warning');
+                                return;
+                            }
+                            if (clickedAction === 'submit' && !validateForm()) return;
+
+                            const isSubmit = clickedAction === 'submit';
+                            Swal.fire({
+                                title: isSubmit ? 'Ajukan Surat Tugas?' : 'Simpan sebagai Draft?',
+                                text: isSubmit ?
+                                    'Setelah diajukan, surat akan masuk alur persetujuan. Lanjutkan?' :
+                                    'Draft bisa diubah nanti. Simpan sekarang?',
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonText: isSubmit ? 'Ya, ajukan' : 'Ya, simpan draft',
+                                cancelButtonText: 'Batal',
+                                reverseButtons: true,
+                            }).then(async (result) => {
+                                if (!result.isConfirmed) return;
+
+                                if (isSubmitting) return;
+                                isSubmitting = true;
+
+                                Swal.fire({
+                                    title: 'Sedang diproses…',
+                                    allowOutsideClick: false,
+                                    didOpen: () => Swal.showLoading(),
+                                    showConfirmButton: false
+                                });
+
+                                // pastikan ada nomor
+                                if (!$hidden.val() && !$manual.val().trim()) {
+                                    const ok = await reserveNomor(false);
+                                    if (!ok) {
+                                        isSubmitting = false;
+                                        Swal.close();
+                                        return;
+                                    }
+                                }
+                                if ($manual.val().trim()) { // sinkronkan manual
+                                    const v = $manual.val().trim();
+                                    $disp.val(v);
+                                    $hidden.val(v);
+                                    $urut.val(extractNoUrut(v));
+                                }
+
+                                $('input[name="action"]', '#tugasForm').remove();
+                                $('<input>').attr({
+                                    type: 'hidden',
+                                    name: 'action',
+                                    value: clickedAction
+                                }).appendTo('#tugasForm');
+
+                                $('#tugasForm').find('button[type="button"]').prop('disabled', true)
+                                    .addClass('disabled');
+                                $('#tugasForm')[0].submit();
+                            });
+                        });
+
+                        $('#tugasForm').on('submit', function(e) {
+                            if (!clickedAction) {
+                                e.preventDefault();
+                                Swal.fire({
+                                    title: 'Pilih Aksi',
+                                    text: 'Anda belum memilih apakah ingin menyimpan draft atau mengajukan surat tugas.',
+                                    icon: 'warning',
+                                    showDenyButton: true,
+                                    showCancelButton: true,
+                                    confirmButtonText: 'Simpan Draft',
+                                    denyButtonText: 'Ajukan',
+                                    cancelButtonText: 'Batal',
+                                    reverseButtons: true,
+                                }).then(async (res) => {
+                                    if (!res.isConfirmed && !res.isDenied) return;
+                                    clickedAction = res.isConfirmed ? 'draft' : 'submit';
+
+                                    if (isSubmitting) return;
+                                    isSubmitting = true;
+
+                                    Swal.fire({
+                                        title: 'Sedang diproses…',
+                                        allowOutsideClick: false,
+                                        didOpen: () => Swal.showLoading(),
+                                        showConfirmButton: false
+                                    });
+
+                                    if (!$hidden.val() && !$manual.val().trim()) {
+                                        const ok = await reserveNomor(false);
+                                        if (!ok) {
+                                            isSubmitting = false;
+                                            Swal.close();
+                                            return;
+                                        }
+                                    }
+                                    if ($manual.val().trim()) {
+                                        const v = $manual.val().trim();
+                                        $disp.val(v);
+                                        $hidden.val(v);
+                                        $urut.val(extractNoUrut(v));
+                                    }
+
+                                    $('input[name="action"]', '#tugasForm').remove();
+                                    $('<input>').attr({
+                                        type: 'hidden',
+                                        name: 'action',
+                                        value: clickedAction
+                                    }).appendTo('#tugasForm');
+
+                                    $('#tugasForm').find('button[type="button"]').prop('disabled',
+                                            true)
+                                        .addClass('disabled');
+                                    $('#tugasForm')[0].submit();
+                                });
+                            }
+                        });
+
+                        // Render awal
+                        renderPenerimaList();
                     });
-                }
-            });
-
-            // Render awal
-            renderPenerimaList();
-        });
     </script>
 @endpush

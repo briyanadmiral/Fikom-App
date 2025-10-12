@@ -1,233 +1,389 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <a href="{{ url('/') }}" class="brand-link">
-        <img src="{{ asset('vendor/adminlte/dist/img/Logo_Siega.png') }}" alt="Logo"
-             class="brand-image img-circle elevation-3" style="opacity:.8">
-        <span class="brand-text font-weight-light">{{ config('app.name', 'Arsip Surat SIEGA') }}</span>
+    <a href="{{ url('/') }}" class="brand-link"
+        style="background-color: #4b0082 !important; /* Ungu gelap solid */
+               border-bottom: 4px solid #8B5CF6 !important;
+               text-align: center;
+               padding: 1.5rem 1rem 2rem 1rem;
+               box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);">
+        <span
+            style="color: transparent; /* Membuat teks transparan agar stroke terlihat */
+                     font-weight: 700;
+                     font-size: 1.8rem;
+                     letter-spacing: 6px;
+                     text-transform: uppercase;
+                     font-family: 'Arial Black', sans-serif;
+                     display: block;
+                     margin-bottom: -0.5rem;
+                     -webkit-text-stroke: 1px #ffffff; /* Stroke putih */
+                     text-shadow: 0 0 100px #fff, /* Efek neon putih */
+                                  0 0 40px #fff,
+                                  0 0 20px #fff; ">
+            Surat
+        </span>
+
+        <span
+            style="color: transparent; /* Membuat teks transparan agar stroke terlihat */
+                     font-weight: 900;
+                     font-size: 3.5rem;
+                     letter-spacing: 14px;
+                     text-transform: uppercase;
+                     font-family: 'Impact', 'Arial Black', sans-serif;
+                     display: block;
+                     -webkit-text-stroke: 1px #ffffff; /* Stroke putih */
+                     text-shadow: 0 0 100px #fff, /* Efek neon putih */
+                                  0 0 40px #fff,
+                                  0 0 30px #fff; ">
+            SIEGA
+        </span>
     </a>
 
     <div class="sidebar">
         @auth
-        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-            <div class="image">
-                <img src="{{ asset('vendor/adminlte/dist/img/profile.jpg') }}" class="img-circle elevation-2" alt="User">
+            <div class="user-panel mt-3 pb-3 mb-3 d-flex"
+                style="background: rgba(139, 92, 246, 0.08); 
+                    border-radius: 10px; 
+                    padding: 1rem !important;
+                    margin: 0.5rem 0.5rem 1rem 0.5rem !important;">
+                <div class="image">
+                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->nama_lengkap) }}&background=8B5CF6&color=fff&size=128"
+                        class="img-circle elevation-2" style="border: 3px solid #8B5CF6 !important;"
+                        alt="{{ Auth::user()->nama_lengkap }}">
+                </div>
+                <div class="info">
+                    <a href="{{ route('account.settings') }}" class="d-block" title="Pengaturan Akun"
+                        style="color: #ffffff; /* Warna teks putih cerah */
+                          font-weight: 600; /* Sedikit lebih tebal */
+                          text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);">
+                        {{ Str::limit(Auth::user()->nama_lengkap, 20) }}
+                    </a>
+                    <small class="d-block"
+                        style="color: #a0aec0; /* Warna abu-abu yang lebih terang */
+                              margin-top: 0.2rem;">
+                        <i class="fas fa-circle text-success"
+                            style="font-size: 0.6rem; margin-right: 0.3rem; color: #34d399 !important;"></i>
+                        {{ Auth::user()->peran->nama ?? 'User' }}
+                    </small>
+                </div>
             </div>
-            <div class="info">
-                <a href="#" class="d-block">{{ Auth::user()->nama_lengkap }}</a>
-            </div>
-        </div>
         @endauth
 
-        @php
-            $peranId = (int) optional(Auth::user())->peran_id;
-            $isRoute = fn(...$names) => request()->routeIs(...$names);
-            $isPath  = fn(...$paths) => collect($paths)->contains(fn($p) => request()->is($p));
-        @endphp
+    @php
+        $peranId = (int) optional(Auth::user())->peran_id;
+        $isRoute = fn(...$names) => request()->routeIs(...$names);
+    @endphp
 
-        <nav class="mt-2">
-            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
+    <!-- Sidebar Menu -->
+    <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column nav-child-indent" data-widget="treeview" role="menu"
+            data-accordion="false">
 
-                {{-- Dashboard --}}
+            <!-- Dashboard -->
+            <li class="nav-header" style="color: #a78bfa !important;">MENU UTAMA</li>
+            <li class="nav-item">
+                <a href="{{ route('home') }}" class="nav-link {{ $isRoute('home') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-tachometer-alt"></i>
+                    <p>Dashboard</p>
+                </a>
+            </li>
+
+            <!-- Notifikasi -->
+            <li class="nav-item">
+                <a href="{{ route('notifikasi.index') }}"
+                    class="nav-link {{ $isRoute('notifikasi.*') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-bell"></i>
+                    <p>
+                        Notifikasi
+                        @php
+                            $unreadCount = Auth::user()->notifikasi()->where('dibaca', false)->count();
+                        @endphp
+                        @if ($unreadCount > 0)
+                            <span class="right badge badge-warning">{{ $unreadCount }}</span>
+                        @endif
+                    </p>
+                </a>
+            </li>
+
+            <!-- CRUD Pengguna (Admin TU Only) -->
+            @if ($peranId === 1)
+                <li class="nav-header" style="color: #a78bfa !important;">ADMINISTRASI</li>
                 <li class="nav-item">
-                    <a href="{{ route('home') }}"
-                       class="nav-link {{ $isRoute('home') || $isPath('home') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-tachometer-alt"></i>
-                        <p>Dashboard</p>
-                    </a>
-                </li>
-
-                {{-- CRUD Pengguna (Admin TU) --}}
-                @if ($peranId === 1)
-                <li class="nav-item">
-                    <a href="{{ route('users.index') }}"
-                       class="nav-link {{ $isRoute('users.*') || $isPath('users*') ? 'active' : '' }}">
+                    <a href="{{ route('users.index') }}" class="nav-link {{ $isRoute('users.*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-users"></i>
-                        <p>Pengguna</p>
+                        <p>Kelola Pengguna</p>
                     </a>
                 </li>
-                @endif
+            @endif
 
-                {{-- =============== SURAT TUGAS =============== --}}
+            <!-- =============== SURAT TUGAS =============== -->
+            <li class="nav-header" style="color: #a78bfa !important;">SURAT & DOKUMEN</li>
 
-{{-- Admin TU --}}
-@if ($peranId === 1)
-    @php
-        $stAdminOpen = $isRoute('surat_tugas.all','surat_tugas.mine','surat_tugas.show','surat_tugas.edit','surat_tugas.update')
-                       || $isPath('surat_tugas/*');
-    @endphp
-    <li class="nav-item has-treeview {{ $stAdminOpen ? 'menu-open' : '' }}">
-        <a href="#" class="nav-link {{ $stAdminOpen ? 'active' : '' }}">
-            <i class="nav-icon fas fa-file-alt"></i>
-            <p>Surat Tugas<i class="right fas fa-angle-left"></i></p>
-        </a>
-        <ul class="nav nav-treeview">
-            <li class="nav-item">
-                {{-- INDEX/LISTING ADMIN --}}
-                <a href="{{ route('surat_tugas.all') }}"
-                   class="nav-link {{ $isRoute('surat_tugas.all') ? 'active' : '' }}">
-                    <i class="fas fa-cogs nav-icon"></i>
-                    <p>Input Surat Tugas</p>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('surat_tugas.mine') }}"
-                   class="nav-link {{ $isRoute('surat_tugas.mine') ? 'active' : '' }}">
-                    <i class="fas fa-user nav-icon"></i>
-                    <p>Surat Tugas Saya</p>
-                </a>
-            </li>
-        </ul>
-    </li>
-@endif
+            {{-- Admin TU --}}
+            @if ($peranId === 1)
+                @php
+                    $stAdminRoutes = [
+                        'surat_tugas.all',
+                        'surat_tugas.mine',
+                        'surat_tugas.show',
+                        'surat_tugas.edit',
+                        'surat_tugas.update',
+                        'surat_tugas.create',
+                    ];
+                    $stAdminOpen = $isRoute(...$stAdminRoutes);
+                @endphp
+                <li class="nav-item {{ $stAdminOpen ? 'menu-is-opening menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ $stAdminOpen ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-alt"></i>
+                        <p>
+                            Surat Tugas
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('surat_tugas.all') }}"
+                                class="nav-link {{ $isRoute('surat_tugas.all', 'surat_tugas.create', 'surat_tugas.edit') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-warning"></i>
+                                <p>Input Surat Tugas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('surat_tugas.mine') }}"
+                                class="nav-link {{ $isRoute('surat_tugas.mine') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-info"></i>
+                                <p>Surat Tugas Saya</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            @endif
 
-{{-- Approver (Dekan/Wakil) --}}
-@if (in_array($peranId, [2,3], true))
-    @php
-        $stApproverOpen = $isRoute('surat_tugas.approveList','surat_tugas.mine') || $isPath('surat_tugas/approve-list');
-    @endphp
-    <li class="nav-item has-treeview {{ $stApproverOpen ? 'menu-open' : '' }}">
-        <a href="#" class="nav-link {{ $stApproverOpen ? 'active' : '' }}">
-            <i class="nav-icon fas fa-file-alt"></i>
-            <p>Surat Tugas<i class="right fas fa-angle-left"></i></p>
-        </a>
-        <ul class="nav nav-treeview">
-            <li class="nav-item">
-                <a href="{{ route('surat_tugas.approveList') }}"
-                   class="nav-link {{ $isRoute('surat_tugas.approveList') ? 'active' : '' }}">
-                    <i class="fas fa-check nav-icon"></i>
-                    <p>Approve Surat Tugas</p>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('surat_tugas.mine') }}"
-                   class="nav-link {{ $isRoute('surat_tugas.mine') ? 'active' : '' }}">
-                    <i class="fas fa-user nav-icon"></i>
-                    <p>Surat Tugas Saya</p>
-                </a>
-            </li>
-        </ul>
-    </li>
-@endif
+            {{-- Approver (Dekan/Wakil) --}}
+            @if (in_array($peranId, [2, 3], true))
+                @php
+                    $stApproverRoutes = ['surat_tugas.approveList', 'surat_tugas.mine'];
+                    $stApproverOpen = $isRoute(...$stApproverRoutes);
+                @endphp
+                <li class="nav-item {{ $stApproverOpen ? 'menu-is-opening menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ $stApproverOpen ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-alt"></i>
+                        <p>
+                            Surat Tugas
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('surat_tugas.approveList') }}"
+                                class="nav-link {{ $isRoute('surat_tugas.approveList') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-success"></i>
+                                <p>Approve Surat Tugas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('surat_tugas.mine') }}"
+                                class="nav-link {{ $isRoute('surat_tugas.mine') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-info"></i>
+                                <p>Surat Tugas Saya</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            @endif
 
-{{-- Pengguna biasa --}}
-@if (in_array($peranId, [4,5,6], true))
-    <li class="nav-item">
-        <a href="{{ route('surat_tugas.mine') }}"
-           class="nav-link {{ $isRoute('surat_tugas.mine') ? 'active' : '' }}">
-           <i class="nav-icon fas fa-file-alt"></i>
-           <p>Surat Tugas Saya</p>
-        </a>
-    </li>
-@endif
-
-{{-- =============== SURAT KEPUTUSAN =============== --}}
-
-{{-- Admin TU --}}
-@if ($peranId === 1)
-    @php
-        $skAdminOpen = $isRoute(
-            'surat_keputusan.index',
-            'surat_keputusan.mine',
-            'surat_keputusan.show',
-            'surat_keputusan.edit',
-            'surat_keputusan.update'
-        ) || $isPath('surat_keputusan/*');
-    @endphp
-    <li class="nav-item has-treeview {{ $skAdminOpen ? 'menu-open' : '' }}">
-        <a href="#" class="nav-link {{ $skAdminOpen ? 'active' : '' }}">
-            <i class="nav-icon fas fa-book"></i>
-            <p>Surat Keputusan<i class="right fas fa-angle-left"></i></p>
-        </a>
-        <ul class="nav nav-treeview">
-            <li class="nav-item">
-                {{-- INDEX/LISTING ADMIN --}}
-                <a href="{{ route('surat_keputusan.index') }}"
-                   class="nav-link {{ $isRoute('surat_keputusan.index') ? 'active' : '' }}">
-                    <i class="fas fa-cogs nav-icon"></i>
-                    <p>Input Surat Keputusan</p>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('surat_keputusan.mine') }}"
-                   class="nav-link {{ $isRoute('surat_keputusan.mine') ? 'active' : '' }}">
-                    <i class="fas fa-user nav-icon"></i>
-                    <p>Surat Keputusan Saya</p>
-                </a>
-            </li>
-        </ul>
-    </li>
-@endif
-
-{{-- Approver (Dekan/Wakil) --}}
-@if (in_array($peranId, [2,3], true))
-    @php
-        $skApproverOpen = $isRoute(
-            'surat_keputusan.approveList',
-            'surat_keputusan.mine',
-            'surat_keputusan.show',
-            'surat_keputusan.approveForm',
-            'surat_keputusan.approvePreview'
-        ) || $isPath('surat_keputusan/*');
-    @endphp
-    <li class="nav-item has-treeview {{ $skApproverOpen ? 'menu-open' : '' }}">
-        <a href="#" class="nav-link {{ $skApproverOpen ? 'active' : '' }}">
-            <i class="nav-icon fas fa-book"></i>
-            <p>Surat Keputusan<i class="right fas fa-angle-left"></i></p>
-        </a>
-        <ul class="nav nav-treeview">
-            <li class="nav-item">
-                <a href="{{ route('surat_keputusan.approveList') }}"
-                   class="nav-link {{ $isRoute('surat_keputusan.approveList') ? 'active' : '' }}">
-                    <i class="fas fa-check nav-icon"></i>
-                    <p>Approve Surat Keputusan</p>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('surat_keputusan.mine') }}"
-                   class="nav-link {{ $isRoute('surat_keputusan.mine') ? 'active' : '' }}">
-                    <i class="fas fa-user nav-icon"></i>
-                    <p>Surat Keputusan Saya</p>
-                </a>
-            </li>
-        </ul>
-    </li>
-@endif
-
-{{-- Pengguna biasa --}}
-@if (in_array($peranId, [4,5,6], true))
-    <li class="nav-item">
-        <a href="{{ route('surat_keputusan.mine') }}"
-           class="nav-link {{ $isRoute('surat_keputusan.mine') ? 'active' : '' }}">
-            <i class="nav-icon fas fa-book"></i>
-            <p>Surat Keputusan Saya</p>
-        </a>
-    </li>
-@endif
-
-
-
-                {{-- Pengaturan Kop Surat (Admin TU) --}}
-                @if ($peranId === 1)
+            {{-- Pengguna biasa --}}
+            @if (in_array($peranId, [4, 5, 6], true))
                 <li class="nav-item">
-                    <a href="{{ route('kop.index') }}"
-                       class="nav-link {{ $isRoute('kop.*') || $isPath('pengaturan/kop-surat') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-tools"></i>
-                        <p>Pengaturan Kop Surat</p>
+                    <a href="{{ route('surat_tugas.mine') }}"
+                        class="nav-link {{ $isRoute('surat_tugas.mine') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-file-alt"></i>
+                        <p>Surat Tugas Saya</p>
                     </a>
                 </li>
-                @endif
+            @endif
 
-                {{-- TTD Saya (Dekan/Wakil) --}}
-                @if (in_array($peranId, [2,3], true))
+            {{-- =============== SURAT KEPUTUSAN =============== --}}
+
+            {{-- Admin TU --}}
+            @if ($peranId === 1)
+                @php
+                    $skAdminRoutes = [
+                        'surat_keputusan.index',
+                        'surat_keputusan.mine',
+                        'surat_keputusan.show',
+                        'surat_keputusan.edit',
+                        'surat_keputusan.update',
+                        'surat_keputusan.create',
+                    ];
+                    $skAdminOpen = $isRoute(...$skAdminRoutes);
+                @endphp
+                <li class="nav-item {{ $skAdminOpen ? 'menu-is-opening menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ $skAdminOpen ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-book"></i>
+                        <p>
+                            Surat Keputusan
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('surat_keputusan.index') }}"
+                                class="nav-link {{ $isRoute('surat_keputusan.index', 'surat_keputusan.create', 'surat_keputusan.edit') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-warning"></i>
+                                <p>Input Surat Keputusan</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('surat_keputusan.mine') }}"
+                                class="nav-link {{ $isRoute('surat_keputusan.mine') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-info"></i>
+                                <p>Surat Keputusan Saya</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            @endif
+
+            {{-- Approver (Dekan/Wakil) --}}
+            @if (in_array($peranId, [2, 3], true))
+                @php
+                    $skApproverRoutes = [
+                        'surat_keputusan.approveList',
+                        'surat_keputusan.mine',
+                        'surat_keputusan.show',
+                        'surat_keputusan.approveForm',
+                        'surat_keputusan.approvePreview',
+                    ];
+                    $skApproverOpen = $isRoute(...$skApproverRoutes);
+                @endphp
+                <li class="nav-item {{ $skApproverOpen ? 'menu-is-opening menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ $skApproverOpen ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-book"></i>
+                        <p>
+                            Surat Keputusan
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('surat_keputusan.approveList') }}"
+                                class="nav-link {{ $isRoute('surat_keputusan.approveList') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-success"></i>
+                                <p>Approve Surat Keputusan</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('surat_keputusan.mine') }}"
+                                class="nav-link {{ $isRoute('surat_keputusan.mine') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon text-info"></i>
+                                <p>Surat Keputusan Saya</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            @endif
+
+            {{-- Pengguna biasa --}}
+            @if (in_array($peranId, [4, 5, 6], true))
+                <li class="nav-item">
+                    <a href="{{ route('surat_keputusan.mine') }}"
+                        class="nav-link {{ $isRoute('surat_keputusan.mine') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-book"></i>
+                        <p>Surat Keputusan Saya</p>
+                    </a>
+                </li>
+            @endif
+
+            <!-- Pengaturan (Admin & Approver) -->
+            @if (in_array($peranId, [1, 2, 3], true))
+                <li class="nav-header" style="color: #a78bfa !important;">PENGATURAN</li>
+            @endif
+
+            {{-- Pengaturan Kop Surat (Admin TU) --}}
+            @if ($peranId === 1)
+                <li class="nav-item">
+                    <a href="{{ route('kop.index') }}" class="nav-link {{ $isRoute('kop.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-cog"></i>
+                        <p>Kop Surat</p>
+                    </a>
+                </li>
+            @endif
+
+            {{-- TTD Saya (Dekan/Wakil) --}}
+            @if (in_array($peranId, [2, 3], true))
                 <li class="nav-item">
                     <a href="{{ route('kop.ttd.edit') }}"
-                       class="nav-link {{ $isRoute('kop.ttd.edit') || $isPath('kop-surat/ttd-saya') ? 'active' : '' }}">
+                        class="nav-link {{ $isRoute('kop.ttd.edit') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-signature"></i>
-                        <p>TTD Saya</p>
+                        <p>Tanda Tangan Saya</p>
                     </a>
                 </li>
-                @endif
+            @endif
 
-            </ul>
-        </nav>
+        </ul>
+    </nav>
     </div>
 </aside>
+
+@push('css')
+    <style>
+        /* Purple accent on hover */
+        aside.main-sidebar .nav-link:hover {
+            background-color: rgba(139, 92, 246, 0.15) !important;
+        }
+
+        /* Active menu with purple border */
+        aside.main-sidebar .nav-link.active {
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.25) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
+            border-left: 4px solid #8B5CF6 !important;
+        }
+
+        aside.main-sidebar .nav-link.active i {
+            color: #a78bfa !important;
+        }
+
+        /* User panel hover effect */
+        aside.main-sidebar .user-panel:hover {
+            background: rgba(139, 92, 246, 0.12) !important;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2);
+            cursor: pointer;
+            /* Menambahkan kursor pointer untuk menunjukkan ini bisa diklik */
+        }
+
+        /* User panel info text */
+        aside.main-sidebar .user-panel .info a {
+            color: #ffffff;
+            /* Teks nama pengguna putih */
+            font-weight: 600;
+            /* Sedikit lebih tebal */
+            text-decoration: none;
+            /* Menghilangkan underline default link */
+            transition: color 0.3s ease;
+            /* Transisi warna saat hover */
+        }
+
+        aside.main-sidebar .user-panel .info a:hover {
+            color: #e0e0e0;
+            /* Sedikit lebih gelap saat hover */
+        }
+
+        aside.main-sidebar .user-panel .info small {
+            color: #a0aec0;
+            /* Warna abu-abu terang untuk peran */
+            font-size: 0.8rem;
+            /* Ukuran font peran */
+            margin-top: 0.2rem;
+            /* Jarak antara nama dan peran */
+        }
+
+        aside.main-sidebar .user-panel .info small .fa-circle.text-success {
+            color: #34d399 !important;
+            /* Hijau yang lebih cerah untuk status online */
+        }
+
+        /* Search input focus */
+        .form-control-sidebar:focus {
+            border-color: #8B5CF6 !important;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.4) !important;
+        }
+    </style>
+@endpush
