@@ -23,6 +23,35 @@
   .card.data-card .card-body{padding-top:1.2rem}
   .table th,.table td{vertical-align:middle!important}
   .table{background:#fff}
+  
+  /* ✅ Dropdown dengan warna berbeda */
+  .dropdown-menu .dropdown-item {
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s;
+  }
+  .dropdown-menu .dropdown-item i {
+    width: 20px;
+    text-align: center;
+    margin-right: 8px;
+  }
+  
+  /* Warna untuk setiap aksi */
+  .dropdown-item.text-info:hover { background-color: #17a2b8; color: white !important; }
+  .dropdown-item.text-warning:hover { background-color: #ffc107; color: white !important; }
+  .dropdown-item.text-success:hover { background-color: #28a745; color: white !important; }
+  .dropdown-item.text-danger:hover { background-color: #dc3545; color: white !important; }
+  .dropdown-item.text-primary:hover { background-color: #007bff; color: white !important; }
+  .dropdown-item.text-dark:hover { background-color: #343a40; color: white !important; }
+  .dropdown-item.text-secondary:hover { background-color: #6c757d; color: white !important; }
+  
+  .badge-pill{
+    padding:0.45rem 0.85rem;
+    font-size:0.85rem;
+    font-weight:600;
+    letter-spacing:0.3px;
+  }
+  
   @media (max-width:767.98px){
     .surat-header{flex-direction:column;align-items:flex-start;padding:1.2rem 1rem;gap:.7rem}
     .stat-wrapper{flex-direction:column;gap:.8rem}
@@ -31,25 +60,18 @@
     .surat-header-desc{font-size:.99rem}
     .card.filter-card,.card.data-card{border-radius:.6rem}
   }
-  .badge-info{background:#0bb1e3!important;color:#fff}
-  .card .btn{font-size:.96rem;padding:.475rem .75rem}
-  .dropdown-menu a.dropdown-item{cursor:pointer}
-  .dropdown-menu .fa-fw{margin-right:8px}
-  #quickViewModal .modal-body{height:75vh}
-  .quickview-spinner{position:absolute;top:48%;left:48%;z-index:10;display:none}
 </style>
 @endpush
 
 @section('content_header')
 @php
-  // Deteksi mode otomatis jika controller tidak mengirim variabel $mode
   $mode = $mode ?? (request()->routeIs('surat_keputusan.approveList') ? 'approve-list' : 'list');
 @endphp
 <div class="surat-header mt-2 mb-3">
   <span class="icon">
     <i class="fas fa-gavel text-white"></i>
   </span>
-  <span>
+  <div>
     <div class="surat-header-title">
       {{ $mode === 'approve-list' ? 'Daftar SK Menunggu Persetujuan Anda' : 'Daftar Surat Keputusan' }}
     </div>
@@ -60,7 +82,7 @@
         Semua <b>Surat Keputusan</b> — kelola, filter, unduh PDF, dan lacak statusnya di sini.
       @endif
     </div>
-  </span>
+  </div>
 </div>
 @endsection
 
@@ -87,7 +109,7 @@
     </div>
   </div>
 
-  {{-- Filter dan Tombol (sembunyikan tombol buat saat approve-list) --}}
+  {{-- Filter dan Tombol --}}
   <div class="card filter-card mb-4 shadow-sm">
     <div class="card-header bg-white border-0 py-3">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 w-100">
@@ -108,7 +130,6 @@
     <div class="card-body">
       <form class="row">
         <div class="col-md-6 form-group mb-2">
-          {{-- [CHANGED] hilangkan kata “penerima” --}}
           <input id="globalSearch" type="text" class="form-control" placeholder="Cari nomor, tentang, atau pembuat...">
         </div>
         <div class="col-md-3 form-group mb-2">
@@ -117,6 +138,9 @@
             <option value="draft">Draft</option>
             <option value="pending">Pending</option>
             <option value="disetujui">Disetujui</option>
+            <option value="ditolak">Ditolak</option>
+            <option value="terbit">Terbit</option>
+            <option value="arsip">Arsip</option>
           </select>
         </div>
         <div class="col-md-3 form-group mb-2">
@@ -140,10 +164,9 @@
               <th>Tentang</th>
               <th>Tgl Surat</th>
               <th>Pembuat</th>
-              {{-- [REMOVED] Penerima --}}
               <th>Status</th>
               <th>Berkas</th>
-              <th>Aksi</th>
+              <th style="width:80px">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -153,7 +176,9 @@
               <td>{{ $h->nomor ?? '—' }}</td>
               <td>{{ \Illuminate\Support\Str::limit($h->tentang, 60) }}</td>
 
-              @php $tgl = $h->tanggal_surat ?? $h->tanggal_asli; @endphp
+              @php 
+                $tgl = $h->tanggal_surat; 
+              @endphp
               <td class="text-center" data-sort="{{ $tgl ? $tgl->timestamp : 0 }}">
                 {{ $tgl ? $tgl->format('d M Y') : '-' }}
                 @if($tgl)
@@ -163,13 +188,11 @@
 
               <td>{{ $h->pembuat?->nama_lengkap ?? 'N/A' }}</td>
 
-              {{-- [REMOVED] kolom penerima --}}
-
               <td class="text-center">
                 @php
                   $badgeMap = [
                     'draft'=>'secondary','pending'=>'warning','disetujui'=>'success',
-                    'ditolak'=>'danger','terbit'=>'primary','arsip'=>'dark'
+                    'ditolak'=>'danger','terbit'=>'info','arsip'=>'dark'
                   ];
                   $badge = $badgeMap[$h->status_surat] ?? 'secondary';
                 @endphp
@@ -178,84 +201,151 @@
 
               <td class="text-center">
                 @if(in_array($h->status_surat, ['disetujui','terbit','arsip']) && $h->signed_pdf_path)
-                  <a href="{{ route('surat_keputusan.downloadPdf', $h->id) }}" class="btn btn-sm btn-danger" title="Download PDF" target="_blank">
+                  <a href="{{ route('surat_keputusan.downloadPdf', $h->id) }}" 
+                     class="btn btn-sm btn-danger" 
+                     title="Download PDF" 
+                     target="_blank">
                     <i class="fas fa-file-pdf"></i>
                   </a>
                 @else
-                  -
+                  <span class="text-muted">-</span>
                 @endif
               </td>
 
-              <td class="text-center">
-                <div class="dropdown">
-                  <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Menu aksi">
-                    <i class="fas fa-cog"></i>
-                  </button>
-                  <div class="dropdown-menu dropdown-menu-right">
-                    @php $isPending = $h->status_surat === 'pending'; @endphp
+              {{-- ✅ DROPDOWN MENU DENGAN SWEETALERT2 --}}
+<td class="text-center">
+  <div class="dropdown">
+    <button class="btn btn-sm btn-secondary dropdown-toggle" 
+            type="button" 
+            data-toggle="dropdown" 
+            aria-haspopup="true" 
+            aria-expanded="false" 
+            title="Menu aksi">
+      <i class="fas fa-cog"></i>
+    </button>
+    <div class="dropdown-menu dropdown-menu-right">
+      
+      {{-- 1. LIHAT DETAIL (Info/Biru) --}}
+      <a class="dropdown-item text-info" href="{{ route('surat_keputusan.show', $h->id) }}">
+        <i class="fas fa-eye"></i> Lihat Detail
+      </a>
 
-                    {{-- 1) Draft --}}
-                    @can('update', $h)
-                      @if($h->status_surat === 'draft')
-                        <a class="dropdown-item" href="{{ route('surat_keputusan.edit', $h->id) }}">
-                          <i class="fas fa-fw fa-edit"></i> Edit Draft
-                        </a>
-                        <div class="dropdown-divider"></div>
-                      @endif
-                    @endcan
+      {{-- 2. EDIT (Warning/Kuning) - Hanya draft/ditolak --}}
+      @if(in_array($h->status_surat, ['draft', 'ditolak']))
+        @can('update', $h)
+          <a class="dropdown-item text-warning" href="{{ route('surat_keputusan.edit', $h->id) }}">
+            <i class="fas fa-edit"></i> Edit Draft
+          </a>
+        @endcan
 
-                    {{-- 2) Pending --}}
-                    @if($isPending)
-                      @can('approve', $h)
-                        <a class="dropdown-item" href="{{ route('surat_keputusan.approveForm', $h->id) }}">
-                          <i class="fas fa-fw fa-check text-success"></i> Tinjau & Setujui
-                        </a>
-                        @can('reject', $h)
-                          <a href="#" class="dropdown-item text-danger btn-reject"
-                             data-action="{{ route('surat_keputusan.reject', $h->id) }}"
-                             data-nomor="{{ $h->nomor ?? '—' }}">
-                            <i class="fas fa-fw fa-times text-danger"></i> Tolak / Minta Revisi
-                          </a>
-                        @endcan
+        {{-- ✅ AJUKAN (Success/Hijau) - Hanya untuk draft --}}
+        @if($h->status_surat === 'draft')
+          @can('submit', $h)
+            <div class="dropdown-divider"></div>
+            <form action="{{ route('surat_keputusan.submit', $h->id) }}" method="POST" style="display:inline;">
+              @csrf
+              <button type="button" 
+                      class="dropdown-item text-success w-100 text-left btn-submit-sk" 
+                      data-nomor="{{ $h->nomor ?? '—' }}"
+                      style="border:none;background:transparent;cursor:pointer">
+                <i class="fas fa-paper-plane"></i> Ajukan untuk Persetujuan
+              </button>
+            </form>
+          @endcan
+        @endif
+        <div class="dropdown-divider"></div>
+      @endif
 
-                        {{-- Revisi oleh penandatangan bila diizinkan --}}
-                        @can('update', $h)
-                          <a class="dropdown-item" href="{{ route('surat_keputusan.edit', $h->id) }}">
-                            <i class="fas fa-fw fa-edit"></i> Revisi (Edit)
-                          </a>
-                        @endcan
-                        <div class="dropdown-divider"></div>
-                      @elsecan('update', $h)
-                        {{-- Admin TU (pembuat) revisi saat pending --}}
-                        <a class="dropdown-item" href="{{ route('surat_keputusan.edit', $h->id) }}">
-                          <i class="fas fa-fw fa-edit"></i> Revisi (Edit)
-                        </a>
-                        @can('reopen', $h)
-                          <a href="#" class="dropdown-item text-warning btn-reopen"
-                             data-url="{{ route('surat_keputusan.reopen', $h->id) }}"
-                             data-nomor="{{ $h->nomor ?? '—' }}">
-                            <i class="fas fa-fw fa-undo"></i> Tarik ke Draft
-                          </a>
-                        @endcan
-                        <div class="dropdown-divider"></div>
-                      @endcan
-                    @endif
+      {{-- 3. APPROVE (Success/Hijau) - Hanya pending oleh approver --}}
+      @if($h->status_surat === 'pending')
+        @can('approve', $h)
+          <a class="dropdown-item text-success" href="{{ route('surat_keputusan.approveForm', $h->id) }}">
+            <i class="fas fa-check-circle"></i> Tinjau & Setujui
+          </a>
+          
+          {{-- Tolak/Reject (tetap pakai modal) --}}
+          @can('reject', $h)
+            <a href="#" class="dropdown-item text-danger btn-reject"
+               data-action="{{ route('surat_keputusan.reject', $h->id) }}"
+               data-nomor="{{ $h->nomor ?? '—' }}">
+              <i class="fas fa-times"></i> Tolak / Minta Revisi
+            </a>
+          @endcan
+          <div class="dropdown-divider"></div>
+        @endcan
 
-                    {{-- 3) Default: Lihat Detail --}}
-                    <a class="dropdown-item" href="{{ route('surat_keputusan.preview', $h->id) }}">
-                      <i class="fas fa-fw fa-eye"></i> Lihat Detail
-                    </a>
+        {{-- TARIK KE DRAFT (Secondary/Abu-abu) --}}
+        @can('reopen', $h)
+          <a href="#" class="dropdown-item text-secondary btn-reopen"
+             data-url="{{ route('surat_keputusan.reopen', $h->id) }}"
+             data-nomor="{{ $h->nomor ?? '—' }}">
+            <i class="fas fa-undo"></i> Tarik ke Draft
+          </a>
+          <div class="dropdown-divider"></div>
+        @endcan
+      @endif
 
-                    {{-- 4) Download jika ada --}}
-                    @if(in_array($h->status_surat, ['disetujui','terbit','arsip']) && $h->signed_pdf_path)
-                      <div class="dropdown-divider"></div>
-                      <a class="dropdown-item" href="{{ route('surat_keputusan.downloadPdf', $h->id) }}" target="_blank">
-                        <i class="fas fa-fw fa-download"></i> Download PDF
-                      </a>
-                    @endif
-                  </div>
-                </div>
-              </td>
+      {{-- 4. PDF (Danger/Merah) --}}
+      @if(in_array($h->status_surat, ['disetujui', 'terbit', 'arsip']) && $h->signed_pdf_path)
+        <a class="dropdown-item text-danger" 
+           href="{{ route('surat_keputusan.downloadPdf', $h->id) }}" 
+           target="_blank">
+          <i class="fas fa-file-pdf"></i> Download PDF
+        </a>
+        <div class="dropdown-divider"></div>
+      @endif
+
+      {{-- 5. TERBITKAN (Primary/Biru) --}}
+      @if($h->status_surat === 'disetujui')
+        @can('publish', $h)
+          <form action="{{ route('surat_keputusan.terbitkan', $h->id) }}" method="POST" style="display:inline;">
+            @csrf
+            <button type="button" 
+                    class="dropdown-item text-primary w-100 text-left btn-terbitkan-sk" 
+                    data-nomor="{{ $h->nomor ?? '—' }}"
+                    style="border:none;background:transparent;cursor:pointer">
+              <i class="fas fa-share-square"></i> Terbitkan SK
+            </button>
+          </form>
+          <div class="dropdown-divider"></div>
+        @endcan
+      @endif
+
+      {{-- 6. ARSIPKAN (Dark/Hitam) --}}
+      @if($h->status_surat === 'terbit')
+        @can('archive', $h)
+          <form action="{{ route('surat_keputusan.arsipkan', $h->id) }}" method="POST" style="display:inline;">
+            @csrf
+            <button type="button" 
+                    class="dropdown-item text-dark w-100 text-left btn-arsipkan-sk" 
+                    data-nomor="{{ $h->nomor ?? '—' }}"
+                    style="border:none;background:transparent;cursor:pointer">
+              <i class="fas fa-archive"></i> Arsipkan SK
+            </button>
+          </form>
+          <div class="dropdown-divider"></div>
+        @endcan
+      @endif
+
+      {{-- 7. DELETE (Outline Danger) --}}
+      @if($h->status_surat === 'draft')
+        @can('delete', $h)
+          <form action="{{ route('surat_keputusan.destroy', $h->id) }}" method="POST" style="display:inline;">
+            @csrf 
+            @method('DELETE')
+            <button type="button" 
+                    class="dropdown-item text-danger w-100 text-left btn-hapus-sk" 
+                    data-nomor="{{ $h->nomor ?? '—' }}"
+                    style="border:none;background:transparent;cursor:pointer">
+              <i class="fas fa-trash"></i> Hapus Draft
+            </button>
+          </form>
+        @endcan
+      @endif
+    </div>
+  </div>
+</td>
+
             </tr>
             @empty
             @endforelse
@@ -266,25 +356,7 @@
   </div>
 </div>
 
-{{-- Modal Quick View (opsional) --}}
-<div class="modal fade" id="quickViewModal" tabindex="-1" role="dialog" aria-labelledby="quickViewModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="quickViewModalLabel">Pratinjau Surat Keputusan</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body p-0" style="position:relative;">
-        <div class="spinner-border text-primary quickview-spinner"></div>
-        <iframe src="about:blank" style="width:100%;border:none;min-height:70vh"></iframe>
-      </div>
-    </div>
-  </div>
-</div>
-
-{{-- Modal Global: Tolak / Minta Revisi --}}
+{{-- Modal Tolak / Minta Revisi --}}
 <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <form id="rejectForm" method="POST" action="#">
@@ -324,7 +396,7 @@
 $(function () {
   $('[data-toggle="tooltip"]').tooltip();
 
-  const MODE = "{{ $mode }}"; // 'list' | 'approve-list'
+  const MODE = "{{ $mode }}";
   const emptyMsg = MODE === 'approve-list'
     ? "Tidak ada SK yang perlu Anda setujui."
     : "Tidak ada data Surat Keputusan.";
@@ -332,19 +404,24 @@ $(function () {
   const table = $('#table-sk').DataTable({
     responsive: true,
     autoWidth: false,
-    language: { url: "/assets/datatables/i18n/id.json", emptyTable: emptyMsg },
+    language: { 
+      url: "/assets/datatables/i18n/id.json", 
+      emptyTable: emptyMsg 
+    },
+    order: [[3, 'desc']],
     columnDefs: [
-      { targets: [6, 7], orderable: false, searchable: false } // [CHANGED] Berkas & Aksi setelah kolom Penerima dihapus
+      { targets: [6, 7], orderable: false, searchable: false }
     ]
   });
 
-  // Search & filter
-  $('#globalSearch').on('keyup', function(){ table.search(this.value).draw(); });
+  $('#globalSearch').on('keyup', function(){ 
+    table.search(this.value).draw(); 
+  });
 
   $('#statusFilter').on('change', function(){
     const status = this.value;
     if (status) {
-      table.column(5).search('^' + status + '$', true, false).draw(); // [CHANGED] kolom Status sekarang index 5
+      table.column(5).search('^' + status + '$', true, false).draw();
     } else {
       table.column(5).search('').draw();
     }
@@ -356,57 +433,118 @@ $(function () {
     table.search('').columns().search('').draw();
   });
 
+  // ✅ Flash Messages dengan SweetAlert2
   @if(session('success'))
-  Swal.fire({ icon:'success', title:'Berhasil!', text:"{{ session('success') }}", timer:2500, showConfirmButton:false });
+  Swal.fire({ 
+    icon: 'success',
+    title: 'Berhasil!',
+    text: "{{ session('success') }}",
+    timer: 3000,
+    showConfirmButton: false
+  });
   @endif
 
-  // Dropdown actions
-  $('#table-sk').on('click', '.dropdown-item', function(e){
-    const el = $(this);
+  @if(session('error'))
+  Swal.fire({ 
+    icon: 'error',
+    title: 'Gagal!',
+    text: "{{ session('error') }}",
+    timer: 3000,
+    showConfirmButton: false
+  });
+  @endif
 
-    // Quick view (opsional)
-    if (el.hasClass('quick-view')) {
-      e.preventDefault();
-      const url = el.data('url') || el.attr('href');
-      if (!url) return;
-      const $modal = $('#quickViewModal');
-      const $spinner = $modal.find('.quickview-spinner');
-      const $iframe = $modal.find('iframe');
-
-      $spinner.show();
-      $iframe.off('load').on('load', function(){ $spinner.hide(); });
-      $iframe.attr('src', url);
-      $modal.modal('show');
-      return;
-    }
-
-    // Hapus (jika diaktifkan)
-    if (el.hasClass('btn-delete')) {
-      e.preventDefault();
-      const url = el.data('url');
-      Swal.fire({
-        title: 'Anda yakin?',
-        text: 'Surat ini akan dihapus permanen.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonText: 'Batal',
-        confirmButtonText: 'Ya, hapus!'
-      }).then(result => {
-        if (result.isConfirmed) {
-          const form = $('<form>', { method:'POST', action:url, style:'display:none' })
-            .append($('<input>', { type:'hidden', name:'_token', value:'{{ csrf_token() }}' }))
-            .append($('<input>', { type:'hidden', name:'_method', value:'DELETE' }));
-          $('body').append(form);
-          form.trigger('submit');
-        }
-      });
-      return;
-    }
+  // ✅ AJUKAN SK - SweetAlert2
+  $(document).on('click', '.btn-submit-sk', function(e){
+    e.preventDefault();
+    const $form = $(this).closest('form');
+    const nomor = $(this).data('nomor') || '—';
+    
+    Swal.fire({
+      title: 'Ajukan SK untuk Persetujuan?',
+      html: `SK <b>${nomor}</b> akan dikirim ke penandatangan untuk disetujui.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#28a745',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: '<i class="fas fa-paper-plane"></i> Ya, Ajukan Sekarang',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $form.trigger('submit');
+      }
+    });
   });
 
-  // Modal Tolak/Minta Revisi
-  $('#table-sk').on('click', '.btn-reject', function(e){
+  // ✅ TERBITKAN SK - SweetAlert2
+  $(document).on('click', '.btn-terbitkan-sk', function(e){
+    e.preventDefault();
+    const $form = $(this).closest('form');
+    const nomor = $(this).data('nomor') || '—';
+    
+    Swal.fire({
+      title: 'Terbitkan SK?',
+      html: `SK <b>${nomor}</b> akan diterbitkan dan dibagikan ke penerima.`,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#007bff',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: '<i class="fas fa-share-square"></i> Ya, Terbitkan',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $form.trigger('submit');
+      }
+    });
+  });
+
+  // ✅ ARSIPKAN SK - SweetAlert2
+  $(document).on('click', '.btn-arsipkan-sk', function(e){
+    e.preventDefault();
+    const $form = $(this).closest('form');
+    const nomor = $(this).data('nomor') || '—';
+    
+    Swal.fire({
+      title: 'Arsipkan SK?',
+      html: `SK <b>${nomor}</b> akan dipindahkan ke arsip.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#343a40',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: '<i class="fas fa-archive"></i> Ya, Arsipkan',
+      cancelButtonText: 'Batal'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $form.trigger('submit');
+      }
+    });
+  });
+
+  // ✅ HAPUS SK - SweetAlert2
+  $(document).on('click', '.btn-hapus-sk', function(e){
+    e.preventDefault();
+    const $form = $(this).closest('form');
+    const nomor = $(this).data('nomor') || '—';
+    
+    Swal.fire({
+      title: 'Hapus Draft SK?',
+      html: `SK <b>${nomor}</b> akan dihapus secara permanen.`,
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: '<i class="fas fa-trash"></i> Ya, Hapus',
+      cancelButtonText: 'Batal',
+      footer: '<small class="text-muted">Aksi ini tidak dapat dibatalkan!</small>'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $form.trigger('submit');
+      }
+    });
+  });
+
+  // ✅ TOLAK/REJECT - Modal tetap (untuk input catatan)
+  $(document).on('click', '.btn-reject', function(e){
     e.preventDefault();
     const action = $(this).data('action');
     const nomor  = $(this).data('nomor') || '—';
@@ -417,33 +555,36 @@ $(function () {
     $m.modal('show');
   });
 
-  // Tarik ke Draft (reopen)
-  $('#table-sk').on('click', '.btn-reopen', function(e){
+  // ✅ TARIK KE DRAFT - SweetAlert2
+  $(document).on('click', '.btn-reopen', function(e){
     e.preventDefault();
     const url = $(this).data('url');
     const nomor = $(this).data('nomor') || '—';
+    
     Swal.fire({
       title: 'Tarik ke Draft?',
-      html: 'SK <b>' + nomor + '</b> akan dikembalikan ke status <b>Draft</b> untuk direvisi.',
+      html: `SK <b>${nomor}</b> akan dikembalikan ke status <b>Draft</b> untuk direvisi.`,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: 'Ya, tarik sekarang',
+      confirmButtonColor: '#6c757d',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: '<i class="fas fa-undo"></i> Ya, Tarik Sekarang',
       cancelButtonText: 'Batal'
-    }).then(res => {
-      if (res.isConfirmed) {
-        const form = $('<form>', { method:'POST', action:url, style:'display:none' })
-          .append($('<input>', { type:'hidden', name:'_token', value:'{{ csrf_token() }}' }));
+    }).then(result => {
+      if (result.isConfirmed) {
+        const form = $('<form>', { 
+          method: 'POST', 
+          action: url, 
+          style: 'display:none' 
+        }).append($('<input>', { 
+          type: 'hidden', 
+          name: '_token', 
+          value: '{{ csrf_token() }}' 
+        }));
         $('body').append(form);
         form.trigger('submit');
       }
     });
-  });
-
-  // Reset iframe saat modal quick view ditutup
-  $('#quickViewModal').on('hidden.bs.modal', function(){
-    const $iframe = $(this).find('iframe');
-    $iframe.off('load').attr('src','about:blank');
-    $('.quickview-spinner').hide();
   });
 });
 </script>

@@ -3,108 +3,143 @@
 namespace App\Policies;
 
 use App\Models\KeputusanHeader;
-use App\Models\User;
+use App\Models\User; // atau Pengguna, sesuai model yang dipakai
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class KeputusanHeaderPolicy
 {
     use HandlesAuthorization;
 
-    /** Lihat daftar */
+    /**
+     * Determine whether the user can view any models.
+     */
     public function viewAny(User $user): bool
     {
-        // Kalau ingin tetap khusus Admin TU saja, ganti jadi: return (int)$user->peran_id === 1;
-        return in_array((int)$user->peran_id, [1, 2, 3], true);
+        return in_array((int) $user->peran_id, [1, 2, 3, 4], true);
     }
 
-    /** Lihat detail: admin, pembuat, atau penandatangan */
+    /**
+     * Determine whether the user can view the model.
+     */
     public function view(User $user, KeputusanHeader $sk): bool
     {
-        if ((int) $user->peran_id === 1) return true;                          // Admin TU
-        if ((int) $user->id === (int) $sk->dibuat_oleh) return true;           // Pembuat
-        if ((int) $user->id === (int) $sk->penandatangan) return true;         // Penandatangan
-        return false; // (cek penerima DIHAPUS)
+        // Admin, Dekan, WD, atau penerima yang tercantum
+        if (in_array((int) $user->peran_id, [1, 2, 3], true)) {
+            return true;
+        }
+
+        // Pembuat
+        if ((int) $sk->dibuat_oleh === (int) $user->id) {
+            return true;
+        }
+
+        // Penerima (many-to-many)
+        return $sk->penerima()->where('pengguna_id', $user->id)->exists();
     }
 
-    /** Buat: hanya Admin TU */
+    /**
+     * Determine whether the user can create models.
+     */
     public function create(User $user): bool
+    {
+        return in_array((int) $user->peran_id, [1, 2, 3], true);
+    }
+
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, KeputusanHeader $sk): bool
+    {
+        // Admin atau pembuat sendiri, dan status masih draft/ditolak
+        if (in_array($sk->status_surat, ['draft', 'ditolak'], true)) {
+            return (int) $user->peran_id === 1 || (int) $user->id === (int) $sk->dibuat_oleh;
+        }
+        return false;
+    }
+
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, KeputusanHeader $sk): bool
+    {
+        // Hanya draft yang bisa dihapus
+        if ($sk->status_surat !== 'draft') {
+            return false;
+        }
+
+        // Admin atau pembuat sendiri
+        return (int) $user->peran_id === 1 || (int) $user->id === (int) $sk->dibuat_oleh;
+    }
+
+    /**
+     * Determine whether the user can restore the model.
+     */
+    public function restore(User $user, KeputusanHeader $sk): bool
     {
         return (int) $user->peran_id === 1;
     }
 
     /**
-     * Update (revisi):
-     * - Admin TU (peran 1) yang MEMBUAT boleh edit saat draft/pending
-     * - Penandatangan (peran 2/3) yang ditunjuk boleh koreksi saat pending
+     * Determine whether the user can permanently delete the model.
      */
-    public function update(User $user, KeputusanHeader $sk): bool
+    public function forceDelete(User $user, KeputusanHeader $sk): bool
     {
-        $isAdminTU  = (int) $user->peran_id === 1;
-        $isApprover = in_array((int) $user->peran_id, [2, 3], true) && (int) $user->id === (int) $sk->penandatangan;
-
-        // Admin TU boleh revisi DRAFT & PENDING, terbatas pada SK yang dia buat
-        $adminCan   = $isAdminTU
-            && (int) $user->id === (int) $sk->dibuat_oleh
-            && in_array($sk->status_surat, ['draft', 'pending'], true);
-
-        // Penandatangan (2/3) boleh koreksi saat pending
-        $approverCan = $isApprover && $sk->status_surat === 'pending';
-
-        return $adminCan || $approverCan;
-    }
-
-    /** Hapus: opsional — admin & hanya draft miliknya */
-    public function delete(User $user, KeputusanHeader $sk): bool
-    {
-        return (int) $user->peran_id === 1
-            && $sk->status_surat === 'draft'
-            && (int) $user->id === (int) $sk->dibuat_oleh;
-    }
-
-    /** Submit dari draft ke pending: pembuat (admin TU) */
-    public function submit(User $user, KeputusanHeader $sk): bool
-    {
-        return (int) $user->peran_id === 1
-            && $sk->status_surat === 'draft'
-            && (int) $user->id === (int) $sk->dibuat_oleh;
-    }
-
-    /** Approve / Reject: hanya penandatangan (peran 2/3) saat pending */
-    public function approve(User $user, KeputusanHeader $sk): bool
-    {
-        return in_array((int) $user->peran_id, [2, 3], true)
-            && (int) $user->id === (int) $sk->penandatangan
-            && $sk->status_surat === 'pending';
-    }
-
-    public function reject(User $user, KeputusanHeader $sk): bool
-    {
-        return $this->approve($user, $sk);
+        return (int) $user->peran_id === 1;
     }
 
     /**
-     * Reopen: tarik kembali ke draft untuk direvisi.
-     * Di sini diizinkan Admin TU yang MEMBUAT.
-     * Jika ingin semua Admin TU bisa, hapus cek pembuat.
+     * Determine whether the user can submit for approval.
+     */
+    public function submit(User $user, KeputusanHeader $sk): bool
+    {
+        return $sk->status_surat === 'draft'
+            && ((int) $user->peran_id === 1 || (int) $user->id === (int) $sk->dibuat_oleh);
+    }
+
+    /**
+     * Determine whether the user can approve the model.
+     */
+    public function approve(User $user, KeputusanHeader $sk): bool
+    {
+        return $sk->status_surat === 'pending'
+            && !empty($sk->penandatangan)
+            && (int) $sk->penandatangan === (int) $user->id;
+    }
+
+    /**
+     * Determine whether the user can reject the model.
+     */
+    public function reject(User $user, KeputusanHeader $sk): bool
+    {
+        return $sk->status_surat === 'pending'
+            && !empty($sk->penandatangan)
+            && (int) $sk->penandatangan === (int) $user->id;
+    }
+
+    /**
+     * Determine whether the user can reopen (tarik ke draft) the model.
      */
     public function reopen(User $user, KeputusanHeader $sk): bool
     {
-        // Admin TU (pembuat) boleh menarik ke Draft dari status selain draft
-        return (int) $user->peran_id === 1
-            && (int) $user->id === (int) $sk->dibuat_oleh
-            && in_array($sk->status_surat, ['pending', 'ditolak', 'disetujui', 'terbit'], true);
+        return in_array($sk->status_surat, ['pending', 'ditolak'], true)
+            && ((int) $user->peran_id === 1 || (int) $user->id === (int) $sk->dibuat_oleh);
     }
 
-    /** Publish: setelah disetujui oleh peran 2/3; admin juga boleh */
+    /**
+     * Determine whether the user can publish the model.
+     */
     public function publish(User $user, KeputusanHeader $sk): bool
     {
         return $sk->status_surat === 'disetujui'
             && in_array((int) $user->peran_id, [1, 2, 3], true);
     }
 
-    /** Arsip: Admin TU / Dekan / WD */
+    /**
+     * Determine whether the user can archive the model.
+     */
     public function archive(User $user, KeputusanHeader $sk): bool
     {
-        return in_array((int) $user->peran_id, [1, 2, 3], true);
+        return $sk->status_surat === 'terbit'
+            && in_array((int) $user->peran_id, [1, 2, 3], true);
     }
 }

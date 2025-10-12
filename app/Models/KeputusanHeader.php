@@ -3,32 +3,60 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class KeputusanHeader extends Model
 {
-    use SoftDeletes;
-
     protected $table = 'keputusan_header';
-    protected $guarded = [];
+
+    protected $fillable = [
+        'nomor',
+        'tahun',
+        'semester',
+        'bulan',
+        'tentang',
+        
+        // ✅ HANYA tanggal_surat (HAPUS tanggal_asli)
+        'tanggal_surat',
+        
+        'dibuat_oleh',
+        'penandatangan',
+        'status_surat',
+        'menimbang',
+        'mengingat',
+        'menetapkan',
+        'memutuskan',
+        'tembusan',
+        'penerima_eksternal',
+        'approved_by',
+        'approved_at',
+        'rejected_by',
+        'rejected_at',
+        'published_by',
+        'published_at',
+        'signed_at',
+        'ttd_w_mm',
+        'cap_w_mm',
+        'cap_opacity',
+        'ttd_config',
+        'cap_config',
+    ];
 
     protected $casts = [
-        'tanggal_asli'      => 'date',
-        'tanggal_surat'     => 'date',
-        'approved_at'       => 'datetime',
-        'rejected_at'       => 'datetime',
-        'published_at'      => 'datetime',
-        'signed_at'         => 'datetime',
-        'menimbang'         => 'array',
-        'mengingat'         => 'array',
-        'menetapkan'        => 'array',
-        'penerima_eksternal'=> 'array',   // <-- tambahkan (kolom ada di DB)
-        'tembusan'          => 'string',  // disimpan sebagai teks (newline)
-        'ttd_config'        => 'array',
-        'cap_config'        => 'array',
-        // 'memutuskan' tetap string (longtext) -> default cast sudah string
+        // ✅ HAPUS 'tanggal_asli'
+        'tanggal_surat' => 'date',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'published_at' => 'datetime',
+        'signed_at' => 'datetime',
+        'menimbang' => 'array',
+        'mengingat' => 'array',
+        'menetapkan' => 'array',
+        'penerima_eksternal' => 'array',
+        'tembusan' => 'string',
+        'ttd_config' => 'array',
+        'cap_config' => 'array',
     ];
 
     // ===== Relasi User =====
@@ -57,7 +85,7 @@ class KeputusanHeader extends Model
         return $this->belongsTo(User::class, 'published_by');
     }
 
-    // ===== Relasi penerima internal (pivot: keputusan_penerima) =====
+    // ===== Relasi penerima internal =====
     public function penerima(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'keputusan_penerima', 'keputusan_id', 'pengguna_id')

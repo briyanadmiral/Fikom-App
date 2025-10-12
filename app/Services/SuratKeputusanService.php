@@ -10,12 +10,13 @@ use Mews\Purifier\Facades\Purifier;
 
 class SuratKeputusanService
 {
-    // Dua service lain yang kita butuhkan akan di-inject secara otomatis oleh Laravel
     protected SuratKeputusanNotificationService $notificationService;
     protected NomorSuratService $nomorSuratService;
 
-    public function __construct(SuratKeputusanNotificationService $notificationService, NomorSuratService $nomorSuratService)
-    {
+    public function __construct(
+        SuratKeputusanNotificationService $notificationService,
+        NomorSuratService $nomorSuratService
+    ) {
         $this->notificationService = $notificationService;
         $this->nomorSuratService = $nomorSuratService;
     }
@@ -87,8 +88,12 @@ class SuratKeputusanService
     public function approveAndGenerateNumber(KeputusanHeader $sk, array $approvalData): KeputusanHeader
     {
         return DB::transaction(function () use ($sk, $approvalData) {
+            // ✅ Generate nomor jika belum ada
             if (empty($sk->nomor)) {
-                $date = now()->parse($sk->tanggal_asli);
+                // ✅ Gunakan tanggal_surat untuk referensi bulan/tahun (fallback ke created_at)
+                $referenceDate = $sk->tanggal_surat ?? $sk->created_at;
+                $date = now()->parse($referenceDate);
+
                 $res = $this->nomorSuratService->reserve(
                     $approvalData['unit'] ?? 'FIKOM',
                     $approvalData['kode_klasifikasi'] ?? 'B.10.1',
@@ -98,6 +103,7 @@ class SuratKeputusanService
                 $sk->nomor = $res['nomor'];
             }
 
+            // ✅ Fallback tanggal_surat jika masih kosong
             if (empty($sk->tanggal_surat)) {
                 $sk->tanggal_surat = now()->toDateString();
             }
@@ -114,15 +120,18 @@ class SuratKeputusanService
             ]);
 
             $sk->save();
-
             $this->notificationService->notifyApproved($sk);
 
             return $sk;
         });
     }
 
+    /**
+     * ✅ REVISI: Prepare data untuk save (tanpa tanggal_asli)
+     */
     private function prepareDataForSave(array $data): array
     {
+        // ✅ Build HTML memutuskan dari menetapkan
         if (!empty($data['menetapkan']) && is_array($data['menetapkan'])) {
             foreach ($data['menetapkan'] as &$d) {
                 $d['isi'] = Purifier::clean($d['isi'] ?? '');
@@ -130,37 +139,71 @@ class SuratKeputusanService
             $data['memutuskan'] = $this->buildMemutuskanHtml($data['menetapkan']);
         }
 
+        // ✅ Cleanup: hapus field yang tidak perlu
         unset($data['mode'], $data['tembusan_formatted']);
 
+        // ✅ Handle penerima_eksternal (jika kolom ada di DB)
         if (Schema::hasColumn('keputusan_header', 'penerima_eksternal') && isset($data['penerima_eksternal'])) {
             $data['penerima_eksternal'] = $data['penerima_eksternal'];
         } else {
             unset($data['penerima_eksternal']);
         }
 
-        return $data;
+        // ✅ Return data yang sudah bersih (tanpa tanggal_asli)
+        return [
+            'nomor' => $data['nomor'] ?? null,
+            'tentang' => $data['tentang'],
+            'tanggal_surat' => $data['tanggal_surat'], // ✅ HANYA ini
+            'penandatangan' => $data['penandatangan'] ?? null,
+            'menimbang' => $data['menimbang'] ?? [],
+            'mengingat' => $data['mengingat'] ?? [],
+            'menetapkan' => $data['menetapkan'] ?? [],
+            'memutuskan' => $data['memutuskan'] ?? null,
+            'tembusan' => $data['tembusan'] ?? null,
+            'penerima_internal' => $data['penerima_internal'] ?? [],
+            'penerima_eksternal' => $data['penerima_eksternal'] ?? [],
+        ];
     }
 
+    /**
+     * Build HTML untuk kolom memutuskan dari array menetapkan
+     */
     private function buildMemutuskanHtml(?array $menetapkan): string
     {
         $menetapkan = $menetapkan ?? [];
-        if (empty($menetapkan)) return '';
+        if (empty($menetapkan)) {
+            return '';
+        }
 
         $parts = [];
         foreach ($menetapkan as $d) {
             $judul = strtoupper(trim($d['judul'] ?? ''));
-            $isi   = $d['isi'] ?? '';
-            if ($judul === '' && trim(strip_tags($isi)) === '') continue;
+            $isi = $d['isi'] ?? '';
+            
+            if ($judul === '' && trim(strip_tags($isi)) === '') {
+                continue;
+            }
+            
             $parts[] = '<p><strong>' . e($judul) . ':</strong> ' . $isi . '</p>';
         }
+        
         return implode("\n", $parts);
     }
 
-    private function toRoman($number)
+    /**
+     * Convert angka ke Roman numeral untuk bulan
+     */
+    private function toRoman(int $number): string
     {
-        $map = ['M' => 1000, 'CM' => 900, 'D' => 500, 'CD' => 400, 'C' => 100, 'XC' => 90, 'L' => 50, 'XL' => 40, 'X' => 10, 'IX' => 9, 'V' => 5, 'IV' => 4, 'I' => 1];
+        $map = [
+            'M' => 1000, 'CM' => 900, 'D' => 500, 'CD' => 400,
+            'C' => 100, 'XC' => 90, 'L' => 50, 'XL' => 40,
+            'X' => 10, 'IX' => 9, 'V' => 5, 'IV' => 4, 'I' => 1
+        ];
+        
         $ret = '';
-        $number = max(0, min(3999, (int) $number));
+        $number = max(0, min(3999, (int) $number)); // Boundary check
+        
         while ($number > 0) {
             foreach ($map as $roman => $int) {
                 if ($number >= $int) {
@@ -170,25 +213,34 @@ class SuratKeputusanService
                 }
             }
         }
+        
         return $ret;
     }
 
+    /**
+     * Reject Surat Keputusan
+     */
     public function rejectKeputusan(KeputusanHeader $sk, string $note): KeputusanHeader
     {
         $sk->update([
             'status_surat' => 'ditolak',
-            'rejected_by'  => Auth::id(),
-            'rejected_at'  => now(),
+            'rejected_by' => Auth::id(),
+            'rejected_at' => now(),
         ]);
 
         $this->notificationService->notifyRejected($sk, $note);
+        
         return $sk;
     }
 
+    /**
+     * Submit SK untuk approval
+     */
     public function submitForApproval(KeputusanHeader $sk): KeputusanHeader
     {
         $sk->update(['status_surat' => 'pending']);
         $this->notificationService->notifyApprovalRequest($sk);
+        
         return $sk;
     }
 }

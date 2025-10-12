@@ -8,12 +8,12 @@ use App\Models\KeputusanHeader;
 use App\Models\MasterKopSurat;
 use App\Services\NomorSuratService;
 use App\Services\SuratKeputusanService;
-use App\Services\SuratKeputusanNotificationService;  // ✅ CHANGED: From SkNotifikasiService
+use App\Services\SuratKeputusanNotificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;   // <- NEW: untuk cek kolom ada/tidak
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Mews\Purifier\Facades\Purifier;
 
@@ -30,12 +30,14 @@ class SuratKeputusanController extends Controller
 
     private function normalizeTembusan($input): ?string
     {
-        if ($input === null || $input === '') return null;
+        if ($input === null || $input === '') {
+            return null;
+        }
 
         if (is_array($input)) {
             $arr = $input;
         } else {
-            $s = trim((string)$input);
+            $s = trim((string) $input);
             if (strlen($s) >= 2 && $s[0] === '"' && substr($s, -1) === '"') {
                 $s = substr($s, 1, -1);
             }
@@ -48,9 +50,7 @@ class SuratKeputusanController extends Controller
 
         $names = [];
         foreach ($arr as $it) {
-            $names[] = trim(
-                is_array($it) ? ($it['value'] ?? $it['text'] ?? $it['name'] ?? (string)reset($it)) : (string)$it
-            );
+            $names[] = trim(is_array($it) ? $it['value'] ?? ($it['text'] ?? ($it['name'] ?? (string) reset($it))) : (string) $it);
         }
         $names = array_values(array_unique(array_filter($names)));
 
@@ -60,17 +60,19 @@ class SuratKeputusanController extends Controller
     /** Dependency untuk form (hanya yang relevan) */
     private function getFormDependencies(): array
     {
-        $admins  = \App\Models\User::where('peran_id', 1)->pluck('nama_lengkap', 'id');
+        $admins = \App\Models\User::where('peran_id', 1)->pluck('nama_lengkap', 'id');
 
         $pejabat = \App\Models\User::whereIn('peran_id', [2, 3])
             ->orderBy('nama_lengkap')
             ->get(['id', 'nama_lengkap']);
 
-        // Jika kolom 'status' tidak ada di tabel users/pengguna, ganti/filter sesuai skema kamu
-        $users   = \App\Models\User::when(
-            Schema::hasColumn((new \App\Models\User)->getTable(), 'status'),
-            fn($q) => $q->where('status', 'aktif')
-        )
+        $userModel = new \App\Models\User();
+        $userTable = $userModel->getTable();
+        $hasStatusColumn = Schema::hasColumn($userTable, 'status');
+
+        $users = \App\Models\User::when($hasStatusColumn, function ($q) {
+            return $q->where('status', 'aktif');
+        })
             ->orderBy('nama_lengkap')
             ->get(['id', 'nama_lengkap']);
 
@@ -82,7 +84,7 @@ class SuratKeputusanController extends Controller
     /** Apakah PDF harus menampilkan TTD/Cap */
     private function shouldShowSignatures(KeputusanHeader $sk): bool
     {
-        return ($sk->status_surat === 'disetujui') && !empty($sk->signed_at);
+        return $sk->status_surat === 'disetujui' && !empty($sk->signed_at);
     }
 
     /* ==================== Daftar / List ==================== */
@@ -90,11 +92,12 @@ class SuratKeputusanController extends Controller
     public function index()
     {
         $list = KeputusanHeader::with(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap'])
-            ->orderByDesc('created_at')->get();
+            ->orderByDesc('created_at')
+            ->get();
 
         $stats = [
-            'draft'     => $list->where('status_surat', 'draft')->count(),
-            'pending'   => $list->where('status_surat', 'pending')->count(),
+            'draft' => $list->where('status_surat', 'draft')->count(),
+            'pending' => $list->where('status_surat', 'pending')->count(),
             'disetujui' => $list->where('status_surat', 'disetujui')->count(),
         ];
 
@@ -107,10 +110,11 @@ class SuratKeputusanController extends Controller
         $list = KeputusanHeader::with(['pembuat', 'penerima:id,nama_lengkap'])
             ->where('status_surat', 'pending')
             ->where('penandatangan', Auth::id())
-            ->orderByDesc('created_at')->get();
+            ->orderByDesc('created_at')
+            ->get();
 
         $stats = ['draft' => 0, 'pending' => $list->count(), 'disetujui' => 0];
-        $mode  = 'approve-list';
+        $mode = 'approve-list';
 
         return view('surat_keputusan.index', compact('list', 'stats', 'mode'));
     }
@@ -120,13 +124,13 @@ class SuratKeputusanController extends Controller
     {
         $userId = Auth::id();
         $list = KeputusanHeader::with(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap'])
-            ->whereHas('penerima', fn($q) => $q->whereKey($userId))   // <- FIX: aman utk nama tabel apapun
+            ->whereHas('penerima', fn($q) => $q->whereKey($userId))
             ->orderByDesc('created_at')
             ->get();
 
         $stats = [
-            'draft'     => $list->where('status_surat', 'draft')->count(),
-            'pending'   => $list->where('status_surat', 'pending')->count(),
+            'draft' => $list->where('status_surat', 'draft')->count(),
+            'pending' => $list->where('status_surat', 'pending')->count(),
             'disetujui' => $list->where('status_surat', 'disetujui')->count(),
         ];
 
@@ -139,6 +143,25 @@ class SuratKeputusanController extends Controller
     {
         $this->authorize('create', KeputusanHeader::class);
         $deps = $this->getFormDependencies();
+        
+        // Tambahkan data tambahan untuk form
+        $deps['bulanRomawi'] = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+        $deps['currentYear'] = now()->year;
+        $deps['currentRomawi'] = $deps['bulanRomawi'][now()->month];
+        $deps['tembusanPresets'] = [
+            'Yth. Rektor', 
+            'Yth. Wakil Rektor I', 
+            'Yth. Wakil Rektor II', 
+            'Dekan Fakultas Ilmu Komputer', 
+            'BAAK', 
+            'BAUK', 
+            'BAK', 
+            'Kepala Program Studi Sistem Informasi', 
+            'Unit Kepegawaian', 
+            'Arsip'
+        ];
+        $deps['tanggalHariIni'] = now()->format('Y-m-d');
+        
         return view('surat_keputusan.create', $deps);
     }
 
@@ -148,27 +171,44 @@ class SuratKeputusanController extends Controller
 
         $validatedData = $request->validated();
         $mode = $request->input('mode');
-        $status = ($mode === 'pending' || $mode === 'terkirim') ? 'pending' : 'draft';
+        $status = $mode === 'pending' || $mode === 'terkirim' ? 'pending' : 'draft';
 
         // Validasi Guard sebelum memanggil service
         if ($status === 'pending') {
             if (empty($validatedData['penandatangan'])) {
-                return back()->withErrors(['penandatangan' => 'Penandatangan wajib diisi saat pengajuan.'])->withInput();
+                return back()
+                    ->withErrors(['penandatangan' => 'Penandatangan wajib diisi saat pengajuan.'])
+                    ->withInput();
             }
             if (empty($validatedData['penerima_internal']) && empty($validatedData['penerima_eksternal'])) {
-                return back()->withErrors(['penerima_internal' => 'Minimal satu penerima (internal/eksternal) saat pengajuan.'])->withInput();
+                return back()
+                    ->withErrors(['penerima_internal' => 'Minimal satu penerima (internal/eksternal) saat pengajuan.'])
+                    ->withInput();
             }
         }
 
-        // ✅ INTI PERUBAHAN: Semua logika dipindahkan ke service.
-        $sk = $this->skService->createKeputusan($validatedData, $status);
+        try {
+            // ✅ INTI PERUBAHAN: Semua logika dipindahkan ke service.
+            $sk = $this->skService->createKeputusan($validatedData, $status);
 
-        // Logika redirect tetap di controller
-        if ($status === 'draft') {
-            return redirect()->route('surat_keputusan.index')->with('success', 'Draft SK berhasil disimpan.');
+            // ✅ FIX: Redirect ke index untuk semua mode
+            $message = $status === 'draft' 
+                ? 'Draft SK berhasil disimpan.' 
+                : 'SK berhasil diajukan ke penandatangan.';
+
+            return redirect()
+                ->route('surat_keputusan.index')
+                ->with('success', $message);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            // ✅ Handle duplicate nomor dari database constraint
+            if ($e->getCode() === '23000') {
+                return back()
+                    ->withErrors(['nomor' => 'Nomor surat sudah digunakan. Silakan generate nomor baru.'])
+                    ->withInput();
+            }
+            throw $e;
         }
-
-        return redirect()->route('surat_keputusan.edit', $sk)->with('success', 'SK berhasil diajukan ke penandatangan.');
     }
 
     public function edit(KeputusanHeader $surat_keputusan)
@@ -176,7 +216,33 @@ class SuratKeputusanController extends Controller
         $this->authorize('update', $surat_keputusan);
         $deps = $this->getFormDependencies();
         $surat_keputusan->load(['penerima:id,nama_lengkap']);
-        return view('surat_keputusan.edit', array_merge($deps, ['sk' => $surat_keputusan]));
+        
+        // Tambahkan data tambahan untuk form
+        $deps['bulanRomawi'] = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+        $deps['currentYear'] = now()->year;
+        $deps['currentRomawi'] = $deps['bulanRomawi'][now()->month];
+        $deps['tembusanPresets'] = [
+            'Yth. Rektor', 
+            'Yth. Wakil Rektor I', 
+            'Yth. Wakil Rektor II', 
+            'Dekan Fakultas Ilmu Komputer', 
+            'BAAK', 
+            'BAUK', 
+            'BAK', 
+            'Kepala Program Studi Sistem Informasi', 
+            'Unit Kepegawaian', 
+            'Arsip'
+        ];
+        $deps['tanggalHariIni'] = now()->format('Y-m-d');
+        
+        return view(
+            'surat_keputusan.edit',
+            array_merge($deps, [
+                'keputusan' => $surat_keputusan,
+                'sk' => $surat_keputusan, // alias untuk kompatibilitas
+                'isEdit' => true, // ✅ TAMBAHKAN INI untuk form blade
+            ]),
+        );
     }
 
     public function update(UpdateKeputusanRequest $request, KeputusanHeader $surat_keputusan)
@@ -185,27 +251,46 @@ class SuratKeputusanController extends Controller
 
         $validatedData = $request->validated();
         $mode = $request->input('mode');
-        $newStatus = $this->mapModeToStatus($mode); // Bisa null jika mode bukan pengubah status
-
-        if ($newStatus === 'pending' && empty($validatedData['penandatangan']) && empty($surat_keputusan->penandatangan)) {
-            return back()->withErrors(['penandatangan' => 'Penandatangan wajib diisi saat pengajuan.'])->withInput();
-        }
-
-        // ✅ INTI PERUBAHAN: Logika update dipindahkan ke service.
-        $sk = $this->skService->updateKeputusan($surat_keputusan, $validatedData, $newStatus);
-
-        // Logika redirect tetap di controller
-        if ($mode === 'draft') {
-            return redirect()->route('surat_keputusan.index')->with('success', 'Draft SK disimpan.');
-        }
+        
+        // ✅ Tentukan status berdasarkan mode
         if ($mode === 'pending' || $mode === 'terkirim') {
-            return redirect()->route('surat_keputusan.edit', $sk)->with('success', 'Perubahan disimpan & SK diajukan kembali.');
-        }
-        if ($mode === 'revisi_dan_setujui') {
-            return redirect()->route('surat_keputusan.approveForm', $sk)->with('success', 'Perubahan berhasil disimpan. Silakan lanjutkan persetujuan.');
+            // Guard: hanya draft atau ditolak yang boleh diubah ke pending
+            if (!in_array($surat_keputusan->status_surat, ['draft', 'ditolak'])) {
+                return back()->withErrors(['mode' => 'SK dengan status ' . $surat_keputusan->status_surat . ' tidak bisa diajukan.']);
+            }
+            $newStatus = 'pending';
+        } else {
+            $newStatus = $surat_keputusan->status_surat; // Pertahankan status existing
         }
 
-        return redirect()->route('surat_keputusan.index')->with('success', 'Perubahan berhasil disimpan.');
+        // Validasi penandatangan jika mode pending
+        if ($newStatus === 'pending' && empty($validatedData['penandatangan']) && empty($surat_keputusan->penandatangan)) {
+            return back()
+                ->withErrors(['penandatangan' => 'Penandatangan wajib diisi saat pengajuan.'])
+                ->withInput();
+        }
+
+        try {
+            // ✅ INTI PERUBAHAN: Logika update dipindahkan ke service.
+            $sk = $this->skService->updateKeputusan($surat_keputusan, $validatedData, $newStatus);
+
+            // ✅ FIX: Redirect ke index, bukan back()
+            $message = $newStatus === 'pending' 
+                ? 'Perubahan disimpan & SK diajukan kembali.' 
+                : 'SK berhasil diperbarui.';
+                
+            return redirect()
+                ->route('surat_keputusan.index')
+                ->with('success', $message);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() === '23000') {
+                return back()
+                    ->withErrors(['nomor' => 'Nomor surat sudah digunakan. Silakan generate nomor baru.'])
+                    ->withInput();
+            }
+            throw $e;
+        }
     }
 
     /* ==================== Workflow ==================== */
@@ -218,7 +303,6 @@ class SuratKeputusanController extends Controller
             return back()->withErrors(['penandatangan' => 'Penandatangan wajib diisi sebelum pengajuan.']);
         }
 
-        // ✅ Cukup panggil service
         $this->skService->submitForApproval($surat_keputusan);
 
         return back()->with('success', 'Dikirim untuk persetujuan.');
@@ -232,21 +316,21 @@ class SuratKeputusanController extends Controller
         $preview = [
             'ttd_image_b64' => $assets['ttdImageB64'],
             'cap_image_b64' => $assets['capImageB64'],
-            'ttd_w_mm'      => $surat_keputusan->ttd_w_mm ?? $assets['ttdW'],
-            'cap_w_mm'      => $surat_keputusan->cap_w_mm ?? $assets['capW'],
-            'cap_opacity'   => $surat_keputusan->cap_opacity ?? $assets['capOpacity'],
+            'ttd_w_mm' => $surat_keputusan->ttd_w_mm ?? $assets['ttdW'],
+            'cap_w_mm' => $surat_keputusan->cap_w_mm ?? $assets['capW'],
+            'cap_opacity' => $surat_keputusan->cap_opacity ?? $assets['capOpacity'],
         ];
 
         return view('surat_keputusan.approve', [
-            'sk'          => $surat_keputusan->load(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap']),
-            'kop'         => $assets['kop'],
-            'preview'     => $preview,
-            'ttdW'        => $preview['ttd_w_mm'],
-            'capW'        => $preview['cap_w_mm'],
-            'capOpacity'  => $preview['cap_opacity'],
+            'sk' => $surat_keputusan->load(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap']),
+            'kop' => $assets['kop'],
+            'preview' => $preview,
+            'ttdW' => $preview['ttd_w_mm'],
+            'capW' => $preview['cap_w_mm'],
+            'capOpacity' => $preview['cap_opacity'],
             'ttdImageB64' => $assets['ttdImageB64'],
             'capImageB64' => $assets['capImageB64'],
-            'showSigns'   => true,
+            'showSigns' => true,
         ]);
     }
 
@@ -254,20 +338,20 @@ class SuratKeputusanController extends Controller
     {
         $this->authorize('approve', $surat_keputusan);
 
-        $assets     = $this->getSigningAssets($surat_keputusan);
-        $ttdW       = (int) $request->input('ttd_w_mm', $surat_keputusan->ttd_w_mm ?? $assets['ttdW']);
-        $capW       = (int) $request->input('cap_w_mm', $surat_keputusan->cap_w_mm ?? $assets['capW']);
+        $assets = $this->getSigningAssets($surat_keputusan);
+        $ttdW = (int) $request->input('ttd_w_mm', $surat_keputusan->ttd_w_mm ?? $assets['ttdW']);
+        $capW = (int) $request->input('cap_w_mm', $surat_keputusan->cap_w_mm ?? $assets['capW']);
         $capOpacity = (float) $request->input('cap_opacity', $surat_keputusan->cap_opacity ?? $assets['capOpacity']);
 
         return view('surat_keputusan.partials.approve-preview', [
-            'sk'          => $surat_keputusan,
-            'kop'         => $assets['kop'],
-            'showSigns'   => true,
+            'sk' => $surat_keputusan,
+            'kop' => $assets['kop'],
+            'showSigns' => true,
             'ttdImageB64' => $assets['ttdImageB64'],
             'capImageB64' => $assets['capImageB64'],
-            'ttdW'        => $ttdW,
-            'capW'        => $capW,
-            'capOpacity'  => $capOpacity,
+            'ttdW' => $ttdW,
+            'capW' => $capW,
+            'capOpacity' => $capOpacity,
         ]);
     }
 
@@ -284,16 +368,15 @@ class SuratKeputusanController extends Controller
         ]);
 
         try {
-            // ✅ INTI PERUBAHAN: Panggil service untuk proses approval dan penomoran.
             $sk = $this->skService->approveAndGenerateNumber($surat_keputusan, $validated);
 
-            // Logika PDF dan penyimpanan file tetap di controller karena berhubungan dengan response
             $pdfBytes = $this->renderSkPdfWithSign($sk);
-            $pdfPath  = "private/surat_keputusan/signed/{$sk->id}_" . md5((string)($sk->nomor ?? '')) . ".pdf";
+            $pdfPath = "private/surat_keputusan/signed/{$sk->id}_" . md5((string) ($sk->nomor ?? '')) . '.pdf';
             Storage::disk('local')->put($pdfPath, $pdfBytes);
-            $sk->update(['signed_pdf_path' => $pdfPath]); // Update path PDF setelah file dibuat
+            $sk->update(['signed_pdf_path' => $pdfPath]);
 
-            return redirect()->route('surat_keputusan.approveList')
+            return redirect()
+                ->route('surat_keputusan.approveList')
                 ->with('success', 'SK ' . $sk->nomor . ' berhasil disetujui.');
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -315,12 +398,10 @@ class SuratKeputusanController extends Controller
         $this->authorize('reject', $surat_keputusan);
         $note = trim((string) $request->input('note'));
 
-        // ✅ Cukup panggil service
         $this->skService->rejectKeputusan($surat_keputusan, $note);
 
         return back()->with('success', 'SK ditolak dan dikembalikan ke pembuat' . ($note ? ' (catatan dikirim).' : '.'));
     }
-
 
     public function reopen(KeputusanHeader $surat_keputusan)
     {
@@ -328,24 +409,23 @@ class SuratKeputusanController extends Controller
 
         DB::transaction(function () use ($surat_keputusan) {
             $surat_keputusan->update([
-                'status_surat'     => 'draft',
-                'approved_by'      => null,
-                'approved_at'      => null,
-                'rejected_by'      => null,
-                'rejected_at'      => null,
-                'signed_at'        => null,
-                'signed_pdf_path'  => null,
+                'status_surat' => 'draft',
+                'approved_by' => null,
+                'approved_at' => null,
+                'rejected_by' => null,
+                'rejected_at' => null,
+                'signed_at' => null,
+                'signed_pdf_path' => null,
             ]);
 
             if ($surat_keputusan->penandatangan) {
                 DB::table('notifikasi')->insert([
-                    'pengguna_id'  => (int) $surat_keputusan->penandatangan,
-                    'tipe'         => 'surat_keputusan',
+                    'pengguna_id' => (int) $surat_keputusan->penandatangan,
+                    'tipe' => 'surat_keputusan',
                     'referensi_id' => (int) $surat_keputusan->id,
-                    'pesan'        => 'SK ' . ($surat_keputusan->nomor ?? '(tanpa nomor)') .
-                        ' ditarik ke Draft oleh ' . auth()->user()->nama_lengkap . '.',
-                    'dibaca'       => 0,
-                    'dibuat_pada'  => now(),
+                    'pesan' => 'SK ' . ($surat_keputusan->nomor ?? '(tanpa nomor)') . ' ditarik ke Draft oleh ' . auth()->user()->nama_lengkap . '.',
+                    'dibaca' => 0,
+                    'dibuat_pada' => now(),
                 ]);
             }
         });
@@ -353,29 +433,87 @@ class SuratKeputusanController extends Controller
         return back()->with('success', 'SK ditarik ke Draft untuk direvisi.');
     }
 
-    public function publish(KeputusanHeader $surat_keputusan)
+    // ✅ NEW METHOD: Terbitkan SK
+    public function terbitkan(KeputusanHeader $surat_keputusan)
     {
         $this->authorize('publish', $surat_keputusan);
-
+        
+        if ($surat_keputusan->status_surat !== 'disetujui') {
+            return back()->withErrors(['status' => 'Hanya SK yang sudah disetujui yang bisa diterbitkan.']);
+        }
+        
         $surat_keputusan->update([
             'status_surat' => 'terbit',
-            'published_by' => Auth::id(),
-            'published_at' => now(),
+            'tanggal_terbit' => now(),
         ]);
-
-        if (method_exists(app(SuratKeputusanNotificationService::class), 'notifyPublished')) {
-            app(SuratKeputusanNotificationService::class)->notifyPublished($surat_keputusan);
-        }
-
-        return back()->with('success', 'SK diterbitkan.');
+        
+        return redirect()
+            ->route('surat_keputusan.index')
+            ->with('success', 'SK berhasil diterbitkan.');
     }
 
-    public function archive(KeputusanHeader $surat_keputusan)
+    // ✅ NEW METHOD: Arsipkan SK
+    public function arsipkan(KeputusanHeader $surat_keputusan)
     {
         $this->authorize('archive', $surat_keputusan);
-        $surat_keputusan->update(['status_surat' => 'arsip']);
-        return back()->with('success', 'SK diarsipkan.');
+        
+        if ($surat_keputusan->status_surat !== 'terbit') {
+            return back()->withErrors(['status' => 'Hanya SK yang sudah terbit yang bisa diarsipkan.']);
+        }
+        
+        $surat_keputusan->update([
+            'status_surat' => 'arsip',
+            'tanggal_arsip' => now(),
+        ]);
+        
+        return redirect()
+            ->route('surat_keputusan.index')
+            ->with('success', 'SK berhasil diarsipkan.');
     }
+
+    /**
+ * Hapus SK (soft delete atau hard delete)
+ */
+public function destroy(KeputusanHeader $surat_keputusan)
+{
+    $this->authorize('delete', $surat_keputusan);
+    
+    // Guard: hanya draft yang boleh dihapus
+    if ($surat_keputusan->status_surat !== 'draft') {
+        return back()->withErrors([
+            'status' => 'Hanya SK berstatus draft yang bisa dihapus.'
+        ]);
+    }
+    
+    try {
+        DB::transaction(function () use ($surat_keputusan) {
+            // Hapus relasi pivot (many-to-many dengan penerima)
+            if (method_exists($surat_keputusan, 'penerima')) {
+                $surat_keputusan->penerima()->detach();
+            }
+            
+            // Hapus file PDF jika ada
+            if ($surat_keputusan->signed_pdf_path) {
+                Storage::disk('local')->delete($surat_keputusan->signed_pdf_path);
+            }
+            
+            // Soft delete atau hard delete (tergantung model)
+            $surat_keputusan->delete();
+        });
+        
+        return redirect()
+            ->route('surat_keputusan.index')
+            ->with('success', 'SK berhasil dihapus.');
+            
+    } catch (\Exception $e) {
+        \Log::error('Gagal menghapus SK #' . $surat_keputusan->id, [
+            'error' => $e->getMessage()
+        ]);
+        
+        return back()->with('error', 'Terjadi kesalahan saat menghapus SK.');
+    }
+}
+
 
     /* ==================== PDF & Preview ==================== */
 
@@ -402,13 +540,12 @@ class SuratKeputusanController extends Controller
     public function preview(KeputusanHeader $surat_keputusan, Request $request)
     {
         $surat_keputusan->load(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap']);
-        $assets    = $this->getSigningAssets($surat_keputusan);
+        $assets = $this->getSigningAssets($surat_keputusan);
         $showSigns = $this->shouldShowSignatures($surat_keputusan);
 
-        return response()->view('surat_keputusan.preview', array_merge(
-            ['sk' => $surat_keputusan, 'showSigns' => $showSigns],
-            $assets
-        ))->header('X-Frame-Options', 'ALLOWALL');
+        return response()
+            ->view('surat_keputusan.preview', array_merge(['sk' => $surat_keputusan, 'showSigns' => $showSigns], $assets))
+            ->header('X-Frame-Options', 'ALLOWALL');
     }
 
     /* ==================== Private: assets & render ==================== */
@@ -427,8 +564,8 @@ class SuratKeputusanController extends Controller
             $capImageB64 = $this->b64FromStorage($kop->cap_path);
         }
 
-        $ttdW       = $sk->ttd_w_mm ?? ($pen?->signature?->default_width_mm ?? 42);
-        $capW       = $sk->cap_w_mm ?? 35;
+        $ttdW = $sk->ttd_w_mm ?? ($pen?->signature?->default_width_mm ?? 42);
+        $capW = $sk->cap_w_mm ?? 35;
         $capOpacity = $sk->cap_opacity ?? 0.95;
 
         return compact('ttdImageB64', 'capImageB64', 'ttdW', 'capW', 'capOpacity', 'kop');
@@ -436,7 +573,9 @@ class SuratKeputusanController extends Controller
 
     private function b64FromStorage($pathPublicOrLocal)
     {
-        if (!$pathPublicOrLocal) return null;
+        if (!$pathPublicOrLocal) {
+            return null;
+        }
 
         if (Storage::disk('local')->exists($pathPublicOrLocal)) {
             $raw = Storage::disk('local')->get($pathPublicOrLocal);
@@ -456,17 +595,17 @@ class SuratKeputusanController extends Controller
     {
         $assets = $this->getSigningAssets($sk);
 
-        $html = view('surat_keputusan.surat_pdf', array_merge(
-            ['sk' => $sk, 'showSigns' => true],
-            $assets
-        ))->render();
+        $html = view('surat_keputusan.surat_pdf', array_merge(['sk' => $sk, 'showSigns' => true], $assets))->render();
 
-        return Pdf::loadHTML($html)->setPaper('A4', 'portrait')->setOptions([
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled'      => true,
-            'dpi'                  => 96,
-            'chroot'               => public_path(),
-        ])->output();
+        return Pdf::loadHTML($html)
+            ->setPaper('A4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'dpi' => 96,
+                'chroot' => public_path(),
+            ])
+            ->output();
     }
 
     private function renderSkPdfDraft(KeputusanHeader $sk): string
@@ -484,12 +623,15 @@ class SuratKeputusanController extends Controller
             'capOpacity' => null,
         ])->render();
 
-        return Pdf::loadHTML($html)->setPaper('A4', 'portrait')->setOptions([
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled'      => true,
-            'dpi'                  => 96,
-            'chroot'               => public_path(),
-        ])->output();
+        return Pdf::loadHTML($html)
+            ->setPaper('A4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+                'dpi' => 96,
+                'chroot' => public_path(),
+            ])
+            ->output();
     }
 
     /** Map nilai tombol UI ke status_surat di DB */
@@ -497,8 +639,8 @@ class SuratKeputusanController extends Controller
     {
         return match ($mode) {
             'terkirim', 'pending' => 'pending',
-            'draft'    => 'draft',
-            default    => null,
+            'draft' => 'draft',
+            default => null,
         };
     }
 }
