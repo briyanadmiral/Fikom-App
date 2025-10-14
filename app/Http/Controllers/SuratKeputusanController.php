@@ -143,25 +143,14 @@ class SuratKeputusanController extends Controller
     {
         $this->authorize('create', KeputusanHeader::class);
         $deps = $this->getFormDependencies();
-        
+
         // Tambahkan data tambahan untuk form
         $deps['bulanRomawi'] = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
         $deps['currentYear'] = now()->year;
         $deps['currentRomawi'] = $deps['bulanRomawi'][now()->month];
-        $deps['tembusanPresets'] = [
-            'Yth. Rektor', 
-            'Yth. Wakil Rektor I', 
-            'Yth. Wakil Rektor II', 
-            'Dekan Fakultas Ilmu Komputer', 
-            'BAAK', 
-            'BAUK', 
-            'BAK', 
-            'Kepala Program Studi Sistem Informasi', 
-            'Unit Kepegawaian', 
-            'Arsip'
-        ];
+        $deps['tembusanPresets'] = ['Yth. Rektor', 'Yth. Wakil Rektor I', 'Yth. Wakil Rektor II', 'Dekan Fakultas Ilmu Komputer', 'BAAK', 'BAUK', 'BAK', 'Kepala Program Studi Sistem Informasi', 'Unit Kepegawaian', 'Arsip'];
         $deps['tanggalHariIni'] = now()->format('Y-m-d');
-        
+
         return view('surat_keputusan.create', $deps);
     }
 
@@ -192,14 +181,9 @@ class SuratKeputusanController extends Controller
             $sk = $this->skService->createKeputusan($validatedData, $status);
 
             // ✅ FIX: Redirect ke index untuk semua mode
-            $message = $status === 'draft' 
-                ? 'Draft SK berhasil disimpan.' 
-                : 'SK berhasil diajukan ke penandatangan.';
+            $message = $status === 'draft' ? 'Draft SK berhasil disimpan.' : 'SK berhasil diajukan ke penandatangan.';
 
-            return redirect()
-                ->route('surat_keputusan.index')
-                ->with('success', $message);
-
+            return redirect()->route('surat_keputusan.index')->with('success', $message);
         } catch (\Illuminate\Database\QueryException $e) {
             // ✅ Handle duplicate nomor dari database constraint
             if ($e->getCode() === '23000') {
@@ -216,25 +200,14 @@ class SuratKeputusanController extends Controller
         $this->authorize('update', $surat_keputusan);
         $deps = $this->getFormDependencies();
         $surat_keputusan->load(['penerima:id,nama_lengkap']);
-        
+
         // Tambahkan data tambahan untuk form
         $deps['bulanRomawi'] = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
         $deps['currentYear'] = now()->year;
         $deps['currentRomawi'] = $deps['bulanRomawi'][now()->month];
-        $deps['tembusanPresets'] = [
-            'Yth. Rektor', 
-            'Yth. Wakil Rektor I', 
-            'Yth. Wakil Rektor II', 
-            'Dekan Fakultas Ilmu Komputer', 
-            'BAAK', 
-            'BAUK', 
-            'BAK', 
-            'Kepala Program Studi Sistem Informasi', 
-            'Unit Kepegawaian', 
-            'Arsip'
-        ];
+        $deps['tembusanPresets'] = ['Yth. Rektor', 'Yth. Wakil Rektor I', 'Yth. Wakil Rektor II', 'Dekan Fakultas Ilmu Komputer', 'BAAK', 'BAUK', 'BAK', 'Kepala Program Studi Sistem Informasi', 'Unit Kepegawaian', 'Arsip'];
         $deps['tanggalHariIni'] = now()->format('Y-m-d');
-        
+
         return view(
             'surat_keputusan.edit',
             array_merge($deps, [
@@ -251,7 +224,7 @@ class SuratKeputusanController extends Controller
 
         $validatedData = $request->validated();
         $mode = $request->input('mode');
-        
+
         // ✅ Tentukan status berdasarkan mode
         if ($mode === 'pending' || $mode === 'terkirim') {
             // Guard: hanya draft atau ditolak yang boleh diubah ke pending
@@ -275,14 +248,9 @@ class SuratKeputusanController extends Controller
             $sk = $this->skService->updateKeputusan($surat_keputusan, $validatedData, $newStatus);
 
             // ✅ FIX: Redirect ke index, bukan back()
-            $message = $newStatus === 'pending' 
-                ? 'Perubahan disimpan & SK diajukan kembali.' 
-                : 'SK berhasil diperbarui.';
-                
-            return redirect()
-                ->route('surat_keputusan.index')
-                ->with('success', $message);
+            $message = $newStatus === 'pending' ? 'Perubahan disimpan & SK diajukan kembali.' : 'SK berhasil diperbarui.';
 
+            return redirect()->route('surat_keputusan.index')->with('success', $message);
         } catch (\Illuminate\Database\QueryException $e) {
             if ($e->getCode() === '23000') {
                 return back()
@@ -437,83 +405,75 @@ class SuratKeputusanController extends Controller
     public function terbitkan(KeputusanHeader $surat_keputusan)
     {
         $this->authorize('publish', $surat_keputusan);
-        
+
         if ($surat_keputusan->status_surat !== 'disetujui') {
             return back()->withErrors(['status' => 'Hanya SK yang sudah disetujui yang bisa diterbitkan.']);
         }
-        
+
         $surat_keputusan->update([
             'status_surat' => 'terbit',
             'tanggal_terbit' => now(),
         ]);
-        
-        return redirect()
-            ->route('surat_keputusan.index')
-            ->with('success', 'SK berhasil diterbitkan.');
+
+        return redirect()->route('surat_keputusan.index')->with('success', 'SK berhasil diterbitkan.');
     }
 
     // ✅ NEW METHOD: Arsipkan SK
     public function arsipkan(KeputusanHeader $surat_keputusan)
     {
         $this->authorize('archive', $surat_keputusan);
-        
+
         if ($surat_keputusan->status_surat !== 'terbit') {
             return back()->withErrors(['status' => 'Hanya SK yang sudah terbit yang bisa diarsipkan.']);
         }
-        
+
         $surat_keputusan->update([
             'status_surat' => 'arsip',
             'tanggal_arsip' => now(),
         ]);
-        
-        return redirect()
-            ->route('surat_keputusan.index')
-            ->with('success', 'SK berhasil diarsipkan.');
+
+        return redirect()->route('surat_keputusan.index')->with('success', 'SK berhasil diarsipkan.');
     }
 
     /**
- * Hapus SK (soft delete atau hard delete)
- */
-public function destroy(KeputusanHeader $surat_keputusan)
-{
-    $this->authorize('delete', $surat_keputusan);
-    
-    // Guard: hanya draft yang boleh dihapus
-    if ($surat_keputusan->status_surat !== 'draft') {
-        return back()->withErrors([
-            'status' => 'Hanya SK berstatus draft yang bisa dihapus.'
-        ]);
-    }
-    
-    try {
-        DB::transaction(function () use ($surat_keputusan) {
-            // Hapus relasi pivot (many-to-many dengan penerima)
-            if (method_exists($surat_keputusan, 'penerima')) {
-                $surat_keputusan->penerima()->detach();
-            }
-            
-            // Hapus file PDF jika ada
-            if ($surat_keputusan->signed_pdf_path) {
-                Storage::disk('local')->delete($surat_keputusan->signed_pdf_path);
-            }
-            
-            // Soft delete atau hard delete (tergantung model)
-            $surat_keputusan->delete();
-        });
-        
-        return redirect()
-            ->route('surat_keputusan.index')
-            ->with('success', 'SK berhasil dihapus.');
-            
-    } catch (\Exception $e) {
-        \Log::error('Gagal menghapus SK #' . $surat_keputusan->id, [
-            'error' => $e->getMessage()
-        ]);
-        
-        return back()->with('error', 'Terjadi kesalahan saat menghapus SK.');
-    }
-}
+     * Hapus SK (soft delete atau hard delete)
+     */
+    public function destroy(KeputusanHeader $surat_keputusan)
+    {
+        $this->authorize('delete', $surat_keputusan);
 
+        // Guard: hanya draft yang boleh dihapus
+        if ($surat_keputusan->status_surat !== 'draft') {
+            return back()->withErrors([
+                'status' => 'Hanya SK berstatus draft yang bisa dihapus.',
+            ]);
+        }
+
+        try {
+            DB::transaction(function () use ($surat_keputusan) {
+                // Hapus relasi pivot (many-to-many dengan penerima)
+                if (method_exists($surat_keputusan, 'penerima')) {
+                    $surat_keputusan->penerima()->detach();
+                }
+
+                // Hapus file PDF jika ada
+                if ($surat_keputusan->signed_pdf_path) {
+                    Storage::disk('local')->delete($surat_keputusan->signed_pdf_path);
+                }
+
+                // Soft delete atau hard delete (tergantung model)
+                $surat_keputusan->delete();
+            });
+
+            return redirect()->route('surat_keputusan.index')->with('success', 'SK berhasil dihapus.');
+        } catch (\Exception $e) {
+            \Log::error('Gagal menghapus SK #' . $surat_keputusan->id, [
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Terjadi kesalahan saat menghapus SK.');
+        }
+    }
 
     /* ==================== PDF & Preview ==================== */
 
@@ -595,13 +555,13 @@ public function destroy(KeputusanHeader $surat_keputusan)
     {
         $assets = $this->getSigningAssets($sk);
 
-        $html = view('surat_keputusan.surat_pdf', array_merge(['sk' => $sk, 'showSigns' => true], $assets))->render();
+        $html = view('surat_keputusan.surat_pdf', array_merge(['sk' => $sk, 'showSigns' => true, 'isDraft' => false], $assets))->render();
 
-        return Pdf::loadHTML($html)
+        return \PDF::loadHTML($html)
             ->setPaper('A4', 'portrait')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled' => true,
+                'isRemoteEnabled' => true, // penting utk asset eksternal/base64
                 'dpi' => 96,
                 'chroot' => public_path(),
             ])
@@ -616,6 +576,7 @@ public function destroy(KeputusanHeader $surat_keputusan)
             'sk' => $sk,
             'kop' => $kop,
             'showSigns' => false,
+            'isDraft' => true, // ← aktifkan watermark draft di layout
             'ttdImageB64' => null,
             'capImageB64' => null,
             'ttdW' => null,
@@ -623,7 +584,7 @@ public function destroy(KeputusanHeader $surat_keputusan)
             'capOpacity' => null,
         ])->render();
 
-        return Pdf::loadHTML($html)
+        return \PDF::loadHTML($html)
             ->setPaper('A4', 'portrait')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,

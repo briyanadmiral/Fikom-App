@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 12, 2025 at 05:19 PM
+-- Generation Time: Oct 13, 2025 at 04:06 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.12
 
@@ -378,8 +378,7 @@ INSERT INTO `klasifikasi_surat` (`id`, `kode`, `deskripsi`, `created_at`, `updat
 CREATE TABLE `master_kop_surat` (
   `id` bigint UNSIGNED NOT NULL,
   `unit` varchar(255) DEFAULT NULL,
-  `header_path` varchar(255) DEFAULT NULL,
-  `footer_path` varchar(255) DEFAULT NULL,
+  `background_path` varchar(255) DEFAULT NULL,
   `cap_path` varchar(255) DEFAULT NULL,
   `cap_default_width_mm` smallint UNSIGNED NOT NULL DEFAULT '30',
   `cap_opacity` tinyint UNSIGNED NOT NULL DEFAULT '85',
@@ -389,6 +388,18 @@ CREATE TABLE `master_kop_surat` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `mode` varchar(255) NOT NULL DEFAULT 'image',
+  `mode_type` enum('custom','upload') DEFAULT 'custom',
+  `nama_fakultas` varchar(255) DEFAULT 'FAKULTAS ILMU KOMPUTER',
+  `alamat_lengkap` varchar(500) DEFAULT 'Jl. PawiyatanLuhur IV/ 1,BendanDuwur, Semarang 50234',
+  `telepon_lengkap` varchar(255) DEFAULT 'Telp. (024) 8441555, 8505003 (hunting) Fax. (024) 8415429 – 8445265',
+  `email_website` varchar(255) DEFAULT 'e-mail: unika@unika.ac.id http://www.unika.ac.id/',
+  `text_align` enum('left','right','center') DEFAULT 'right',
+  `logo_size` int DEFAULT '100',
+  `font_size_title` int DEFAULT '14',
+  `font_size_text` int DEFAULT '10',
+  `text_color` varchar(7) DEFAULT '#000000',
+  `header_padding` int DEFAULT '15',
+  `background_opacity` int DEFAULT '100',
   `judul_atas` varchar(255) DEFAULT NULL,
   `subjudul` varchar(255) DEFAULT NULL,
   `alamat` varchar(255) DEFAULT NULL,
@@ -406,8 +417,8 @@ CREATE TABLE `master_kop_surat` (
 -- Dumping data for table `master_kop_surat`
 --
 
-INSERT INTO `master_kop_surat` (`id`, `unit`, `header_path`, `footer_path`, `cap_path`, `cap_default_width_mm`, `cap_opacity`, `cap_offset_x_mm`, `cap_offset_y_mm`, `updated_by`, `created_at`, `updated_at`, `mode`, `judul_atas`, `subjudul`, `alamat`, `telepon`, `fax`, `email`, `website`, `logo_kiri_path`, `logo_kanan_path`, `tampilkan_logo_kiri`, `tampilkan_logo_kanan`) VALUES
-(1, NULL, NULL, NULL, 'kop/mOKxKWXWoH3XMn44zcgyiUpfCBWnoSnxmOa1rcij.png', 30, 85, 0, 0, 1, '2025-08-26 03:50:41', '2025-09-13 18:24:17', 'composed', 'SOEGIJAPRANATA', 'CATHOLIC UNIVERSITY', 'Jl. Pawiyatan Luhur IV/1 Bendan Duwur Semarang 50234', '(024) 8441555, 85050003', '(024) 8415429 – 8454265', 'unika@unika.ac.id', 'https://www.unika.ac.id', NULL, 'kop/HUoTc0GBf4axvJqY2CxSVE0B2u9xNIyXrtbdJjyh.png', 0, 1);
+INSERT INTO `master_kop_surat` (`id`, `unit`, `background_path`, `cap_path`, `cap_default_width_mm`, `cap_opacity`, `cap_offset_x_mm`, `cap_offset_y_mm`, `updated_by`, `created_at`, `updated_at`, `mode`, `mode_type`, `nama_fakultas`, `alamat_lengkap`, `telepon_lengkap`, `email_website`, `text_align`, `logo_size`, `font_size_title`, `font_size_text`, `text_color`, `header_padding`, `background_opacity`, `judul_atas`, `subjudul`, `alamat`, `telepon`, `fax`, `email`, `website`, `logo_kiri_path`, `logo_kanan_path`, `tampilkan_logo_kiri`, `tampilkan_logo_kanan`) VALUES
+(1, NULL, NULL, 'kop/mOKxKWXWoH3XMn44zcgyiUpfCBWnoSnxmOa1rcij.png', 30, 85, 0, 0, 1, '2025-08-26 03:50:41', '2025-10-13 16:05:49', 'composed', 'custom', 'FAKULTAS ILMU KOMPUTER', 'Jl. PawiyatanLuhur IV/ 1,BendanDuwur, Semarang 50234', 'Telp. (024) 8441555, 8505003 (hunting) Fax. (024) 8415429 – 8445265', 'e-mail: unika@unika.ac.id http://www.unika.ac.id/', 'right', 160, 19, 12, '#000000', 5, 100, 'SOEGIJAPRANATA', 'CATHOLIC UNIVERSITY', 'Jl. Pawiyatan Luhur IV/1 Bendan Duwur Semarang 50234', '(024) 8441555, 85050003', '(024) 8415429 – 8454265', 'unika@unika.ac.id', 'https://www.unika.ac.id', NULL, 'kop/zIVT62aXzfG6geqDtwy3istgxgvJgaa6y3juUo5u.jpg', 0, 1);
 
 -- --------------------------------------------------------
 
@@ -594,7 +605,7 @@ CREATE TABLE `pengguna` (
 --
 
 INSERT INTO `pengguna` (`id`, `email`, `sandi_hash`, `nama_lengkap`, `npp`, `jabatan`, `peran_id`, `status`, `created_at`, `updated_at`, `last_activity`, `deleted_at`, `remember_token`) VALUES
-(1, 'agustina.anggitasari@unika.ac.id', '$2y$12$0rYDf0RqcBpaABHw3vaOxe3LV6UxLazy9R85vBmmwA8juagm6Xadq', 'AGUSTINA ALAM ANGGITASARI, SE., MM', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-10-12 17:18:46', '2025-10-13 00:18:46', NULL, 'WBYSiVSHoadXLldvCmYf1OoydDCX2uFCyxVWbmFTgUtUnO8fBdxLk5HfgTzJ'),
+(1, 'agustina.anggitasari@unika.ac.id', '$2y$12$0rYDf0RqcBpaABHw3vaOxe3LV6UxLazy9R85vBmmwA8juagm6Xadq', 'AGUSTINA ALAM ANGGITASARI, SE., MM', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-10-13 16:05:52', '2025-10-13 23:05:52', NULL, 'WBYSiVSHoadXLldvCmYf1OoydDCX2uFCyxVWbmFTgUtUnO8fBdxLk5HfgTzJ'),
 (2, 'kariyani.spd@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'KARIYANI, S.Pd', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-08-01 23:28:10', NULL, NULL, NULL),
 (3, 'bernhardinus.harnadi@unika.ac.id', '$2y$12$rr.ntE7OagwdG25kLxSLwOnZwIaq72oImrbM8jXOkn6AEM62QRIY2', 'Prof. BERNARDINUS HARNADI, ST., MT., Ph.D.', NULL, NULL, 3, 'aktif', '2025-04-22 03:15:27', '2025-10-04 08:46:59', '2025-10-04 15:46:59', NULL, NULL),
 (4, 'muh.khudori@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'MUH KHUDORI', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:31', NULL, NULL, NULL),
@@ -662,7 +673,7 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('AQfH3oxoisZFGjkXQV9zg15Ex7YKVOxXp4RhAnai', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiQTdaUTM4ekd4aldpWDU5Wm5raGRWUDVNcUw4aXk4dEowRkpiZFlIUSI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjM3OiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvc3VyYXRfa2VwdXR1c2FuIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9', 1760289526);
+('jamDesTcGU8Bjw1S6YcHo175PZcAggTxeX6Xlpdg', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 OPR/122.0.0.0', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiclBMcXFxeEVxdWNqUGllUzU1STZJWG5MSFBVeUU2M0ZuNk16cWFLayI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTtzOjk6Il9wcmV2aW91cyI7YToxOntzOjM6InVybCI7czo0MjoiaHR0cDovLzEyNy4wLjAuMTo4MDAwL3BlbmdhdHVyYW4va29wLXN1cmF0Ijt9fQ==', 1760371552);
 
 -- --------------------------------------------------------
 

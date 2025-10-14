@@ -312,7 +312,18 @@ class TugasController extends Controller
         $signAssets = $this->getSigningAssets($tugas);
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
 
-        $html = view('surat_tugas.surat_pdf', array_merge(['tugas' => $tugas, 'penerimaList' => $penerimaList], $signAssets))->render();
+        $html = view(
+            'surat_tugas.surat_pdf',
+            array_merge(
+                [
+                    'tugas' => $tugas,
+                    'penerimaList' => $penerimaList,
+                    'showSigns' => true,
+                    'isDraft' => false, // Bukan draft
+                ],
+                $signAssets,
+            ),
+        )->render();
 
         return Pdf::loadHTML($html)
             ->setPaper('A4', 'portrait')
@@ -387,61 +398,60 @@ class TugasController extends Controller
     }
 
     public function edit(TugasHeader $tugas)
-{
-    $user = Auth::user();
-    $peranId = $user->peran_id;
-    $tugas->load(['penerima.pengguna']);
-    
-    // ✅ FIX: Tambahkan tanggal_surat dari database
-    $tanggalHariIni = now()->format('Y-m-d');
-    
-    $nomorParts = explode('/', $tugas->nomor);
-    $baseNomor = '/' . implode('/', array_slice($nomorParts, 1));
+    {
+        $user = Auth::user();
+        $peranId = $user->peran_id;
+        $tugas->load(['penerima.pengguna']);
 
-    if ($peranId === 1) {
-        if (!($tugas->dibuat_oleh === $user->id && in_array($tugas->status_surat, ['draft', 'ditolak']))) {
-            return redirect()->route('surat_tugas.index')->with('error', 'Anda tidak berhak mengedit surat ini.');
+        // ✅ FIX: Tambahkan tanggal_surat dari database
+        $tanggalHariIni = now()->format('Y-m-d');
+
+        $nomorParts = explode('/', $tugas->nomor);
+        $baseNomor = '/' . implode('/', array_slice($nomorParts, 1));
+
+        if ($peranId === 1) {
+            if (!($tugas->dibuat_oleh === $user->id && in_array($tugas->status_surat, ['draft', 'ditolak']))) {
+                return redirect()->route('surat_tugas.index')->with('error', 'Anda tidak berhak mengedit surat ini.');
+            }
+        } elseif (in_array($peranId, [2, 3])) {
+            if (!($tugas->status_surat === 'pending' && $tugas->penandatangan == $user->id)) {
+                return redirect()->route('surat_tugas.index')->with('error', 'Anda hanya dapat merevisi surat yang menunggu persetujuan Anda.');
+            }
+        } else {
+            return redirect()->route('surat_tugas.index')->with('error', 'Anda tidak berhak mengakses form edit ini.');
         }
-    } elseif (in_array($peranId, [2, 3])) {
-        if (!($tugas->status_surat === 'pending' && $tugas->penandatangan == $user->id)) {
-            return redirect()->route('surat_tugas.index')->with('error', 'Anda hanya dapat merevisi surat yang menunggu persetujuan Anda.');
-        }
-    } else {
-        return redirect()->route('surat_tugas.index')->with('error', 'Anda tidak berhak mengakses form edit ini.');
+
+        $deps = $this->getFormDependencies();
+        extract($deps);
+
+        $data = [
+            'nomor' => $tugas->nomor,
+            'tanggal_surat' => $tugas->tanggal_surat?->format('Y-m-d') ?? $tanggalHariIni, // ✅ FIX: Tambahkan ini
+            'tanggal_asli' => $tugas->tanggal_asli?->format('Y-m-d\TH:i'),
+            'nama_pembuat' => $tugas->nama_pembuat,
+            'asal_surat' => $tugas->asal_surat,
+            'jenis_tugas' => $tugas->jenis_tugas,
+            'tugas' => $tugas->tugas,
+            'status_penerima' => $tugas->status_penerima,
+            'detail_tugas' => $tugas->detail_tugas,
+            'waktu_mulai' => $tugas->waktu_mulai?->format('Y-m-d\TH:i'),
+            'waktu_selesai' => $tugas->waktu_selesai?->format('Y-m-d\TH:i'),
+            'tempat' => $tugas->tempat,
+            'penandatangan' => $tugas->penandatangan,
+            'penerima_ids' => $tugas->penerima->pluck('pengguna_id')->all(),
+            'tahun' => $tugas->tahun,
+            'semester' => $tugas->semester,
+            'no_bin' => $tugas->no_bin,
+            'no_surat_manual' => $tugas->no_surat_manual,
+            'nama_umum' => $tugas->nama_umum,
+            'tembusan' => $tugas->tembusan,
+            'redaksi_pembuka' => $tugas->redaksi_pembuka,
+            'penutup' => $tugas->penutup,
+            'klasifikasi_surat_id' => $tugas->klasifikasi_surat_id ?? null,
+        ];
+
+        return view('surat_tugas.edit', compact('admins', 'pejabat', 'users', 'taskMaster', 'klasifikasi', 'data', 'tugas', 'baseNomor', 'tanggalHariIni'));
     }
-
-    $deps = $this->getFormDependencies();
-    extract($deps);
-
-    $data = [
-        'nomor' => $tugas->nomor,
-        'tanggal_surat' => $tugas->tanggal_surat?->format('Y-m-d') ?? $tanggalHariIni, // ✅ FIX: Tambahkan ini
-        'tanggal_asli' => $tugas->tanggal_asli?->format('Y-m-d\TH:i'),
-        'nama_pembuat' => $tugas->nama_pembuat,
-        'asal_surat' => $tugas->asal_surat,
-        'jenis_tugas' => $tugas->jenis_tugas,
-        'tugas' => $tugas->tugas,
-        'status_penerima' => $tugas->status_penerima,
-        'detail_tugas' => $tugas->detail_tugas,
-        'waktu_mulai' => $tugas->waktu_mulai?->format('Y-m-d\TH:i'),
-        'waktu_selesai' => $tugas->waktu_selesai?->format('Y-m-d\TH:i'),
-        'tempat' => $tugas->tempat,
-        'penandatangan' => $tugas->penandatangan,
-        'penerima_ids' => $tugas->penerima->pluck('pengguna_id')->all(),
-        'tahun' => $tugas->tahun,
-        'semester' => $tugas->semester,
-        'no_bin' => $tugas->no_bin,
-        'no_surat_manual' => $tugas->no_surat_manual,
-        'nama_umum' => $tugas->nama_umum,
-        'tembusan' => $tugas->tembusan,
-        'redaksi_pembuka' => $tugas->redaksi_pembuka,
-        'penutup' => $tugas->penutup,
-        'klasifikasi_surat_id' => $tugas->klasifikasi_surat_id ?? null,
-    ];
-
-    return view('surat_tugas.edit', compact('admins', 'pejabat', 'users', 'taskMaster', 'klasifikasi', 'data', 'tugas', 'baseNomor', 'tanggalHariIni'));
-}
-
 
     // UPDATE
     public function update(UpdateTugasRequest $request, TugasHeader $tugas)
