@@ -323,27 +323,60 @@
                                 <div class="row align-items-end">
                                     <div class="col-md-5">
                                         <label class="small text-muted">Klasifikasi</label>
-                                        <select id="klasifikasi_surat" name="klasifikasi_surat_id"
-                                            class="form-control select2bs4 @error('klasifikasi_surat_id') is-invalid @enderror"
-                                            required {{ $lockStructural ? 'disabled' : '' }}>
-                                            <option value="" disabled
-                                                {{ old('klasifikasi_surat_id', $isEdit ? $tugas->klasifikasi_surat_id : null) ? '' : 'selected' }}>
-                                                -- Pilih Kode --
-                                            </option>
-                                            @foreach ($klasifikasi as $k)
-                                                <option value="{{ $k->id }}" data-kode="{{ $k->kode }}"
-                                                    @selected(old('klasifikasi_surat_id', $isEdit ? $tugas->klasifikasi_surat_id : null) == $k->id)>
-                                                    {{ $k->kode }} - {{ $k->deskripsi }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @if ($lockStructural)
-                                            <input type="hidden" name="klasifikasi_surat_id"
-                                                value="{{ old('klasifikasi_surat_id', $isEdit ? $tugas->klasifikasi_surat_id : null) }}">
-                                        @endif
+                                        @php
+                                            // === Konfigurasi komponen klasifikasi (untuk modal) ===
+                                            $klModalId = 'modalKlasifikasi';
+                                            $klHiddenId = 'klasifikasi_surat_id';
+                                            $klKodeId = 'klasifikasi_kode';
+                                            $klDisplayId = 'klasifikasi_display';
+
+                                            $selectedKlasId = old(
+                                                'klasifikasi_surat_id',
+                                                $isEdit ? $tugas->klasifikasi_surat_id : null,
+                                            );
+                                            $selectedKlas = optional($klasifikasi->firstWhere('id', $selectedKlasId));
+                                            $selectedKode = $selectedKlas->kode ?? '';
+                                            $selectedLabel = $selectedKlas
+                                                ? trim(
+                                                    ($selectedKlas->kode ?? '') .
+                                                        ' - ' .
+                                                        ($selectedKlas->deskripsi ?? ($selectedKlas->nama ?? '')),
+                                                )
+                                                : '';
+                                        @endphp
+
+                                        <div class="input-group">
+                                            <input id="{{ $klDisplayId }}" type="text" class="form-control"
+                                                value="{{ $selectedLabel }}" placeholder="Klik tombol Pilih"
+                                                readonly>
+                                            <div class="input-group-append">
+                                                @unless ($lockStructural)
+                                                    <button type="button" class="btn btn-primary" data-toggle="modal"
+                                                        data-target="#{{ $klModalId }}">
+                                                        <i class="fas fa-search"></i> Pilih
+                                                    </button>
+                                                @endunless
+                                            </div>
+                                        </div>
+
+                                        {{-- nilai yang dikirim ke server --}}
+                                        <input type="hidden" name="klasifikasi_surat_id" id="{{ $klHiddenId }}"
+                                            value="{{ $selectedKlasId }}">
+                                        {{-- hanya untuk menyusun nomor --}}
+                                        <input type="hidden" id="{{ $klKodeId }}" value="{{ $selectedKode }}">
+
                                         @error('klasifikasi_surat_id')
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
+
+                                        {{-- MODAL PILIH KLASIFIKASI --}}
+                                        @include('surat_tugas.partials._modal_klasifikasi', [
+                                            'modalId' => $klModalId,
+                                            'hiddenId' => $klHiddenId,
+                                            'displayId' => $klDisplayId,
+                                            'kodeTargetId' => $klKodeId,
+                                            'items' => $klasifikasi,
+                                        ])
                                     </div>
 
                                     <div class="col-md-3">
@@ -970,11 +1003,13 @@
 
             function buildNomorFromParts() {
                 const noUrut = String($('#nomor_urut').val() || '').padStart(3, '0');
-                const kode = $('#klasifikasi_surat').find(':selected').data('kode') || '...';
+                const kode = ($('#klasifikasi_kode').val() || '').trim() ||
+                    '...'; // << sebelumnya ambil dari <select>
                 const bulan = ($('#bulan').val() || '').toUpperCase() || '...';
                 const tahun = $('#tahun-nomor').val() || '....';
                 return `${noUrut}/${kode}/TG/UNIKA/${bulan}/${tahun}`;
             }
+
             async function reserveNomor(showToast = true) {
                 const manual = $manual.val().trim();
                 if (manual) {
@@ -993,7 +1028,7 @@
                         manual: true
                     };
                 }
-                const kodeKlas = $('#klasifikasi_surat').find(':selected').data('kode');
+                const kodeKlas = ($('#klasifikasi_kode').val() || '').trim();
                 const bulan = ($('#bulan').val() || '').toUpperCase();
                 const tahun = parseInt($('#tahun-nomor').val(), 10) || new Date().getFullYear();
                 if (!kodeKlas || !bulan || !tahun) {
@@ -1004,7 +1039,7 @@
                 try {
                     $('#btn-reserve-nomor').prop('disabled', true);
                     const csrf = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]')
-                .val();
+                        .val();
                     const res = await fetch(@json(route('ajax.nomor.reserve')), {
                         method: 'POST',
                         headers: {
@@ -1047,8 +1082,8 @@
                     $disp.val(nomor);
                     $hidden.val(nomor);
                 };
-                $('#nomor_urut, #klasifikasi_surat, #bulan, #tahun-nomor').on('change keyup input',
-                    updateNomorSurat);
+                $('#nomor_urut, #klasifikasi_kode, #bulan, #tahun-nomor, #klasifikasi_surat_id')
+                    .on('change keyup input', updateNomorSurat);
                 if ($manual.val().trim()) {
                     const v = $manual.val().trim();
                     $disp.val(v);
@@ -1063,7 +1098,8 @@
                 const onScopeChange = () => {
                     if (!$manual.val().trim()) markNomorStale();
                 };
-                $('#klasifikasi_surat, #bulan, #tahun-nomor').on('change keyup input', onScopeChange);
+                $('#klasifikasi_surat_id, #klasifikasi_kode, #bulan, #tahun-nomor')
+                    .on('change keyup input', onScopeChange);
                 $(document).on('click', '#btn-reserve-nomor', () => reserveNomor(true));
                 $(document).on('click', '#btn-reset-nomor', () => markNomorStale());
                 $manual.on('input', function() {
@@ -1164,7 +1200,7 @@
                         v = v.toLowerCase().replace(/\b\w/g, m => m.toUpperCase());
                         const needsYth =
                             /^(Rektor|Wakil Rektor|Dekan|Kepala|Direktur|Ketua|Sekretaris)\b/i.test(
-                            v) && !/^Yth\.\s/i.test(v);
+                                v) && !/^Yth\.\s/i.test(v);
                         if (needsYth) v = 'Yth. ' + v;
                         t.value = v;
                     }
@@ -1176,7 +1212,7 @@
                     if (!data.length) {
                         $preview.html(
                             '<h6 class="mb-2" style="font-weight:700;color:#3b5bdb"><i class="fas fa-eye mr-1"></i>Pratinjau</h6><div class="text-muted">Belum ada tembusan. Tambahkan minimal satu.</div>'
-                            );
+                        );
                         $('#tembusan_formatted').val('');
                         return;
                     }
@@ -1185,7 +1221,7 @@
                         '</ol>';
                     $preview.html(
                         `<h6 class="mb-2" style="font-weight:700;color:#3b5bdb"><i class="fas fa-eye mr-1"></i>Pratinjau</h6>${titleHtml}${listHtml}`
-                        );
+                    );
                     const plain = (showTitle ? 'Tembusan Yth:\n' : '') + data.map((v, i) => `${i+1}. ${v}`)
                         .join('\n');
                     $('#tembusan_formatted').val(plain);
@@ -1285,10 +1321,10 @@
                         );
                         tugasForm.append(
                             `<input type="hidden" name="penerima_eksternal[${i}][nama]" value="${p.nama}">`
-                            );
+                        );
                         tugasForm.append(
                             `<input type="hidden" name="penerima_eksternal[${i}][jabatan]" value="${p.jabatan}">`
-                            );
+                        );
                     });
                 }
                 updateStatusPenerima();
@@ -1349,7 +1385,7 @@
                 const errors = [];
                 const namaUmum = $('#nama_umum').val().trim();
                 if (!namaUmum || namaUmum.length < 10) errors.push('Judul Umum Surat minimal 10 karakter');
-                if (!$('#klasifikasi_surat').val()) errors.push('Klasifikasi surat wajib dipilih');
+                if (!$('#klasifikasi_surat_id').val()) errors.push('Klasifikasi surat wajib dipilih');
                 const penandatanganVal = String($('#penandatangan_id').val() || '').trim();
                 if (!penandatanganVal) errors.push('Penandatangan wajib dipilih');
                 const mulai = $('#waktu_mulai').val(),
@@ -1394,6 +1430,15 @@
                 }
             });
 
+            function toggleReserveBtn() {
+                const can = ($('#klasifikasi_kode').val() || '').trim() && ($('#bulan').val() || '') && ($(
+                    '#tahun-nomor').val() || '');
+                $('#btn-reserve-nomor').prop('disabled', !can);
+            }
+            $('#klasifikasi_kode, #bulan, #tahun-nomor').on('input change', toggleReserveBtn);
+            toggleReserveBtn();
+
+
             // ====== ACTION SUBMIT/DRAFT (SATU-SATUNYA HANDLER) ======
             $('button[name="action"]').on('click', function(e) {
                 e.preventDefault();
@@ -1403,7 +1448,7 @@
                 const eksternalCount = penerimaState.eksternal.length;
                 if (internalCount === 0 && eksternalCount === 0) {
                     Swal.fire('Peringatan', 'Anda harus memilih setidaknya satu penerima tugas.',
-                    'warning');
+                        'warning');
                     return;
                 }
                 if (clickedAction === 'submit' && !validateForm()) return;
@@ -1490,6 +1535,7 @@
                     updateTaskPreview();
                 }, 300);
             @endif
+
         });
     </script>
 @endpush

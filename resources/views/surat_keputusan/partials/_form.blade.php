@@ -602,7 +602,7 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
     
     const IS_EDIT = @json($isEdit);
     const skForm = document.getElementById('skForm');
-    if (!skForm) return;
+    if (!skForm) return;    
 
     // ============ Helpers ============
     const $ = window.jQuery;
