@@ -525,143 +525,40 @@
         </div>
     </div>
 @endsection
-
 @push('scripts')
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        $(function() {
-            $('[data-toggle="tooltip"]').tooltip();
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-            const MODE = "{{ $mode }}";
-            const emptyMsg = MODE === 'approve-list' ?
-                "Tidak ada surat yang perlu Anda setujui." :
-                "Tidak ada data surat tugas.";
+  @include('surat_tugas.partials._scripts_shared', [
+    // mode & tabel
+    'mode'      => $mode ?? (request()->routeIs('surat_tugas.approveList') ? 'approve-list' : 'list'),
+    'tableId'   => '#table-tugas',
 
-            const table = $('#table-tugas').DataTable({
-                responsive: true,
-                autoWidth: false,
-                language: {
-                    url: "/assets/datatables/i18n/id.json",
-                    emptyTable: emptyMsg
-                },
-                order: [
-                    [3, 'desc']
-                ],
-                columnDefs: [{
-                    targets: [7, 8],
-                    orderable: false,
-                    searchable: false
-                }]
-            });
+    // filter selectors
+    'searchSelector'       => '#globalSearch',
+    'statusFilterSelector' => '#statusFilter',
+    'resetBtnSelector'     => '#resetFilters',
 
-            // Search & filter
-            $('#globalSearch').on('keyup', function() {
-                table.search(this.value).draw();
-            });
+    // kolom (by header text; case-insensitive, dilowercase di JS)
+    'orderHeaderText'   => 'tgl surat',
+    'statusHeaderText'  => 'status',
 
-            $('#statusFilter').on('change', function() {
-                const status = this.value;
-                if (status) {
-                    table.column(6).search('^' + status + '$', true, false).draw();
-                } else {
-                    table.column(6).search('').draw();
-                }
-            });
+    // non-orderable: Berkas & Aksi
+    'nonOrderableHeaders' => ['Berkas', 'Aksi'],
 
-            $('#resetFilters').on('click', function(e) {
-                e.preventDefault();
-                $('#globalSearch, #statusFilter').val('');
-                table.search('').columns().search('').draw();
-            });
+    // fitur
+    'enableQuickView' => true,
+    'quickView'       => ['modalId' => '#quickViewModal', 'triggerSelector' => '.quick-view'],
+    'enableDelete'    => true,
 
-            // ✅ Flash Messages dengan SweetAlert2
-            @if (session('success'))
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: "{{ session('success') }}",
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-            @endif
+    // i18n & pesan kosong
+    'i18nUrl'         => '/assets/datatables/i18n/id.json',
+    'emptyDefaultMsg' => 'Tidak ada data surat tugas.',
+    'emptyApproveMsg' => 'Tidak ada surat yang perlu Anda setujui.',
 
-            @if (session('error'))
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal!',
-                    text: "{{ session('error') }}",
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-            @endif
-
-            // ✅ Quick View - Modal
-            $(document).on('click', '.quick-view', function(e) {
-                e.preventDefault();
-                const url = $(this).data('url') || $(this).attr('href');
-                if (!url) return;
-
-                const $modal = $('#quickViewModal');
-                const $spinner = $modal.find('.quickview-spinner');
-                const $iframe = $modal.find('iframe');
-
-                $spinner.show();
-                $iframe.off('load').on('load', function() {
-                    $spinner.hide();
-                });
-                $iframe.attr('src', url);
-                $modal.modal('show');
-            });
-
-            // Reset iframe saat modal ditutup
-            $('#quickViewModal').on('hidden.bs.modal', function() {
-                const $iframe = $(this).find('iframe');
-                $iframe.off('load').attr('src', 'about:blank');
-                $('.quickview-spinner').hide();
-            });
-
-            // ✅ HAPUS SURAT - SweetAlert2
-            $(document).on('click', '.btn-delete', function(e) {
-                e.preventDefault();
-                const url = $(this).data('url');
-                const nomor = $(this).data('nomor') || '—';
-
-                Swal.fire({
-                    title: 'Hapus Draft Surat Tugas?',
-                    html: `Surat <b>${nomor}</b> akan dihapus secara permanen.`,
-                    icon: 'error',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fas fa-trash"></i> Ya, Hapus',
-                    cancelButtonText: 'Batal',
-                    footer: '<small class="text-muted">Aksi ini tidak dapat dibatalkan!</small>'
-                }).then(result => {
-                    if (result.isConfirmed) {
-                        const form = $('<form>', {
-                                method: 'POST',
-                                action: url,
-                                style: 'display:none'
-                            })
-                            .append($('<input>', {
-                                type: 'hidden',
-                                name: '_token',
-                                value: '{{ csrf_token() }}'
-                            }))
-                            .append($('<input>', {
-                                type: 'hidden',
-                                name: '_method',
-                                value: 'DELETE'
-                            }));
-
-                        $('body').append(form);
-                        form.trigger('submit');
-                    }
-                });
-            });
-        });
-    </script>
+    // teks konfirmasi
+    'moduleName'      => 'Surat Tugas',
+  ])
 @endpush

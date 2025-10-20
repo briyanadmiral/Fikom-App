@@ -15,9 +15,9 @@ class SubTugasController extends Controller
     {
         // Eager load sub tugas beserta detail tugas
         $jenistugas->load('subTugas.detail');
-        
+
         $list = $jenistugas->subTugas()->orderBy('nama')->get();
-        
+
         return view('sub_tugas.index', compact('jenistugas', 'list'));
     }
 
@@ -27,14 +27,12 @@ class SubTugasController extends Controller
     public function store(Request $request, JenisTugas $jenistugas)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:255'
+            'nama' => 'required|string|max:255',
         ]);
 
         $jenistugas->subTugas()->create($validated);
 
-        return redirect()
-            ->route('sub_tugas.index', $jenistugas->id)
-            ->with('success', 'Sub Tugas berhasil ditambahkan.');
+        return redirect()->route('sub_tugas.index', $jenistugas->id)->with('success', 'Sub Tugas berhasil ditambahkan.');
     }
 
     /**
@@ -42,20 +40,18 @@ class SubTugasController extends Controller
      */
     public function update(Request $request, JenisTugas $jenistugas, SubTugas $subtugas)
     {
-        // Pastikan sub tugas ini milik jenis tugas yang dipilih
-        if ($subtugas->jenis_tugas_id !== $jenistugas->id) {
+        // ✅ FIXED: Type-safe comparison
+        if ((int) $subtugas->jenis_tugas_id !== (int) $jenistugas->id) {
             abort(404);
         }
 
         $validated = $request->validate([
-            'nama' => 'required|string|max:255'
+            'nama' => 'required|string|max:255',
         ]);
 
         $subtugas->update($validated);
 
-        return redirect()
-            ->route('sub_tugas.index', $jenistugas->id)
-            ->with('success', 'Sub Tugas berhasil diperbarui.');
+        return redirect()->route('sub_tugas.index', $jenistugas->id)->with('success', 'Sub Tugas berhasil diperbarui.');
     }
 
     /**
@@ -63,8 +59,8 @@ class SubTugasController extends Controller
      */
     public function destroy(JenisTugas $jenistugas, SubTugas $subtugas)
     {
-        // Pastikan sub tugas ini milik jenis tugas yang dipilih
-        if ($subtugas->jenis_tugas_id !== $jenistugas->id) {
+        // ✅ FIXED: Type-safe comparison
+        if ((int) $subtugas->jenis_tugas_id !== (int) $jenistugas->id) {
             abort(404);
         }
 

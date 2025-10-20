@@ -14,12 +14,18 @@ class KlasifikasiSuratController extends Controller
     {
         $query = KlasifikasiSurat::query();
 
-        // 🆕 Search by kode or deskripsi
+        // ✅ FIXED: Sanitize search input
         if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('kode', 'LIKE', "%{$search}%")->orWhere('deskripsi', 'LIKE', "%{$search}%");
-            });
+            $search = sanitize_input($request->search, 100); // Limit to 100 chars
+
+            if ($search) {
+                // ✅ Escape LIKE wildcards
+                $searchEscaped = str_replace(['%', '_'], ['\%', '\_'], $search);
+
+                $query->where(function ($q) use ($searchEscaped) {
+                    $q->where('kode', 'LIKE', "%{$searchEscaped}%")->orWhere('deskripsi', 'LIKE', "%{$searchEscaped}%");
+                });
+            }
         }
 
         // Filter by prefix (A, B, C, dst)

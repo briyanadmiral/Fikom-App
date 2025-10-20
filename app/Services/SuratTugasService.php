@@ -10,16 +10,25 @@ use App\Models\TugasDetail;
 use App\Models\KlasifikasiSurat;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-
-/** tambahkan import */
+use Carbon\Carbon;
 use App\Services\NomorSuratService;
+
+// Import helper functions (global) agar bisa dipanggil langsung
+use function sanitize_input;
+use function sanitize_html_limited;
+use function sanitize_search_keyword;
+use function sanitize_notification;
+use function sanitize_log_message;
+use function validate_integer_id;
+use function validate_status;
+use function logStatusChange;
 
 class SuratTugasService
 {
     protected SuratTugasNotificationService $notificationService;
-
-    /** service penomoran opsional (fallback) */
     protected ?NomorSuratService $nomorService;
 
     public function __construct(SuratTugasNotificationService $notificationService, ?NomorSuratService $nomorService = null)
@@ -28,82 +37,132 @@ class SuratTugasService
         $this->nomorService = $nomorService ?? app(NomorSuratService::class);
     }
 
+    /**
+     * Create new surat tugas
+     * Asumsi: data sudah melalui FormRequest (trim, cast, rules).
+     */
     public function createTugas(array $validatedData, string $mode): TugasHeader
     {
+        // Whitelist mode
+        if (!in_array($mode, ['submit', 'draft'], true)) {
+            throw new \InvalidArgumentException('Mode tidak valid. Gunakan "submit" atau "draft".');
+        }
+
         return DB::transaction(function () use ($validatedData, $mode) {
-        
-            $detailId = $this->resolveDetailTugasId($validatedData['tugas'], $validatedData['jenis_tugas']);
+            $detailId = $this->resolveDetailTugasId($validatedData['tugas'] ?? null, $validatedData['jenis_tugas'] ?? null);
+
             if (!$detailId) {
                 throw new \Exception('Mapping detail tugas tidak ditemukan.');
             }
 
             $status = $mode === 'submit' ? 'pending' : 'draft';
-            $nextApprover = $mode === 'submit' ? $validatedData['penandatangan'] : null;
+            $nextApprover = null;
 
-            // 🔁 Fallback: siapkan nomor otomatis bila kosong
+            // Ambil penandatangan dari *_id (prioritas), fallback ke legacy key bila ada
+            $penandaIn = validate_integer_id($validatedData['penandatangan_id'] ?? ($validatedData['penandatangan'] ?? null));
+            if ($status === 'pending') {
+                $nextApprover = $penandaIn ?: null;
+            }
+
+            // Nomor surat: pakai input jika ada, kalau kosong → reserve otomatis
             $nomor = trim((string) ($validatedData['nomor'] ?? ''));
             if ($nomor === '') {
-                $kodeKlas = optional(KlasifikasiSurat::find($validatedData['klasifikasi_surat_id']))->kode ?? 'B.10.1';
+                $klasifikasiId = (int) ($validatedData['klasifikasi_surat_id'] ?? 0);
+                $klasifikasi = $klasifikasiId ? KlasifikasiSurat::find($klasifikasiId) : null;
+                $kodeKlas = $klasifikasi ? $klasifikasi->kode : 'B.10.1';
+
                 $bulanR = $this->ensureBulanRomawi($validatedData['bulan'] ?? 'I');
                 $tahun = (int) ($validatedData['tahun'] ?? date('Y'));
                 $unit = 'TG';
+
                 $res = $this->nomorService->reserve($unit, $kodeKlas, $bulanR, $tahun);
                 $nomor = $res['nomor'];
             }
 
             $segmen = $this->resolveSegmenPenerima($validatedData['status_penerima'] ?? null);
-
-            // ✅ Prepare tanggal_surat dengan fallback
             $tanggalSurat = $validatedData['tanggal_surat'] ?? now()->format('Y-m-d');
+            $tugasHeaderModel = new TugasHeader();
+            $table = $tugasHeaderModel->getTable();
 
-    
-            $tugas = TugasHeader::create([
+            // Build data aman
+            $data = [
                 'nomor' => $nomor,
                 'nomor_status' => 'reserved',
-                'bulan' => $validatedData['bulan'],
-                'tahun' => $validatedData['tahun'],
-                'semester' => $validatedData['semester'],
-                'nama_umum' => $validatedData['nama_umum'],
-                'klasifikasi_surat_id' => $validatedData['klasifikasi_surat_id'],
-
-                // ✅ PERBAIKAN: Gunakan variabel yang sudah disiapkan
+                'bulan' => $this->ensureBulanRomawi($validatedData['bulan'] ?? 'I'),
+                'tahun' => (int) ($validatedData['tahun'] ?? date('Y')),
+                'semester' => $validatedData['semester'] ?? null,
+                'nama_umum' => sanitize_input($validatedData['nama_umum'] ?? '', 255),
+                'klasifikasi_surat_id' => (int) ($validatedData['klasifikasi_surat_id'] ?? 0),
                 'tanggal_surat' => $tanggalSurat,
-
-                'status_surat' => $status,
+                'status_surat' => validate_status($status, ['draft', 'pending', 'disetujui', 'ditolak']) ?? 'draft',
                 'dibuat_oleh' => Auth::id(),
-                'nama_pembuat' => $validatedData['nama_pembuat'],
-                'asal_surat' => $validatedData['asal_surat'],
-                'jenis_tugas' => $validatedData['jenis_tugas'],
-                'tugas' => $validatedData['tugas'],
-                'detail_tugas' => $validatedData['detail_tugas'] ?? null,
-                'detail_tugas_id' => $detailId,
+                'jenis_tugas' => sanitize_input($validatedData['jenis_tugas'] ?? '', 100),
+                'tugas' => sanitize_input($validatedData['tugas'] ?? '', 255),
+                'detail_tugas' => sanitize_input($validatedData['detail_tugas'] ?? null, 65000),
+                'detail_tugas_id' => (int) $detailId,
                 'status_penerima' => $segmen,
-                'redaksi_pembuka' => $validatedData['redaksi_pembuka'] ?? null,
-                'penutup' => $validatedData['penutup'] ?? null,
-                'waktu_mulai' => $validatedData['waktu_mulai'],
-                'waktu_selesai' => $validatedData['waktu_selesai'],
-                'tempat' => $validatedData['tempat'],
-                'penandatangan' => $validatedData['penandatangan'],
-                'next_approver' => $nextApprover,
-                'tembusan' => $validatedData['tembusan'] ?? null,
+                'redaksi_pembuka' => sanitize_html_limited($validatedData['redaksi_pembuka'] ?? null),
+                'penutup' => sanitize_html_limited($validatedData['penutup'] ?? null),
+                'waktu_mulai' => $validatedData['waktu_mulai'] ?? null,
+                'waktu_selesai' => $validatedData['waktu_selesai'] ?? null,
+                'tempat' => sanitize_input($validatedData['tempat'] ?? '', 255),
+                'next_approver' => $nextApprover ? (int) $nextApprover : null,
+                'tembusan' => sanitize_input($validatedData['tembusan'] ?? '', 500),
                 'submitted_at' => $status === 'pending' ? now() : null,
-            ]);
+            ];
 
+            // ✅ FIX: Set semua FK yang dibutuhkan
+            // Kolom baru dengan _id
+            $this->putIfColumnExists($data, $table, 'pembuat_id', validate_integer_id($validatedData['pembuat_id'] ?? ($validatedData['nama_pembuat'] ?? null)));
+            $this->putIfColumnExists($data, $table, 'asal_surat_id', validate_integer_id($validatedData['asal_surat_id'] ?? ($validatedData['asal_surat'] ?? null)));
+            $this->putIfColumnExists($data, $table, 'penandatangan_id', $penandaIn);
+
+            // ✅ FIX: Set kolom legacy nama_pembuat, asal_surat, penandatangan
+            // CRITICAL: Kolom ini harus diisi jika masih ada di DB dan NOT NULL
+            if (Schema::hasColumn($table, 'nama_pembuat')) {
+                // Prioritas: ambil ID dari pembuat_id
+                $pembuatId = validate_integer_id($validatedData['pembuat_id'] ?? ($validatedData['nama_pembuat'] ?? Auth::id()));
+                $data['nama_pembuat'] = $pembuatId; // ✅ FIXED: Set with ID
+            }
+
+            if (Schema::hasColumn($table, 'asal_surat')) {
+                $asalId = validate_integer_id($validatedData['asal_surat_id'] ?? null) ?: validate_integer_id($validatedData['asal_surat'] ?? null) ?: validate_integer_id($validatedData['pembuat_id'] ?? null) ?: Auth::id(); // fallback terakhir yang aman
+
+                $data['asal_surat'] = (int) $asalId;
+            }
+
+            if (Schema::hasColumn($table, 'penandatangan')) {
+                $data['penandatangan'] = $penandaIn; // ✅ FIXED: Set with ID
+            }
+
+            $tugas = TugasHeader::create($data);
+
+            // Sinkron penerima (internal/eksternal)
             $this->syncPenerima($tugas, $validatedData['penerima_internal'] ?? [], $validatedData['penerima_eksternal'] ?? []);
 
             if ($status === 'pending') {
+                // Kirim notifikasi (bila ada teks custom, bungkus sanitize_notification())
                 $this->notificationService->notifyApprovalRequest($tugas);
             }
+
+            // Audit trail
+            logStatusChange(DB::connection(), (int) $tugas->id, null, $status);
 
             return $tugas;
         });
     }
 
+    /**
+     * Update existing surat tugas
+     */
     public function updateTugas(TugasHeader $tugas, array $validatedData, string $mode): TugasHeader
     {
-        return DB::transaction(function () use ($tugas, $validatedData, $mode) {
+        if (!in_array($mode, ['submit', 'draft'], true)) {
+            throw new \InvalidArgumentException('Mode tidak valid.');
+        }
 
-            // 🔒 hard-guard: tidak boleh update kalau sudah locked
+        return DB::transaction(function () use ($tugas, $validatedData, $mode) {
+            // Tidak boleh update bila nomor sudah terkunci
             if ($tugas->nomor_status === 'locked') {
                 throw new \RuntimeException('Surat sudah terkunci (locked) dan tidak dapat diubah.');
             }
@@ -112,250 +171,295 @@ class SuratTugasService
             $newStatus = $oldStatus;
             $nextApprover = $tugas->next_approver;
 
+            // Submit dari draft → pending
             if ($mode === 'submit' && $oldStatus === 'draft') {
                 $newStatus = 'pending';
-                $nextApprover = $validatedData['penandatangan'] ?? null;
+                $nextApprover = validate_integer_id($validatedData['penandatangan_id'] ?? ($validatedData['penandatangan'] ?? null));
             }
 
-            // 🔁 Fallback nomor saat berubah ke pending & nomor kosong
+            // Nomor otomatis bila transisi draft→pending dan belum ada nomor
             $nomor = trim((string) ($validatedData['nomor'] ?? ''));
             if ($nomor === '' && $oldStatus === 'draft' && $newStatus === 'pending') {
-                $kodeKlas = optional(KlasifikasiSurat::find($validatedData['klasifikasi_surat_id']))->kode ?? 'B.10.1';
-                $bulanR = $this->ensureBulanRomawi($validatedData['bulan'] ?? 'I');
-                $tahun = (int) ($validatedData['tahun'] ?? date('Y'));
+                $klasifikasiId = (int) ($validatedData['klasifikasi_surat_id'] ?? $tugas->klasifikasi_surat_id);
+                $klasifikasi = $klasifikasiId ? KlasifikasiSurat::find($klasifikasiId) : null;
+                $kodeKlas = $klasifikasi ? $klasifikasi->kode : 'B.10.1';
+
+                $bulanR = $this->ensureBulanRomawi($validatedData['bulan'] ?? ($tugas->bulan ?? 'I'));
+                $tahun = (int) ($validatedData['tahun'] ?? ($tugas->tahun ?? date('Y')));
                 $unit = 'TG';
+
                 $res = $this->nomorService->reserve($unit, $kodeKlas, $bulanR, $tahun);
                 $nomor = $res['nomor'];
             }
 
-            $segmen = $this->resolveSegmenPenerima($validatedData['status_penerima'] ?? null);
-
-            // ✅ Prepare tanggal_surat dengan triple fallback
+            $segmen = $this->resolveSegmenPenerima($validatedData['status_penerima'] ?? $tugas->status_penerima);
             $tanggalSurat = $validatedData['tanggal_surat'] ?? ($tugas->tanggal_surat ?? now()->format('Y-m-d'));
+            $table = $tugas->getTable();
 
-
-            $tugas->update([
+            $data = [
                 'nomor' => $nomor !== '' ? $nomor : $tugas->nomor,
-                'bulan' => $validatedData['bulan'],
-                'tahun' => $validatedData['tahun'],
-                'semester' => $validatedData['semester'],
-                'nama_umum' => $validatedData['nama_umum'],
-                'klasifikasi_surat_id' => $validatedData['klasifikasi_surat_id'],
-
-                // ✅ PERBAIKAN: Gunakan variabel yang sudah disiapkan
+                'bulan' => $this->ensureBulanRomawi($validatedData['bulan'] ?? $tugas->bulan),
+                'tahun' => (int) ($validatedData['tahun'] ?? $tugas->tahun),
+                'semester' => $validatedData['semester'] ?? $tugas->semester,
+                'nama_umum' => sanitize_input($validatedData['nama_umum'] ?? $tugas->nama_umum, 255),
+                'klasifikasi_surat_id' => (int) ($validatedData['klasifikasi_surat_id'] ?? $tugas->klasifikasi_surat_id),
                 'tanggal_surat' => $tanggalSurat,
+                'status_surat' => validate_status($newStatus, ['draft', 'pending', 'disetujui', 'ditolak']) ?? $tugas->status_surat,
 
-                'status_surat' => $newStatus,
-                'nama_pembuat' => $validatedData['nama_pembuat'],
-                'asal_surat' => $validatedData['asal_surat'],
-                'jenis_tugas' => $validatedData['jenis_tugas'],
-                'tugas' => $validatedData['tugas'],
-                'detail_tugas' => $validatedData['detail_tugas'] ?? null,
+                'jenis_tugas' => sanitize_input($validatedData['jenis_tugas'] ?? $tugas->jenis_tugas, 100),
+                'tugas' => sanitize_input($validatedData['tugas'] ?? $tugas->tugas, 255),
+                'detail_tugas' => sanitize_input($validatedData['detail_tugas'] ?? $tugas->detail_tugas, 65000),
+
                 'status_penerima' => $segmen,
-                'redaksi_pembuka' => $validatedData['redaksi_pembuka'] ?? null,
-                'penutup' => $validatedData['penutup'] ?? null,
-                'penandatangan' => $validatedData['penandatangan'] ?? null,
-                'next_approver' => $nextApprover,
-                'waktu_mulai' => $validatedData['waktu_mulai'] ?? null,
-                'waktu_selesai' => $validatedData['waktu_selesai'] ?? null,
-                'tempat' => $validatedData['tempat'] ?? null,
-                'tembusan' => $validatedData['tembusan'] ?? null,
-                'submitted_at' => $oldStatus === 'draft' && $newStatus === 'pending' ? now() : $tugas->submitted_at,
-            ]);
+                'redaksi_pembuka' => sanitize_html_limited($validatedData['redaksi_pembuka'] ?? $tugas->redaksi_pembuka),
+                'penutup' => sanitize_html_limited($validatedData['penutup'] ?? $tugas->penutup),
 
+                'next_approver' => $nextApprover,
+                'waktu_mulai' => $validatedData['waktu_mulai'] ?? $tugas->waktu_mulai,
+                'waktu_selesai' => $validatedData['waktu_selesai'] ?? $tugas->waktu_selesai,
+                'tempat' => sanitize_input($validatedData['tempat'] ?? $tugas->tempat, 255),
+                'tembusan' => sanitize_input($validatedData['tembusan'] ?? $tugas->tembusan, 500),
+                'submitted_at' => $oldStatus === 'draft' && $newStatus === 'pending' ? now() : $tugas->submitted_at,
+            ];
+
+            // FK aman (prioritaskan *_id bila ada; jika tidak ada, jangan overwrite legacy dengan angka)
+            $this->putIfColumnExists($data, $table, 'pembuat_id', validate_integer_id($validatedData['pembuat_id'] ?? ($tugas->pembuat_id ?? null)));
+            $this->putIfColumnExists($data, $table, 'asal_surat_id', validate_integer_id($validatedData['asal_surat_id'] ?? ($tugas->asal_surat_id ?? null)));
+
+            if (array_key_exists('penandatangan_id', $validatedData)) {
+                $this->putIfColumnExists($data, $table, 'penandatangan_id', validate_integer_id($validatedData['penandatangan_id']));
+            }
+
+            if (!Schema::hasColumn($table, 'penandatangan_id') && Schema::hasColumn($table, 'penandatangan')) {
+                if (array_key_exists('penandatangan', $validatedData)) {
+                    $data['penandatangan'] = (int) validate_integer_id($validatedData['penandatangan']) ?? $tugas->penandatangan;
+                }
+            }
+
+            $tugas->update($data);
+
+            // Sinkron penerima
             $this->syncPenerima($tugas, $validatedData['penerima_internal'] ?? [], $validatedData['penerima_eksternal'] ?? []);
 
             if ($oldStatus === 'draft' && $newStatus === 'pending') {
                 $this->notificationService->notifyApprovalRequest($tugas);
             }
 
+            if ($oldStatus !== $newStatus) {
+                logStatusChange(DB::connection(), (int) $tugas->id, $oldStatus, $newStatus);
+            }
+
             return $tugas;
         });
     }
 
+    /**
+     * Approve surat tugas
+     */
     public function approveTugas(TugasHeader $tugas, array $validatedData): TugasHeader
     {
         return DB::transaction(function () use ($tugas, $validatedData) {
-            $tugas->update([
-                'ttd_w_mm' => $validatedData['ttd_w_mm'],
-                'cap_w_mm' => $validatedData['cap_w_mm'],
-                'cap_opacity' => $validatedData['cap_opacity'],
+            $table = $tugas->getTable();
+
+            $update = [
+                'ttd_w_mm' => (int) ($validatedData['ttd_w_mm'] ?? 0),
+                'cap_w_mm' => (int) ($validatedData['cap_w_mm'] ?? 0),
+                'cap_opacity' => (float) ($validatedData['cap_opacity'] ?? 1),
                 'tanggal_surat' => $tugas->tanggal_surat ?? now()->toDateString(),
                 'status_surat' => 'disetujui',
-                'penandatangan' => Auth::id(),
                 'signed_at' => now(),
                 'next_approver' => null,
                 'nomor_status' => 'locked', // 🔒 kunci nomor saat approve
                 'dikunci_pada' => now(),
-            ]);
+            ];
+
+            // Simpan penandatangan ke kolom yang tersedia
+            if (Schema::hasColumn($table, 'penandatangan_id')) {
+                $update['penandatangan_id'] = Auth::id();
+            } elseif (Schema::hasColumn($table, 'penandatangan')) {
+                $update['penandatangan'] = Auth::id();
+            }
+
+            $tugas->update($update);
 
             $this->notificationService->notifyApproved($tugas);
+
+            // Audit trail
+            logStatusChange(DB::connection(), (int) $tugas->id, 'pending', 'disetujui');
 
             return $tugas;
         });
     }
 
+    /**
+     * Sinkron penerima (internal dan eksternal)
+     * - internal: array of user_id
+     * - eksternal: array of ['nama','jabatan','instansi']
+     */
     private function syncPenerima(TugasHeader $tugas, array $internalIds, array $eksternalData): void
     {
+        // Bersihkan dulu penerima lama
         $tugas->penerima()->delete();
 
+        // Internal (FK aman)
         foreach ($internalIds as $uid) {
-            TugasPenerima::create(['tugas_id' => $tugas->id, 'pengguna_id' => $uid]);
+            $userId = validate_integer_id($uid);
+            if ($userId) {
+                TugasPenerima::create([
+                    'tugas_id' => $tugas->id,
+                    'pengguna_id' => $userId,
+                ]);
+            }
         }
 
+        // Eksternal (sanitasi teks)
         foreach ($eksternalData as $p) {
-            if (!empty($p['nama'])) {
+            $nama = sanitize_input($p['nama'] ?? '', 100);
+            if ($nama) {
                 TugasPenerima::create([
                     'tugas_id' => $tugas->id,
                     'pengguna_id' => null,
-                    'nama_penerima' => $p['nama'],
-                    'jabatan_penerima' => $p['jabatan'] ?? null,
-                    'instansi' => $p['instansi'] ?? null,
+                    'nama_penerima' => $nama,
+                    'jabatan_penerima' => sanitize_input($p['jabatan'] ?? null, 100),
+                    'instansi' => sanitize_input($p['instansi'] ?? null, 150),
                 ]);
             }
         }
     }
 
-    /** Helper baru untuk memproses status_penerima */
+    /**
+     * Normalisasi segmen penerima (whitelist)
+     */
     private function resolveSegmenPenerima(?string $rawInput): ?string
     {
         if (!$rawInput) {
             return null;
         }
 
-        $raw = mb_strtolower($rawInput);
-        foreach (['dosen', 'tendik', 'mahasiswa'] as $opt) {
-            if (Str::contains($raw, $opt)) {
-                return $opt;
+        $allowed = ['dosen', 'tendik', 'mahasiswa'];
+        $raw = mb_strtolower(trim($rawInput));
+
+        foreach ($allowed as $segment) {
+            if (Str::contains($raw, $segment)) {
+                return $segment;
             }
         }
         return null;
     }
 
-    /** pastikan bulan romawi valid dari input angka/romawi */
+    /**
+     * Pastikan bulan romawi valid dari input angka/romawi
+     */
     private function ensureBulanRomawi($value): string
     {
         $romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
         $upper = strtoupper(trim((string) $value));
+
         if (in_array($upper, $romans, true)) {
             return $upper;
         }
 
-        $n = (int) $value;
-        if ($n >= 1 && $n <= 12) {
+        $n = validate_integer_id($value);
+        if ($n && $n >= 1 && $n <= 12) {
             return $romans[$n - 1];
         }
+
         return 'I';
     }
 
     /**
-     * Pemetaan cerdas dari nama sub_tugas -> detail_tugas_id.
+     * Pemetaan cerdas nama sub_tugas → detail_tugas_id (aman)
      */
     private function resolveDetailTugasId(?string $tugasNama, ?string $jenisTugas): ?int
     {
         $name = trim((string) $tugasNama);
-        if ($name === '') {
-            \Log::warning('resolveDetailTugasId: tugasNama kosong');
+        if (!$name) {
+            Log::warning('resolveDetailTugasId: tugasNama kosong');
             return null;
         }
 
+        $nameLower = mb_strtolower($name);
         $jenisId = null;
+
+        // Resolve jenis_tugas_id dari parameter
         if (!empty($jenisTugas)) {
+            $jenisLower = mb_strtolower(trim($jenisTugas));
             try {
-                $jenisId = optional(JenisTugas::whereRaw('LOWER(nama) = ?', [mb_strtolower($jenisTugas)])->first())->id;
-            } catch (\Throwable $e) {
-                try {
-                    $jenisId = DB::table('jenis_tugas')
-                        ->whereRaw('LOWER(nama) = ?', [mb_strtolower($jenisTugas)])
-                        ->value('id');
-                } catch (\Throwable $e2) {
-                    /* noop */
-                }
+                $jenisModel = JenisTugas::whereRaw('LOWER(nama) = ?', [$jenisLower])->first();
+                $jenisId = $jenisModel ? (int) $jenisModel->id : null;
+            } catch (\Exception $e) {
+                Log::warning('resolveDetailTugasId: Error resolving jenis_tugas', [
+                    'error' => $e->getMessage(),
+                    'jenis_tugas' => $jenisTugas,
+                ]);
             }
         }
 
+        // 1. Exact match di SubTugas
         $sub = null;
         try {
-            $q = SubTugas::query()->whereRaw('LOWER(nama) = ?', [mb_strtolower($name)]);
+            $query = SubTugas::whereRaw('LOWER(nama) = ?', [$nameLower]);
             if ($jenisId) {
-                $q->where('jenis_tugas_id', $jenisId);
+                $query->where('jenis_tugas_id', $jenisId);
             }
-            $sub = $q->first();
-        } catch (\Throwable $e) {
-            try {
-                $q = DB::table('sub_tugas')->whereRaw('LOWER(nama) = ?', [mb_strtolower($name)]);
-                if ($jenisId) {
-                    $q->where('jenis_tugas_id', $jenisId);
-                }
-                $row = $q->first();
-                if ($row) {
-                    $sub = (object) ['id' => $row->id, 'jenis_tugas_id' => $row->jenis_tugas_id, 'nama' => $row->nama];
-                }
-            } catch (\Throwable $e2) {
-                /* noop */
-            }
+            $sub = $query->first();
+        } catch (\Exception $e) {
+            Log::warning('resolveDetailTugasId: Error finding SubTugas (exact match)', [
+                'error' => sanitize_log_message($e->getMessage()),
+            ]);
         }
 
+        // 2. ✅ FIXED: Fallback LIKE dengan proper binding
         if (!$sub) {
             try {
-                $q = SubTugas::query()->where('nama', 'LIKE', '%' . $name . '%');
+                // Sanitasi keyword untuk LIKE
+                $literal = sanitize_search_keyword($nameLower);
+
+                // ✅ FIX: Proper parameter binding
+                $query = SubTugas::whereRaw('LOWER(nama) LIKE ?', ['%' . $literal . '%']);
+
                 if ($jenisId) {
-                    $q->where('jenis_tugas_id', $jenisId);
+                    $query->where('jenis_tugas_id', $jenisId);
                 }
-                $sub = $q->first();
-            } catch (\Throwable $e) {
-                try {
-                    $q2 = DB::table('sub_tugas')->where('nama', 'LIKE', '%' . $name . '%');
-                    if ($jenisId) {
-                        $q2->where('jenis_tugas_id', $jenisId);
-                    }
-                    $row = $q2->first();
-                    if ($row) {
-                        $sub = (object) ['id' => $row->id, 'jenis_tugas_id' => $row->jenis_tugas_id, 'nama' => $row->nama];
-                    }
-                } catch (\Throwable $e2) {
-                    /* noop */
-                }
+                $sub = $query->first();
+            } catch (\Exception $e) {
+                Log::warning('resolveDetailTugasId: Error finding SubTugas with LIKE', [
+                    'error' => sanitize_log_message($e->getMessage()),
+                ]);
             }
         }
 
+        // 3. Resolve TugasDetail dari SubTugas
         if ($sub && isset($sub->id)) {
             $detail = null;
-            $cariKataKunci = ['jurnal nasional', 'artikel jurnal nasional', 'artikel nasional', 'reviewer jurnal nasional', 'review jurnal nasional', 'review artikel nasional', 'publikasi nasional'];
+
+            // Keywords prioritas tinggi
+            $keywords = ['jurnal nasional', 'artikel jurnal nasional', 'artikel nasional', 'reviewer jurnal nasional', 'review jurnal nasional', 'review artikel nasional', 'publikasi nasional'];
+
             try {
-                $dq = TugasDetail::query()->where('sub_tugas_id', $sub->id);
-                foreach ($cariKataKunci as $kw) {
-                    $try = (clone $dq)->whereRaw('LOWER(nama) LIKE ?', ['%' . mb_strtolower($kw) . '%'])->first();
-                    if ($try) {
-                        $detail = $try;
+                foreach ($keywords as $kw) {
+                    $kwLower = mb_strtolower($kw);
+                    $kwLiteral = sanitize_search_keyword($kwLower);
+
+                    // ✅ FIX: Proper parameter binding
+                    $detail = TugasDetail::where('sub_tugas_id', $sub->id)
+                        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $kwLiteral . '%'])
+                        ->first();
+
+                    if ($detail) {
                         break;
                     }
                 }
+
+                // Fallback: ambil TugasDetail pertama dari SubTugas
                 if (!$detail) {
                     $detail = TugasDetail::where('sub_tugas_id', $sub->id)->orderBy('id')->first();
                 }
-            } catch (\Throwable $e) {
-                try {
-                    foreach ($cariKataKunci as $kw) {
-                        $row = DB::table('tugas_detail')
-                            ->where('sub_tugas_id', $sub->id)
-                            ->whereRaw('LOWER(nama) LIKE ?', ['%' . mb_strtolower($kw) . '%'])
-                            ->orderBy('id')
-                            ->first();
-                        if ($row) {
-                            $detail = (object) ['id' => $row->id];
-                            break;
-                        }
-                    }
-                    if (!$detail) {
-                        $row = DB::table('tugas_detail')->where('sub_tugas_id', $sub->id)->orderBy('id')->first();
-                        if ($row) {
-                            $detail = (object) ['id' => $row->id];
-                        }
-                    }
-                } catch (\Throwable $e2) {
-                    /* noop */
-                }
+            } catch (\Exception $e) {
+                Log::warning('resolveDetailTugasId: Error finding TugasDetail', [
+                    'error' => sanitize_log_message($e->getMessage()),
+                    'sub_tugas_id' => $sub->id,
+                ]);
             }
 
             if ($detail && isset($detail->id)) {
@@ -363,41 +467,45 @@ class SuratTugasService
             }
         }
 
+        // 4. Fallback #1: Cari "Lainnya"
         try {
             $lainnya = TugasDetail::whereRaw('LOWER(nama) = ?', ['lainnya'])->value('id');
             if ($lainnya) {
                 return (int) $lainnya;
             }
-        } catch (\Throwable $e) {
-            try {
-                $lainnya = DB::table('tugas_detail')
-                    ->whereRaw('LOWER(nama) = ?', ['lainnya'])
-                    ->value('id');
-                if ($lainnya) {
-                    return (int) $lainnya;
-                }
-            } catch (\Throwable $e2) {
-                /* noop */
-            }
+        } catch (\Exception $e) {
+            Log::warning('resolveDetailTugasId: Error finding lainnya', [
+                'error' => sanitize_log_message($e->getMessage()),
+            ]);
         }
 
+        // 5. Fallback #2: Ambil ID minimum
         try {
             $minId = TugasDetail::min('id');
             if ($minId) {
                 return (int) $minId;
             }
-        } catch (\Throwable $e) {
-            try {
-                $minId = DB::table('tugas_detail')->min('id');
-                if ($minId) {
-                    return (int) $minId;
-                }
-            } catch (\Throwable $e2) {
-                /* noop */
-            }
+        } catch (\Exception $e) {
+            Log::warning('resolveDetailTugasId: Error getting min ID', [
+                'error' => sanitize_log_message($e->getMessage()),
+            ]);
         }
 
-        \Log::warning('resolveDetailTugasId: gagal memetakan, semua fallback habis', ['tugas' => $name, 'jenis' => $jenisTugas]);
+        Log::error('resolveDetailTugasId: Semua fallback gagal', [
+            'tugas' => $name,
+            'jenis' => $jenisTugas,
+        ]);
+
         return null;
+    }
+
+    /**
+     * Helper: set $data[$column] hanya jika kolom ada di tabel & value tidak null
+     */
+    private function putIfColumnExists(array &$data, string $table, string $column, $value): void
+    {
+        if (!is_null($value) && Schema::hasColumn($table, $column)) {
+            $data[$column] = $value;
+        }
     }
 }

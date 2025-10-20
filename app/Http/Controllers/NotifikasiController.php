@@ -19,9 +19,7 @@ class NotifikasiController extends Controller
         }
 
         // Ambil semua notifikasi milik user, diurutkan dari yang terbaru
-        $notifs = Notifikasi::where('pengguna_id', $user->id)
-            ->orderByDesc('dibuat_pada')
-            ->get();
+        $notifs = Notifikasi::where('pengguna_id', $user->id)->orderByDesc('dibuat_pada')->get();
 
         return view('notifikasi.index', compact('notifs'));
     }
@@ -36,22 +34,24 @@ class NotifikasiController extends Controller
             return redirect()->route('login');
         }
 
-        // Carilah notifikasi dengan ID yang diberikan, 
+        // ✅ FIXED: Validate ID parameter
+        $notifId = validate_integer_id($id);
+        if ($notifId === null) {
+            return redirect()->route('notifikasi.index')->with('error', 'ID notifikasi tidak valid.');
+        }
+
+        // Carilah notifikasi dengan ID yang diberikan,
         // pastikan milik user yang sedang login
-        $notif = Notifikasi::where('id', $id)
-            ->where('pengguna_id', $user->id)
-            ->first();
+        $notif = Notifikasi::where('id', $notifId)->where('pengguna_id', $user->id)->first();
 
         if (!$notif) {
-            return redirect()->route('notifikasi.index')
-                ->with('error', 'Notifikasi tidak ditemukan.');
+            return redirect()->route('notifikasi.index')->with('error', 'Notifikasi tidak ditemukan.');
         }
 
         // Tandai sebagai dibaca
         $notif->update(['dibaca' => true]);
 
-        return redirect()->route('notifikasi.index')
-            ->with('success', 'Notifikasi telah ditandai dibaca.');
+        return redirect()->route('notifikasi.index')->with('success', 'Notifikasi telah ditandai dibaca.');
     }
 
     /**
@@ -70,11 +70,11 @@ class NotifikasiController extends Controller
             ->update(['dibaca' => true]);
 
         if ($updated > 0) {
-            return redirect()->route('notifikasi.index')
+            return redirect()
+                ->route('notifikasi.index')
                 ->with('success', "{$updated} notifikasi telah ditandai sebagai dibaca.");
         }
 
-        return redirect()->route('notifikasi.index')
-            ->with('info', 'Semua notifikasi sudah dibaca.');
+        return redirect()->route('notifikasi.index')->with('info', 'Semua notifikasi sudah dibaca.');
     }
 }

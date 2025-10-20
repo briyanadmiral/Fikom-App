@@ -3,10 +3,8 @@
 
 @section('content')
 @php
-    // Konteks rendering untuk partial
-    $context = 'pdf';
-
-    // Fallback aman jika controller belum mengirim showSigns/isDraft
+    // konteks PDF & guard tanda tangan
+    $context   = 'pdf';
     $showSigns = (bool)($showSigns ?? (
         isset($tugas)
             ? (($tugas->status_surat ?? null) === 'disetujui' && !empty($tugas->signed_at ?? null))
@@ -14,35 +12,35 @@
     ));
     $isDraft = (bool)($isDraft ?? !$showSigns);
 
-    // Ambil preferensi ukuran/opacity dari DB jika tidak di-override
-    $ttdW       = $ttdW       ?? ($tugas->ttd_w_mm      ?? null);
-    $capW       = $capW       ?? ($tugas->cap_w_mm      ?? null);
-    $capOpacity = $capOpacity ?? ($tugas->cap_opacity   ?? null);
+    // preferensi ukuran/opacity dari DB jika tidak override
+    $ttdW       = $ttdW       ?? ($tugas->ttd_w_mm    ?? null);
+    $capW       = $capW       ?? ($tugas->cap_w_mm    ?? null);
+    $capOpacity = $capOpacity ?? ($tugas->cap_opacity ?? null);
 
-    // Demi keamanan: hanya oper gambar TTD/Cap bila boleh tampil
+    // aset gambar hanya bila boleh ditampilkan
     $ttdImageB64_safe = $showSigns ? ($ttdImageB64 ?? null) : null;
     $capImageB64_safe = $showSigns ? ($capImageB64 ?? null) : null;
 @endphp
 
 @include('surat_tugas.partials._core', [
-    'context'         => $context,
-    'tugas'           => $tugas,
-    'kop'             => $kop ?? null,
-    'penerimaList'    => $penerimaList ?? null,
+    'context'          => $context,
+    'tugas'            => $tugas,
+    'kop'              => $kop ?? null,
+    'penerimaList'     => $penerimaList ?? null,
 
-    // preferensi ukuran/opacity
-    'ttdW'            => $ttdW,
-    'capW'            => $capW,
-    'capOpacity'      => $capOpacity,
+    // preferensi TTD/Cap
+    'ttdW'             => $ttdW,
+    'capW'             => $capW,
+    'capOpacity'       => $capOpacity,
 
-    // aset gambar (sudah diamankan)
-    'ttdImageB64'     => $ttdImageB64_safe,
-    'capImageB64'     => $capImageB64_safe,
+    // aset yang sudah diamankan
+    'ttdImageB64'      => $ttdImageB64_safe,
+    'capImageB64'      => $capImageB64_safe,
 
-    // flag kunci agar _core ikut patuh
-    'showSigns'       => $showSigns,
+    // flag kepatuhan
+    'showSigns'        => $showSigns,
 
-    // PENTING: kop sudah ada di header layout -> jangan render kop di konten
-    'showKopInContent'=> false,
+    // kop sudah ada di layout pdf -> matikan kop di konten
+    'showKopInContent' => false,
 ])
 @endsection

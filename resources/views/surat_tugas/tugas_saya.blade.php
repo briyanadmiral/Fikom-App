@@ -312,81 +312,37 @@
         </div>
     </div>
 @endsection
-
 @push('scripts')
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <script>
-        // Script sama persis dengan index.blade.php
-        $(function() {
-            const table = $('#table-tugas').DataTable({
-                responsive: true,
-                autoWidth: false,
-                language: {
-                    url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json",
-                    emptyTable: "Tidak ada surat tugas untuk Anda."
-                },
-                columnDefs: [{
-                    targets: [7, 8],
-                    orderable: false,
-                    searchable: false
-                }]
-            });
-
-            $('#globalSearch').on('keyup', function() {
-                table.search(this.value).draw();
-            });
-            $('#statusFilter').on('change', function() {
-                const status = this.value;
-                table.column(6).search(status ? '^' + status + '$' : '', true, false).draw();
-            });
-            $('#resetFilters').on('click', function() {
-                $('#globalSearch, #statusFilter').val('');
-                table.search('').columns().search('').draw();
-            });
-
-            @if (session('success'))
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: "{{ session('success') }}",
-                    timer: 2500,
-                    showConfirmButton: false
-                });
-            @endif
-
-            $('#table-tugas').on('click', '.dropdown-item', function(e) {
-                e.preventDefault();
-                const action = $(this);
-                if (action.hasClass('quick-view')) {
-                    $('#quickViewModal iframe').attr('src', action.data('url'));
-                    $('#quickViewModal').modal('show');
-                } else if (action.hasClass('btn-delete')) {
-                    Swal.fire({
-                        title: 'Anda yakin?',
-                        text: "Surat ini akan dihapus permanen.",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonText: 'Batal',
-                        confirmButtonText: 'Ya, hapus!'
-                    }).then(result => {
-                        if (result.isConfirmed) {
-                            $('<form>', {
-                                'method': 'POST',
-                                'action': action.data('url')
-                            }).append('@csrf @method('DELETE')').appendTo('body').submit();
-                        }
-                    });
-                } else {
-                    window.location.href = action.attr('href');
-                }
-            });
-
-        });
-    </script>
+    @include('surat_tugas.partials._scripts_shared', [
+        // mode & tabel
+        'mode' => 'user',
+        'tableId' => '#table-tugas',
+    
+        // filter selectors
+        'searchSelector' => '#globalSearch',
+        'statusFilterSelector' => '#statusFilter',
+        'resetBtnSelector' => '#resetFilters',
+    
+        // kolom (dicari by header text, case-insensitive)
+        'orderHeaderText' => 'tgl surat',
+        'statusHeaderText' => 'status',
+        'nonOrderableHeaders' => ['Berkas', 'Aksi'],
+    
+        // fitur
+        'enableQuickView' => true,
+        'quickView' => ['modalId' => '#quickViewModal', 'triggerSelector' => '.quick-view'],
+        'enableDelete' => false, // penerima tidak menghapus
+    
+        // i18n & pesan kosong
+        'i18nUrl' => '/assets/datatables/i18n/id.json',
+        'emptyDefaultMsg' => 'Tidak ada surat tugas untuk Anda.',
+    
+        // teks konfirmasi (dipakai kalau ada aksi konfirmasi lain)
+        'moduleName' => 'Surat Tugas',
+    ])
 @endpush

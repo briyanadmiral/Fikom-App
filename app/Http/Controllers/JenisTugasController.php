@@ -22,14 +22,12 @@ class JenisTugasController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:255|unique:jenistugas,nama'
+            'nama' => 'required|string|max:255|unique:jenistugas,nama',
         ]);
 
         JenisTugas::create($validated);
 
-        return redirect()
-            ->route('jenis_surat_tugas.index')
-            ->with('success', 'Jenis Surat Tugas berhasil ditambahkan.');
+        return redirect()->route('jenis_surat_tugas.index')->with('success', 'Jenis Surat Tugas berhasil ditambahkan.');
     }
 
     /**
@@ -38,14 +36,12 @@ class JenisTugasController extends Controller
     public function update(Request $request, JenisTugas $jenis_surat_tugas)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:255|unique:jenistugas,nama,' . $jenis_surat_tugas->id
+            'nama' => 'required|string|max:255|unique:jenistugas,nama,' . $jenis_surat_tugas->id,
         ]);
 
         $jenis_surat_tugas->update($validated);
 
-        return redirect()
-            ->route('jenis_surat_tugas.index')
-            ->with('success', 'Jenis Surat Tugas berhasil diperbarui.');
+        return redirect()->route('jenis_surat_tugas.index')->with('success', 'Jenis Surat Tugas berhasil diperbarui.');
     }
 
     /**

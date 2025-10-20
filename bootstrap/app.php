@@ -6,15 +6,11 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\UpdateLastActivity; // <-- TAMBAHKAN INI
 
 return Application::configure(basePath: dirname(__DIR__))
-    ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        commands: __DIR__.'/../routes/console.php',
-        health: '/up',
-    )
+    ->withRouting(web: __DIR__ . '/../routes/web.php', commands: __DIR__ . '/../routes/console.php', health: '/up')
     ->withMiddleware(function (Middleware $middleware) {
-        // TAMBAHKAN INI:
-        $middleware->appendToGroup('web', UpdateLastActivity::class);
+        $middleware->web(append: [\App\Http\Middleware\UpdateLastActivity::class]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
-    })->create();
+    })
+    ->create();

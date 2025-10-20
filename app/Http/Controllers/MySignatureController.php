@@ -6,6 +6,7 @@ use App\Models\UserSignature;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class MySignatureController extends Controller
 {
@@ -28,17 +29,60 @@ class MySignatureController extends Controller
             'default_height_mm' => 'nullable|integer|min:10|max:30',
         ]);
 
-        // Simpan privat
-        $path = "private/ttd/{$user->id}.png";
-        Storage::disk('local')->put($path, file_get_contents($r->file('file')->getRealPath()));
+        // ✅ FIXED: Validate user ID (integer type safety)
+        $userId = validate_integer_id($user->id);
+        if ($userId === null) {
+            abort(500, 'Invalid user ID');
+        }
+
+        $file = $r->file('file');
+
+        // ✅ FIXED: Verify file is valid PNG
+        if ($file->getMimeType() !== 'image/png') {
+            return back()->withErrors(['file' => 'File harus berformat PNG.']);
+        }
+
+        // ✅ FIXED: Additional image validation
+        try {
+            $imageInfo = @getimagesize($file->getRealPath());
+            if ($imageInfo === false || $imageInfo[2] !== IMAGETYPE_PNG) {
+                return back()->withErrors(['file' => 'File bukan PNG yang valid.']);
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to validate image: ' . sanitize_log_message($e->getMessage()));
+            return back()->withErrors(['file' => 'Gagal memvalidasi gambar.']);
+        }
+
+        // ✅ FIXED: Delete old file if exists
+        $existingSig = $user->signature;
+        if ($existingSig && $existingSig->ttd_path) {
+            $oldPath = validate_file_path($existingSig->ttd_path);
+            if ($oldPath && Storage::disk('local')->exists($oldPath)) {
+                try {
+                    Storage::disk('local')->delete($oldPath);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to delete old signature: ' . sanitize_log_message($e->getMessage()));
+                }
+            }
+        }
+
+        // Simpan privat dengan user ID yang sudah divalidasi
+        $path = "private/ttd/{$userId}.png";
+
+        try {
+            Storage::disk('local')->put($path, file_get_contents($file->getRealPath()));
+        } catch (\Throwable $e) {
+            Log::error('Failed to save signature: ' . sanitize_log_message($e->getMessage()));
+            return back()->withErrors(['file' => 'Gagal menyimpan tanda tangan.']);
+        }
 
         UserSignature::updateOrCreate(
-            ['pengguna_id' => $user->id],
+            ['pengguna_id' => $userId],
             [
                 'ttd_path' => $path,
                 'default_width_mm' => $data['default_width_mm'] ?? 35,
                 'default_height_mm' => $data['default_height_mm'] ?? 15,
-            ]
+            ],
         );
 
         return back()->with('ok', 'TTD berhasil diperbarui.');
@@ -46,7 +90,7 @@ class MySignatureController extends Controller
 
     private function authorizeRole($peranId)
     {
-        if (!in_array((int)$peranId, [2,3], true)) {
+        if (!in_array((int) $peranId, [2, 3], true)) {
             abort(403, 'Hanya Dekan/Wakil Dekan.');
         }
     }

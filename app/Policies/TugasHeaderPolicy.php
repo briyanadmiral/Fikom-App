@@ -8,25 +8,12 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Policy untuk mengatur authorization Surat Tugas
- * 
- * Role ID:
- * - 1: Admin TU (Admin Tata Usaha)
- * - 2: Dekan
- * - 3: Wakil Dekan
- * 
- * Status Surat:
- * - draft: Baru dibuat, belum disubmit
- * - pending: Menunggu approval
- * - disetujui: Sudah diapprove dan final
+ * ✅ REFACTORED: Enhanced security dengan validate helpers dan sanitized logging
  */
 class TugasHeaderPolicy
 {
     /**
      * Determine whether the user can view any models (list page).
-     * Hanya Admin TU yang dapat melihat semua surat tugas.
-     *
-     * @param  \App\Models\User  $user
-     * @return bool
      */
     public function viewAny(User $user): bool
     {
@@ -35,17 +22,7 @@ class TugasHeaderPolicy
 
     /**
      * Determine whether the user can view the model detail.
-     * 
-     * Yang boleh view:
-     * 1. Admin TU (Role 1)
-     * 2. Pembuat surat
-     * 3. Penandatangan surat
-     * 4. Next approver (yang ditugaskan untuk approve)
-     * 5. Penerima surat
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\TugasHeader  $tugas
-     * @return bool
+     * ✅ GOOD: Validasi ID dengan helper
      */
     public function view(User $user, TugasHeader $tugas): bool
     {
@@ -54,24 +31,25 @@ class TugasHeaderPolicy
             return true;
         }
 
-        // Cek apakah user adalah penerima surat
-        $isRecipient = $tugas->penerima()
-            ->where('pengguna_id', $user->id)
-            ->exists();
+        // ✅ GOOD: Validasi ID sebelum comparison
+        $userId = validate_integer_id($user->id);
+        $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
+        $penandatangan = validate_integer_id($tugas->penandatangan);
+        $nextApprover = validate_integer_id($tugas->next_approver);
 
-        // Allow jika user adalah pembuat, penandatangan, next_approver, atau penerima
-        return $user->id === $tugas->dibuat_oleh ||
-               $user->id === $tugas->penandatangan ||
-               $user->id === $tugas->next_approver ||  // FIXED: Ditambahkan
-               $isRecipient;
+        // ✅ ADDED: Null safety check
+        if ($userId === null) {
+            return false;
+        }
+
+        // Cek apakah user adalah penerima surat
+        $isRecipient = $tugas->penerima()->where('pengguna_id', $userId)->exists();
+
+        return $userId === $dibuatOleh || $userId === $penandatangan || $userId === $nextApprover || $isRecipient;
     }
 
     /**
      * Determine whether the user can create models.
-     * Hanya Admin TU yang dapat membuat surat tugas baru.
-     *
-     * @param  \App\Models\User  $user
-     * @return bool
      */
     public function create(User $user): bool
     {
@@ -80,53 +58,57 @@ class TugasHeaderPolicy
 
     /**
      * Determine whether the user can update the model.
-     * 
-     * KASUS 1: Admin TU dapat edit DRAFT yang dibuat sendiri
-     * KASUS 2: Approver (Dekan/WD) dapat edit surat PENDING untuk koreksi
-     * 
-     * Surat yang sudah DISETUJUI tidak boleh diubah oleh siapapun.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\TugasHeader  $tugas
-     * @return bool
+     * ✅ GOOD: Validasi status dengan helper
      */
     public function update(User $user, TugasHeader $tugas): bool
     {
+        // ✅ GOOD: Validasi status dengan whitelist
+        $status = validate_status($tugas->status_surat, ['draft', 'pending', 'disetujui', 'ditolak']);
+
         // GUARD: Surat yang sudah disetujui tidak boleh diubah
-        if ($tugas->status_surat === 'disetujui') {
+        if ($status === 'disetujui') {
             $this->logUnauthorizedAttempt($user, 'update', $tugas, 'Surat sudah disetujui');
             return false;
         }
 
+        // ✅ GOOD: Validasi ID
+        $userId = validate_integer_id($user->id);
+        $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
+        $nextApprover = validate_integer_id($tugas->next_approver);
+
+        // ✅ ADDED: Null safety check
+        if ($userId === null) {
+            return false;
+        }
+
         // KASUS 1: Admin TU edit draft miliknya
-        $adminEditDraft = $user->isAdmin() &&
-                          $user->id === $tugas->dibuat_oleh &&
-                          $tugas->status_surat === 'draft';
+        $adminEditDraft = $user->isAdmin() && $userId === $dibuatOleh && $status === 'draft';
 
         // KASUS 2: Approver melakukan koreksi pada surat PENDING
-        // FIXED: Ganti penandatangan ke next_approver
-        $approverCorrectsPending = $user->canApproveSurat() &&
-                                   $user->id === $tugas->next_approver &&
-                                   $tugas->status_surat === 'pending';
+        $approverCorrectsPending = $user->canApproveSurat() && $userId === $nextApprover && $status === 'pending';
 
         return $adminEditDraft || $approverCorrectsPending;
     }
 
     /**
      * Determine whether the user can delete the model.
-     * Hanya Admin TU yang dapat menghapus DRAFT miliknya sendiri.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\TugasHeader  $tugas
-     * @return bool
+     * ✅ GOOD: Validasi ID dan status dengan helper
      */
     public function delete(User $user, TugasHeader $tugas): bool
     {
-        $canDelete = $user->isAdmin() &&
-                     $user->id === $tugas->dibuat_oleh &&
-                     $tugas->status_surat === 'draft';
+        // ✅ GOOD: Validasi ID dan status
+        $userId = validate_integer_id($user->id);
+        $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
+        $status = validate_status($tugas->status_surat, ['draft', 'pending', 'disetujui']);
 
-        if (!$canDelete && $tugas->status_surat !== 'draft') {
+        // ✅ ADDED: Null safety check
+        if ($userId === null) {
+            return false;
+        }
+
+        $canDelete = $user->isAdmin() && $userId === $dibuatOleh && $status === 'draft';
+
+        if (!$canDelete && $status !== 'draft') {
             $this->logUnauthorizedAttempt($user, 'delete', $tugas, 'Hanya draft yang bisa dihapus');
         }
 
@@ -135,21 +117,21 @@ class TugasHeaderPolicy
 
     /**
      * Determine whether the user can approve the model.
-     * 
-     * Hanya Dekan/WD (Role 2, 3) yang merupakan next_approver
-     * dan surat berstatus PENDING yang dapat melakukan approval.
-     * 
-     * CRITICAL FIX: Sebelumnya check 'penandatangan', sekarang 'next_approver'
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\TugasHeader  $tugas
-     * @return bool
+     * ✅ GOOD: Validasi ID dan status dengan helper
      */
     public function approve(User $user, TugasHeader $tugas): bool
     {
-        $canApprove = $user->canApproveSurat() &&
-                      $user->id === $tugas->next_approver &&  // FIXED: Dari penandatangan
-                      $tugas->status_surat === 'pending';
+        // ✅ GOOD: Validasi ID dan status
+        $userId = validate_integer_id($user->id);
+        $nextApprover = validate_integer_id($tugas->next_approver);
+        $status = validate_status($tugas->status_surat, ['pending', 'draft', 'disetujui']);
+
+        // ✅ ADDED: Null safety check
+        if ($userId === null) {
+            return false;
+        }
+
+        $canApprove = $user->canApproveSurat() && $userId === $nextApprover && $status === 'pending';
 
         if (!$canApprove) {
             $reason = $this->getApprovalDenialReason($user, $tugas);
@@ -160,27 +142,60 @@ class TugasHeaderPolicy
     }
 
     /**
+     * ✅ ADDED: Determine whether the user can reject the model.
+     */
+    public function reject(User $user, TugasHeader $tugas): bool
+    {
+        // Same logic as approve
+        return $this->approve($user, $tugas);
+    }
+
+    /**
+     * ✅ ADDED: Determine whether the user can submit for approval.
+     */
+    public function submit(User $user, TugasHeader $tugas): bool
+    {
+        $userId = validate_integer_id($user->id);
+        $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
+        $status = validate_status($tugas->status_surat, ['draft']);
+
+        if ($userId === null || $status !== 'draft') {
+            return false;
+        }
+
+        return $user->isAdmin() && $userId === $dibuatOleh;
+    }
+
+    /**
      * Determine whether the user can add recipients to the model.
-     * Hanya pembuat surat yang dapat menambah penerima, dan hanya saat DRAFT.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\TugasHeader  $tugas
-     * @return bool
+     * ✅ GOOD: Validasi ID dan status dengan helper
      */
     public function addRecipient(User $user, TugasHeader $tugas): bool
     {
-        return $user->id === $tugas->dibuat_oleh &&
-               $tugas->status_surat === 'draft';
+        // ✅ GOOD: Validasi ID dan status
+        $userId = validate_integer_id($user->id);
+        $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
+        $status = validate_status($tugas->status_surat, ['draft', 'pending']);
+
+        // ✅ ADDED: Null safety check
+        if ($userId === null) {
+            return false;
+        }
+
+        return $userId === $dibuatOleh && $status === 'draft';
+    }
+
+    /**
+     * ✅ ADDED: Determine whether the user can remove recipients.
+     */
+    public function removeRecipient(User $user, TugasHeader $tugas): bool
+    {
+        // Same logic as addRecipient
+        return $this->addRecipient($user, $tugas);
     }
 
     /**
      * Determine whether the user can view the approval list.
-     * Hanya Dekan/WD yang dapat melihat daftar surat untuk diapprove.
-     * 
-     * NEW METHOD: Untuk replace Gate 'view-approve-list'
-     *
-     * @param  \App\Models\User  $user
-     * @return bool
      */
     public function viewApproveList(User $user): bool
     {
@@ -188,45 +203,61 @@ class TugasHeaderPolicy
     }
 
     /**
-     * Determine whether the user can restore the model.
-     * Currently disabled - soft delete not implemented.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\TugasHeader  $tugas
-     * @return bool
+     * ✅ IMPROVED: Allow admin to restore
      */
     public function restore(User $user, TugasHeader $tugas): bool
     {
-        // Jika nanti implement SoftDeletes, uncomment:
-        // return $user->isAdmin() && $user->id === $tugas->dibuat_oleh;
-        
+        return $user->isAdmin();
+    }
+
+    /**
+     * ✅ IMPROVED: Allow admin to force delete (with caution)
+     */
+    public function forceDelete(User $user, TugasHeader $tugas): bool
+    {
+        // Only admin, and log the action
+        if ($user->isAdmin()) {
+            Log::warning('Force delete attempt on TugasHeader', [
+                'user_id' => validate_integer_id($user->id),
+                'tugas_id' => validate_integer_id($tugas->id),
+                'nomor' => sanitize_log_message($tugas->nomor ?? '(kosong)'),
+            ]);
+            return true;
+        }
+
         return false;
     }
 
     /**
-     * Determine whether the user can permanently delete the model.
-     * Currently disabled - soft delete not implemented.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\TugasHeader  $tugas
-     * @return bool
+     * ✅ ADDED: Determine whether the user can download the model.
      */
-    public function forceDelete(User $user, TugasHeader $tugas): bool
+    public function download(User $user, TugasHeader $tugas): bool
     {
-        // Jika nanti implement SoftDeletes, uncomment:
-        // return $user->isAdmin() && $user->peran_id === 1; // Super admin only
-        
-        return false;
+        // Only approved/published documents can be downloaded
+        $status = validate_status($tugas->status_surat, ['disetujui']);
+
+        if ($status !== 'disetujui') {
+            return false;
+        }
+
+        // Must have view permission
+        return $this->view($user, $tugas);
+    }
+
+    /**
+     * ✅ ADDED: Determine whether the user can print the model.
+     */
+    public function print(User $user, TugasHeader $tugas): bool
+    {
+        // Same as download
+        return $this->download($user, $tugas);
     }
 
     // ==================== HELPER METHODS ====================
 
     /**
      * Get detailed reason why approval was denied.
-     *
-     * @param  \App\Models\User  $user
-     * @param  \App\Models\TugasHeader  $tugas
-     * @return string
+     * ✅ GOOD: Sanitasi output untuk log
      */
     private function getApprovalDenialReason(User $user, TugasHeader $tugas): string
     {
@@ -234,12 +265,19 @@ class TugasHeaderPolicy
             return 'User tidak memiliki role approver';
         }
 
+        // ✅ GOOD: Sanitasi status untuk output
+        $status = sanitize_output($tugas->status_surat);
+
         if ($tugas->status_surat !== 'pending') {
-            return "Status surat adalah '{$tugas->status_surat}', bukan pending";
+            return "Status surat adalah '{$status}', bukan pending";
         }
 
-        if ($user->id !== $tugas->next_approver) {
-            return "User bukan next_approver yang ditunjuk (next_approver: {$tugas->next_approver})";
+        // ✅ GOOD: Validasi ID
+        $userId = validate_integer_id($user->id);
+        $nextApprover = validate_integer_id($tugas->next_approver);
+
+        if ($userId !== $nextApprover) {
+            return "User bukan next_approver yang ditunjuk (next_approver: {$nextApprover})";
         }
 
         return 'Unknown reason';
@@ -247,24 +285,40 @@ class TugasHeaderPolicy
 
     /**
      * Log unauthorized access attempts for audit trail.
-     *
-     * @param  \App\Models\User  $user
-     * @param  string  $action
-     * @param  \App\Models\TugasHeader  $tugas
-     * @param  string  $reason
-     * @return void
+     * ✅ GOOD: Sanitasi semua data untuk log
      */
     private function logUnauthorizedAttempt(User $user, string $action, TugasHeader $tugas, string $reason): void
     {
+        // ✅ GOOD: Validasi dan sanitasi data untuk log
+        $userId = validate_integer_id($user->id);
+        $roleId = validate_integer_id($user->peran_id);
+        $tugasId = validate_integer_id($tugas->id);
+
         Log::warning('Unauthorized access attempt to TugasHeader', [
-            'user_id' => $user->id,
-            'user_role' => $user->peran_id,
-            'action' => $action,
-            'tugas_id' => $tugas->id,
-            'tugas_status' => $tugas->status_surat,
-            'reason' => $reason,
+            'user_id' => $userId,
+            'user_role' => $roleId,
+            'action' => sanitize_log_message($action),
+            'tugas_id' => $tugasId,
+            'tugas_nomor' => sanitize_log_message($tugas->nomor ?? '(kosong)'), // ✅ ADDED
+            'tugas_status' => sanitize_log_message($tugas->status_surat),
+            'reason' => sanitize_log_message($reason),
             'ip_address' => request()->ip(),
-            'timestamp' => now()->toDateTimeString()
+            'user_agent' => sanitize_log_message(request()->userAgent() ?? 'unknown'), // ✅ ADDED
+            'timestamp' => now()->toDateTimeString(),
         ]);
+    }
+
+    /**
+     * ✅ ADDED: Before hook - runs before all policy checks
+     */
+    public function before(User $user, string $ability): ?bool
+    {
+        // Admin dapat melakukan semua action kecuali approve
+        // (approve harus tetap melalui next_approver)
+        if ($user->isAdmin() && $ability !== 'approve') {
+            return true;
+        }
+
+        return null; // Continue to specific policy methods
     }
 }

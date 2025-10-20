@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -11,45 +12,34 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes; // ✅ ADDED SoftDeletes
 
     /**
-     * Nama tabel yang digunakan oleh model.
-     *
-     * @var string
+     * Nama tabel model.
      */
     protected $table = 'pengguna';
 
     /**
-     * Atribut yang dapat diisi secara massal.
-     *
-     * @var array<int, string>
+     * Atribut yang dapat diisi mass-assignment.
      */
-    protected $fillable = [
-        'email',
-        'sandi_hash',
-        'nama_lengkap',
-        'npp',
-        'jabatan',
-        'peran_id',
-        'status',
-        'last_activity',
-    ];
+    protected $fillable = ['email', 'sandi_hash', 'nama_lengkap', 'npp', 'jabatan', 'peran_id', 'status', 'last_activity'];
 
     /**
-     * Atribut yang harus disembunyikan saat serialisasi.
-     *
-     * @var array<int, string>
+     * ✅ ADDED: Guarded protection
+     */
+    protected $guarded = ['id', 'remember_token', 'email_verified_at', 'created_at', 'updated_at', 'deleted_at'];
+
+    /**
+     * Atribut yang disembunyikan saat serialisasi.
      */
     protected $hidden = [
         'sandi_hash',
+        'password', // ✅ ADDED
         'remember_token',
     ];
 
     /**
-     * Mendefinisikan cast tipe data untuk atribut.
-     *
-     * @return array<string, string>
+     * Cast tipe data untuk atribut.
      */
     protected function casts(): array
     {
@@ -58,234 +48,413 @@ class User extends Authenticatable
             'last_activity' => 'datetime',
             'peran_id' => 'integer',
             'email_verified_at' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+            'deleted_at' => 'datetime', // ✅ ADDED
         ];
     }
 
-    // ==================== AUTHENTICATION ====================
+    /*
+    |--------------------------------------------------------------------------
+    | AUTHENTICATION
+    |--------------------------------------------------------------------------
+    */
 
     /**
-     * Memberitahu sistem otentikasi Laravel nama kolom password yang digunakan.
-     *
-     * @return string
+     * Pastikan guard menggunakan kolom sandi_hash.
      */
     public function getAuthPasswordName(): string
     {
         return 'sandi_hash';
     }
 
-    // ==================== RELATIONSHIPS ====================
+    /**
+     * Kompatibilitas penuh dengan Laravel guard.
+     */
+    public function getAuthPassword()
+    {
+        return $this->sandi_hash;
+    }
 
     /**
-     * Mendefinisikan relasi "belongsTo" ke model Peran.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     * ✅ GOOD: Accessor agar $user->password tersedia
      */
+    public function getPasswordAttribute(): ?string
+    {
+        return $this->sandi_hash;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RELATIONSHIPS
+    |--------------------------------------------------------------------------
+    */
+
     public function peran(): BelongsTo
     {
         return $this->belongsTo(Peran::class, 'peran_id');
     }
 
-    /**
-     * Mendefinisikan relasi "hasMany" ke model Notifikasi.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function notifikasi(): HasMany
     {
         return $this->hasMany(Notifikasi::class, 'pengguna_id');
     }
 
-    /**
-     * Mendefinisikan relasi "hasOne" ke model UserSignature.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
-     */
     public function signature(): HasOne
     {
         return $this->hasOne(UserSignature::class, 'pengguna_id');
     }
 
-    /**
-     * Surat tugas yang dibuat oleh user ini.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function tugasDibuat(): HasMany
     {
         return $this->hasMany(TugasHeader::class, 'dibuat_oleh');
     }
 
-    /**
-     * Surat tugas yang ditandatangani oleh user ini.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function tugasDitandatangani(): HasMany
     {
         return $this->hasMany(TugasHeader::class, 'penandatangan');
     }
 
-    /**
-     * Surat tugas yang menunggu approval dari user ini.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
     public function tugasMenungguApproval(): HasMany
     {
         return $this->hasMany(TugasHeader::class, 'next_approver');
     }
 
-    // ==================== ROLE CHECKER METHODS ====================
+    /**
+     * ✅ ADDED: Surat keputusan yang dibuat
+     */
+    public function keputusanDibuat(): HasMany
+    {
+        return $this->hasMany(KeputusanHeader::class, 'dibuat_oleh');
+    }
 
     /**
-     * Memeriksa apakah pengguna adalah Admin TU (Role 1).
-     *
-     * @return bool
+     * ✅ ADDED: Surat keputusan yang ditandatangani
      */
+    public function keputusanDitandatangani(): HasMany
+    {
+        return $this->hasMany(KeputusanHeader::class, 'penandatangan');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ROLE CHECKERS
+    |--------------------------------------------------------------------------
+    */
+
     public function isAdmin(): bool
     {
-        return $this->peran_id === 1;
+        return (int) $this->peran_id === 1;
     }
 
-    /**
-     * Memeriksa apakah pengguna memiliki peran 'Dekan' (Role 2).
-     *
-     * @return bool
-     */
     public function isDekan(): bool
     {
-        return $this->peran_id === 2;
+        return (int) $this->peran_id === 2;
     }
 
-    /**
-     * Memeriksa apakah pengguna memiliki peran 'Wakil Dekan' (Role 3).
-     *
-     * @return bool
-     */
     public function isWakilDekan(): bool
     {
-        return $this->peran_id === 3;
+        return (int) $this->peran_id === 3;
     }
 
-    /**
-     * Memeriksa apakah pengguna memiliki wewenang untuk menyetujui surat.
-     * (Dekan atau Wakil Dekan)
-     *
-     * @return bool
-     */
     public function canApproveSurat(): bool
     {
         return $this->isDekan() || $this->isWakilDekan();
     }
 
-    /**
-     * Alias untuk canApproveSurat() - untuk konsistensi naming.
-     *
-     * @return bool
-     */
     public function isApprover(): bool
     {
         return $this->canApproveSurat();
     }
 
-    // ==================== UTILITY METHODS ====================
+    /**
+     * ✅ ADDED: Check if user can create surat
+     */
+    public function canCreateSurat(): bool
+    {
+        return $this->isActive() && in_array($this->peran_id, [1, 2, 3], true);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | UTILITY / ACCESSORS
+    |--------------------------------------------------------------------------
+    */
 
     /**
-     * Get nama peran user dalam format string.
-     *
-     * @return string
+     * ✅ IMPROVED: Nama peran dari relasi jika tersedia
      */
     public function getRoleNameAttribute(): string
     {
-        return match($this->peran_id) {
+        if ($this->peran) {
+            return $this->peran->nama;
+        }
+
+        return match ((int) $this->peran_id) {
             1 => 'Admin TU',
             2 => 'Dekan',
             3 => 'Wakil Dekan',
-            default => 'Unknown'
+            default => 'Unknown',
         };
     }
 
-    /**
-     * Cek apakah user sedang aktif (status = 'active').
-     *
-     * @return bool
-     */
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        return in_array(mb_strtolower((string) $this->status), ['aktif', 'active'], true);
     }
 
-    /**
-     * Update last activity timestamp.
-     *
-     * @return void
-     */
     public function updateLastActivity(): void
     {
         $this->update(['last_activity' => now()]);
     }
 
     /**
-     * Get notifikasi yang belum dibaca.
-     *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * Get unread notifications relationship
      */
     public function unreadNotifications()
     {
-        return $this->notifikasi()
-            ->where('dibaca', false)
-            ->orderByDesc('created_at')
-            ->get();
+        return $this->notifikasi()->where('dibaca', false)->orderByDesc('dibuat_pada');
     }
 
-    /**
-     * Get count notifikasi yang belum dibaca.
-     *
-     * @return int
-     */
     public function getUnreadNotificationCountAttribute(): int
     {
-        return $this->notifikasi()
-            ->where('dibaca', false)
-            ->count();
+        return $this->notifikasi()->where('dibaca', false)->count();
     }
 
-    // ==================== QUERY SCOPES ====================
+    /**
+     * ✅ GOOD: Inisial untuk avatar
+     */
+    public function getInitialsAttribute(): string
+    {
+        $name = (string) ($this->nama_lengkap ?? '');
+
+        if (function_exists('get_initials')) {
+            return get_initials($name);
+        }
+
+        $parts = preg_split('/\s+/', trim(preg_replace('/[^a-zA-Z\s]/', '', $name))) ?: [];
+        $init = '';
+        foreach (array_slice($parts, 0, 2) as $p) {
+            $init .= strtoupper(substr($p, 0, 1));
+        }
+        return $init ?: 'U';
+    }
 
     /**
-     * Scope untuk filter user berdasarkan role.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  int|array  $roleId
-     * @return \Illuminate\Database\Eloquent\Builder
+     * ✅ GOOD: Warna avatar deterministik
      */
+    public function getAvatarColorAttribute(): string
+    {
+        $name = (string) ($this->nama_lengkap ?? '');
+
+        if (function_exists('generate_color_from_string')) {
+            return generate_color_from_string($name);
+        }
+
+        return '#cccccc';
+    }
+
+    /**
+     * ✅ ADDED: Get display name (safe)
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return sanitize_output($this->nama_lengkap ?? 'Unknown User');
+    }
+
+    /**
+     * ✅ ADDED: Get formatted NPP
+     */
+    public function getFormattedNppAttribute(): ?string
+    {
+        if (empty($this->npp)) {
+            return null;
+        }
+
+        return sanitize_output($this->npp);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SCOPES
+    |--------------------------------------------------------------------------
+    */
+
     public function scopeByRole($query, $roleId)
     {
         if (is_array($roleId)) {
-            return $query->whereIn('peran_id', $roleId);
+            // ✅ IMPROVED: Validate each ID
+            $validIds = array_filter(array_map('validate_integer_id', $roleId));
+            return $query->whereIn('peran_id', $validIds);
         }
+
+        $roleId = validate_integer_id($roleId);
+        if ($roleId === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
         return $query->where('peran_id', $roleId);
     }
 
-    /**
-     * Scope untuk filter hanya approvers (Dekan dan WD).
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
     public function scopeApprovers($query)
     {
         return $query->whereIn('peran_id', [2, 3]);
     }
 
-    /**
-     * Scope untuk filter user yang aktif.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->whereIn('status', ['active', 'aktif']);
+    }
+
+    /**
+     * ✅ GOOD: Scope pencarian aman dengan LIKE escape
+     */
+    public function scopeSearch($query, ?string $term)
+    {
+        if (!$term) {
+            return $query;
+        }
+
+        $needle = sanitize_input($term, 100);
+
+        if ($needle === '' || $needle === null) {
+            return $query;
+        }
+
+        // Escape LIKE wildcards
+        $escaped = str_replace(['%', '_'], ['\%', '\_'], mb_strtolower($needle));
+
+        return $query->where(function ($q) use ($escaped) {
+            $q->whereRaw('LOWER(nama_lengkap) LIKE ? ESCAPE "\\"', ['%' . $escaped . '%'])
+                ->orWhereRaw('LOWER(email) LIKE ? ESCAPE "\\"', ['%' . $escaped . '%'])
+                ->orWhereRaw('LOWER(npp) LIKE ? ESCAPE "\\"', ['%' . $escaped . '%']);
+        });
+    }
+
+    /**
+     * ✅ ADDED: Scope by status
+     */
+    public function scopeByStatus($query, string $status)
+    {
+        $status = sanitize_input($status, 20);
+        return $query->where('status', $status);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | MUTATORS
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * ✅ GOOD: Mutator dengan sanitasi
+     */
+    public function setEmailAttribute($value): void
+    {
+        $val = is_string($value) ? strtolower(trim($value)) : null;
+
+        if (function_exists('sanitize_email')) {
+            $val = sanitize_email($val);
+        }
+
+        $this->attributes['email'] = $val ?? '';
+    }
+
+    public function setNamaLengkapAttribute($value): void
+    {
+        if (function_exists('sanitize_input')) {
+            $this->attributes['nama_lengkap'] = sanitize_input((string) $value, 255) ?? '';
+            return;
+        }
+
+        $clean = strip_tags((string) $value);
+        $clean = trim($clean);
+        $this->attributes['nama_lengkap'] = mb_substr($clean, 0, 255);
+    }
+
+    public function setJabatanAttribute($value): void
+    {
+        if (function_exists('sanitize_input')) {
+            $this->attributes['jabatan'] = sanitize_input((string) $value, 255) ?? null;
+            return;
+        }
+
+        $clean = strip_tags((string) $value);
+        $clean = trim($clean);
+        $this->attributes['jabatan'] = $clean !== '' ? mb_substr($clean, 0, 255) : null;
+    }
+
+    public function setNppAttribute($value): void
+    {
+        if (function_exists('sanitize_alphanumeric')) {
+            $this->attributes['npp'] = sanitize_alphanumeric((string) $value, '/\-\.') ?? null;
+            return;
+        }
+
+        $clean = preg_replace('/[^a-zA-Z0-9\/\-\.]/', '', (string) $value);
+        $this->attributes['npp'] = $clean !== '' ? $clean : null;
+    }
+
+    /**
+     * ✅ GOOD: Status normalization
+     */
+    public function setStatusAttribute($value): void
+    {
+        $v = mb_strtolower(trim((string) $value));
+        $map = [
+            'aktif' => 'active',
+            'active' => 'active',
+            'nonaktif' => 'inactive',
+            'non-aktif' => 'inactive',
+            'inactive' => 'inactive',
+            'suspended' => 'suspended',
+            'blokir' => 'suspended',
+            'blocked' => 'suspended',
+        ];
+        $this->attributes['status'] = $map[$v] ?? 'inactive';
+    }
+
+    public function setPeranIdAttribute($value): void
+    {
+        $validated = validate_integer_id($value);
+        $this->attributes['peran_id'] = $validated;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | MODEL EVENTS
+    |--------------------------------------------------------------------------
+    */
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        // ✅ ADDED: Validate before saving
+        static::saving(function ($model) {
+            if (empty($model->email)) {
+                throw new \InvalidArgumentException('Email wajib diisi');
+            }
+
+            if (empty($model->nama_lengkap)) {
+                throw new \InvalidArgumentException('Nama lengkap wajib diisi');
+            }
+
+            if (empty($model->peran_id)) {
+                throw new \InvalidArgumentException('Peran wajib dipilih');
+            }
+
+            // Validate email format
+            if (!filter_var($model->email, FILTER_VALIDATE_EMAIL)) {
+                throw new \InvalidArgumentException('Format email tidak valid');
+            }
+        });
+
+        // ✅ ADDED: Prevent deletion of admin
+        static::deleting(function ($model) {
+            if ($model->isAdmin()) {
+                throw new \RuntimeException('User admin tidak dapat dihapus');
+            }
+        });
     }
 }

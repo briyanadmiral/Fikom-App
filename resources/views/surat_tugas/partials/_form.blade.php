@@ -197,7 +197,7 @@
     @endpush
 @endonce
 
-<form id="tugasForm" action="{{ $formAction }}" method="POST">
+<form id="tugasForm" action="{{ $formAction }}" method="POST" novalidate>
     @csrf
     @if ($isEdit)
         @method('PUT')
@@ -238,8 +238,9 @@
                                         <input type="text" id="pembuat_id_display" class="form-control"
                                             value="{{ $pembuatLabel }}" readonly>
                                         <input type="hidden" name="pembuat_id" value="{{ $pembuatIdOld }}">
+                                        {{-- kirim ID, bukan label --}}
                                         <input type="hidden" name="nama_pembuat" id="nama_pembuat_hidden"
-                                            value="{{ $pembuatLabel }}">
+                                            value="{{ $pembuatIdOld }}">
                                     @else
                                         <select id="pembuat_id" name="pembuat_id" class="form-control select2bs4"
                                             required>
@@ -248,6 +249,7 @@
                                                     {{ $nama }}</option>
                                             @endforeach
                                         </select>
+                                        {{-- kirim ID, bukan label --}}
                                         <input type="hidden" name="nama_pembuat" id="nama_pembuat_hidden"
                                             value="">
                                     @endif
@@ -266,8 +268,9 @@
                                         <input type="text" id="asal_surat_id_display" class="form-control"
                                             value="{{ $asalLabel }}" readonly>
                                         <input type="hidden" name="asal_surat_id" value="{{ $asalIdOld }}">
+                                        {{-- kirim ID, bukan label --}}
                                         <input type="hidden" name="asal_surat" id="asal_surat_hidden"
-                                            value="{{ $asalLabel }}">
+                                            value="{{ $asalIdOld }}">
                                     @else
                                         <select id="asal_surat_id" name="asal_surat_id" class="form-control select2bs4"
                                             required>
@@ -279,6 +282,7 @@
                                                 </option>
                                             @endforeach
                                         </select>
+                                        {{-- kirim ID, bukan label --}}
                                         <input type="hidden" name="asal_surat" id="asal_surat_hidden" value="">
                                     @endif
                                 </div>
@@ -422,7 +426,7 @@
                                     <div class="input-group-append">
                                         @if (!$isEdit)
                                             <button class="btn btn-outline-primary" type="button"
-                                                id="btn-reserve-nomor" title="Siapkan Nomor">
+                                                id="btn-reserve-nomor" title="Siapkan Nomor" disabled>
                                                 <i class="fas fa-sync"></i>
                                             </button>
                                             <button class="btn btn-outline-secondary" type="button"
@@ -694,22 +698,49 @@
 
                     <hr>
 
+                    {{-- TOMBOL AKSI --}}
                     @php
                         $userRole = Auth::user()->peran_id ?? null;
-                        $isPembuat = $userRole === 1;
+                        $isPembuat = $userRole == 1;
                         $isPenandatangan = in_array($userRole, [2, 3]);
                     @endphp
 
-                    {{-- ✅ TOMBOL AKSI --}}
                     @if ($mode === 'koreksi' && $isPenandatangan)
-                        <button type="submit" name="action" value="submit"
-                            class="btn btn-block btn-warning mb-2 btn-submit-action" data-title="Simpan Koreksi?"
-                            data-text="Koreksi akan disimpan dan surat dikembalikan ke pembuat." data-icon="warning"
-                            data-confirm-text="Ya, Simpan Koreksi" data-confirm-color="#ffc107"
+                        {{-- ✅ FIXED: Submit form dulu, baru redirect ke approve --}}
+                        <button type="submit" name="action" value="save_and_review"
+                            class="btn btn-block btn-info mb-2 btn-submit-action" data-title="Simpan dan Tinjau?"
+                            data-text="Perubahan akan disimpan, lalu Anda akan dibawa ke halaman persetujuan."
+                            data-icon="question" data-confirm-text="Ya, Simpan dan Tinjau"
+                            data-confirm-color="#17a2b8" {{ $lockStructural ? 'disabled' : '' }}>
+                            <i class="fas fa-save mr-2"></i>Simpan dan Tinjau
+                        </button>
+
+                        <button type="submit" name="action" value="draft"
+                            class="btn btn-block btn-secondary mb-2 btn-submit-action"
+                            data-title="Simpan sebagai Draft?" data-text="Koreksi akan disimpan sebagai draft."
+                            data-icon="info" data-confirm-text="Ya, Simpan Draft" data-confirm-color="#6c757d"
                             {{ $lockStructural ? 'disabled' : '' }}>
-                            <i class="fas fa-pen mr-2"></i>Simpan Koreksi
+                            <i class="fas fa-save mr-2"></i>Simpan Draft
+                        </button>
+                    @elseif ($mode === 'koreksi' && $isPembuat)
+                        {{-- ✅ Pembuat di mode koreksi → simpan koreksi & ajukan ulang --}}
+                        <button type="submit" name="action" value="draft"
+                            class="btn btn-block btn-secondary mb-2 btn-submit-action" data-title="Simpan Koreksi?"
+                            data-text="Koreksi akan disimpan sebagai draft." data-icon="info"
+                            data-confirm-text="Ya, Simpan Koreksi" data-confirm-color="#6c757d"
+                            {{ $lockStructural ? 'disabled' : '' }}>
+                            <i class="fas fa-save mr-2"></i>Simpan Koreksi
+                        </button>
+
+                        <button type="submit" name="action" value="submit"
+                            class="btn btn-block btn-primary btn-submit-action" data-title="Ajukan Ulang Surat?"
+                            data-text="Surat akan dikirim ke penandatangan untuk disetujui." data-icon="question"
+                            data-confirm-text="Ya, Ajukan Sekarang" data-confirm-color="#007bff"
+                            {{ $lockStructural ? 'disabled' : '' }}>
+                            <i class="fas fa-check-circle mr-2"></i>Ajukan Ulang
                         </button>
                     @elseif ($isEdit && $isPembuat)
+                        {{-- ✅ Pembuat edit normal → draft & submit --}}
                         <button type="submit" name="action" value="draft"
                             class="btn btn-block btn-secondary mb-2 btn-submit-action"
                             data-title="Simpan sebagai Draft?"
@@ -727,6 +758,7 @@
                             <i class="fas fa-check-circle mr-2"></i>Ajukan Ulang
                         </button>
                     @elseif (!$isEdit)
+                        {{-- ✅ Create baru → draft & submit --}}
                         <button type="submit" name="action" value="draft"
                             class="btn btn-block btn-secondary mb-2 btn-submit-action"
                             data-title="Simpan sebagai Draft?"
@@ -851,6 +883,22 @@
 @push('scripts')
     <script>
         $(function() {
+            // ====== Safe escape util (untuk mencegah XSS pada preview) ======
+            window._ = window._ || {};
+            if (!_.escape) {
+                _.escape = (s) =>
+                    String(s ?? '').replace(/[&<>"'=\/`]/g, (c) => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;',
+                    '/': '&#x2F;',
+                    '=': '&#x3D;',
+                    '`': '&#x60;',
+                    } [c]));
+            }
+
             // ====== STATE & ELEM ======
             const isEdit = @json($isEdit);
             const tugasForm = $('#tugasForm');
@@ -1003,8 +1051,7 @@
 
             function buildNomorFromParts() {
                 const noUrut = String($('#nomor_urut').val() || '').padStart(3, '0');
-                const kode = ($('#klasifikasi_kode').val() || '').trim() ||
-                    '...'; // << sebelumnya ambil dari <select>
+                const kode = ($('#klasifikasi_kode').val() || '').trim() || '...';
                 const bulan = ($('#bulan').val() || '').toUpperCase() || '...';
                 const tahun = $('#tahun-nomor').val() || '....';
                 return `${noUrut}/${kode}/TG/UNIKA/${bulan}/${tahun}`;
@@ -1112,6 +1159,14 @@
                 markNomorStale();
             }
 
+            function toggleReserveBtn() {
+                const can = ($('#klasifikasi_kode').val() || '').trim() && ($('#bulan').val() || '') && ($(
+                    '#tahun-nomor').val() || '');
+                $('#btn-reserve-nomor').prop('disabled', !can);
+            }
+            $('#klasifikasi_kode, #bulan, #tahun-nomor').on('input change', toggleReserveBtn);
+            toggleReserveBtn();
+
             // ====== Dropdown tugas & preview ======
             const taskData = @json($taskMaster);
             const $tugasPreview = $('#task-preview');
@@ -1122,11 +1177,13 @@
                 const kategori = $('#jenis_tugas').val(),
                     tugas = $('#tugas').val();
                 if (kategori && tugas) {
+                    const safeKategori = _.escape(kategori);
+                    const safeTugas = _.escape(tugas);
                     $tugasPreview.html(`<div>
         <p class="mb-1 text-muted">Jenis Tugas:</p>
-        <h5 class="preview-title mb-3"><i class="fas fa-layer-group mr-2"></i>${kategori}</h5>
+        <h5 class="preview-title mb-3"><i class="fas fa-layer-group mr-2"></i>${safeKategori}</h5>
         <p class="mb-1 text-muted">Tugas:</p>
-        <p class="preview-content font-weight-bold">${tugas}</p>
+        <p class="preview-content font-weight-bold">${safeTugas}</p>
       </div>`).addClass('has-content');
                 } else {
                     $tugasPreview.html(placeholderText).removeClass('has-content');
@@ -1162,20 +1219,6 @@
             @endif
 
             // ====== TEMBUSAN (Tagify) ======
-            window._ = window._ || {};
-            if (!_.escape) {
-                _.escape = (s) =>
-                    String(s).replace(/[&<>"'=\/`]/g, (c) => ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    '"': '&quot;',
-                    "'": '&#39;',
-                    '/': '&#x2F;',
-                    '=': '&#x3D;',
-                    '`': '&#x60;',
-                    } [c]));
-            }
             const tembusanPresets = @json($tembusanPresets ?? []);
             const tembusanInput = document.querySelector('#tembusan-input');
             if (tembusanInput) {
@@ -1281,7 +1324,7 @@
                     if (eksternalCount > 0) parts.push(`${eksternalCount} Eksternal`);
                     const statusText = `${total} Penerima (${parts.join(', ')})`;
                     $display.val(statusText);
-                    $hiddenStatus.val(statusText);
+                    $hiddenStatus.val(statusText); // nilai ini akan disanitasi di FormRequest
                 }
             }
 
@@ -1302,7 +1345,7 @@
                         const d = penerimaState.internal[id];
                         list.append(
                             `<li class="list-group-item d-flex justify-content-between align-items-center">
-            <div><i class="fas fa-user-tie mr-2 text-info"></i>${d.nama}</div>
+            <div><i class="fas fa-user-tie mr-2 text-info"></i>${_.escape(d.nama)}</div>
             <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="internal" data-id="${id}">
               <i class="fas fa-times"></i>
             </button>
@@ -1313,17 +1356,17 @@
                     penerimaState.eksternal.forEach((p, i) => {
                         list.append(
                             `<li class="list-group-item d-flex justify-content-between align-items-center">
-            <div><i class="fas fa-user mr-2 text-success"></i>${p.nama} <span class="eksternal-label">(${p.jabatan})</span></div>
+            <div><i class="fas fa-user mr-2 text-success"></i>${_.escape(p.nama)} <span class="eksternal-label">(${_.escape(p.jabatan)})</span></div>
             <button type="button" class="btn btn-xs btn-danger remove-penerima" data-type="eksternal" data-id="${i}">
               <i class="fas fa-times"></i>
             </button>
           </li>`
                         );
                         tugasForm.append(
-                            `<input type="hidden" name="penerima_eksternal[${i}][nama]" value="${p.nama}">`
+                            `<input type="hidden" name="penerima_eksternal[${i}][nama]" value="${_.escape(p.nama)}">`
                         );
                         tugasForm.append(
-                            `<input type="hidden" name="penerima_eksternal[${i}][jabatan]" value="${p.jabatan}">`
+                            `<input type="hidden" name="penerima_eksternal[${i}][jabatan]" value="${_.escape(p.jabatan)}">`
                         );
                     });
                 }
@@ -1397,7 +1440,8 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Validasi Gagal',
-                        html: '<ul style="text-align:left;">' + errors.map(e => `<li>${e}</li>`).join('') +
+                        html: '<ul style="text-align:left;">' + errors.map(e => `<li>${_.escape(e)}</li>`)
+                            .join('') +
                             '</ul>'
                     });
                     return false;
@@ -1405,39 +1449,31 @@
                 return true;
             }
 
-            // ====== Sinkron hidden nama pembuat & asal surat ======
+            // ====== Sinkron hidden nama pembuat & asal surat (kirim ID) ======
             function syncNamaPembuat() {
-                const $opt = $('#pembuat_id').find(':selected');
-                if ($opt.length) $('#nama_pembuat_hidden').val(($opt.text() || '').trim());
+                $('#nama_pembuat_hidden').val($('#pembuat_id').val() || '');
             }
 
             function syncAsalSurat() {
                 const $opt = $('#asal_surat_id').find(':selected');
-                if ($opt.length) $('#asal_surat_hidden').val(($opt.text() || '').trim());
+                if ($opt.length) $('#asal_surat_hidden').val($opt.val()); // ID, bukan label
             }
             $('#pembuat_id').on('change', syncNamaPembuat);
             $('#asal_surat_id').on('change', syncAsalSurat);
             syncNamaPembuat();
             syncAsalSurat();
 
-            // Safeguard sebelum submit
+            // Safeguard sebelum submit (isi hidden ID bila readonly)
             tugasForm.on('submit', function() {
-                if (!$('#nama_pembuat_hidden').val() && $('#pembuat_id_display').length) {
-                    $('#nama_pembuat_hidden').val($('#pembuat_id_display').val());
+                if (!$('#nama_pembuat_hidden').val()) {
+                    const val = $('input[name="pembuat_id"]').val() || $('#pembuat_id').val();
+                    $('#nama_pembuat_hidden').val(val || '');
                 }
-                if (!$('#asal_surat_hidden').val() && $('#asal_surat_id_display').length) {
-                    $('#asal_surat_hidden').val($('#asal_surat_id_display').val());
+                if (!$('#asal_surat_hidden').val()) {
+                    const val = $('input[name="asal_surat_id"]').val() || $('#asal_surat_id').val();
+                    $('#asal_surat_hidden').val(val || '');
                 }
             });
-
-            function toggleReserveBtn() {
-                const can = ($('#klasifikasi_kode').val() || '').trim() && ($('#bulan').val() || '') && ($(
-                    '#tahun-nomor').val() || '');
-                $('#btn-reserve-nomor').prop('disabled', !can);
-            }
-            $('#klasifikasi_kode, #bulan, #tahun-nomor').on('input change', toggleReserveBtn);
-            toggleReserveBtn();
-
 
             // ====== ACTION SUBMIT/DRAFT (SATU-SATUNYA HANDLER) ======
             $('button[name="action"]').on('click', function(e) {
@@ -1529,7 +1565,7 @@
             // ====== Render awal penerima ======
             renderPenerimaList();
 
-            // ====== (Opsional) Prefill preview tugas saat edit ======
+            // ====== Prefill preview tugas saat edit ======
             @if ($isEdit && !empty(old('jenis_tugas', $tugas->jenis_tugas ?? null)) && !empty(old('tugas', $tugas->tugas ?? null)))
                 setTimeout(function() {
                     updateTaskPreview();

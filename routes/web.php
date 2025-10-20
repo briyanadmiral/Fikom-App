@@ -16,6 +16,7 @@ use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\SuratKeputusanController;
 use App\Http\Controllers\SuratKeputusan\NomorSuratController;
 use App\Http\Controllers\RedirectController;
+use App\Models\TugasHeader;
 use App\Jobs\SendSuratTugasEmail;
 use App\Models\KeputusanHeader;
 
@@ -72,26 +73,34 @@ Route::middleware('auth')->group(function () {
 
             Route::get('approve-list', [TugasController::class, 'approveList'])
                 ->name('approveList')
-                ->middleware('can:view-approve-list');
+                ->middleware('can:viewApproveList,App\Models\TugasHeader');
 
             Route::get('approve', [RedirectController::class, 'toApproveListSt'])
                 ->name('approveRedirect')
-                ->middleware('can:view-approve-list');
+                ->middleware('can:viewApproveList,App\Models\TugasHeader');
 
+            // ✅ Show approve page
+            Route::get('{tugas}/approve', [TugasController::class, 'showApproveForm'])
+                ->name('approve.form')
+                ->whereNumber('tugas')
+                ->middleware('can:approve,tugas');
+
+            // ✅ Action approve
+            Route::match(['post', 'patch'], '{tugas}/approve', [TugasController::class, 'approve'])
+                ->name('approve')
+                ->whereNumber('tugas')
+                ->middleware('can:approve,tugas');
+
+            // ✅ Legacy
             Route::get('{tugas}/review-approve', [TugasController::class, 'approveForm'])
                 ->name('approveForm')
                 ->whereNumber('tugas')
-                ->middleware('can:approve-tugas,tugas');
+                ->middleware('can:approve,tugas');
 
             Route::get('{tugas}/approve/preview', [TugasController::class, 'approvePreview'])
                 ->name('approvePreview')
                 ->whereNumber('tugas')
-                ->middleware('can:approve-tugas,tugas');
-
-            Route::match(['post', 'patch'], '{tugas}/approve', [TugasController::class, 'approve'])
-                ->name('approve')
-                ->whereNumber('tugas')
-                ->middleware('can:approve-tugas,tugas');
+                ->middleware('can:approve,tugas');
 
             Route::get('{tugas}/highlight', [TugasController::class, 'highlight'])
                 ->name('highlight')
@@ -108,15 +117,26 @@ Route::middleware('auth')->group(function () {
                 ->whereNumber('tugas')
                 ->middleware('can:view,tugas');
 
+            // 🔹 Halaman Tersusun Detail (baru)
+            Route::get('{tugas}/detail', [TugasController::class, 'editDetail'])
+                ->name('detail.edit')
+                ->whereNumber('tugas')
+                ->middleware('can:update,tugas');
+
+            Route::put('{tugas}/detail', [TugasController::class, 'updateDetail'])
+                ->name('detail.update')
+                ->whereNumber('tugas')
+                ->middleware('can:update,tugas');
+            // 🔹 akhir detail
+
             Route::post('{tugas}/penerima', [TugasController::class, 'addRecipient'])
                 ->name('recipient.add')
                 ->middleware('can:addRecipient,tugas')
                 ->whereNumber('tugas');
 
             Route::get('{tugas}', [TugasController::class, 'show'])
-                ->name('show')
-                ->middleware('can:view,tugas')
-                ->whereNumber('tugas');
+                ->whereNumber('tugas')
+                ->name('show');
 
             Route::get('{tugas}/edit', [TugasController::class, 'edit'])
                 ->name('edit')
@@ -156,71 +176,90 @@ Route::middleware('auth')->group(function () {
         ->name('surat_keputusan.')
         ->group(function () {
             Route::get('/', [SuratKeputusanController::class, 'index'])->name('index');
+
             Route::get('/approve-list', [SuratKeputusanController::class, 'approveList'])
                 ->name('approveList')
-                ->middleware('can:view-approve-list');
+                ->middleware('can:viewApproveList,App\Models\KeputusanHeader');
+
             Route::get('/approve', [RedirectController::class, 'toApproveListSk'])
                 ->name('approveRedirect')
-                ->middleware('can:view-approve-list');
+                ->middleware('can:viewApproveList,App\Models\KeputusanHeader');
+
             Route::get('/saya', [SuratKeputusanController::class, 'mine'])->name('mine');
+
             Route::get('/create', [SuratKeputusanController::class, 'create'])
                 ->name('create')
                 ->middleware('can:create,' . KeputusanHeader::class);
+
             Route::post('/', [SuratKeputusanController::class, 'store'])
                 ->name('store')
                 ->middleware('can:create,' . KeputusanHeader::class);
+
             Route::get('/{surat_keputusan}/edit', [SuratKeputusanController::class, 'edit'])
                 ->name('edit')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:update,surat_keputusan');
+
             Route::put('/{surat_keputusan}', [SuratKeputusanController::class, 'update'])
                 ->name('update')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:update,surat_keputusan');
+
             Route::delete('/{surat_keputusan}', [SuratKeputusanController::class, 'destroy'])
                 ->name('destroy')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:delete,surat_keputusan');
+
             Route::post('/{surat_keputusan}/submit', [SuratKeputusanController::class, 'submit'])
                 ->name('submit')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:submit,surat_keputusan');
+
             Route::post('/{surat_keputusan}/approve', [SuratKeputusanController::class, 'approve'])
                 ->name('approve')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:approve,surat_keputusan');
+
             Route::post('/{surat_keputusan}/reject', [SuratKeputusanController::class, 'reject'])
                 ->name('reject')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:reject,surat_keputusan');
+
             Route::post('/{surat_keputusan}/reopen', [SuratKeputusanController::class, 'reopen'])
                 ->name('reopen')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:reopen,surat_keputusan');
+
             Route::post('/{surat_keputusan}/terbitkan', [SuratKeputusanController::class, 'terbitkan'])
                 ->name('terbitkan')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:publish,surat_keputusan');
+
             Route::post('/{surat_keputusan}/arsipkan', [SuratKeputusanController::class, 'arsipkan'])
                 ->name('arsipkan')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:archive,surat_keputusan');
+
             Route::get('/{surat_keputusan}/approve-form', [SuratKeputusanController::class, 'approveForm'])
                 ->name('approveForm')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:approve,surat_keputusan');
+
             Route::get('/{surat_keputusan}/approve-preview', [SuratKeputusanController::class, 'approvePreview'])
                 ->name('approvePreview')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:approve,surat_keputusan');
+
             Route::get('/{surat_keputusan}/preview', [SuratKeputusanController::class, 'preview'])
                 ->name('preview')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:view,surat_keputusan');
+
             Route::get('/{surat_keputusan}/download', [SuratKeputusanController::class, 'downloadPdf'])
                 ->name('downloadPdf')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:view,surat_keputusan');
+
             Route::get('/{surat_keputusan}', [SuratKeputusanController::class, 'show'])
                 ->name('show')
                 ->whereNumber('surat_keputusan')
@@ -230,15 +269,27 @@ Route::middleware('auth')->group(function () {
     Route::get('/surat-keputusan/{any?}', [RedirectController::class, 'legacySk'])->where('any', '.*');
 
     // 9) Kop Surat & Signature
-    Route::get('/pengaturan/kop-surat', [MasterKopSuratController::class, 'index'])->name('kop.index');
-    Route::put('/pengaturan/kop-surat', [MasterKopSuratController::class, 'update'])->name('kop.update');
-    Route::post('/pengaturan/kop-surat/preview', [MasterKopSuratController::class, 'preview'])->name('kop.preview');
-    Route::delete('/pengaturan/kop-surat/delete-image/{type}', [MasterKopSuratController::class, 'deleteImage'])->name('kop.delete-image');
+    Route::get('/pengaturan/kop-surat', [MasterKopSuratController::class, 'index'])
+        ->name('kop.index')
+        ->middleware('can:manage-kop-surat');
+    Route::put('/pengaturan/kop-surat', [MasterKopSuratController::class, 'update'])
+        ->name('kop.update')
+        ->middleware('can:manage-kop-surat');
+    Route::post('/pengaturan/kop-surat/preview', [MasterKopSuratController::class, 'preview'])
+        ->name('kop.preview')
+        ->middleware('can:manage-kop-surat');
+    Route::delete('/pengaturan/kop-surat/delete-image/{type}', [MasterKopSuratController::class, 'deleteImage'])
+        ->name('kop.delete-image')
+        ->middleware('can:manage-kop-surat');
+
+    Route::get('/kop-surat/ttd-saya', [MySignatureController::class, 'edit'])->name('kop.ttd.edit');
     Route::post('/kop-surat/ttd-saya', [MySignatureController::class, 'update'])->name('kop.ttd.update');
+    Route::delete('/kop-surat/ttd-saya', [MySignatureController::class, 'destroy'])->name('kop.ttd.destroy');
+    Route::post('/kop-surat/ttd-saya/preview', [MySignatureController::class, 'preview'])->name('kop.ttd.preview');
 
     // 10) Dev Helper
     Route::get('/dev/send-surat/{id}', function ($id) {
         SendSuratTugasEmail::dispatch((int) $id, 'to_recipients');
-        return "Job dikirim untuk surat ID {$id}. Cek inbox (atau MailHog).";
+        return 'Job dikirim untuk surat ID {id}. Cek inbox (atau MailHog).';
     })->whereNumber('id');
 });
