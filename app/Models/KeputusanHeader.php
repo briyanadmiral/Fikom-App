@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KeputusanHeader extends Model
 {
@@ -17,31 +18,40 @@ class KeputusanHeader extends Model
     // ✅ IMPROVED: More restrictive fillable
     protected $fillable = [
         'nomor',
-        'tentang',
         'tanggal_surat',
-        'penandatangan',
-        'dibuat_oleh',
-        'approved_by',
-        'approved_at',
-        'rejected_by', // ✅ ADD THIS
-        'rejected_at', // ✅ ADD THIS
-        'published_by',
-        'published_at',
-        'signed_at',
-        'signed_pdf_path',
+        'kotapenetapan',
+        'tahun',
+        'signedat',
+        'tentang',
+        'judulpenetapan',
         'menimbang',
         'mengingat',
         'menetapkan',
         'memutuskan',
+        'signedpdfpath',
         'tembusan',
         'penerima_eksternal',
-        'ttd_config',
-        'cap_config',
-        'ttd_w_mm',
-        'cap_w_mm',
-        'cap_opacity',
-        'tahun',
-        'status_surat',
+        'statussurat',
+        'dibuatoleh',
+        'penandatangan',
+        'npppenandatangan',
+        'approvedby',
+        'approvedat',
+        'rejectedby',
+        'rejectedat',
+        'publishedby',
+        'publishedat',
+        'ttdconfig',
+        'capconfig',
+        'ttdwmm',
+        'capwmm',
+        'capopacity',
+
+        // ✅ TAMBAHKAN 4 BARIS INI
+        'tanggal_terbit',
+        'terbitkan_oleh',
+        'tanggal_arsip',
+        'arsipkan_oleh',
     ];
 
     // ✅ ADDED: Guarded fields for extra protection
@@ -49,22 +59,26 @@ class KeputusanHeader extends Model
 
     protected $casts = [
         'tanggal_surat' => 'date',
-        'approved_at' => 'datetime',
-        'rejected_at' => 'datetime',
-        'published_at' => 'datetime',
-        'signed_at' => 'datetime',
-        'deleted_at' => 'datetime', // ✅ ADDED
+        'approvedat' => 'datetime',
+        'rejectedat' => 'datetime',
+        'publishedat' => 'datetime',
+        'signedat' => 'datetime',
+        'deletedat' => 'datetime',
         'menimbang' => 'array',
         'mengingat' => 'array',
         'menetapkan' => 'array',
         'penerima_eksternal' => 'array',
         'tembusan' => 'string',
-        'ttd_config' => 'array',
-        'cap_config' => 'array',
-        'ttd_w_mm' => 'integer',
-        'cap_w_mm' => 'integer',
-        'cap_opacity' => 'float',
+        'ttdconfig' => 'array',
+        'capconfig' => 'array',
+        'ttdwmm' => 'integer',
+        'capwmm' => 'integer',
+        'capopacity' => 'float',
         'tahun' => 'integer',
+
+        // ✅ TAMBAHKAN 2 BARIS INI
+        'tanggal_terbit' => 'datetime',
+        'tanggal_arsip' => 'datetime',
     ];
 
     // ==================== ACCESSORS & MUTATORS =========================
@@ -153,6 +167,30 @@ class KeputusanHeader extends Model
         );
     }
 
+    /**
+     * ✅ BARU: Sanitize kota_penetapan
+     */
+    protected function kotaPenetapan(): Attribute
+    {
+        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 100));
+    }
+
+    /**
+     * ✅ BARU: Sanitize judul_penetapan
+     */
+    protected function judulPenetapan(): Attribute
+    {
+        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 500));
+    }
+
+    /**
+     * ✅ BARU: Sanitize NPP penandatangan
+     */
+    protected function nppPenandatangan(): Attribute
+    {
+        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 50));
+    }
+
     // ==================== SCOPES =========================
 
     /**
@@ -210,7 +248,125 @@ class KeputusanHeader extends Model
         });
     }
 
+    /**
+     * ✅ FASE 1.1: Advanced search scope
+     * Mendukung pencarian di nomor, tentang, pembuat
+     */
+    public function scopeAdvancedSearch($query, ?string $keyword)
+    {
+        if (empty($keyword)) {
+            return $query;
+        }
+
+        $keyword = sanitize_input($keyword, 100);
+        $keyword = str_replace(['%', '_'], ['\\%', '\\_'], $keyword);
+
+        return $query->where(function ($q) use ($keyword) {
+            $q->where('nomor', 'LIKE', "%{$keyword}%")
+                ->orWhere('tentang', 'LIKE', "%{$keyword}%")
+                ->orWhereHas('pembuat', function ($q2) use ($keyword) {
+                    $q2->where('nama_lengkap', 'LIKE', "%{$keyword}%");
+                });
+        });
+    }
+
+    /**
+     * ✅ FASE 1.1: Filter by tahun
+     */
+    public function scopeFilterByTahun($query, ?int $tahun)
+    {
+        if (empty($tahun)) {
+            return $query;
+        }
+
+        return $query->where('tahun', $tahun);
+    }
+
+    /**
+     * ✅ FASE 1.1: Filter by bulan (dari tanggal_surat)
+     */
+    public function scopeFilterByBulan($query, ?int $bulan)
+    {
+        if (empty($bulan) || $bulan < 1 || $bulan > 12) {
+            return $query;
+        }
+
+        return $query->whereMonth('tanggal_surat', $bulan);
+    }
+
+    /**
+     * ✅ FASE 1.1: Filter by penandatangan
+     */
+    public function scopeFilterByPenandatangan($query, ?int $penandatanganId)
+    {
+        if (empty($penandatanganId)) {
+            return $query;
+        }
+
+        $validId = validate_integer_id($penandatanganId);
+        if ($validId === null) {
+            return $query;
+        }
+
+        return $query->where('penandatangan', $validId);
+    }
+
+    /**
+     * ✅ FASE 1.1: Filter by tanggal range
+     */
+    public function scopeFilterByTanggalRange($query, ?string $tanggalDari, ?string $tanggalSampai)
+    {
+        if (!empty($tanggalDari)) {
+            $query->where('tanggal_surat', '>=', $tanggalDari);
+        }
+
+        if (!empty($tanggalSampai)) {
+            $query->where('tanggal_surat', '<=', $tanggalSampai);
+        }
+
+        return $query;
+    }
+
+    /**
+     * ✅ FASE 1.1: Filter by pembuat (dibuat_oleh)
+     */
+    public function scopeFilterByPembuat($query, ?int $pembuatId)
+    {
+        if (empty($pembuatId)) {
+            return $query;
+        }
+
+        $validId = validate_integer_id($pembuatId);
+        if ($validId === null) {
+            return $query;
+        }
+
+        return $query->where('dibuat_oleh', $validId);
+    }
+
+    /**
+     * ✅ FASE 1.1: Apply all filters at once
+     */
+    public function scopeApplyFilters($query, array $filters)
+    {
+        return $query
+            ->advancedSearch($filters['search'] ?? null)
+            ->filterByTahun($filters['tahun'] ?? null)
+            ->filterByBulan($filters['bulan'] ?? null)
+            ->filterByPenandatangan($filters['penandatangan'] ?? null)
+            ->filterByPembuat($filters['pembuat'] ?? null)
+            ->filterByTanggalRange($filters['tanggal_dari'] ?? null, $filters['tanggal_sampai'] ?? null);
+    }
+
     // ==================== RELASI =========================
+
+    /**
+     * ✅ FASE 1.2: Relasi ke lampiran
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(KeputusanAttachment::class, 'keputusan_id');
+    }
 
     public function pembuat(): BelongsTo
     {
@@ -237,14 +393,61 @@ class KeputusanHeader extends Model
         return $this->belongsTo(User::class, 'published_by');
     }
 
+    /**
+     * Relasi ke user yang menerbitkan SK
+     */
+    public function penerbit(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'terbitkan_oleh');
+    }
+
+    /**
+     * Relasi ke user yang mengarsipkan SK
+     */
+    public function pengarsip(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'arsipkan_oleh');
+    }
+
     public function penerima(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'keputusan_penerima', 'keputusan_id', 'pengguna_id')
             ->withPivot(['read_at', 'dibaca'])
             ->withTimestamps();
     }
-
     // ==================== HELPER METHODS =========================
+
+    /**
+     * Cek apakah SK sudah terbit
+     */
+    public function isTerbit(): bool
+    {
+        return in_array($this->status_surat, ['terbit', 'arsip'], true);
+    }
+
+    /**
+     * Cek apakah SK sudah diarsipkan
+     */
+    public function isArsip(): bool
+    {
+        return $this->status_surat === 'arsip';
+    }
+
+    /**
+     * Cek apakah SK bisa diterbitkan
+     */
+    public function canBeTerbitkan(): bool
+    {
+        return $this->status_surat === 'disetujui';
+    }
+
+    /**
+     * Cek apakah SK bisa diarsipkan
+     */
+    public function canBeArsipkan(): bool
+    {
+        return $this->status_surat === 'terbit';
+    }
 
     /**
      * ✅ ADDED: Check if can be edited
@@ -312,6 +515,19 @@ class KeputusanHeader extends Model
         static::creating(function ($model) {
             if (empty($model->dibuat_oleh) && auth()->check()) {
                 $model->dibuat_oleh = auth()->id();
+            }
+        });
+        // ✅ BARU: Auto-set tahun dari tanggal_surat
+        static::creating(function ($model) {
+            if (!empty($model->tanggal_surat) && empty($model->tahun)) {
+                $model->tahun = \Carbon\Carbon::parse($model->tanggal_surat)->year;
+            }
+        });
+
+        // ✅ BARU: Update tahun saat tanggal_surat diubah
+        static::updating(function ($model) {
+            if ($model->isDirty('tanggal_surat') && !empty($model->tanggal_surat)) {
+                $model->tahun = \Carbon\Carbon::parse($model->tanggal_surat)->year;
             }
         });
     }

@@ -27,6 +27,14 @@ class KlasifikasiSurat extends Model
     ];
 
     // ==================== ACCESSORS & MUTATORS =========================
+/**
+ * ✅ Accessor untuk backward compatibility
+ * Jika ada code lama yang akses $k->nama
+ */
+public function getNamaAttribute(): ?string
+{
+    return $this->deskripsi;
+}
 
     /**
      * ✅ ADDED: Sanitize kode using global helper
@@ -42,16 +50,6 @@ class KlasifikasiSurat extends Model
     protected function deskripsi(): Attribute
     {
         return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 500));
-    }
-
-    // ==================== RELASI =========================
-
-    /**
-     * Relasi ke Tugas Header
-     */
-    public function tugasHeaders(): HasMany
-    {
-        return $this->hasMany(TugasHeader::class, 'klasifikasi_surat_id');
     }
 
     // ==================== STATIC METHODS =========================

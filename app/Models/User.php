@@ -182,6 +182,16 @@ class User extends Authenticatable
     */
 
     /**
+ * ✅ TEMPORARY FIX: Accessor untuk backward compatibility
+ * Jika ada code lama yang akses $user->nama, redirect ke nama_lengkap
+ */
+public function getNamaAttribute(): ?string
+{
+    return $this->nama_lengkap;
+}
+
+
+    /**
      * ✅ IMPROVED: Nama peran dari relasi jika tersedia
      */
     public function getRoleNameAttribute(): string

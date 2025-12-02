@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | ✅ TAMBAH: Dashboard Menu URL
+    |--------------------------------------------------------------------------
+    |
+    | URL Dashboard Menu eksternal untuk redirect saat user exit.
+    | Sesuaikan dengan URL project teman Anda yang handle login.
+    |
+    */
+
+    'dashboard_menu_url' => env('DASHBOARD_MENU_URL', 'http://localhost:8000/dashboard'),
+
 ];

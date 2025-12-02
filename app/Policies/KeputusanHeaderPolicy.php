@@ -12,13 +12,17 @@ class KeputusanHeaderPolicy
 
     /**
      * Determine whether the user can view any models.
+     *
+     * Dipakai untuk: index, terbitList, approveList (authorize di controller).
      */
     public function viewAny(User $user): bool
     {
         // ✅ IMPROVED: Use helper for validation
         $peranId = validate_integer_id($user->peran_id);
 
-        return $peranId !== null && in_array($peranId, [1, 2, 3, 4], true);
+        // Semua peran yang valid (>=1) boleh akses listing SK,
+        // nanti difilter lagi di controller / query.
+        return $peranId !== null && $peranId >= 1;
     }
 
     /**
@@ -31,7 +35,7 @@ class KeputusanHeaderPolicy
         $userId = validate_integer_id($user->id);
         $pembuatId = validate_integer_id($sk->dibuat_oleh);
 
-        // Admin, Dekan, WD
+        // Admin, Dekan, WD boleh lihat semua
         if ($userPeranId !== null && in_array($userPeranId, [1, 2, 3], true)) {
             return true;
         }
@@ -54,10 +58,10 @@ class KeputusanHeaderPolicy
      */
     public function create(User $user): bool
     {
-        // ✅ IMPROVED: Validate peran_id
+        // ✅ Hanya Admin TU yang boleh buat SK
         $peranId = validate_integer_id($user->peran_id);
 
-        return $peranId !== null && in_array($peranId, [1, 2, 3], true);
+        return $peranId !== null && $peranId === 1;
     }
 
     /**
@@ -68,7 +72,7 @@ class KeputusanHeaderPolicy
         // ✅ IMPROVED: Validate status
         $status = validate_status($sk->status_surat, ['draft', 'ditolak', 'pending', 'disetujui']);
 
-        // Only draft/ditolak can be updated
+        // Hanya draft/ditolak yang bisa diupdate
         if (!in_array($status, ['draft', 'ditolak'], true)) {
             return false;
         }
@@ -178,20 +182,19 @@ class KeputusanHeaderPolicy
     {
         // ✅ IMPROVED: Validate status
         $status = validate_status($sk->status_surat, ['pending']);
-
         if ($status !== 'pending') {
             return false;
         }
 
-        // ✅ IMPROVED: Validate IDs
-        $userId = validate_integer_id($user->id);
-        $penandatanganId = validate_integer_id($sk->penandatangan);
+        // ✅ IMPROVED: Validate user peran_id
+        $userPeranId = validate_integer_id($user->peran_id);
 
-        if ($userId === null || $penandatanganId === null) {
-            return false;
+        // ✅ Dekan (2) atau WD (3) bisa approve pending
+        if ($userPeranId !== null && in_array($userPeranId, [2, 3], true)) {
+            return true;
         }
 
-        return $userId === $penandatanganId;
+        return false;
     }
 
     /**
@@ -201,20 +204,19 @@ class KeputusanHeaderPolicy
     {
         // ✅ IMPROVED: Validate status
         $status = validate_status($sk->status_surat, ['pending']);
-
         if ($status !== 'pending') {
             return false;
         }
 
-        // ✅ IMPROVED: Validate IDs
-        $userId = validate_integer_id($user->id);
-        $penandatanganId = validate_integer_id($sk->penandatangan);
+        // ✅ IMPROVED: Validate user peran_id
+        $userPeranId = validate_integer_id($user->peran_id);
 
-        if ($userId === null || $penandatanganId === null) {
-            return false;
+        // ✅ Dekan (2) atau WD (3) bisa reject
+        if ($userPeranId !== null && in_array($userPeranId, [2, 3], true)) {
+            return true;
         }
 
-        return $userId === $penandatanganId;
+        return false;
     }
 
     /**
@@ -246,48 +248,83 @@ class KeputusanHeaderPolicy
         return false;
     }
 
-    /**
-     * Determine whether the user can publish the model.
-     */
-    public function publish(User $user, KeputusanHeader $sk): bool
+    public function publish(User $user, KeputusanHeader $keputusan): bool
     {
-        // ✅ IMPROVED: Validate status
-        $status = validate_status($sk->status_surat, ['disetujui']);
+        // ✅ DEBUG: Log data user dan SK
+        \Log::info('Policy publish() dipanggil', [
+            'user_id' => $user->id,
+            'user_peran_id' => $user->peran_id,
+            'user_peran_id_type' => gettype($user->peran_id),
+            'sk_id' => $keputusan->id,
+            'sk_status' => $keputusan->status_surat,
+            'sk_penandatangan' => $keputusan->penandatangan,
+        ]);
 
+        // Validasi status SK
+        $status = validate_status($keputusan->status_surat, ['disetujui']);
         if ($status !== 'disetujui') {
+            \Log::warning('Policy publish() DITOLAK: Status bukan disetujui', [
+                'status_aktual' => $keputusan->status_surat,
+            ]);
             return false;
         }
 
-        // ✅ IMPROVED: Validate peran_id
-        $peranId = validate_integer_id($user->peran_id);
+        // Validasi peran_id user
+        $userPeranId = validate_integer_id($user->peran_id);
+        $userId = validate_integer_id($user->id);
+        $penandatanganId = validate_integer_id($keputusan->penandatangan);
 
-        return $peranId !== null && in_array($peranId, [1, 2, 3], true);
+        // Admin/TU (peran_id=1) atau Penandatangan bisa menerbitkan
+        if ($userPeranId == 1) {
+            \Log::info('Policy publish() DIIZINKAN: User adalah Admin TU');
+            return true;
+        }
+
+        if ($userId !== null && $penandatanganId !== null && $userId == $penandatanganId) {
+            \Log::info('Policy publish() DIIZINKAN: User adalah Penandatangan');
+            return true;
+        }
+
+        \Log::warning('Policy publish() DITOLAK: User bukan Admin TU atau Penandatangan');
+        return false;
     }
 
     /**
-     * Determine whether the user can archive the model.
+     * Determine if user can unpublish (batal terbitkan) SK
      */
-    public function archive(User $user, KeputusanHeader $sk): bool
+    public function unpublish(User $user, KeputusanHeader $keputusan): bool
     {
-        // ✅ IMPROVED: Validate status
-        $status = validate_status($sk->status_surat, ['terbit']);
-
-        if ($status !== 'terbit') {
-            return false;
-        }
-
-        // ✅ IMPROVED: Validate peran_id
-        $peranId = validate_integer_id($user->peran_id);
-
-        return $peranId !== null && in_array($peranId, [1, 2, 3], true);
+        // Hanya Admin/TU yang bisa membatalkan penerbitan
+        return $keputusan->status_surat === 'terbit' && $user->peran_id === 1;
     }
 
     /**
-     * ✅ ADDED: Determine whether the user can download the model.
+     * Determine if user can archive SK
+     */
+    public function archive(User $user, KeputusanHeader $keputusan): bool
+    {
+        // Hanya Admin/TU yang bisa mengarsipkan
+        return $keputusan->status_surat === 'terbit' && $user->peran_id === 1;
+    }
+
+    /**
+     * ✅ Ability baru: boleh lihat halaman Arsip SK (list arsip).
+     * Dipakai di route: /surat_keputusan/arsip (viewArchive).
+     */
+    public function viewArchive(User $user): bool
+    {
+        $peranId = validate_integer_id($user->peran_id);
+
+        // Hanya Admin TU (peran_id 1) yang boleh akses halaman Arsip.
+        return $peranId === 1;
+    }
+
+    /**
+     * ✅ Determine whether the user can download the model.
      */
     public function download(User $user, KeputusanHeader $sk): bool
     {
-        // ✅ Validate status - hanya bisa download jika sudah disetujui
+        // ✅ Validate status - hanya bisa download jika sudah disetujui/terbit/arsip
         $status = validate_status($sk->status_surat, ['disetujui', 'terbit', 'arsip']);
 
         if (!in_array($status, ['disetujui', 'terbit', 'arsip'], true)) {
@@ -299,12 +336,11 @@ class KeputusanHeaderPolicy
     }
 
     /**
-     * ✅ ADDED: Before hook - runs before all policy checks
+     * ✅ Before hook - runs before all policy checks
      */
     public function before(User $user, string $ability): ?bool
     {
         // ✅ Super admin bypass (if implemented)
-        // Uncomment if you have super admin role
         // if ($user->peran_id === 0) {
         //     return true;
         // }

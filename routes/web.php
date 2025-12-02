@@ -16,15 +16,35 @@ use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\SuratKeputusanController;
 use App\Http\Controllers\SuratKeputusan\NomorSuratController;
 use App\Http\Controllers\RedirectController;
+use App\Http\Controllers\ExternalEntryController; // ✅ TAMBAH: Import controller baru
 use App\Models\TugasHeader;
 use App\Jobs\SendSuratTugasEmail;
 use App\Models\KeputusanHeader;
 
-Route::redirect('/', '/login');
-Auth::routes();
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+// ❌ HAPUS: Redirect ke login (sistem eksternal yang handle)
+// Route::redirect('/', '/login');
 
-Route::middleware('auth')->group(function () {
+// ❌ HAPUS: Auth routes Laravel (login/register dihandle dashboard eksternal)
+// Auth::routes();
+
+// ✅ TAMBAH: Entry point dari Dashboard Menu eksternal
+Route::get('/entry', [ExternalEntryController::class, 'entry'])->name('external.entry');
+
+// ✅ TAMBAH: Exit point kembali ke Dashboard Menu
+Route::post('/exit', [ExternalEntryController::class, 'exit'])->name('external.exit');
+
+// ✅ TAMBAH: Landing page redirect ke /home
+Route::get('/', function () {
+    return redirect()->route('home');
+})->name('landing');
+
+// ✅ REVISI: Ganti middleware 'auth' jadi 'check.session.role'
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])
+    ->name('home')
+    ->middleware('check.session.role'); // ✅ GANTI dari implicit auth ke explicit
+
+// ✅ REVISI: Ganti middleware 'auth' jadi 'check.session.role'
+Route::middleware('check.session.role')->group(function () {
     // 1) Users & Roles
     Route::resource('users', UserController::class);
     Route::resource('roles', RoleController::class);
@@ -177,19 +197,31 @@ Route::middleware('auth')->group(function () {
         ->group(function () {
             Route::get('/', [SuratKeputusanController::class, 'index'])->name('index');
 
-            Route::get('/approve-list', [SuratKeputusanController::class, 'approveList'])
+            Route::get('approve-list', [SuratKeputusanController::class, 'approveList'])
                 ->name('approveList')
-                ->middleware('can:viewApproveList,App\Models\KeputusanHeader');
+                ->middleware('can:viewAny,App\Models\KeputusanHeader');
 
-            Route::get('/approve', [RedirectController::class, 'toApproveListSk'])
+            Route::get('approve', [RedirectController::class, 'toApproveListSk'])
                 ->name('approveRedirect')
-                ->middleware('can:viewApproveList,App\Models\KeputusanHeader');
+                ->middleware('can:viewAny,App\Models\KeputusanHeader');
 
-            Route::get('/saya', [SuratKeputusanController::class, 'mine'])->name('mine');
+            Route::get('saya', [SuratKeputusanController::class, 'mine'])->name('mine');
+
+            // Semua user boleh lihat SK Terbit (dikontrol di policy jika mau dibatasi)
+            Route::get('terbit', [SuratKeputusanController::class, 'terbitList'])
+                ->name('terbitList')
+                ->middleware('can:viewAny,App\Models\KeputusanHeader');
+
+            // Arsip: khusus Admin TU (peran_id 1) via ability viewArchive
+            Route::get('arsip', [SuratKeputusanController::class, 'arsipList'])
+                ->name('arsipList')
+                ->middleware('can:viewArchive,App\Models\KeputusanHeader');
 
             Route::get('/create', [SuratKeputusanController::class, 'create'])
                 ->name('create')
                 ->middleware('can:create,' . KeputusanHeader::class);
+
+            // (catatan: kamu punya 2x route create sebelumnya; cukup satu ini saja kalau mau dirapikan)
 
             Route::post('/', [SuratKeputusanController::class, 'store'])
                 ->name('store')
@@ -230,15 +262,19 @@ Route::middleware('auth')->group(function () {
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:reopen,surat_keputusan');
 
-            Route::post('/{surat_keputusan}/terbitkan', [SuratKeputusanController::class, 'terbitkan'])
+            Route::post('{surat_keputusan}/terbitkan', [SuratKeputusanController::class, 'terbitkan'])
                 ->name('terbitkan')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:publish,surat_keputusan');
+                ->whereNumber('surat_keputusan');
 
-            Route::post('/{surat_keputusan}/arsipkan', [SuratKeputusanController::class, 'arsipkan'])
+            Route::post('{surat_keputusan}/arsipkan', [SuratKeputusanController::class, 'arsipkan'])
                 ->name('arsipkan')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:archive,surat_keputusan');
+
+            Route::post('{surat_keputusan}/batal-terbitkan', [SuratKeputusanController::class, 'batalTerbitkan'])
+                ->name('batalTerbitkan')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:unpublish,surat_keputusan');
 
             Route::get('/{surat_keputusan}/approve-form', [SuratKeputusanController::class, 'approveForm'])
                 ->name('approveForm')
@@ -264,6 +300,28 @@ Route::middleware('auth')->group(function () {
                 ->name('show')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:view,surat_keputusan');
+
+            // ✅ FASE 1.2: Lampiran file routes (NESTED RESOURCE)
+            Route::prefix('{surat_keputusan}')
+                ->whereNumber('surat_keputusan')
+                ->group(function () {
+                    // Upload attachment
+                    Route::post('/attachments', [SuratKeputusanController::class, 'uploadAttachment'])
+                        ->name('attachments.upload')
+                        ->middleware('can:update,surat_keputusan');
+
+                    // Download attachment
+                    Route::get('/attachments/{attachment}', [SuratKeputusanController::class, 'downloadAttachment'])
+                        ->name('attachments.download')
+                        ->whereNumber('attachment')
+                        ->middleware('can:view,surat_keputusan');
+
+                    // Delete attachment
+                    Route::delete('/attachments/{attachment}', [SuratKeputusanController::class, 'deleteAttachment'])
+                        ->name('attachments.delete')
+                        ->whereNumber('attachment')
+                        ->middleware('can:update,surat_keputusan');
+                });
         });
 
     Route::get('/surat-keputusan/{any?}', [RedirectController::class, 'legacySk'])->where('any', '.*');
@@ -290,6 +348,17 @@ Route::middleware('auth')->group(function () {
     // 10) Dev Helper
     Route::get('/dev/send-surat/{id}', function ($id) {
         SendSuratTugasEmail::dispatch((int) $id, 'to_recipients');
-        return 'Job dikirim untuk surat ID {id}. Cek inbox (atau MailHog).';
+        return "Job dikirim untuk surat ID {$id}. Cek inbox (atau MailHog).";
     })->whereNumber('id');
 });
+
+// Di luar middleware group
+Route::get('/test-entry', function () {
+    // Simulasi Dashboard Menu set session
+    session([
+        'user_id' => 1, // Ganti dengan ID user yang ada di database
+        'user_role' => 'admin',
+    ]);
+
+    return redirect()->route('home');
+})->name('test.entry');

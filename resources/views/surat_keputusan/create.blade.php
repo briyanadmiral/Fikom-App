@@ -2,10 +2,10 @@
 @section('title', 'Buat Surat Keputusan')
 
 {{-- ========================================================= --}}
-{{-- 🔹 STYLE SECTION (diletakkan di atas agar ter-render di <head>) --}}
+{{-- 🔹 STYLE SECTION (render di <head>) --}}
 {{-- ========================================================= --}}
 @push('styles')
-    {{-- ============ Library Styles ============ --}}
+    {{-- Library Styles --}}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
@@ -361,8 +361,8 @@
             <div>
                 <div class="header-title">Buat Surat Keputusan Baru</div>
                 <div class="header-desc mt-2">
-                    Isi formulir di bawah untuk membuat surat keputusan baru dengan lengkap. Nomor akan diisikan otomatis
-                    jika tersedia.
+                    Isi formulir di bawah untuk membuat surat keputusan baru dengan lengkap.
+                    Nomor akan diisikan otomatis jika tersedia.
                 </div>
             </div>
         </div>
@@ -375,26 +375,11 @@
 @section('content')
     <div class="container-fluid">
         @can('create', App\Models\KeputusanHeader::class)
-            {{-- ⚠️ Error validasi --}}
-            @if ($errors->any())
-                <div class="alert alert-danger alert-dismissible fade show">
-                    <h5><i class="icon fas fa-ban"></i> Gagal Menyimpan!</h5>
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                    <button type="button" class="close" data-dismiss="alert">&times;</button>
-                </div>
-            @endif
 
-            {{-- ✅ Partial form --}}
+            {{-- Partial form utama --}}
             @include('surat_keputusan.partials._form', [
                 'mode' => 'create',
                 'pejabat' => $pejabat ?? collect(),
-                'admins' => $admins ?? collect(),
-                'users' => $users ?? collect(),
-                'klasifikasi' => $klasifikasi ?? collect(),
                 'bulanRomawi' => $bulanRomawi ?? [
                     '',
                     'I',
@@ -427,7 +412,7 @@
                 'autoNomor' => $autoNomor ?? '',
             ])
         @else
-            {{-- 🚫 Guard akses --}}
+            {{-- Guard akses --}}
             <div class="card card-danger">
                 <div class="card-header">
                     <h3 class="card-title"><i class="fas fa-ban"></i> Akses Ditolak</h3>

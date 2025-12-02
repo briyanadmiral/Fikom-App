@@ -470,6 +470,12 @@
                 'currentYear' => $currentYear ?? now()->year,
                 'currentRomawi' => $currentRomawi ?? null,
             ])
+
+            {{-- ✅ FASE 1.2: Form Lampiran (TERPISAH dari form SK) --}}
+            @include('surat_keputusan.partials.attachments_section', [
+                'isEdit' => true,
+                'keputusan' => $keputusan,
+            ])
         @else
             {{-- 🚫 Guard akses --}}
             <div class="card card-danger">

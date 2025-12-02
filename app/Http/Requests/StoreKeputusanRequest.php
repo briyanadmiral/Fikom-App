@@ -14,28 +14,42 @@ class StoreKeputusanRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nomor' => 'required|string|max:100',
+            'nomor' => 'nullable|string|max:100|unique:keputusan_header,nomor',
             'tanggal_surat' => 'required|date',
+            'kota_penetapan' => 'nullable|string|max:100', // ✅ BARU
+            'tahun' => 'nullable|integer|min:2020|max:2100', // ✅ BARU
             'tentang' => 'required|string|max:500',
+            'judul_penetapan' => 'nullable|string|max:500', // ✅ BARU
             'penandatangan' => 'nullable|exists:pengguna,id',
-
-            'menimbang' => 'nullable|array',
-            'menimbang.*' => 'nullable|string',
-
-            'mengingat' => 'nullable|array',
-            'mengingat.*' => 'nullable|string',
-
-            'menetapkan' => 'nullable|array',
-            'menetapkan.*.judul' => 'nullable|string|max:50',
-            'menetapkan.*.isi' => 'nullable|string',
-
-            'tembusan' => 'nullable|string',
+            'npp_penandatangan' => 'nullable|string|max:50', // ✅ BARU
+            'menimbang' => 'required|array|min:1',
+            'menimbang.*' => 'required|string|max:1000',
+            'mengingat' => 'required|array|min:1',
+            'mengingat.*' => 'required|string|max:1000',
+            'menetapkan' => 'required|array|min:1',
+            'menetapkan.*.judul' => 'required|string|max:50',
+            'menetapkan.*.isi' => 'required|string',
             'penerima_internal' => 'nullable|array',
             'penerima_internal.*' => 'exists:pengguna,id',
             'penerima_eksternal' => 'nullable|array',
+            'penerima_eksternal.*' => 'string|max:255',
+            'tembusan' => 'nullable|string',
+            'mode' => 'nullable|in:draft,pending,terkirim',
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'judul_penetapan.max' => 'Judul penetapan maksimal 500 karakter.',
+            'kota_penetapan.max' => 'Nama kota maksimal 100 karakter.',
+            'tahun.min' => 'Tahun tidak valid (minimal 2020).',
+            'tahun.max' => 'Tahun tidak valid (maksimal 2100).',
+            'npp_penandatangan.max' => 'NPP maksimal 50 karakter.',
+        ];
+    }
+
+    //
     protected function prepareForValidation(): void
     {
         // ✅ FIXED: Sanitize tembusan

@@ -185,9 +185,6 @@
                                 <button type="button" id="btn-reset" class="btn btn-outline-secondary">
                                     <i class="fas fa-redo mr-1"></i> Reset Ukuran
                                 </button>
-                                <a href="{{ route('surat_keputusan.edit', $sk->id) }}" class="btn btn-light">
-                                    <i class="fas fa-edit mr-1"></i> Halaman Revisi/Detail
-                                </a>
                                 {{-- Tombol Tolak/Revisi hanya muncul jika pengguna adalah penandatangan yang ditunjuk --}}
                                 @can('reject', $sk)
                                 <button type="button" class="btn btn-danger mt-2" data-toggle="modal" data-target="#rejectModal">

@@ -111,14 +111,16 @@
                     <a class="dropdown-item text-danger" href="#" id="logout-link">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                    {{-- ✅ GANTI: Dari route('logout') ke route('external.exit') --}}
+                    <form id="logout-form" action="{{ route('external.exit') }}" method="POST" class="d-none">
                         @csrf
                     </form>
                 </div>
             </li>
         @else
             <li class="nav-item">
-                <a class="nav-link" href="{{ route('login') }}">
+                {{-- ✅ REVISI: Hapus route login karena login eksternal --}}
+                <a class="nav-link" href="#" onclick="alert('Silakan login melalui Dashboard Menu');">
                     <i class="fas fa-sign-in-alt"></i> Login
                 </a>
             </li>

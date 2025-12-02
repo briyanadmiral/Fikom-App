@@ -257,8 +257,12 @@ class SuratKeputusanService
         return [
             'nomor' => $data['nomor'] ?? null,
             'tentang' => $data['tentang'],
+            'judul_penetapan' => $data['judul_penetapan'] ?? null, // ✅ BARU
             'tanggal_surat' => $data['tanggal_surat'],
+            'kota_penetapan' => $data['kota_penetapan'] ?? 'Semarang', // ✅ BARU
+            'tahun' => $data['tahun'] ?? null, // ✅ BARU (auto-fill by model event)
             'penandatangan' => $data['penandatangan'] ?? null,
+            'npp_penandatangan' => $data['npp_penandatangan'] ?? null, // ✅ BARU
             'menimbang' => $data['menimbang'] ?? [],
             'mengingat' => $data['mengingat'] ?? [],
             'menetapkan' => $data['menetapkan'] ?? [],

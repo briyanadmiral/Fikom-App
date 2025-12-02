@@ -24,7 +24,10 @@
   $capImageB64 = $capImageB64 ?? null;
 
   // Tampilkan TTD/Cap (override via $showSigns)
-  $showSigns = $showSigns ?? ( ($sk->status_surat ?? null) === 'disetujui' && !empty($sk->signed_at ?? null) );
+  $showSigns = $showSigns ?? ( 
+    in_array($sk->status_surat ?? null, ['disetujui', 'terbit', 'arsip'], true)
+    && !empty($sk->signed_at ?? null) 
+);
 
   // Ukuran fallback
   $ttdW = isset($ttdW) ? (int)$ttdW : (int)($sk->ttd_config['w_mm'] ?? 42);

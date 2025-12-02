@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreKeputusanRequest;
 use App\Http\Requests\UpdateKeputusanRequest;
+use App\Http\Requests\AttachmentRequest; // ✅ (optional, kalau mau pakai)
 use App\Models\KeputusanHeader;
+use App\Models\KeputusanAttachment; // ✅ FASE 1.2 - TAMBAHKAN INI
 use App\Models\MasterKopSurat;
+use App\Models\User; // ✅ Tambahkan kalau belum ada
 use App\Services\NomorSuratService;
 use App\Services\SuratKeputusanService;
 use App\Services\SuratKeputusanNotificationService;
@@ -15,8 +18,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
-use Mews\Purifier\Facades\Purifier;
 use Illuminate\Support\Facades\Log;
+use Mews\Purifier\Facades\Purifier;
+use App\Models\Notifikasi;
 
 class SuratKeputusanController extends Controller
 {
@@ -63,22 +67,21 @@ class SuratKeputusanController extends Controller
     /** Dependency untuk form (hanya yang relevan) */
     private function getFormDependencies(): array
     {
-        // ✅ Admin users with peran_id
-        $admins = \App\Models\User::select('id', 'nama_lengkap', 'peran_id')->where('peran_id', 1)->get();
+        // ✅ Admin users (Admin TU) + eager load peran
+        $admins = \App\Models\User::with('peran')->select('id', 'nama_lengkap', 'peran_id')->where('peran_id', 1)->orderBy('nama_lengkap')->get();
 
-        // ✅ FIXED: Add peran_id to pejabat query
-        $pejabat = \App\Models\User::select('id', 'nama_lengkap', 'peran_id')
+        // ✅ Pejabat (Dekan & Wakil Dekan) dengan NPP + eager load peran
+        $pejabat = \App\Models\User::with('peran')
+            ->select('id', 'nama_lengkap', 'peran_id', 'npp')
             ->whereIn('peran_id', [2, 3])
+            ->orderBy('peran_id')
             ->orderBy('nama_lengkap')
             ->get();
 
-        // ✅ Active users with all needed columns
-        $users = \App\Models\User::select('id', 'nama_lengkap', 'peran_id', 'email', 'status')->where('status', 'aktif')->orderBy('nama_lengkap')->get();
+        // ✅ Active users + eager load peran
+        $users = \App\Models\User::with('peran')->select('id', 'nama_lengkap', 'peran_id', 'email', 'status')->where('status', 'aktif')->orderBy('nama_lengkap')->get();
 
-        // ✅ All klasifikasi surat
-        $klasifikasi = \App\Models\KlasifikasiSurat::orderBy('kode')->get();
-
-        return compact('admins', 'pejabat', 'users', 'klasifikasi');
+        return compact('admins', 'pejabat', 'users');
     }
 
     /** Apakah PDF harus menampilkan TTD/Cap */
@@ -89,19 +92,152 @@ class SuratKeputusanController extends Controller
 
     /* ==================== Daftar / List ==================== */
 
-    public function index()
+    public function index(Request $request)
     {
-        $list = KeputusanHeader::with(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap'])
-            ->orderByDesc('created_at')
-            ->get();
+        // Validasi input filter
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:100',
+            'status' => 'nullable|in:draft,pending,disetujui,ditolak,terbit,arsip',
+            'tahun' => 'nullable|integer|min:2020|max:2100',
+            'bulan' => 'nullable|integer|min:1|max:12',
+            'penandatangan' => 'nullable|integer|exists:pengguna,id',
+            'pembuat' => 'nullable|integer|exists:pengguna,id',
+            'tanggal_dari' => 'nullable|date',
+            'tanggal_sampai' => 'nullable|date|after_or_equal:tanggal_dari',
+            'sort' => 'nullable|in:created_at,tanggal_surat,nomor',
+            'order' => 'nullable|in:asc,desc',
+        ]);
 
+        // Base query dengan relasi
+        $query = KeputusanHeader::with([
+            'pembuat:id,nama_lengkap',
+            'penandatanganUser:id,nama_lengkap',
+            'penerima:id,nama_lengkap',
+            'penerbit:id,nama_lengkap', // ✅ TAMBAHAN BARU
+            'pengarsip:id,nama_lengkap', // ✅ TAMBAHAN BARU
+        ]);
+        // Filter by status (default: draft, pending, disetujui, ditolak)
+        $statusFilter = $validated['status'] ?? null;
+        if ($statusFilter) {
+            $query->where('status_surat', $statusFilter);
+        } else {
+            // Default: hanya tampilkan yang masih dikerjakan
+            $query->whereIn('status_surat', ['draft', 'pending', 'disetujui', 'ditolak']);
+        }
+
+        // Apply advanced filters
+        $query->applyFilters($validated);
+
+        // Sorting
+        $sortBy = $validated['sort'] ?? 'created_at';
+        $sortOrder = $validated['order'] ?? 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Get results
+        $list = $query->get();
+
+        // Statistics
         $stats = [
             'draft' => $list->where('status_surat', 'draft')->count(),
             'pending' => $list->where('status_surat', 'pending')->count(),
             'disetujui' => $list->where('status_surat', 'disetujui')->count(),
+            'ditolak' => $list->where('status_surat', 'ditolak')->count(),
         ];
 
+        // Data untuk dropdown filter
+        $filterData = $this->getFilterDropdownData();
+
         $mode = 'list';
+
+        return view('surat_keputusan.index', compact('list', 'stats', 'mode', 'filterData'));
+    }
+
+    /**
+     * ✅ FASE 1.1: Helper untuk data dropdown filter
+     */
+    private function getFilterDropdownData(): array
+    {
+        // Tahun unik dari SK yang ada
+        $tahunList = KeputusanHeader::selectRaw('DISTINCT tahun')->whereNotNull('tahun')->orderByDesc('tahun')->pluck('tahun');
+
+        // Penandatangan (Dekan & WD)
+        $penandatanganList = \App\Models\User::select('id', 'nama_lengkap', 'jabatan')
+            ->whereIn('peran_id', [2, 3]) // Dekan & WD
+            ->orderBy('nama_lengkap')
+            ->get();
+
+        // Pembuat (Admin TU)
+        $pembuatList = \App\Models\User::select('id', 'nama_lengkap')
+            ->where('peran_id', 1) // Admin TU
+            ->orderBy('nama_lengkap')
+            ->get();
+
+        // Bulan
+        $bulanList = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember',
+        ];
+
+        return [
+            'tahun' => $tahunList,
+            'bulan' => $bulanList,
+            'penandatangan' => $penandatanganList,
+            'pembuat' => $pembuatList,
+        ];
+    }
+
+    public function terbitList()
+    {
+        $list = KeputusanHeader::with([
+            'pembuat:id,nama_lengkap',
+            'penandatanganUser:id,nama_lengkap',
+            'penerima:id,nama_lengkap',
+            'penerbit:id,nama_lengkap', // ✅ TAMBAHKAN INI
+        ])
+            ->where('status_surat', 'terbit')
+            ->orderByDesc('tanggal_terbit')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $stats = [
+            'terbit' => $list->count(),
+        ];
+
+        $mode = 'terbit-list';
+
+        return view('surat_keputusan.index', compact('list', 'stats', 'mode'));
+    }
+
+    public function arsipList()
+    {
+        $list = KeputusanHeader::with([
+            'pembuat:id,nama_lengkap',
+            'penandatanganUser:id,nama_lengkap',
+            'penerima:id,nama_lengkap',
+            'penerbit:id,nama_lengkap', // ✅ TAMBAHKAN INI
+            'pengarsip:id,nama_lengkap', // ✅ TAMBAHKAN INI
+        ])
+            ->where('status_surat', 'arsip')
+            ->orderByDesc('tanggal_arsip')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $stats = [
+            'arsip' => $list->count(),
+        ];
+
+        $mode = 'arsip-list';
+
         return view('surat_keputusan.index', compact('list', 'stats', 'mode'));
     }
 
@@ -141,15 +277,24 @@ class SuratKeputusanController extends Controller
 
     public function create()
     {
+        // Pastikan user punya hak membuat SK
         $this->authorize('create', KeputusanHeader::class);
+
+        // Ambil dependency form (admins, pejabat, users) + peran (sudah eager load di helper)
         $deps = $this->getFormDependencies();
 
+        // Setup bulan romawi dan tahun untuk builder nomor
         $deps['bulanRomawi'] = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
         $deps['currentYear'] = now()->year;
         $deps['currentRomawi'] = $deps['bulanRomawi'][now()->month];
+
+        // Preset tembusan
         $deps['tembusanPresets'] = ['Yth. Rektor', 'Yth. Wakil Rektor I', 'Yth. Wakil Rektor II', 'Dekan Fakultas Ilmu Komputer', 'BAAK', 'BAUK', 'BAK', 'Kepala Program Studi Sistem Informasi', 'Unit Kepegawaian', 'Arsip'];
+
+        // Tanggal default untuk field tanggal_surat
         $deps['tanggalHariIni'] = now()->format('Y-m-d');
 
+        // View create hanya butuh deps ini, form akan handle mode 'create' otomatis
         return view('surat_keputusan.create', $deps);
     }
 
@@ -192,21 +337,37 @@ class SuratKeputusanController extends Controller
 
     public function edit(KeputusanHeader $surat_keputusan)
     {
+        // Hak akses
         $this->authorize('update', $surat_keputusan);
-        $deps = $this->getFormDependencies();
-        $surat_keputusan->load(['penerima:id,nama_lengkap']);
 
+        // Ambil dependency form (admins, pejabat, users) + peran
+        $deps = $this->getFormDependencies();
+
+        // Eager load relasi yang dipakai di view
+        $surat_keputusan->load([
+            'penerima:id,nama_lengkap', // untuk daftar penerima
+            'attachments.uploader', // untuk attachments_section (uploader nama dsb)
+            'pembuat.peran', // kalau di view butuh peran pembuat
+            'penandatanganUser.peran', // kalau di view butuh peran penandatangan
+        ]);
+
+        // Setup bulan dan tahun untuk builder nomor
         $deps['bulanRomawi'] = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
         $deps['currentYear'] = now()->year;
         $deps['currentRomawi'] = $deps['bulanRomawi'][now()->month];
+
+        // Preset tembusan
         $deps['tembusanPresets'] = ['Yth. Rektor', 'Yth. Wakil Rektor I', 'Yth. Wakil Rektor II', 'Dekan Fakultas Ilmu Komputer', 'BAAK', 'BAUK', 'BAK', 'Kepala Program Studi Sistem Informasi', 'Unit Kepegawaian', 'Arsip'];
+
+        // Default tanggal untuk field tanggal_surat kalau belum terisi
         $deps['tanggalHariIni'] = now()->format('Y-m-d');
 
+        // Kirim ke view edit
         return view(
             'surat_keputusan.edit',
             array_merge($deps, [
-                'keputusan' => $surat_keputusan,
-                'sk' => $surat_keputusan,
+                'keputusan' => $surat_keputusan, // dipakai di _form.blade.php
+                'sk' => $surat_keputusan, // dipakai di edit.blade.php (header dsb)
                 'isEdit' => true,
             ]),
         );
@@ -349,9 +510,27 @@ class SuratKeputusanController extends Controller
     public function show(KeputusanHeader $surat_keputusan)
     {
         $this->authorize('view', $surat_keputusan);
-        return view('surat_keputusan.show', [
-            'sk' => $surat_keputusan->load(['pembuat', 'penandatanganUser']),
-        ]);
+
+        // ✅ Eager load relasi
+        $surat_keputusan->load(['pembuat', 'penandatanganUser', 'attachments.uploader']);
+
+        // ✅ TAMBAHKAN INI: Get signing assets (TTD & Cap)
+        $assets = $this->getSigningAssets($surat_keputusan);
+
+        // ✅ TAMBAHKAN INI: Tentukan apakah harus show TTD/Cap
+        $showSigns = $this->shouldShowSignatures($surat_keputusan) || in_array($surat_keputusan->status_surat, ['terbit', 'arsip'], true);
+
+        // ✅ TAMBAHKAN INI: Kirim semua data ke view
+        return view(
+            'surat_keputusan.show',
+            array_merge(
+                [
+                    'sk' => $surat_keputusan,
+                    'showSigns' => $showSigns,
+                ],
+                $assets,
+            ),
+        );
     }
 
     public function reject(Request $request, KeputusanHeader $surat_keputusan)
@@ -395,36 +574,172 @@ class SuratKeputusanController extends Controller
         return back()->with('success', 'SK ditarik ke Draft untuk direvisi.');
     }
 
+    /**
+     * Terbitkan SK yang sudah disetujui
+     */
     public function terbitkan(KeputusanHeader $surat_keputusan)
     {
         $this->authorize('publish', $surat_keputusan);
 
         if ($surat_keputusan->status_surat !== 'disetujui') {
-            return back()->withErrors(['status' => 'Hanya SK yang sudah disetujui yang bisa diterbitkan.']);
+            return back()->withErrors([
+                'status' => 'Hanya SK yang sudah disetujui yang bisa diterbitkan.',
+            ]);
         }
 
-        $surat_keputusan->update([
-            'status_surat' => 'terbit',
-            'tanggal_terbit' => now(),
-        ]);
+        try {
+            DB::transaction(function () use ($surat_keputusan) {
+                // ✅ Update status dan timestamp
+                $surat_keputusan->update([
+                    'status_surat' => 'terbit',
+                    'tanggal_terbit' => now(),
+                    'terbitkan_oleh' => auth()->id(),
+                ]);
 
-        return redirect()->route('surat_keputusan.index')->with('success', 'SK berhasil diterbitkan.');
+                // ✅ Kirim notifikasi ke penerima internal (user sistem)
+                foreach ($surat_keputusan->penerima as $penerima) {
+                    \App\Models\Notifikasi::create([
+                        'pengguna_id' => $penerima->id,
+                        'tipe' => 'surat_keputusan',
+                        'referensi_id' => $surat_keputusan->id,
+                        'pesan' => 'SK "' . $surat_keputusan->tentang . '" telah diterbitkan dan berlaku efektif.',
+                        'dibaca' => false,
+                        'dibuat_pada' => now(),
+                    ]);
+                }
+
+                // ✅ Kirim email ke penerima eksternal (alamat email di luar sistem)
+                if (!empty($surat_keputusan->penerima_eksternal)) {
+                    foreach ($surat_keputusan->penerima_eksternal as $emailEksternal) {
+                        \App\Jobs\SendSkEmail::dispatch($surat_keputusan->id, $emailEksternal)->delay(now()->addSeconds(5));
+                    }
+                }
+            });
+
+            return redirect()
+                ->route('surat_keputusan.terbitList')
+                ->with('success', 'SK berhasil diterbitkan pada ' . now()->format('d M Y H:i') . ' WIB.');
+        } catch (\Exception $e) {
+            \Log::error('Gagal menerbitkan SK: ' . $e->getMessage(), [
+                'keputusan_id' => $surat_keputusan->id,
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->withErrors([
+                'error' => 'Terjadi kesalahan saat menerbitkan SK.',
+            ]);
+        }
     }
 
-    public function arsipkan(KeputusanHeader $surat_keputusan)
+    /**
+     * Arsipkan SK yang sudah terbit
+     */
+    public function arsipkan(KeputusanHeader $suratKeputusan)
     {
-        $this->authorize('archive', $surat_keputusan);
+        $this->authorize('archive', $suratKeputusan);
 
-        if ($surat_keputusan->status_surat !== 'terbit') {
-            return back()->withErrors(['status' => 'Hanya SK yang sudah terbit yang bisa diarsipkan.']);
+        // Validasi status
+        if ($suratKeputusan->status_surat !== 'terbit') {
+            return back()->withErrors([
+                'status' => 'Hanya SK yang sudah terbit yang bisa diarsipkan.',
+            ]);
         }
 
-        $surat_keputusan->update([
-            'status_surat' => 'arsip',
-            'tanggal_arsip' => now(),
-        ]);
+        try {
+            DB::transaction(function () use ($suratKeputusan) {
+                // Update status dan timestamp
+                $suratKeputusan->update([
+                    'status_surat' => 'arsip',
+                    'tanggal_arsip' => now(),
+                    'arsipkan_oleh' => auth()->id(),
+                ]);
 
-        return redirect()->route('surat_keputusan.index')->with('success', 'SK berhasil diarsipkan.');
+                // ✅ [OPSIONAL] LOG PERUBAHAN STATUS
+                if (Schema::hasTable('keputusan_status_logs')) {
+                    DB::table('keputusan_status_logs')->insert([
+                        'keputusan_id' => $suratKeputusan->id,
+                        'status_dari' => 'terbit',
+                        'status_ke' => 'arsip',
+                        'diubah_oleh' => auth()->id(),
+                        'catatan' => 'SK diarsipkan oleh ' . auth()->user()->nama_lengkap,
+                        'created_at' => now(),
+                    ]);
+                }
+            });
+
+            return redirect()
+                ->route('surat_keputusan.arsipList')
+                ->with('success', 'SK berhasil diarsipkan pada ' . now()->format('d M Y H:i') . '.');
+        } catch (\Exception $e) {
+            Log::error('Gagal mengarsipkan SK: ' . $e->getMessage(), [
+                'keputusan_id' => $suratKeputusan->id,
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->withErrors([
+                'error' => 'Terjadi kesalahan saat mengarsipkan SK. Silakan coba lagi.',
+            ]);
+        }
+    }
+
+    /**
+     * Batal terbitkan SK (rollback dari terbit ke disetujui)
+     * Hanya untuk Admin/TU
+     */
+    public function batalTerbitkan(KeputusanHeader $suratKeputusan)
+    {
+        $this->authorize('unpublish', $suratKeputusan);
+
+        // Validasi status
+        if ($suratKeputusan->status_surat !== 'terbit') {
+            return back()->withErrors([
+                'status' => 'Hanya SK dengan status terbit yang bisa dibatalkan penerbitannya.',
+            ]);
+        }
+
+        try {
+            DB::transaction(function () use ($suratKeputusan) {
+                // Rollback status
+                $suratKeputusan->update([
+                    'status_surat' => 'disetujui',
+                    'tanggal_terbit' => null,
+                    'terbitkan_oleh' => null,
+                ]);
+
+                // ✅ [OPSIONAL] LOG PERUBAHAN STATUS
+                if (Schema::hasTable('keputusan_status_logs')) {
+                    DB::table('keputusan_status_logs')->insert([
+                        'keputusan_id' => $suratKeputusan->id,
+                        'status_dari' => 'terbit',
+                        'status_ke' => 'disetujui',
+                        'diubah_oleh' => auth()->id(),
+                        'catatan' => 'Penerbitan SK dibatalkan oleh ' . auth()->user()->nama_lengkap,
+                        'created_at' => now(),
+                    ]);
+                }
+
+                // Notifikasi ke penandatangan
+                Notifikasi::create([
+                    'pengguna_id' => $suratKeputusan->penandatangan,
+                    'tipe' => 'surat_keputusan',
+                    'referensi_id' => $suratKeputusan->id,
+                    'pesan' => 'Penerbitan SK "' . $suratKeputusan->tentang . '" telah dibatalkan.',
+                    'dibaca' => false,
+                    'dibuat_pada' => now(),
+                ]);
+            });
+
+            return redirect()->route('surat_keputusan.index')->with('success', 'Status penerbitan SK berhasil dibatalkan. SK kembali ke status Disetujui.');
+        } catch (\Exception $e) {
+            Log::error('Gagal membatalkan penerbitan SK: ' . $e->getMessage(), [
+                'keputusan_id' => $suratKeputusan->id,
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->withErrors([
+                'error' => 'Terjadi kesalahan. Silakan coba lagi.',
+            ]);
+        }
     }
 
     public function destroy(KeputusanHeader $surat_keputusan)
@@ -604,5 +919,172 @@ class SuratKeputusanController extends Controller
             'draft' => 'draft',
             default => null,
         };
+    }
+
+    /* ==================== FASE 1.2: Lampiran File ==================== */
+
+    /**
+     * Upload attachment untuk SK
+     * FASE 1.2
+     */
+    public function uploadAttachment(Request $request, KeputusanHeader $surat_keputusan)
+    {
+        // Authorization check
+        $this->authorize('update', $surat_keputusan);
+
+        try {
+            // Validasi input
+            $validated = $request->validate(
+                [
+                    'file' => [
+                        'required',
+                        'file',
+                        'max:10240', // 10MB
+                        'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar',
+                    ],
+                    'kategori' => 'required|in:proposal,rab,surat_pengantar,dokumentasi,lainnya',
+                    'deskripsi' => 'nullable|string|max:500',
+                ],
+                [
+                    'file.required' => 'File lampiran wajib dipilih.',
+                    'file.max' => 'Ukuran file maksimal 10 MB.',
+                    'file.mimes' => 'Format file harus: PDF, Word, Excel, Gambar (JPG/PNG), atau ZIP/RAR.',
+                    'kategori.required' => 'Kategori dokumen wajib dipilih.',
+                    'kategori.in' => 'Kategori tidak valid.',
+                ],
+            );
+
+            // Upload file ke storage
+            $file = $request->file('file');
+            $originalName = $file->getClientOriginalName();
+            $extension = $file->getClientOriginalExtension();
+
+            // Generate unique filename
+            $filename = time() . '_' . uniqid() . '.' . $extension;
+
+            // Store ke folder: storage/app/public/lampiran_sk/{keputusan_id}/
+            $path = $file->storeAs('lampiran_sk/' . $surat_keputusan->id, $filename, 'public');
+
+            // Sanitize deskripsi
+            $deskripsi = $validated['deskripsi'] ?? null;
+            if ($deskripsi && function_exists('sanitize_input')) {
+                $deskripsi = sanitize_input($deskripsi, 500);
+            }
+
+            // ✅ FIXED: Sesuaikan nama field dengan model
+            $attachment = KeputusanAttachment::create([
+                'keputusan_id' => $surat_keputusan->id,
+                'kategori' => $validated['kategori'],
+                'nama_file' => $originalName, // ✅ FIXED: nama_file_asli → nama_file
+                'nama_file_sistem' => $filename,
+                'file_path' => $path, // ✅ FIXED: path_file → file_path
+                'file_size' => $file->getSize(), // ✅ FIXED: ukuran_file → file_size
+                'mime_type' => $file->getMimeType(),
+                'extension' => $extension, // ✅ TAMBAHKAN extension
+                'deskripsi' => $deskripsi,
+                'uploaded_by' => auth()->id(),
+                'download_count' => 0, // ✅ Set default
+            ]);
+
+            return redirect()
+                ->route('surat_keputusan.edit', $surat_keputusan->id)
+                ->with('success', 'Lampiran berhasil diunggah: ' . $originalName);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('surat_keputusan.edit', $surat_keputusan->id)->withErrors($e->validator)->withInput();
+        } catch (\Exception $e) {
+            Log::error('Error upload attachment SK', [
+                'keputusan_id' => $surat_keputusan->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()
+                ->route('surat_keputusan.edit', $surat_keputusan->id)
+                ->with('error', 'Gagal mengunggah lampiran: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download lampiran file
+     * FASE 1.2
+     */
+    public function downloadAttachment(KeputusanHeader $surat_keputusan, KeputusanAttachment $attachment)
+    {
+        // Authorization check (sudah di-handle middleware, tapi dobel check di sini)
+        $this->authorize('view', $surat_keputusan);
+
+        // Validasi: attachment harus milik SK ini
+        if ($attachment->keputusan_id !== $surat_keputusan->id) {
+            abort(404, 'Lampiran tidak ditemukan.');
+        }
+
+        // Check file exists
+        if (!Storage::disk('public')->exists($attachment->file_path)) {
+            return back()->with('error', 'File tidak ditemukan di server.');
+        }
+
+        try {
+            // Increment download count
+            $attachment->incrementDownload();
+
+            // Get full path
+            $fullPath = Storage::disk('public')->path($attachment->file_path);
+
+            return response()->download($fullPath, $attachment->nama_file);
+        } catch (\Exception $e) {
+            Log::error('Failed to download attachment', [
+                'attachment_id' => $attachment->id,
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->with('error', 'Gagal mengunduh file.');
+        }
+    }
+
+    /**
+     * Delete lampiran file
+     * FASE 1.2
+     */
+    public function deleteAttachment(KeputusanHeader $surat_keputusan, KeputusanAttachment $attachment)
+    {
+        // Authorization check (sudah di-handle middleware, tapi dobel check di sini)
+        $this->authorize('update', $surat_keputusan);
+
+        // Validasi: attachment harus milik SK ini
+        if ($attachment->keputusan_id !== $surat_keputusan->id) {
+            abort(404, 'Lampiran tidak ditemukan.');
+        }
+
+        // Validasi: hanya draft/ditolak yang bisa hapus lampiran
+        if (!in_array($surat_keputusan->status_surat, ['draft', 'ditolak'], true)) {
+            return back()->with('error', 'Lampiran hanya bisa dihapus pada SK dengan status draft atau ditolak.');
+        }
+
+        try {
+            DB::transaction(function () use ($attachment) {
+                // Delete physical file menggunakan method model
+                $attachment->deleteFile();
+
+                // Delete record (soft delete)
+                $attachment->delete();
+            });
+
+            Log::info('Attachment deleted', [
+                'attachment_id' => $attachment->id,
+                'keputusan_id' => $surat_keputusan->id,
+                'user_id' => auth()->id(),
+            ]);
+
+            return redirect()->route('surat_keputusan.edit', $surat_keputusan->id)->with('success', 'Lampiran berhasil dihapus.');
+        } catch (\Exception $e) {
+            Log::error('Failed to delete attachment', [
+                'attachment_id' => $attachment->id,
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->with('error', 'Gagal menghapus lampiran.');
+        }
     }
 }

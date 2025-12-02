@@ -2,306 +2,391 @@
 
 @section('title', 'Notifikasi')
 
-
-@section('content_header')
-    <div class="custom-header-box mb-4">
-        <div class="d-flex align-items-center">
-            <div class="header-icon rounded-circle d-flex justify-content-center align-items-center mr-3">
-                <i class="fas fa-bell fa-lg"></i>
-            </div>
-            <div>
-                <div class="header-title ">Notifikasi</div>
-                <div class="header-desc mt-2">
-                    Halaman ini menampilkan semua notifikasi yang diterima oleh pengguna.
-                </div>
-            </div>
-        </div>
-    </div>
-@endsection
-
 @push('styles')
     <style>
-        .custom-header-box {
-            background: linear-gradient(90deg, #4389a2 0%, #5c258d 100%);
-            color: #fff;
-            border-radius: 1rem;
-            box-shadow: 0 4px 20px rgba(44, 62, 80, .13);
-            padding: 1.5rem 2rem 1.25rem 1.5rem;
-            position: relative;
-            overflow: hidden;
-            border-left: 6px solid #3498db;
+        body {
+            background: #f7faff;
+        }
+
+        /* ===== HEADER NOTIFIKASI (mirip header SK/ST) ===== */
+        .notif-header {
+            background: #f3f6fa;
+            padding: 1.3rem 2.2rem 1.3rem 1.8rem;
+            border-radius: 1.1rem;
+            margin-bottom: 2.2rem;
+            border: 1px solid #e0e6ed;
+            display: flex;
+            align-items: center;
+            gap: 1.3rem;
             margin-top: .5rem;
         }
 
-        .header-icon {
+        .notif-header .icon {
+            background: linear-gradient(135deg, #f1c40f 0, #f39c12 100%);
             width: 54px;
             height: 54px;
-            background: rgba(255, 255, 255, .15);
-            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: 0 1px 10px rgba(243, 156, 18, 0.3);
             font-size: 2rem;
-            box-shadow: 0 2px 12px 0 rgba(52, 152, 219, .13);
         }
 
-        .header-title {
-            font-size: 1.6rem;
+        .notif-header-title {
             font-weight: 700;
-            letter-spacing: 1px;
-            margin-bottom: 2px;
+            color: #8e44ad;
+            font-size: 1.8rem;
+            margin-bottom: 0.15rem;
+            letter-spacing: -0.5px;
         }
 
-        .header-desc {
-            font-size: 1.07rem;
-            color: #e9f3fa;
-            font-weight: 400;
-            margin-left: .1rem;
+        .notif-header-desc {
+            color: #636e7b;
+            font-size: 1.03rem;
+        }
+
+        /* ===== STATISTIK NOTIF (grid rapi) ===== */
+        .notif-stat-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.2rem;
+            margin: 0 0 2rem;
+            width: 100%;
+            max-width: 720px;
+        }
+
+        .notif-stat-card {
+            border-radius: .85rem;
+            border: none;
+            background: #fff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .04);
+        }
+
+        .notif-stat-card .card-body {
+            text-align: center;
+            padding: 1.15rem 1rem;
+        }
+
+        .notif-stat-card .icon {
+            font-size: 2.1rem;
+            margin-bottom: .4rem;
+        }
+
+        .notif-stat-card .label {
+            color: #6c757d;
+            font-size: .83rem;
+            margin-bottom: .25rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .notif-stat-card .value {
+            font-size: 1.9rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+
+        /* ===== KARTU DAFTAR NOTIFIKASI ===== */
+        .notif-list-card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .03);
+            overflow: hidden;
+        }
+
+        .notif-list-card .card-header {
+            background: #ffffff;
+            border-bottom: 1px solid #edf1f7;
+            padding: .85rem 1.25rem;
+        }
+
+        .notif-list-card .card-title {
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin: 0;
+        }
+
+        .notif-list-card .card-body {
+            padding: 0;
+        }
+
+        .notif-list-card .list-group-item {
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        /* Hover efek item */
+        .notif-list-card .list-group-item:hover {
+            background-color: #f8f9fa !important;
+            border-left-color: #007bff;
+        }
+
+        /* Unread notification styling */
+        .notif-list-card .list-group-item.unread {
+            border-left-color: #ffc107;
+            background-color: #fffbf0 !important;
+        }
+
+        /* Icon badge kiri (amplop) */
+        .notif-icon-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+        }
+
+        .notif-icon-badge i {
+            font-size: 1.2rem;
+        }
+
+        /* Button & badge smooth */
+        .btn,
+        .badge {
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+        }
+
+        /* Alert animasi masuk */
+        .alert {
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Empty state icon animasi */
+        .fa-bell-slash {
+            animation: swing 2s ease-in-out infinite;
+        }
+
+        @keyframes swing {
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            25% {
+                transform: rotate(8deg);
+            }
+
+            75% {
+                transform: rotate(-8deg);
+            }
         }
 
         @media (max-width: 575.98px) {
-            .custom-header-box {
-                padding: 1.1rem;
+            .notif-header {
+                padding: 1.2rem 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: .7rem;
             }
 
-            .header-icon {
+            .notif-header .icon {
                 width: 44px;
                 height: 44px;
-                font-size: 1.2rem;
+                font-size: 1.4rem;
             }
 
-            .header-title {
-                font-size: 1.2rem;
+            .notif-header-title {
+                font-size: 1.3rem;
             }
 
-            .header-desc {
-                margin-left: 0;
+            .notif-header-desc {
                 font-size: .98rem;
+            }
+
+            .notif-list-card {
+                border-radius: .7rem;
             }
         }
     </style>
 @endpush
 
-@section('content')
-<div class="container-fluid">
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-            <i class="fas fa-check-circle"></i> {{ session('success') }}
-        </div>
-    @endif
-    
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show">
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-            <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
-        </div>
-    @endif
-
-    @if(session('info'))
-        <div class="alert alert-info alert-dismissible fade show">
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-            <i class="fas fa-info-circle"></i> {{ session('info') }}
-        </div>
-    @endif
-
-    <!-- Statistics Cards -->
-    @php
-        $totalNotifs = $notifs->count();
-        $unreadNotifs = $notifs->where('dibaca', false)->count();
-        $readNotifs = $notifs->where('dibaca', true)->count();
-    @endphp
-
-    <div class="row">
-        <div class="col-lg-4 col-md-6 col-12">
-            <div class="small-box bg-info">
-                <div class="inner">
-                    <h3>{{ $totalNotifs }}</h3>
-                    <p>Total Notifikasi</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-inbox"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4 col-md-6 col-12">
-            <div class="small-box bg-warning">
-                <div class="inner">
-                    <h3>{{ $unreadNotifs }}</h3>
-                    <p>Belum Dibaca</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-envelope"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4 col-md-6 col-12">
-            <div class="small-box bg-success">
-                <div class="inner">
-                    <h3>{{ $readNotifs }}</h3>
-                    <p>Sudah Dibaca</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-envelope-open"></i>
-                </div>
+@section('content_header')
+    <div class="notif-header mt-2 mb-3">
+        <span class="icon">
+            <i class="fas fa-bell text-white"></i>
+        </span>
+        <div>
+            <div class="notif-header-title">Notifikasi</div>
+            <div class="notif-header-desc">
+                Halaman ini menampilkan semua notifikasi yang Anda terima dari sistem.
             </div>
         </div>
     </div>
-
-    <!-- Notification List -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-list"></i> Daftar Notifikasi</h3>
-            <div class="card-tools">
-                @if($unreadNotifs > 0)
-                    <form action="{{ route('notifikasi.markAllRead') }}" method="POST" style="display:inline">
-                        @csrf
-                        @method('PATCH')
-                        <button type="submit" class="btn btn-sm btn-primary">
-                            <i class="fas fa-check-double"></i> Tandai Semua Dibaca
-                        </button>
-                    </form>
-                @endif
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <ul class="list-group list-group-flush">
-                @forelse($notifs as $n)
-                    <li class="list-group-item {{ !$n->dibaca ? 'bg-light' : '' }}">
-                        <div class="d-flex align-items-start">
-                            <div class="mr-3">
-                                @if(!$n->dibaca)
-                                    <span class="badge badge-warning badge-pill p-2">
-                                        <i class="fas fa-envelope fa-lg"></i>
-                                    </span>
-                                @else
-                                    <span class="badge badge-success badge-pill p-2">
-                                        <i class="fas fa-envelope-open fa-lg"></i>
-                                    </span>
-                                @endif
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-1 {{ !$n->dibaca ? 'font-weight-bold' : '' }}">
-                                    {{ $n->pesan }}
-                                </p>
-                                <small class="text-muted">
-                                    <i class="far fa-clock"></i> {{ $n->dibuat_pada->diffForHumans() }}
-                                    <span class="mx-2">•</span>
-                                    {{ $n->dibuat_pada->format('d M Y, H:i') }}
-                                </small>
-                            </div>
-                            <div class="ml-3">
-                                @if(!$n->dibaca)
-                                    <form action="{{ route('notifikasi.read', $n->id) }}" method="POST">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="btn btn-sm btn-primary" title="Tandai Dibaca">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </form>
-                                @else
-                                    <span class="badge badge-success">
-                                        <i class="fas fa-check"></i> Dibaca
-                                    </span>
-                                @endif
-                            </div>
-                        </div>
-                    </li>
-                @empty
-                    <li class="list-group-item text-center py-5">
-                        <div class="text-muted">
-                            <i class="far fa-bell-slash fa-3x mb-3 d-block"></i>
-                            <h5>Belum Ada Notifikasi</h5>
-                            <p>Notifikasi akan muncul di sini ketika ada pembaruan</p>
-                        </div>
-                    </li>
-                @endforelse
-            </ul>
-        </div>
-    </div>
-</div>
 @endsection
 
-@push('css')
-<style>
-    /* Small box hover effect */
-    .small-box {
-        transition: transform 0.3s ease;
-    }
-    
-    .small-box:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
+@section('content')
+    <div class="container-fluid px-2">
 
-    /* List item hover */
-    .list-group-item {
-        transition: all 0.2s ease;
-        border-left: 3px solid transparent;
-    }
+        {{-- Flash messages --}}
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="fas fa-check-circle"></i> {{ session('success') }}
+            </div>
+        @endif
 
-    .list-group-item:hover {
-        background-color: #f8f9fa !important;
-        border-left-color: #007bff;
-    }
+        @if (session('error'))
+            <div class="alert alert-danger alert-dismissible fade show">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+            </div>
+        @endif
 
-    /* Unread notification styling */
-    .list-group-item.bg-light {
-        border-left-color: #ffc107;
-        background-color: #fffbf0 !important;
-    }
+        @if (session('info'))
+            <div class="alert alert-info alert-dismissible fade show">
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                <i class="fas fa-info-circle"></i> {{ session('info') }}
+            </div>
+        @endif
 
-    /* Badge styling */
-    .badge-pill {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+        @php
+            $totalNotifs = $notifs->count();
+            $unreadNotifs = $notifs->where('dibaca', false)->count();
+            $readNotifs = $notifs->where('dibaca', true)->count();
+        @endphp
 
-    /* Smooth transitions */
-    .btn, .badge {
-        transition: all 0.2s ease;
-    }
+        {{-- Statistik di atas --}}
+        <div class="d-flex justify-content-center w-100 mb-3">
+            <div class="notif-stat-wrapper py-1 mx-auto">
+                <div class="notif-stat-card card shadow-sm">
+                    <div class="card-body">
+                        <div class="icon text-primary" data-toggle="tooltip" title="Total Notifikasi">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <div class="label">Total</div>
+                        <div class="value text-primary">{{ $totalNotifs }}</div>
+                    </div>
+                </div>
+                <div class="notif-stat-card card shadow-sm">
+                    <div class="card-body">
+                        <div class="icon text-warning" data-toggle="tooltip" title="Belum Dibaca">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="label">Belum Dibaca</div>
+                        <div class="value text-warning">{{ $unreadNotifs }}</div>
+                    </div>
+                </div>
+                <div class="notif-stat-card card shadow-sm">
+                    <div class="card-body">
+                        <div class="icon text-success" data-toggle="tooltip" title="Sudah Dibaca">
+                            <i class="fas fa-envelope-open"></i>
+                        </div>
+                        <div class="label">Sudah Dibaca</div>
+                        <div class="value text-success">{{ $readNotifs }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    .btn:hover {
-        transform: scale(1.05);
-    }
+        {{-- Daftar Notifikasi --}}
+        <div class="card notif-list-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-list mr-2"></i>Daftar Notifikasi
+                </h3>
+                <div class="card-tools">
+                    @if ($unreadNotifs > 0)
+                        <form action="{{ route('notifikasi.markAllRead') }}" method="POST" style="display:inline">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="fas fa-check-double mr-1"></i> Tandai Semua Dibaca
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
 
-    /* Alert auto-hide */
-    .alert {
-        animation: slideDown 0.3s ease;
-    }
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    @forelse($notifs as $n)
+                        <li class="list-group-item {{ !$n->dibaca ? 'unread' : '' }}">
+                            <div class="d-flex align-items-start">
+                                <div class="mr-3">
+                                    @if (!$n->dibaca)
+                                        <span class="notif-icon-badge bg-warning text-white">
+                                            <i class="fas fa-envelope"></i>
+                                        </span>
+                                    @else
+                                        <span class="notif-icon-badge bg-success text-white">
+                                            <i class="fas fa-envelope-open"></i>
+                                        </span>
+                                    @endif
+                                </div>
 
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+                                <div class="flex-grow-1">
+                                    <p class="mb-1 {{ !$n->dibaca ? 'font-weight-bold' : '' }}">
+                                        {{ $n->pesan }}
+                                    </p>
+                                    <small class="text-muted">
+                                        <i class="far fa-clock"></i> {{ $n->dibuat_pada->diffForHumans() }}
+                                        <span class="mx-2">•</span>
+                                        {{ $n->dibuat_pada->format('d M Y, H:i') }}
+                                    </small>
+                                </div>
 
-    /* Empty state icon animation */
-    .fa-bell-slash {
-        animation: swing 2s ease-in-out infinite;
-    }
-
-    @keyframes swing {
-        0%, 100% { transform: rotate(0deg); }
-        25% { transform: rotate(10deg); }
-        75% { transform: rotate(-10deg); }
-    }
-</style>
-@endpush
+                                <div class="ml-3">
+                                    @if (!$n->dibaca)
+                                        <form action="{{ route('notifikasi.read', $n->id) }}" method="POST">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-sm btn-outline-primary"
+                                                title="Tandai Dibaca">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="badge badge-success">
+                                            <i class="fas fa-check"></i> Dibaca
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </li>
+                    @empty
+                        <li class="list-group-item text-center py-5">
+                            <div class="text-muted">
+                                <i class="far fa-bell-slash fa-3x mb-3 d-block"></i>
+                                <h5>Belum Ada Notifikasi</h5>
+                                <p>Notifikasi baru akan muncul di sini ketika ada pembaruan.</p>
+                            </div>
+                        </li>
+                    @endforelse
+                </ul>
+            </div>
+        </div>
+    </div>
+@endsection
 
 @push('scripts')
-<script>
-$(function() {
-    // Auto-dismiss alerts after 5 seconds
-    $('.alert').delay(5000).fadeOut('slow');
-});
-</script>
+    <script>
+        $(function() {
+            // Tooltip untuk ikon statistik
+            $('[data-toggle="tooltip"]').tooltip();
+
+            // Auto-dismiss alerts after 5 seconds
+            $('.alert').delay(5000).fadeOut('slow');
+        });
+    </script>
 @endpush
