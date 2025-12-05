@@ -15,18 +15,55 @@ class TugasHeader extends Model
     protected $table = 'tugas_header';
 
     /**
-     * CRITICAL: $fillable untuk Mass Assignment Protection
-     * - tembusan_formatted DIHAPUS (dibangkitkan dari method getTembusanFormatted)
+     * Mass assignment
      */
-    protected $fillable = ['nomor', 'nomor_status', 'kode_surat', 'bulan', 'tahun', 'tanggal_surat', 'tanggal_asli', 'status_surat', 'next_approver', 'submitted_at', 'signed_at', 'signed_pdf_path', 'dibuat_oleh', 'nama_pembuat', 'asal_surat', 'klasifikasi_surat_id', 'semester', 'no_surat_manual', 'nama_umum', 'jenis_tugas', 'tugas', 'detail_tugas', 'detail_tugas_id', 'status_penerima', 'redaksi_pembuka', 'penutup', 'tembusan', 'waktu_mulai', 'waktu_selesai', 'tempat', 'penandatangan', 'ttd_config', 'cap_config', 'ttd_w_mm', 'cap_w_mm', 'cap_opacity', 'dikunci_pada'];
+    protected $fillable = [
+        'nomor',
+        'nomor_status',
+        'kode_surat',
+        'bulan',
+        'tahun',
+        'tanggal_surat',
+        'tanggal_asli',
+        'status_surat',
+        'next_approver',
+        'submitted_at',
+        'signed_at',
+        'signed_pdf_path',
+        'dibuat_oleh',
+        'nama_pembuat', // masih ada di DB, tapi pelan-pelan dimatikan
+        'asal_surat',
+        'klasifikasi_surat_id',
+        'semester',
+        'no_surat_manual',
+        'nama_umum',
+        'jenis_tugas',
+        'tugas',
+        'detail_tugas',
+        'detail_tugas_id',
+        'status_penerima',
+        'redaksi_pembuka',
+        'penutup',
+        'tembusan',
+        'waktu_mulai',
+        'waktu_selesai',
+        'tempat',
+        'penandatangan',
+        'ttd_config',
+        'cap_config',
+        'ttd_w_mm',
+        'cap_w_mm',
+        'cap_opacity',
+        'dikunci_pada',
+    ];
 
     /**
-     * CRITICAL: $guarded untuk extra protection
+     * Extra protection
      */
     protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at'];
 
     /**
-     * CRITICAL: Type casting untuk security & data integrity
+     * Type casting
      */
     protected $casts = [
         'tanggal_asli' => 'datetime',
@@ -64,25 +101,51 @@ class TugasHeader extends Model
     ];
 
     /**
-     * SECURITY: Hide sensitive fields dari JSON output
+     * Hide sensitive fields in JSON
      */
     protected $hidden = ['ttd_config', 'cap_config', 'signed_pdf_path'];
 
-    // ==================== RELASI =========================
+    // =========================================================
+    // RELATIONS
+    // =========================================================
 
+    /**
+     * Sumber kebenaran pembuat: kolom dibuat_oleh
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dibuat_oleh');
     }
 
+    /**
+     * LEGACY ALIAS:
+     * Banyak view lama pakai $tugas->pembuat
+     * Sekarang diarahkan ke dibuat_oleh, bukan nama_pembuat.
+     */
     public function pembuat(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'nama_pembuat');
+        return $this->belongsTo(User::class, 'dibuat_oleh');
+    }
+
+    /**
+     * LEGACY ALIAS lagi, tapi tetap ke dibuat_oleh
+     */
+    public function pembuatUser(): BelongsTo
+    {
+        return $this->creator();
     }
 
     public function penandatanganUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'penandatangan');
+    }
+
+    /**
+     * Alias supaya di view bisa pakai $tugas->penandatangan
+     */
+    public function penandatangan(): BelongsTo
+    {
+        return $this->penandatanganUser();
     }
 
     public function asalSurat(): BelongsTo
@@ -105,10 +168,12 @@ class TugasHeader extends Model
         return $this->hasMany(TugasLog::class, 'tugas_id');
     }
 
-    // ✅ ALIAS untuk kompatibilitas dengan controller/view baru
+    /**
+     * Alias logs() untuk compatibility
+     */
     public function logs(): HasMany
     {
-        return $this->hasMany(TugasLog::class, 'tugas_id');
+        return $this->log();
     }
 
     public function tugasDetail(): BelongsTo
@@ -116,10 +181,12 @@ class TugasHeader extends Model
         return $this->belongsTo(TugasDetail::class, 'detail_tugas_id');
     }
 
-    // ✅ ALIAS: dipakai sebagai detailMaster di controller/view
+    /**
+     * Alias dipakai sebagai detailMaster di controller/view
+     */
     public function detailMaster(): BelongsTo
     {
-        return $this->belongsTo(TugasDetail::class, 'detail_tugas_id');
+        return $this->tugasDetail();
     }
 
     public function klasifikasiSurat(): BelongsTo
@@ -127,18 +194,17 @@ class TugasHeader extends Model
         return $this->belongsTo(KlasifikasiSurat::class, 'klasifikasi_surat_id');
     }
 
-    // ✅ ALIAS: dipakai oleh show() sebagai 'klasifikasi'
+    /**
+     * Alias: show() kadang pakai ->klasifikasi
+     */
     public function klasifikasi(): BelongsTo
     {
-        return $this->belongsTo(KlasifikasiSurat::class, 'klasifikasi_surat_id');
+        return $this->klasifikasiSurat();
     }
 
-    public function pembuatUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'dibuat_oleh');
-    }
-
-    // ==================== SCOPES =========================
+    // =========================================================
+    // SCOPES
+    // =========================================================
 
     public function scopeDraft($query)
     {
@@ -156,7 +222,7 @@ class TugasHeader extends Model
     }
 
     /**
-     * ✅ GOOD: Validasi integer dengan helper
+     * Filter by pembuat (dibuat_oleh)
      */
     public function scopeByUser($query, $userId)
     {
@@ -170,7 +236,7 @@ class TugasHeader extends Model
     }
 
     /**
-     * ✅ GOOD: Scope untuk approval
+     * Scope untuk approval queue
      */
     public function scopeNeedsApprovalBy($query, $userId)
     {
@@ -183,39 +249,37 @@ class TugasHeader extends Model
         return $query->where('next_approver', $userId)->where('status_surat', 'pending');
     }
 
+    /**
+     * Eager load relasi penting
+     */
     public function scopeWithFullRelations($query)
     {
         return $query->with([
-            'penerima.pengguna',
+            // pembuat: alias ke dibuat_oleh
             'pembuat',
+            // penerima + user
+            'penerima.pengguna',
+            // penandatangan dan next approver
             'penandatanganUser',
             'nextApprover',
-            // tambahan agar hierarki tampil lengkap di show/detail
+            // hirarki tugas
             'tugasDetail.subTugas.jenisTugas',
+            // klasifikasi
             'klasifikasiSurat',
         ]);
     }
 
-    /**
-     * ✅ ADDED: Scope by tahun
-     */
     public function scopeByTahun($query, int $tahun)
     {
         return $query->where('tahun', $tahun);
     }
 
-    /**
-     * ✅ ADDED: Scope by bulan
-     */
     public function scopeByBulan($query, string $bulan)
     {
         $bulan = sanitize_input($bulan, 10);
         return $query->where('bulan', $bulan);
     }
 
-    /**
-     * ✅ ADDED: Scope search
-     */
     public function scopeSearch($query, ?string $keyword)
     {
         if (empty($keyword)) {
@@ -232,10 +296,98 @@ class TugasHeader extends Model
         });
     }
 
-    // ==================== ACCESSORS =========================
+        /**
+     * =========================================================
+     * ADVANCE FILTER SCOPE
+     * =========================================================
+     *
+     * Dipakai di TugasController@index untuk apply multiple filters:
+     *
+     * $filters keys:
+     * - search          : string (cari di nomor / nama_umum / tugas)
+     * - status          : string (draft/pending/disetujui/ditolak)
+     * - tahun           : int
+     * - bulan           : string (format sesuai yang kamu simpan di DB)
+     * - penandatangan   : user_id penandatangan
+     * - pembuat         : user_id pembuat (dibuat_oleh)
+     * - tanggal_dari    : date (Y-m-d)
+     * - tanggal_sampai  : date (Y-m-d)
+     */
+    public function scopeApplyFilters($query, array $filters)
+    {
+        // 🔎 1. Search (pakai scopeSearch yang sudah ada)
+        if (!empty($filters['search'])) {
+            $query->search($filters['search']);
+        }
+
+        // 📊 2. Status surat (validasi dengan helper kalau ada)
+        if (!empty($filters['status'])) {
+            // Kalau kamu mau lebih strict, boleh pakai validate_status
+            // $status = validate_status($filters['status'], ['draft', 'pending', 'disetujui', 'ditolak']);
+            // if ($status !== null) {
+            //     $query->where('status_surat', $status);
+            // }
+
+            $query->where('status_surat', $filters['status']);
+        }
+
+        // 📅 3. Tahun (pakai scopeByTahun)
+        if (!empty($filters['tahun'])) {
+            $tahun = (int) $filters['tahun'];
+            if ($tahun > 0) {
+                $query->byTahun($tahun);
+            }
+        }
+
+        // 📆 4. Bulan (pakai scopeByBulan, DB kamu simpan sebagai string)
+        if (!empty($filters['bulan'])) {
+            $bulan = (string) $filters['bulan'];
+            $query->byBulan($bulan);
+        }
+
+        // ✒️ 5. Penandatangan (FK ke pengguna.id)
+        if (!empty($filters['penandatangan'])) {
+            $penandatanganId = validate_integer_id($filters['penandatangan']);
+
+            if ($penandatanganId !== null) {
+                $query->where('penandatangan', $penandatanganId);
+            } else {
+                // Kalau ID invalid, jangan return data apa-apa
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        // ✍️ 6. Pembuat (dibuat_oleh) → pakai scopeByUser
+        if (!empty($filters['pembuat'])) {
+            $pembuatId = validate_integer_id($filters['pembuat']);
+
+            if ($pembuatId !== null) {
+                $query->byUser($pembuatId);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        // 🗓️ 7. Tanggal Dari (tanggal_surat >= X)
+        if (!empty($filters['tanggal_dari'])) {
+            $query->whereDate('tanggal_surat', '>=', $filters['tanggal_dari']);
+        }
+
+        // 🗓️ 8. Tanggal Sampai (tanggal_surat <= Y)
+        if (!empty($filters['tanggal_sampai'])) {
+            $query->whereDate('tanggal_surat', '<=', $filters['tanggal_sampai']);
+        }
+
+        return $query;
+    }
+
+
+    // =========================================================
+    // ACCESSORS
+    // =========================================================
 
     /**
-     * ✅ GOOD: Tembusan array dengan sanitasi
+     * Tembusan sebagai array yang sudah dibersihkan
      */
     protected function tembusanArray(): Attribute
     {
@@ -271,11 +423,10 @@ class TugasHeader extends Model
         return Attribute::make(get: fn() => sanitize_output($this->nomor));
     }
 
-    // ==================== MUTATORS =========================
+    // =========================================================
+    // MUTATORS
+    // =========================================================
 
-    /**
-     * ✅ GOOD: Mutator dengan sanitasi
-     */
     protected function nomor(): Attribute
     {
         return Attribute::make(set: fn($value) => sanitize_input($value, 100));
@@ -325,32 +476,24 @@ class TugasHeader extends Model
         return Attribute::make(get: fn($value) => $value, set: fn($value) => sanitize_html_limited($value));
     }
 
-    /**
-     * ✅ ADDED: Mutator untuk tugas
-     */
     protected function tugas(): Attribute
     {
         return Attribute::make(get: fn($value) => sanitize_output($value), set: fn($value) => sanitize_input($value, 500));
     }
 
-    /**
-     * ✅ ADDED: Mutator untuk jenis_tugas
-     */
     protected function jenisTugas(): Attribute
     {
         return Attribute::make(get: fn($value) => sanitize_output($value), set: fn($value) => sanitize_input($value, 100));
     }
 
-    /**
-     * ✅ ADDED: Mutator untuk detail_tugas (HTML terbatas)
-     * agar aman saat dirender dengan {!! !!} di view.
-     */
     protected function detailTugas(): Attribute
     {
         return Attribute::make(get: fn($value) => $value, set: fn($value) => sanitize_html_limited($value));
     }
 
-    // ==================== BUSINESS LOGIC =========================
+    // =========================================================
+    // BUSINESS LOGIC
+    // =========================================================
 
     public function shouldShowSignatures(): bool
     {
@@ -358,7 +501,7 @@ class TugasHeader extends Model
     }
 
     /**
-     * ✅ GOOD: State machine validation
+     * Validasi dan ubah status surat
      */
     public function changeStatus(string $newStatus, ?int $nextApprover = null): bool
     {
@@ -405,6 +548,7 @@ class TugasHeader extends Model
                 'new_status' => $newStatus,
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
+
             return false;
         }
     }
@@ -420,11 +564,6 @@ class TugasHeader extends Model
         }
 
         return true;
-    }
-
-    public function penandatangan(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'penandatangan');
     }
 
     public function canBeDeleted(): bool
@@ -477,9 +616,6 @@ class TugasHeader extends Model
         }
     }
 
-    /**
-     * ✅ ADDED: Get status badge color
-     */
     public function getStatusBadgeColor(): string
     {
         return match ($this->status_surat) {
@@ -491,9 +627,6 @@ class TugasHeader extends Model
         };
     }
 
-    /**
-     * ✅ ADDED: Get formatted tanggal for display
-     */
     public function getTanggalFormatted(): string
     {
         $tanggal = $this->tanggal_utama;
@@ -505,13 +638,14 @@ class TugasHeader extends Model
         return $tanggal->format('d F Y');
     }
 
-    // ==================== MODEL EVENTS =========================
+    // =========================================================
+    // MODEL EVENTS
+    // =========================================================
 
     protected static function boot()
     {
         parent::boot();
 
-        // ✅ ADDED: Auto-set dibuat_oleh on create
         static::creating(function ($model) {
             if (empty($model->dibuat_oleh) && auth()->check()) {
                 $model->dibuat_oleh = auth()->id();
@@ -522,12 +656,10 @@ class TugasHeader extends Model
             }
         });
 
-        // ✅ ADDED: Validate before saving
         static::saving(function ($model) {
             $model->validateBeforeSave();
         });
 
-        // ✅ ADDED: Prevent deletion of approved documents
         static::deleting(function ($model) {
             if ($model->status_surat === 'disetujui') {
                 throw new \RuntimeException('Surat tugas yang sudah disetujui tidak dapat dihapus');

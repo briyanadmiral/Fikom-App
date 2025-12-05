@@ -21,31 +21,31 @@ class TugasHeaderPolicy
     }
 
     /**
-     * Determine whether the user can view the model detail.
-     * ✅ GOOD: Validasi ID dengan helper
+     * Determine if user can view the tugas
      */
     public function view(User $user, TugasHeader $tugas): bool
     {
-        // Admin TU boleh lihat semua
-        if ($user->isAdmin()) {
+        // Admin TU (peran_id 1) bisa lihat semua
+        if ($user->peran_id === 1) {
             return true;
         }
 
-        // ✅ GOOD: Validasi ID sebelum comparison
-        $userId = validate_integer_id($user->id);
-        $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
-        $penandatangan = validate_integer_id($tugas->penandatangan);
-        $nextApprover = validate_integer_id($tugas->next_approver);
-
-        // ✅ ADDED: Null safety check
-        if ($userId === null) {
-            return false;
+        // Pembuat bisa lihat
+        if ($tugas->dibuat_oleh === $user->id) {
+            return true;
         }
 
-        // Cek apakah user adalah penerima surat
-        $isRecipient = $tugas->penerima()->where('pengguna_id', $userId)->exists();
+        // Penerima bisa lihat
+        if ($tugas->penerima()->where('pengguna_id', $user->id)->exists()) {
+            return true;
+        }
 
-        return $userId === $dibuatOleh || $userId === $penandatangan || $userId === $nextApprover || $isRecipient;
+        // Penandatangan atau next approver bisa lihat
+        if ($tugas->penandatangan === $user->id || $tugas->next_approver === $user->id) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -57,37 +57,41 @@ class TugasHeaderPolicy
     }
 
     /**
-     * Determine whether the user can update the model.
-     * ✅ GOOD: Validasi status dengan helper
+     * Determine if user can update the tugas
      */
     public function update(User $user, TugasHeader $tugas): bool
     {
-        // ✅ GOOD: Validasi status dengan whitelist
-        $status = validate_status($tugas->status_surat, ['draft', 'pending', 'disetujui', 'ditolak']);
+        // ✅ DEBUG: Log setiap policy check
+        \Log::info('TugasHeaderPolicy::update called', [
+            'user_id' => $user->id,
+            'user_peran_id' => $user->peran_id,
+            'tugas_id' => $tugas->id,
+            'tugas_status' => $tugas->status_surat,
+            'tugas_dibuat_oleh' => $tugas->dibuat_oleh,
+        ]);
 
-        // GUARD: Surat yang sudah disetujui tidak boleh diubah
-        if ($status === 'disetujui') {
-            $this->logUnauthorizedAttempt($user, 'update', $tugas, 'Surat sudah disetujui');
+        // Hanya draft/pending/ditolak yang bisa diupdate
+        if (!in_array($tugas->status_surat, ['draft', 'pending', 'ditolak'], true)) {
+            \Log::warning('Policy update DITOLAK: status tidak valid', [
+                'tugas_status' => $tugas->status_surat,
+            ]);
             return false;
         }
 
-        // ✅ GOOD: Validasi ID
-        $userId = validate_integer_id($user->id);
-        $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
-        $nextApprover = validate_integer_id($tugas->next_approver);
-
-        // ✅ ADDED: Null safety check
-        if ($userId === null) {
-            return false;
+        // Admin TU (peran_id 1) bisa update semua
+        if ($user->peran_id === 1) {
+            \Log::info('Policy update DIIZINKAN: User adalah Admin TU');
+            return true;
         }
 
-        // KASUS 1: Admin TU edit draft miliknya
-        $adminEditDraft = $user->isAdmin() && $userId === $dibuatOleh && $status === 'draft';
+        // Pembuat bisa update
+        if ($tugas->dibuat_oleh === $user->id) {
+            \Log::info('Policy update DIIZINKAN: User adalah pembuat');
+            return true;
+        }
 
-        // KASUS 2: Approver melakukan koreksi pada surat PENDING
-        $approverCorrectsPending = $user->canApproveSurat() && $userId === $nextApprover && $status === 'pending';
-
-        return $adminEditDraft || $approverCorrectsPending;
+        \Log::warning('Policy update DITOLAK: User bukan Admin TU atau pembuat');
+        return false;
     }
 
     /**

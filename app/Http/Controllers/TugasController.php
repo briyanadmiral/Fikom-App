@@ -58,6 +58,99 @@ class TugasController extends Controller
         return $ret;
     }
 
+    /**
+     * Konversi nilai kolom `bulan` (bisa romawi / angka) jadi label yang enak dibaca.
+     * Contoh:
+     *  - "I"   -> "Januari (I)"
+     *  - "03"  -> "Maret (03)"
+     *  - "XI"  -> "November (XI)"
+     */
+    private function getBulanLabel(string $bulan): string
+    {
+        $romanMap = [
+            'I' => 'Januari',
+            'II' => 'Februari',
+            'III' => 'Maret',
+            'IV' => 'April',
+            'V' => 'Mei',
+            'VI' => 'Juni',
+            'VII' => 'Juli',
+            'VIII' => 'Agustus',
+            'IX' => 'September',
+            'X' => 'Oktober',
+            'XI' => 'November',
+            'XII' => 'Desember',
+        ];
+
+        $upper = strtoupper(trim($bulan));
+
+        // Kalau cocok romawi
+        if (isset($romanMap[$upper])) {
+            return $romanMap[$upper] . ' (' . $upper . ')';
+        }
+
+        // Kalau angka, coba mapping ke nama bulan
+        $int = (int) $bulan;
+        if ($int >= 1 && $int <= 12) {
+            $nama = [
+                1 => 'Januari',
+                2 => 'Februari',
+                3 => 'Maret',
+                4 => 'April',
+                5 => 'Mei',
+                6 => 'Juni',
+                7 => 'Juli',
+                8 => 'Agustus',
+                9 => 'September',
+                10 => 'Oktober',
+                11 => 'November',
+                12 => 'Desember',
+            ][$int];
+
+            return $nama . ' (' . $bulan . ')';
+        }
+
+        // fallback: kembalikan apa adanya
+        return $bulan;
+    }
+
+    /**
+     * Data dropdown untuk Advance Filter Surat Tugas:
+     * - Tahun unik
+     * - Bulan unik (dari DB)
+     * - Penandatangan (Dekan & WD)
+     * - Pembuat (Admin TU)
+     */
+    private function getFilterDropdownData(): array
+    {
+        // Tahun unik dari surat tugas
+        $tahunList = TugasHeader::selectRaw('DISTINCT tahun')->whereNotNull('tahun')->orderByDesc('tahun')->pluck('tahun');
+
+        // Bulan unik dari surat tugas
+        $bulanValues = TugasHeader::selectRaw('DISTINCT bulan')->whereNotNull('bulan')->orderBy('bulan')->pluck('bulan')->filter()->values();
+
+        $bulanList = [];
+        foreach ($bulanValues as $bulan) {
+            $bulanList[$bulan] = $this->getBulanLabel($bulan);
+        }
+
+        // Penandatangan: Dekan & WD (peran_id 2 & 3)
+        $penandatanganList = \App\Models\User::select('id', 'nama_lengkap', 'jabatan')
+            ->whereIn('peran_id', [2, 3])
+            ->orderBy('nama_lengkap')
+            ->get();
+
+        // Pembuat: Admin TU (peran_id 1)
+        $pembuatList = \App\Models\User::select('id', 'nama_lengkap')->where('peran_id', 1)->orderBy('nama_lengkap')->get();
+
+        return [
+            'tahun' => $tahunList,
+            'bulan' => $bulanList,
+            'penandatangan' => $penandatanganList,
+            'pembuat' => $pembuatList,
+        ];
+    }
+
     private function getFormDependencies(): array
     {
         $admins = \App\Models\User::where('peran_id', 1)->pluck('nama_lengkap', 'id');
@@ -65,7 +158,7 @@ class TugasController extends Controller
             ->whereIn('peran_id', [2, 3])
             ->get();
         $users = \App\Models\User::with('peran')->where('peran_id', '!=', 1)->get();
-        
+
         $taskMaster = JenisTugas::with('subtugas.detail')->orderBy('nama')->get();
         $klasifikasi = \App\Models\KlasifikasiSurat::orderBy('kode')->get();
         return compact('admins', 'pejabat', 'users', 'taskMaster', 'klasifikasi');
@@ -118,27 +211,61 @@ class TugasController extends Controller
             'draft' => $list->where('status_surat', 'draft')->count(),
             'pending' => $list->where('status_surat', 'pending')->count(),
             'disetujui' => $list->where('status_surat', 'disetujui')->count(),
+            'ditolak' => $list->where('status_surat', 'ditolak')->count(),
         ];
         return view('surat_tugas.tugas_saya', compact('list', 'stats'));
     }
 
-    public function all()
+    public function all(Request $request)
     {
         $user = Auth::user();
         if ($user->peran_id !== 1) {
             abort(403, 'Anda tidak berhak melihat semua surat.');
         }
 
-        $list = TugasHeader::with(['pembuat', 'penerima.pengguna'])
-            ->orderByDesc('created_at')
-            ->get();
+        // ✅ STEP 1: Validasi input filter
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:100',
+            'status' => 'nullable|in:draft,pending,disetujui,ditolak',
+            'tahun' => 'nullable|integer|min:2020|max:2100',
+            'bulan' => 'nullable|string|max:10',
+            'penandatangan' => 'nullable|integer|exists:pengguna,id',
+            'pembuat' => 'nullable|integer|exists:pengguna,id',
+            'tanggal_dari' => 'nullable|date',
+            'tanggal_sampai' => 'nullable|date|after_or_equal:tanggal_dari',
+            'sort' => 'nullable|in:created_at,tanggal_surat,nomor',
+            'order' => 'nullable|in:asc,desc',
+        ]);
 
+        // ✅ STEP 2: Base query dengan eager loading penting
+        $query = TugasHeader::withFullRelations();
+
+        // ✅ STEP 3: Apply advance filters (scope di model)
+        $query->applyFilters($validated);
+
+        // ✅ STEP 4: Sorting
+        $sortBy = $validated['sort'] ?? 'created_at';
+        $sortOrder = $validated['order'] ?? 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        // ✅ STEP 5: Eksekusi query
+        $list = $query->get();
+
+        // ✅ STEP 6: Hitung statistik per status
         $stats = [
             'draft' => $list->where('status_surat', 'draft')->count(),
             'pending' => $list->where('status_surat', 'pending')->count(),
             'disetujui' => $list->where('status_surat', 'disetujui')->count(),
+            'ditolak' => $list->where('status_surat', 'ditolak')->count(),
         ];
-        return view('surat_tugas.index', compact('list', 'stats'));
+
+        // ✅ STEP 7: Data dropdown filter
+        $filterData = $this->getFilterDropdownData();
+
+        // Bisa dipakai di view untuk bedakan mode list (all / approve / lainnya)
+        $mode = 'all';
+
+        return view('surat_tugas.index', compact('list', 'stats', 'filterData', 'mode'));
     }
 
     public function create()
@@ -185,7 +312,13 @@ class TugasController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $stats = ['draft' => 0, 'pending' => $list->count(), 'disetujui' => 0];
+        $stats = [
+            'draft' => 0,
+            'pending' => $list->count(),
+            'disetujui' => 0,
+            'ditolak' => 0,
+        ];
+
         return view('surat_tugas.index', compact('list', 'stats'));
     }
 

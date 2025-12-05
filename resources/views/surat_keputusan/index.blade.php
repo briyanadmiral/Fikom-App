@@ -144,6 +144,11 @@
             font-size: .95rem;
         }
 
+        /* ➕ supaya tombol di kanan ada jarak antar-btn (desktop) */
+        .data-card-header-right .btn {
+            margin-left: .35rem;
+        }
+
         .data-card-header .badge-info {
             font-size: .8rem;
             border-radius: 999px;
@@ -163,9 +168,10 @@
 
             .data-card-header-right .btn {
                 width: 100%;
+                margin-left: 0;
+                margin-bottom: .35rem;
             }
         }
-
 
         .table th,
         .table td {
@@ -346,9 +352,6 @@
 
 @section('content')
 
-    {{-- ✅ FASE 1.1: Include Advanced Filter --}}
-    @include('surat_keputusan.partials._header_filter')
-
     @php
         // fallback kalau controller belum kirim stats lengkap
         $stats = $stats ?? [
@@ -409,35 +412,35 @@
                 @else
                     {{-- Ruang kerja: tampilkan beberapa status utama --}}
                     @foreach ([
-            'draft' => [
-                'icon' => 'fa-file-alt',
-                'label' => 'Draft',
-                'count' => $stats['draft'] ?? 0,
-                'color' => 'secondary',
-            ],
-            'pending' => [
-                'icon' => 'fa-hourglass-half',
-                'label' => 'Pending',
-                'count' => $stats['pending'] ?? 0,
-                'color' => 'warning',
-            ],
-            'disetujui' => [
-                'icon' => 'fa-check-circle',
-                'label' => 'Disetujui',
-                'count' => $stats['disetujui'] ?? 0,
-                'color' => 'success',
-            ],
-            'ditolak' => [
-                'icon' => 'fa-times-circle',
-                'label' => 'Ditolak',
-                'count' => $stats['ditolak'] ?? 0,
-                'color' => 'danger',
-            ],
-        ] as $status => $info)
+                        'draft' => [
+                            'icon' => 'fa-file-alt',
+                            'label' => 'Draft',
+                            'count' => $stats['draft'] ?? 0,
+                            'color' => 'secondary',
+                        ],
+                        'pending' => [
+                            'icon' => 'fa-hourglass-half',
+                            'label' => 'Pending',
+                            'count' => $stats['pending'] ?? 0,
+                            'color' => 'warning',
+                        ],
+                        'disetujui' => [
+                            'icon' => 'fa-check-circle',
+                            'label' => 'Disetujui',
+                            'count' => $stats['disetujui'] ?? 0,
+                            'color' => 'success',
+                        ],
+                        'ditolak' => [
+                            'icon' => 'fa-times-circle',
+                            'label' => 'Ditolak',
+                            'count' => $stats['ditolak'] ?? 0,
+                            'color' => 'danger',
+                        ],
+                    ] as $status => $info)
                         <div class="stat-card card shadow-sm mx-2">
                             <div class="card-body">
                                 <div class="icon text-{{ $info['color'] }}" data-toggle="tooltip"
-                                    title="{{ $info['label'] }}">
+                                     title="{{ $info['label'] }}">
                                     <i class="fas {{ $info['icon'] }}"></i>
                                 </div>
                                 <div class="label">{{ $info['label'] }}</div>
@@ -450,11 +453,14 @@
             </div>
         </div>
 
+        {{-- ✅ FASE 1.1: Include Advanced Filter --}}
+        @include('surat_keputusan.partials._header_filter')
+
         {{-- Tabel Utama (kolom penting) --}}
         <div class="card data-card shadow-sm">
 
             {{-- ✅ Header: judul ruang kerja + info hasil + tombol buat SK --}}
-            <div class="card-header data-card-header d-flex justify-content-between align-items-center flex-wrap">
+            <div class="data-card-header d-flex justify-content-between align-items-center flex-wrap"">
                 <div class="data-card-header-left">
                     <span class="workspace-pill">
                         <i class="fas fa-briefcase"></i>
@@ -477,17 +483,18 @@
                     @endif
                 </div>
 
-                <div class="data-card-header-right">
+                {{-- ✅ Tombol di kanan, gaya sama seperti Surat Tugas --}}
+                <div class="data-card-header-right d-flex flex-wrap justify-content-end">
                     @can('create', App\Models\KeputusanHeader::class)
                         @if ($mode === 'list')
-                            <a href="{{ route('surat_keputusan.create') }}" class="btn btn-primary btn-sm">
-                                <i class="fas fa-plus"></i> Buat SK Baru
+                            <a href="{{ route('surat_keputusan.create') }}" class="btn btn-primary mb-2">
+                                <i class="fas fa-plus mr-1"></i> Buat SK Baru
                             </a>
                         @endif
                     @endcan
                 </div>
             </div>
-            
+
             <div class="card-body">
                 <div class="table-responsive">
                     <table id="table-sk" class="table table-hover" style="width: 100%">
@@ -591,15 +598,15 @@
                                     <td class="text-center">
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-secondary dropdown-toggle" type="button"
-                                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                                                title="Menu aksi">
+                                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                                    title="Menu aksi">
                                                 <i class="fas fa-cog"></i>
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-right">
 
                                                 {{-- 1. Lihat Detail --}}
                                                 <a class="dropdown-item text-info"
-                                                    href="{{ route('surat_keputusan.show', $h->id) }}">
+                                                   href="{{ route('surat_keputusan.show', $h->id) }}">
                                                     <i class="fas fa-eye"></i> Lihat Detail
                                                 </a>
 
@@ -607,7 +614,7 @@
                                                 @if (in_array($h->status_surat, ['draft', 'ditolak']))
                                                     @can('update', $h)
                                                         <a class="dropdown-item text-warning"
-                                                            href="{{ route('surat_keputusan.edit', $h->id) }}">
+                                                           href="{{ route('surat_keputusan.edit', $h->id) }}">
                                                             <i class="fas fa-edit"></i> Edit Draft
                                                         </a>
                                                     @endcan
@@ -616,11 +623,11 @@
                                                         @can('submit', $h)
                                                             <div class="dropdown-divider"></div>
                                                             <form action="{{ route('surat_keputusan.submit', $h->id) }}"
-                                                                method="POST" style="display: inline;">
+                                                                  method="POST" style="display: inline;">
                                                                 @csrf
                                                                 <button type="button"
-                                                                    class="dropdown-item text-success w-100 text-left btn-submit-sk"
-                                                                    data-nomor="{{ $h->nomor ?? '—' }}">
+                                                                        class="dropdown-item text-success w-100 text-left btn-submit-sk"
+                                                                        data-nomor="{{ $h->nomor ?? '—' }}">
                                                                     <i class="fas fa-paper-plane"></i> Ajukan untuk Persetujuan
                                                                 </button>
                                                             </form>
@@ -633,13 +640,13 @@
                                                 @if ($h->status_surat === 'pending')
                                                     @can('approve', $h)
                                                         <a class="dropdown-item text-success"
-                                                            href="{{ route('surat_keputusan.approveForm', $h->id) }}">
+                                                           href="{{ route('surat_keputusan.approveForm', $h->id) }}">
                                                             <i class="fas fa-check-circle"></i> Tinjau & Setujui
                                                         </a>
                                                         @can('reject', $h)
                                                             <a href="#" class="dropdown-item text-danger btn-reject"
-                                                                data-action="{{ route('surat_keputusan.reject', $h->id) }}"
-                                                                data-nomor="{{ $h->nomor ?? '—' }}">
+                                                               data-action="{{ route('surat_keputusan.reject', $h->id) }}"
+                                                               data-nomor="{{ $h->nomor ?? '—' }}">
                                                                 <i class="fas fa-times"></i> Tolak / Minta Revisi
                                                             </a>
                                                         @endcan
@@ -648,8 +655,8 @@
 
                                                     @can('reopen', $h)
                                                         <a href="#" class="dropdown-item text-secondary btn-reopen"
-                                                            data-url="{{ route('surat_keputusan.reopen', $h->id) }}"
-                                                            data-nomor="{{ $h->nomor ?? '—' }}">
+                                                           data-url="{{ route('surat_keputusan.reopen', $h->id) }}"
+                                                           data-nomor="{{ $h->nomor ?? '—' }}">
                                                             <i class="fas fa-undo"></i> Tarik ke Draft
                                                         </a>
                                                         <div class="dropdown-divider"></div>
@@ -659,8 +666,8 @@
                                                 {{-- 4. Download PDF --}}
                                                 @if (in_array($h->status_surat, ['disetujui', 'terbit', 'arsip']) && $h->signed_pdf_path)
                                                     <a class="dropdown-item text-danger"
-                                                        href="{{ route('surat_keputusan.downloadPdf', $h->id) }}"
-                                                        target="_blank">
+                                                       href="{{ route('surat_keputusan.downloadPdf', $h->id) }}"
+                                                       target="_blank">
                                                         <i class="fas fa-file-pdf"></i> Download PDF
                                                     </a>
                                                     <div class="dropdown-divider"></div>
@@ -674,8 +681,8 @@
                                                             method="POST" style="display: inline;">
                                                             @csrf
                                                             <button type="button"
-                                                                class="dropdown-item text-primary w-100 text-left btn-terbitkan-sk"
-                                                                data-nomor="{{ $h->nomor ?? '—' }}">
+                                                                    class="dropdown-item text-primary w-100 text-left btn-terbitkan-sk"
+                                                                    data-nomor="{{ $h->nomor ?? '—' }}">
                                                                 <i class="fas fa-share-square"></i> Terbitkan SK
                                                             </button>
                                                         </form>
@@ -691,8 +698,8 @@
                                                             method="POST" style="display: inline;">
                                                             @csrf
                                                             <button type="button"
-                                                                class="dropdown-item text-warning w-100 text-left btn-batal-terbitkan-sk"
-                                                                data-nomor="{{ $h->nomor ?? '' }}">
+                                                                    class="dropdown-item text-warning w-100 text-left btn-batal-terbitkan-sk"
+                                                                    data-nomor="{{ $h->nomor ?? '' }}">
                                                                 <i class="fas fa-undo"></i> Batal Terbitkan
                                                             </button>
                                                         </form>
@@ -708,8 +715,8 @@
                                                             method="POST" style="display: inline;">
                                                             @csrf
                                                             <button type="button"
-                                                                class="dropdown-item text-dark w-100 text-left btn-arsipkan-sk"
-                                                                data-nomor="{{ $h->nomor ?? '' }}">
+                                                                    class="dropdown-item text-dark w-100 text-left btn-arsipkan-sk"
+                                                                    data-nomor="{{ $h->nomor ?? '' }}">
                                                                 <i class="fas fa-archive"></i> Arsipkan SK
                                                             </button>
                                                         </form>
@@ -721,12 +728,12 @@
                                                 @if ($h->status_surat === 'draft')
                                                     @can('delete', $h)
                                                         <form action="{{ route('surat_keputusan.destroy', $h->id) }}"
-                                                            method="POST" style="display: inline;">
+                                                              method="POST" style="display: inline;">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="button"
-                                                                class="dropdown-item text-danger w-100 text-left btn-hapus-sk"
-                                                                data-nomor="{{ $h->nomor ?? '—' }}">
+                                                                    class="dropdown-item text-danger w-100 text-left btn-hapus-sk"
+                                                                    data-nomor="{{ $h->nomor ?? '—' }}">
                                                                 <i class="fas fa-trash"></i> Hapus Draft
                                                             </button>
                                                         </form>
@@ -762,7 +769,7 @@
                         <div class="form-group">
                             <label>Catatan ke pembuat (opsional)</label>
                             <textarea name="note" class="form-control" rows="4"
-                                placeholder="Contoh: Mohon perbaiki redaksi KESATU dan lengkapi dasar hukum butir 3."></textarea>
+                                      placeholder="Contoh: Mohon perbaiki redaksi KESATU dan lengkapi dasar hukum butir 3."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -783,7 +790,7 @@
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        $(function() {
+        $(function () {
             $('[data-toggle="tooltip"]').tooltip();
 
             const MODE = "{{ $mode }}";
@@ -834,31 +841,31 @@
                     orderable: false,
                     searchable: false
                 }]
-            }).on('draw', function() {
+            }).on('draw', function () {
                 $('[data-toggle="tooltip"]').tooltip();
             });
 
             @if (session('success'))
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: "{{ session('success') }}",
-                    timer: 3000,
-                    showConfirmButton: false
-                });
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: "{{ session('success') }}",
+                timer: 3000,
+                showConfirmButton: false
+            });
             @endif
 
             @if (session('error'))
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal!',
-                    text: "{{ session('error') }}",
-                    timer: 3000,
-                    showConfirmButton: false
-                });
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: "{{ session('error') }}",
+                timer: 3000,
+                showConfirmButton: false
+            });
             @endif
 
-            $(document).on('click', '.btn-submit-sk', async function(e) {
+            $(document).on('click', '.btn-submit-sk', async function (e) {
                 e.preventDefault();
                 const $form = $(this).closest('form');
                 const nomor = $(this).data('nomor') || '—';
@@ -872,7 +879,7 @@
                 if (ok) $form.trigger('submit');
             });
 
-            $(document).on('click', '.btn-terbitkan-sk', async function(e) {
+            $(document).on('click', '.btn-terbitkan-sk', async function (e) {
                 e.preventDefault();
                 const $form = $(this).closest('form');
                 const nomor = $(this).data('nomor') || '—';
@@ -886,7 +893,7 @@
                 if (ok) $form.trigger('submit');
             });
 
-            $(document).on('click', '.btn-arsipkan-sk', async function(e) {
+            $(document).on('click', '.btn-arsipkan-sk', async function (e) {
                 e.preventDefault();
                 const $form = $(this).closest('form');
                 const nomor = $(this).data('nomor') || '—';
@@ -900,7 +907,7 @@
                 if (ok) $form.trigger('submit');
             });
 
-            $(document).on('click', '.btn-hapus-sk', async function(e) {
+            $(document).on('click', '.btn-hapus-sk', async function (e) {
                 e.preventDefault();
                 const $form = $(this).closest('form');
                 const nomor = $(this).data('nomor') || '—';
@@ -915,7 +922,7 @@
                 if (ok) $form.trigger('submit');
             });
 
-            $(document).on('click', '.btn-reject', function(e) {
+            $(document).on('click', '.btn-reject', function (e) {
                 e.preventDefault();
                 const action = $(this).data('action');
                 const nomor = $(this).data('nomor') || '—';
@@ -926,7 +933,7 @@
                 $m.modal('show');
             });
 
-            $(document).on('click', '.btn-reopen', async function(e) {
+            $(document).on('click', '.btn-reopen', async function (e) {
                 e.preventDefault();
                 const url = $(this).data('url');
                 const nomor = $(this).data('nomor') || '—';
@@ -954,7 +961,7 @@
             });
 
             // ✅ EVENT HANDLER BATAL TERBITKAN SK
-            $(document).on('click', '.btn-batal-terbitkan-sk', async function(e) {
+            $(document).on('click', '.btn-batal-terbitkan-sk', async function (e) {
                 e.preventDefault();
                 const $form = $(this).closest('form');
                 const nomor = $(this).data('nomor') || '—';

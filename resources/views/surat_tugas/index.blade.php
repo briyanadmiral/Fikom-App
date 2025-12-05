@@ -108,6 +108,62 @@
             padding-top: 1.2rem
         }
 
+                .data-card-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e0e6ed;
+            border-radius: 1rem 1rem 0 0;
+            padding: .85rem 1.25rem;
+        }
+
+        .data-card-header-left {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+
+        .workspace-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: .45rem 1.1rem;
+            border-radius: 999px;
+            background: #ffffff;
+            font-size: .95rem;
+            font-weight: 600;
+            color: #004085;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+        }
+
+        .workspace-pill i {
+            margin-right: .4rem;
+            color: #1498ff;
+            font-size: .95rem;
+        }
+
+        .data-card-header-right .btn {
+            margin-left: .35rem;
+        }
+
+        @media (max-width:767.98px) {
+            .data-card-header {
+                border-radius: .6rem .6rem 0 0;
+                padding: .7rem .9rem;
+            }
+
+            .data-card-header-right {
+                width: 100%;
+                margin-top: .4rem;
+                text-align: left;
+            }
+
+            .data-card-header-right .btn {
+                width: 100%;
+                margin-left: 0;
+                margin-bottom: .35rem;
+            }
+        }
+
+
         .table th,
         .table td {
             vertical-align: middle !important
@@ -278,10 +334,10 @@
         <div class="d-flex justify-content-center w-100 mb-3">
             <div class="stat-wrapper py-1" style="width:100%;max-width:650px;">
                 @foreach ([
-            'draft' => ['icon' => 'fa-file-alt', 'label' => 'Draft', 'count' => $stats['draft'] ?? 0, 'color' => 'secondary'],
-            'pending' => ['icon' => 'fa-hourglass-half', 'label' => 'Pending', 'count' => $stats['pending'] ?? 0, 'color' => 'warning'],
-            'disetujui' => ['icon' => 'fa-check-circle', 'label' => 'Disetujui', 'count' => $stats['disetujui'] ?? 0, 'color' => 'success'],
-        ] as $status => $info)
+                    'draft'     => ['icon' => 'fa-file-alt',        'label' => 'Draft',      'count' => $stats['draft'] ?? 0,     'color' => 'secondary'],
+                    'pending'   => ['icon' => 'fa-hourglass-half', 'label' => 'Pending',    'count' => $stats['pending'] ?? 0,   'color' => 'warning'],
+                    'disetujui' => ['icon' => 'fa-check-circle',   'label' => 'Disetujui',  'count' => $stats['disetujui'] ?? 0, 'color' => 'success'],
+                ] as $status => $info)
                     <div class="stat-card card shadow-sm mx-2">
                         <div class="card-body">
                             <div class="icon text-{{ $info['color'] }}" data-toggle="tooltip" title="{{ $info['label'] }}">
@@ -295,60 +351,45 @@
             </div>
         </div>
 
-        {{-- Filter dan Tombol --}}
-        <div class="card filter-card mb-4 shadow-sm">
-            <div class="card-header bg-white border-0 py-3">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 w-100">
-                    <h5 class="mb-0 font-weight-bold">
-                        <i class="fas fa-filter mr-2 text-primary"></i>Filter & Pencarian
-                    </h5>
-                    @if ($mode !== 'approve-list')
-                        <div class="d-flex flex-wrap gap-2">
-                            {{-- Tombol Tambah Surat --}}
-                            <a href="{{ route('surat_tugas.create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus mr-2"></i>Tambah Surat Tugas
-                            </a>
-
-                            {{-- 🆕 Tombol Jenis Surat Tugas --}}
-                            <a href="{{ route('jenis_surat_tugas.index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-folder mr-2"></i>Jenis Surat Tugas
-                            </a>
-
-                            {{-- 🆕 Tombol Klasifikasi Surat --}}
-                            <a href="{{ route('klasifikasi_surat.index') }}" class="btn btn-outline-info">
-                                <i class="fas fa-folder-open mr-2"></i>Klasifikasi Surat
-                            </a>
-                        </div>
-                    @endif
-                </div>
-            </div>
-            <div class="card-body">
-                <form class="row">
-                    <div class="col-md-6 form-group mb-2">
-                        <input id="globalSearch" type="text" class="form-control"
-                            placeholder="Cari berdasarkan nomor, perihal, pembuat, atau penerima...">
-                    </div>
-                    <div class="col-md-3 form-group mb-2">
-                        <select id="statusFilter" class="form-control">
-                            <option value="">Semua Status</option>
-                            <option value="draft">Draft</option>
-                            <option value="pending">Pending</option>
-                            <option value="disetujui">Disetujui</option>
-                            <option value="ditolak">Ditolak</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 form-group mb-2">
-                        <button id="resetFilters" class="btn btn-outline-secondary w-100" type="button">
-                            <i class="fas fa-redo mr-1"></i>Reset Filter
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        {{-- Filter & Pencarian (Advanced) --}}
+        @include('surat_tugas.partials._header_filter', [
+            'filterData' => $filterData ?? [],
+        ])
 
 
         {{-- Tabel Utama --}}
         <div class="card data-card shadow-sm">
+
+            {{-- HEADER KARTU: workspace + tombol aksi cepat --}}
+            <div class="data-card-header d-flex justify-content-between align-items-center flex-wrap">
+                <div class="data-card-header-left">
+                    <span class="workspace-pill">
+                        <i class="fas fa-briefcase"></i>
+                        @if ($mode === 'approve-list')
+                            Surat Tugas Menunggu Persetujuan Saya
+                        @else
+                            Ruang Kerja Surat Tugas
+                        @endif
+                    </span>
+                </div>
+
+                @if ($mode !== 'approve-list')
+                    <div class="data-card-header-right d-flex flex-wrap justify-content-end">
+                        <a href="{{ route('surat_tugas.create') }}" class="btn btn-primary mb-2">
+                            <i class="fas fa-plus mr-2"></i>Tambah Surat Tugas
+                        </a>
+
+                        <a href="{{ route('jenis_surat_tugas.index') }}" class="btn btn-outline-secondary mb-2">
+                            <i class="fas fa-folder mr-2"></i>Jenis Surat Tugas
+                        </a>
+
+                        <a href="{{ route('klasifikasi_surat.index') }}" class="btn btn-outline-info mb-2">
+                            <i class="fas fa-folder-open mr-2"></i>Klasifikasi Surat
+                        </a>
+                    </div>
+                @endif
+            </div>
+
             <div class="card-body">
                 <div class="table-responsive">
                     <table id="table-tugas" class="table table-hover" style="width:100%">
@@ -376,8 +417,11 @@
                                     <td class="text-center" data-sort="{{ $tgl ? $tgl->timestamp : 0 }}">
                                         {{ $tgl ? $tgl->format('d M Y') : '-' }}
                                         @if ($tgl)
-                                            <br><small class="text-muted"><i class="far fa-clock"></i>
-                                                {{ $tgl->diffForHumans() }}</small>
+                                            <br>
+                                            <small class="text-muted">
+                                                <i class="far fa-clock"></i>
+                                                {{ $tgl->diffForHumans() }}
+                                            </small>
                                         @endif
                                     </td>
 
@@ -402,21 +446,24 @@
                                     <td class="text-center">
                                         @php
                                             $badgeMap = [
-                                                'draft' => 'secondary',
-                                                'pending' => 'warning',
+                                                'draft'     => 'secondary',
+                                                'pending'   => 'warning',
                                                 'disetujui' => 'success',
-                                                'ditolak' => 'danger',
+                                                'ditolak'   => 'danger',
                                             ];
                                             $badge = $badgeMap[$h->status_surat] ?? 'secondary';
                                         @endphp
-                                        <span
-                                            class="badge badge-pill badge-{{ $badge }}">{{ ucfirst($h->status_surat) }}</span>
+                                        <span class="badge badge-pill badge-{{ $badge }}">
+                                            {{ ucfirst($h->status_surat) }}
+                                        </span>
                                     </td>
 
                                     <td class="text-center">
                                         @if ($h->status_surat == 'disetujui' && $h->signed_pdf_path)
                                             <a href="{{ route('surat_tugas.downloadPdf', $h->id) }}"
-                                                class="btn btn-sm btn-danger" title="Download PDF" target="_blank">
+                                               class="btn btn-sm btn-danger"
+                                               title="Download PDF"
+                                               target="_blank">
                                                 <i class="fas fa-file-pdf"></i>
                                             </a>
                                         @else
@@ -428,30 +475,30 @@
                                     <td class="text-center">
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-secondary dropdown-toggle" type="button"
-                                                data-toggle="dropdown">
+                                                    data-toggle="dropdown">
                                                 <i class="fas fa-cog"></i>
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-right">
 
                                                 {{-- 1. Quick View --}}
                                                 <a class="dropdown-item text-info quick-view"
-                                                    href="{{ route('surat_tugas.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}"
-                                                    data-url="{{ route('surat_tugas.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}">
+                                                   href="{{ route('surat_tugas.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}"
+                                                   data-url="{{ route('surat_tugas.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}">
                                                     <i class="fas fa-search"></i> Lihat Cepat
                                                 </a>
 
                                                 {{-- 2. Detail Page --}}
                                                 <a class="dropdown-item text-info"
-                                                    href="{{ route('surat_tugas.show', $h->id) }}">
+                                                   href="{{ route('surat_tugas.show', $h->id) }}">
                                                     <i class="fas fa-eye"></i> Halaman Detail
                                                 </a>
 
                                                 <div class="dropdown-divider"></div>
 
-                                                {{-- ✅ 3. EDIT DRAFT (Warning/Kuning) - Tambahkan ini! --}}
+                                                {{-- 3. EDIT DRAFT (Admin TU pembuat) --}}
                                                 @if ($h->status_surat === 'draft' && (int) $h->dibuat_oleh === (int) auth()->id())
                                                     <a class="dropdown-item text-warning"
-                                                        href="{{ route('surat_tugas.edit', $h->id) }}">
+                                                       href="{{ route('surat_tugas.edit', $h->id) }}">
                                                         <i class="fas fa-edit"></i> Edit Draft
                                                     </a>
                                                     <div class="dropdown-divider"></div>
@@ -460,38 +507,38 @@
                                                 {{-- 4. Tinjau & Setujui (untuk pending approver) --}}
                                                 @if ($h->status_surat === 'pending' && (int) $h->next_approver === (int) auth()->id())
                                                     <a class="dropdown-item text-success"
-                                                        href="{{ route('surat_tugas.approveForm', $h->id) }}">
+                                                       href="{{ route('surat_tugas.approveForm', $h->id) }}">
                                                         <i class="fas fa-check-circle"></i> Tinjau & Setujui
                                                     </a>
                                                     <div class="dropdown-divider"></div>
                                                 @endif
 
-                                                {{-- 5. Edit/Koreksi (untuk approver) --}}
+                                                {{-- 5. Edit/Koreksi (untuk approver via policy) --}}
                                                 @can('edit-surat', $h)
                                                     <a class="dropdown-item text-warning"
-                                                        href="{{ route('surat_tugas.edit', ['tugas' => $h->id, 'mode' => 'koreksi']) }}">
+                                                       href="{{ route('surat_tugas.edit', ['tugas' => $h->id, 'mode' => 'koreksi']) }}">
                                                         <i class="fas fa-pen"></i> Koreksi (Approver)
                                                     </a>
                                                     <div class="dropdown-divider"></div>
                                                 @endcan
 
-                                                {{-- 6. Download PDF --}}
+                                                {{-- 6. Download PDF dari menu (kalau sudah disetujui) --}}
                                                 @if ($h->status_surat == 'disetujui' && $h->signed_pdf_path)
                                                     <a class="dropdown-item text-danger"
-                                                        href="{{ route('surat_tugas.downloadPdf', $h->id) }}"
-                                                        target="_blank">
+                                                       href="{{ route('surat_tugas.downloadPdf', $h->id) }}"
+                                                       target="_blank">
                                                         <i class="fas fa-file-pdf"></i> Download PDF
                                                     </a>
                                                     <div class="dropdown-divider"></div>
                                                 @endif
 
-                                                {{-- 7. Hapus Draft --}}
+                                                {{-- 7. Hapus Draft (hanya pembuat & status draft) --}}
                                                 @if ($h->status_surat === 'draft' && (int) $h->dibuat_oleh === (int) auth()->id())
                                                     <button type="button"
-                                                        class="dropdown-item text-danger w-100 text-left btn-delete"
-                                                        data-url="{{ route('surat_tugas.destroy', $h->id) }}"
-                                                        data-nomor="{{ $h->nomor ?? '—' }}"
-                                                        style="border:none;background:transparent;cursor:pointer">
+                                                            class="dropdown-item text-danger w-100 text-left btn-delete"
+                                                            data-url="{{ route('surat_tugas.destroy', $h->id) }}"
+                                                            data-nomor="{{ $h->nomor ?? '—' }}"
+                                                            style="border:none;background:transparent;cursor:pointer">
                                                         <i class="fas fa-trash"></i> Hapus Draft
                                                     </button>
                                                 @endif
@@ -525,40 +572,41 @@
         </div>
     </div>
 @endsection
+
 @push('scripts')
-  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-  <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  @include('surat_tugas.partials._scripts_shared', [
-    // mode & tabel
-    'mode'      => $mode ?? (request()->routeIs('surat_tugas.approveList') ? 'approve-list' : 'list'),
-    'tableId'   => '#table-tugas',
+    @include('surat_tugas.partials._scripts_shared', [
+        // mode & tabel
+        'mode'      => $mode ?? (request()->routeIs('surat_tugas.approveList') ? 'approve-list' : 'list'),
+        'tableId'   => '#table-tugas',
 
-    // filter selectors
-    'searchSelector'       => '#globalSearch',
-    'statusFilterSelector' => '#statusFilter',
-    'resetBtnSelector'     => '#resetFilters',
+        // filter selectors (boleh tetap diisi, walau elemen quick filter sudah tidak ada; jQuery aman handle)
+        'searchSelector'       => '#globalSearch',      // jika nanti mau tambah quick search lagi
+        'statusFilterSelector' => '#statusFilter',      // kalau mau quick status filter
+        'resetBtnSelector'     => '#resetFilters',
 
-    // kolom (by header text; case-insensitive, dilowercase di JS)
-    'orderHeaderText'   => 'tgl surat',
-    'statusHeaderText'  => 'status',
+        // kolom (by header text; case-insensitive, dilowercase di JS)
+        'orderHeaderText'   => 'tgl surat',
+        'statusHeaderText'  => 'status',
 
-    // non-orderable: Berkas & Aksi
-    'nonOrderableHeaders' => ['Berkas', 'Aksi'],
+        // non-orderable: Berkas & Aksi
+        'nonOrderableHeaders' => ['Berkas', 'Aksi'],
 
-    // fitur
-    'enableQuickView' => true,
-    'quickView'       => ['modalId' => '#quickViewModal', 'triggerSelector' => '.quick-view'],
-    'enableDelete'    => true,
+        // fitur
+        'enableQuickView' => true,
+        'quickView'       => ['modalId' => '#quickViewModal', 'triggerSelector' => '.quick-view'],
+        'enableDelete'    => true,
 
-    // i18n & pesan kosong
-    'i18nUrl'         => '/assets/datatables/i18n/id.json',
-    'emptyDefaultMsg' => 'Tidak ada data surat tugas.',
-    'emptyApproveMsg' => 'Tidak ada surat yang perlu Anda setujui.',
+        // i18n & pesan kosong
+        'i18nUrl'         => '/assets/datatables/i18n/id.json',
+        'emptyDefaultMsg' => 'Tidak ada data surat tugas.',
+        'emptyApproveMsg' => 'Tidak ada surat yang perlu Anda setujui.',
 
-    // teks konfirmasi
-    'moduleName'      => 'Surat Tugas',
-  ])
+        // teks konfirmasi
+        'moduleName'      => 'Surat Tugas',
+    ])
 @endpush

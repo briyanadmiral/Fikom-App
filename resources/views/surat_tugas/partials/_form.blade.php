@@ -96,12 +96,23 @@
         <link href="https://cdn.jsdelivr.net/npm/@yaireo/tagify/dist/tagify.css" rel="stylesheet" type="text/css" />
         {{-- Minor tweaks --}}
         <style>
+            .select2-container--bootstrap4 {
+                width: 100% !important; /* pastikan full width kolom */
+            }
+
             .select2-container--bootstrap4 .select2-selection--single {
-                height: calc(2.25rem + 2px) !important
+                height: calc(2.25rem + 2px) !important;
+                line-height: calc(2.25rem + 2px) !important;
+            }
+
+            .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+                line-height: calc(2.25rem + 2px) !important;
+                padding-left: .75rem; /* biar teks sejajar dgn input lain */
             }
 
             .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
-                height: calc(2.25rem + 2px) !important
+                height: calc(2.25rem + 2px) !important;
+                top: 0; /* center vertikal */
             }
 
             #penerima-table thead th {

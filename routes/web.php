@@ -272,7 +272,7 @@ Route::middleware('check.session.role')->group(function () {
                 ->middleware('can:archive,surat_keputusan');
 
             Route::post('{surat_keputusan}/batal-terbitkan', [SuratKeputusanController::class, 'batalTerbitkan'])
-                ->name('batalTerbitkan')
+                ->name('batal_terbitkan')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:unpublish,surat_keputusan');
 

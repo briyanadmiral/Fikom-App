@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -11,96 +11,99 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KeputusanHeader extends Model
 {
-    use SoftDeletes; // ✅ ADDED
+    use SoftDeletes;
 
     protected $table = 'keputusan_header';
 
-    // ✅ IMPROVED: More restrictive fillable
+    // ✅ IMPROVED: Fillable fields sesuai struktur DB
     protected $fillable = [
         'nomor',
         'tanggal_surat',
-        'kotapenetapan',
+        'kota_penetapan',
         'tahun',
-        'signedat',
+        'signed_at',
         'tentang',
-        'judulpenetapan',
+        'judul_penetapan',
         'menimbang',
         'mengingat',
         'menetapkan',
         'memutuskan',
-        'signedpdfpath',
+        'signed_pdf_path',
         'tembusan',
+        'tembusan_formatted',
         'penerima_eksternal',
-        'statussurat',
-        'dibuatoleh',
+        'status_surat',           // ✅ KEY FIX: Ini yang menyebabkan error mass assignment
+        'dibuat_oleh',
         'penandatangan',
-        'npppenandatangan',
-        'approvedby',
-        'approvedat',
-        'rejectedby',
-        'rejectedat',
-        'publishedby',
-        'publishedat',
-        'ttdconfig',
-        'capconfig',
-        'ttdwmm',
-        'capwmm',
-        'capopacity',
-
-        // ✅ TAMBAHKAN 4 BARIS INI
-        'tanggal_terbit',
-        'terbitkan_oleh',
-        'tanggal_arsip',
-        'arsipkan_oleh',
+        'npp_penandatangan',
+        'approved_by',
+        'approved_at',
+        'tanggal_terbit',         // ✅ KEY FIX: Untuk fitur terbitkan
+        'terbitkan_oleh',         // ✅ KEY FIX: Untuk fitur terbitkan
+        'tanggal_arsip',          // ✅ KEY FIX: Untuk fitur arsipkan
+        'arsipkan_oleh',          // ✅ KEY FIX: Untuk fitur arsipkan
+        'rejected_by',
+        'rejected_at',
+        'published_by',
+        'published_at',
+        'ttd_config',
+        'cap_config',
+        'ttd_w_mm',
+        'cap_w_mm',
+        'cap_opacity',
     ];
 
-    // ✅ ADDED: Guarded fields for extra protection
-    protected $guarded = ['id', 'approved_by', 'approved_at', 'rejected_by', 'rejected_at', 'published_by', 'published_at', 'signed_at', 'signed_pdf_path', 'created_at', 'updated_at', 'deleted_at'];
+    // ✅ REMOVED: Guarded tidak perlu karena fillable sudah lengkap
+    // protected $guarded = [...];
 
     protected $casts = [
         'tanggal_surat' => 'date',
-        'approvedat' => 'datetime',
-        'rejectedat' => 'datetime',
-        'publishedat' => 'datetime',
-        'signedat' => 'datetime',
-        'deletedat' => 'datetime',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'published_at' => 'datetime',
+        'signed_at' => 'datetime',
+        'deleted_at' => 'datetime',
+        'tanggal_terbit' => 'datetime',    // ✅ ADDED
+        'tanggal_arsip' => 'datetime',     // ✅ ADDED
         'menimbang' => 'array',
         'mengingat' => 'array',
         'menetapkan' => 'array',
         'penerima_eksternal' => 'array',
         'tembusan' => 'string',
-        'ttdconfig' => 'array',
-        'capconfig' => 'array',
-        'ttdwmm' => 'integer',
-        'capwmm' => 'integer',
-        'capopacity' => 'float',
+        'ttd_config' => 'array',
+        'cap_config' => 'array',
+        'ttd_w_mm' => 'integer',
+        'cap_w_mm' => 'integer',
+        'cap_opacity' => 'float',
         'tahun' => 'integer',
-
-        // ✅ TAMBAHKAN 2 BARIS INI
-        'tanggal_terbit' => 'datetime',
-        'tanggal_arsip' => 'datetime',
     ];
 
     // ==================== ACCESSORS & MUTATORS =========================
 
     /**
-     * ✅ ADDED: Sanitize nomor
+     * ✅ Sanitize nomor
      */
     protected function nomor(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 100));
+        return Attribute::make(
+            get: fn(?string $value) => sanitize_output($value),
+            set: fn(?string $value) => sanitize_input($value, 100)
+        );
     }
 
     /**
-     * ✅ ADDED: Sanitize tentang (subject)
+     * ✅ Sanitize tentang (subject)
      */
     protected function tentang(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 500));
+        return Attribute::make(
+            get: fn(?string $value) => sanitize_output($value),
+            set: fn(?string $value) => sanitize_input($value, 500)
+        );
     }
 
     /**
-     * ✅ ADDED: Sanitize tembusan
+     * ✅ Sanitize tembusan
      */
     protected function tembusan(): Attribute
     {
@@ -110,16 +113,15 @@ class KeputusanHeader extends Model
                 if (empty($value)) {
                     return null;
                 }
-                // Split by newlines, sanitize each line
                 $lines = explode("\n", $value);
                 $sanitized = array_map(fn($line) => sanitize_input($line, 255), $lines);
                 return implode("\n", array_filter($sanitized));
-            },
+            }
         );
     }
 
     /**
-     * ✅ ADDED: Sanitize menimbang array
+     * ✅ Sanitize menimbang array
      */
     protected function menimbang(): Attribute
     {
@@ -127,16 +129,15 @@ class KeputusanHeader extends Model
             get: fn($value) => is_string($value) ? json_decode($value, true) : $value,
             set: function ($value) {
                 if (is_array($value)) {
-                    // Sanitize each item
                     return json_encode(array_map(fn($item) => sanitize_input($item, 1000), $value));
                 }
                 return $value;
-            },
+            }
         );
     }
 
     /**
-     * ✅ ADDED: Sanitize mengingat array
+     * ✅ Sanitize mengingat array
      */
     protected function mengingat(): Attribute
     {
@@ -147,12 +148,12 @@ class KeputusanHeader extends Model
                     return json_encode(array_map(fn($item) => sanitize_input($item, 1000), $value));
                 }
                 return $value;
-            },
+            }
         );
     }
 
     /**
-     * ✅ ADDED: Sanitize penerima_eksternal array
+     * ✅ Sanitize penerima_eksternal array
      */
     protected function penerimaEksternal(): Attribute
     {
@@ -163,38 +164,47 @@ class KeputusanHeader extends Model
                     return json_encode(array_map(fn($nama) => sanitize_input($nama, 255), $value));
                 }
                 return $value;
-            },
+            }
         );
     }
 
     /**
-     * ✅ BARU: Sanitize kota_penetapan
+     * ✅ Sanitize kota_penetapan
      */
     protected function kotaPenetapan(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 100));
+        return Attribute::make(
+            get: fn(?string $value) => sanitize_output($value),
+            set: fn(?string $value) => sanitize_input($value, 100)
+        );
     }
 
     /**
-     * ✅ BARU: Sanitize judul_penetapan
+     * ✅ Sanitize judul_penetapan
      */
     protected function judulPenetapan(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 500));
+        return Attribute::make(
+            get: fn(?string $value) => sanitize_output($value),
+            set: fn(?string $value) => sanitize_input($value, 500)
+        );
     }
 
     /**
-     * ✅ BARU: Sanitize NPP penandatangan
+     * ✅ Sanitize NPP penandatangan
      */
     protected function nppPenandatangan(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 50));
+        return Attribute::make(
+            get: fn(?string $value) => sanitize_output($value),
+            set: fn(?string $value) => sanitize_input($value, 50)
+        );
     }
 
     // ==================== SCOPES =========================
 
     /**
-     * ✅ ADDED: Scope by status
+     * ✅ Scope by status
      */
     public function scopeByStatus($query, string $status)
     {
@@ -208,7 +218,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Scope by year
+     * ✅ Scope by year
      */
     public function scopeByTahun($query, int $tahun)
     {
@@ -216,7 +226,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Scope for signed documents
+     * ✅ Scope for signed documents
      */
     public function scopeSigned($query)
     {
@@ -224,7 +234,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Scope for pending approval
+     * ✅ Scope for pending approval
      */
     public function scopePending($query)
     {
@@ -232,7 +242,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Search scope with sanitization
+     * ✅ Search scope with sanitization
      */
     public function scopeSearch($query, ?string $keyword)
     {
@@ -244,13 +254,13 @@ class KeputusanHeader extends Model
         $keyword = str_replace(['%', '_'], ['\%', '\_'], $keyword);
 
         return $query->where(function ($q) use ($keyword) {
-            $q->where('nomor', 'LIKE', "%{$keyword}%")->orWhere('tentang', 'LIKE', "%{$keyword}%");
+            $q->where('nomor', 'LIKE', "%{$keyword}%")
+              ->orWhere('tentang', 'LIKE', "%{$keyword}%");
         });
     }
 
     /**
-     * ✅ FASE 1.1: Advanced search scope
-     * Mendukung pencarian di nomor, tentang, pembuat
+     * ✅ Advanced search scope
      */
     public function scopeAdvancedSearch($query, ?string $keyword)
     {
@@ -271,7 +281,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ FASE 1.1: Filter by tahun
+     * ✅ Filter by tahun
      */
     public function scopeFilterByTahun($query, ?int $tahun)
     {
@@ -283,7 +293,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ FASE 1.1: Filter by bulan (dari tanggal_surat)
+     * ✅ Filter by bulan (dari tanggal_surat)
      */
     public function scopeFilterByBulan($query, ?int $bulan)
     {
@@ -295,7 +305,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ FASE 1.1: Filter by penandatangan
+     * ✅ Filter by penandatangan
      */
     public function scopeFilterByPenandatangan($query, ?int $penandatanganId)
     {
@@ -312,7 +322,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ FASE 1.1: Filter by tanggal range
+     * ✅ Filter by tanggal range
      */
     public function scopeFilterByTanggalRange($query, ?string $tanggalDari, ?string $tanggalSampai)
     {
@@ -328,7 +338,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ FASE 1.1: Filter by pembuat (dibuat_oleh)
+     * ✅ Filter by pembuat (dibuat_oleh)
      */
     public function scopeFilterByPembuat($query, ?int $pembuatId)
     {
@@ -345,7 +355,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ FASE 1.1: Apply all filters at once
+     * ✅ Apply all filters at once
      */
     public function scopeApplyFilters($query, array $filters)
     {
@@ -361,7 +371,7 @@ class KeputusanHeader extends Model
     // ==================== RELASI =========================
 
     /**
-     * ✅ FASE 1.2: Relasi ke lampiran
+     * ✅ Relasi ke lampiran
      */
     public function attachments(): HasMany
     {
@@ -415,6 +425,7 @@ class KeputusanHeader extends Model
             ->withPivot(['read_at', 'dibaca'])
             ->withTimestamps();
     }
+
     // ==================== HELPER METHODS =========================
 
     /**
@@ -450,7 +461,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Check if can be edited
+     * ✅ Check if can be edited
      */
     public function canBeEdited(): bool
     {
@@ -458,7 +469,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Check if can be deleted
+     * ✅ Check if can be deleted
      */
     public function canBeDeleted(): bool
     {
@@ -466,7 +477,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Check if can be approved
+     * ✅ Check if can be approved
      */
     public function canBeApproved(): bool
     {
@@ -474,7 +485,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Check if is signed
+     * ✅ Check if is signed
      */
     public function isSigned(): bool
     {
@@ -482,7 +493,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Get formatted nomor
+     * ✅ Get formatted nomor
      */
     public function getFormattedNomorAttribute(): string
     {
@@ -490,7 +501,7 @@ class KeputusanHeader extends Model
     }
 
     /**
-     * ✅ ADDED: Get status badge color
+     * ✅ Get status badge color
      */
     public function getStatusColorAttribute(): string
     {
@@ -511,20 +522,21 @@ class KeputusanHeader extends Model
     {
         parent::boot();
 
-        // ✅ ADDED: Auto-set dibuat_oleh on create
+        // ✅ Auto-set dibuat_oleh on create
         static::creating(function ($model) {
             if (empty($model->dibuat_oleh) && auth()->check()) {
                 $model->dibuat_oleh = auth()->id();
             }
         });
-        // ✅ BARU: Auto-set tahun dari tanggal_surat
+
+        // ✅ Auto-set tahun dari tanggal_surat
         static::creating(function ($model) {
             if (!empty($model->tanggal_surat) && empty($model->tahun)) {
                 $model->tahun = \Carbon\Carbon::parse($model->tanggal_surat)->year;
             }
         });
 
-        // ✅ BARU: Update tahun saat tanggal_surat diubah
+        // ✅ Update tahun saat tanggal_surat diubah
         static::updating(function ($model) {
             if ($model->isDirty('tanggal_surat') && !empty($model->tanggal_surat)) {
                 $model->tahun = \Carbon\Carbon::parse($model->tanggal_surat)->year;

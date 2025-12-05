@@ -209,9 +209,9 @@ public function getNamaAttribute(): ?string
     }
 
     public function isActive(): bool
-    {
-        return in_array(mb_strtolower((string) $this->status), ['aktif', 'active'], true);
-    }
+{
+    return mb_strtolower((string) $this->status) === 'aktif';
+}
 
     public function updateLastActivity(): void
     {
@@ -312,10 +312,9 @@ public function getNamaAttribute(): ?string
     }
 
     public function scopeActive($query)
-    {
-        return $query->whereIn('status', ['active', 'aktif']);
-    }
-
+{
+    return $query->where('status', 'aktif');
+}
     /**
      * ✅ GOOD: Scope pencarian aman dengan LIKE escape
      */
@@ -409,20 +408,32 @@ public function getNamaAttribute(): ?string
      * ✅ GOOD: Status normalization
      */
     public function setStatusAttribute($value): void
-    {
-        $v = mb_strtolower(trim((string) $value));
-        $map = [
-            'aktif' => 'active',
-            'active' => 'active',
-            'nonaktif' => 'inactive',
-            'non-aktif' => 'inactive',
-            'inactive' => 'inactive',
-            'suspended' => 'suspended',
-            'blokir' => 'suspended',
-            'blocked' => 'suspended',
-        ];
-        $this->attributes['status'] = $map[$v] ?? 'inactive';
-    }
+{
+    $v = mb_strtolower(trim((string) $value));
+
+    // Mapping ke value ENUM di database
+    $map = [
+        // ON → aktif
+        'aktif'        => 'aktif',
+        'active'       => 'aktif',
+        'ya'           => 'aktif',
+        'y'            => 'aktif',
+        '1'            => 'aktif',
+
+        // OFF → tidak_aktif
+        'tidak_aktif'  => 'tidak_aktif',
+        'nonaktif'     => 'tidak_aktif',
+        'non-aktif'    => 'tidak_aktif',
+        'inactive'     => 'tidak_aktif',
+        'no'           => 'tidak_aktif',
+        'n'            => 'tidak_aktif',
+        '0'            => 'tidak_aktif',
+    ];
+
+    // Default: aktif (biar nggak nabrak ENUM)
+    $this->attributes['status'] = $map[$v] ?? 'aktif';
+}
+
 
     public function setPeranIdAttribute($value): void
     {

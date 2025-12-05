@@ -1,98 +1,233 @@
+{{-- resources/views/surat_tugas/partials/_header_filter.blade.php --}}
 @php
-  /** Props:
-   *  - string $mode: 'approve-list' | 'list' (default)
-   *  - array  $stats: ['draft'=>int,'pending'=>int,'disetujui'=>int]
-   *  - bool   $showButtons (opsional): paksa tampil/sembunyi tombol kanan
-   */
-  $mode        = $mode ?? 'list';
-  $stats       = $stats ?? ['draft'=>0,'pending'=>0,'disetujui'=>0];
-  $showButtons = isset($showButtons) ? (bool)$showButtons : ($mode !== 'approve-list');
+    $currentSearch = request('search', '');
+    $currentStatus = request('status', '');
+    $currentTahun = request('tahun', '');
+    $currentBulan = request('bulan', '');
+    $currentPenandatangan = request('penandatangan', '');
+    $currentPembuat = request('pembuat', '');
+    $currentTanggalDari = request('tanggal_dari', '');
+    $currentTanggalSampai = request('tanggal_sampai', '');
+    $currentSort = request('sort', 'created_at');
+    $currentOrder = request('order', 'desc');
+
+    $hasActiveFilter =
+        !empty($currentSearch) ||
+        !empty($currentStatus) ||
+        !empty($currentTahun) ||
+        !empty($currentBulan) ||
+        !empty($currentPenandatangan) ||
+        !empty($currentPembuat) ||
+        !empty($currentTanggalDari) ||
+        !empty($currentTanggalSampai);
+
+    // supaya form selalu nembak URL halaman yang sedang aktif
+    $currentUrl = url()->current();
 @endphp
 
-{{-- HEADER --}}
-<div class="surat-header mt-2 mb-3">
-  <span class="icon">
-    <i class="fas fa-envelope-open-text text-white"></i>
-  </span>
-  <div>
-    <div class="surat-header-title">
-      {{ $mode === 'approve-list' ? 'Daftar Surat Menunggu Persetujuan Anda' : 'Daftar Surat Tugas' }}
-    </div>
-    <div class="surat-header-desc">
-      @if ($mode === 'approve-list')
-        Hanya menampilkan surat dengan status <b>pending</b> yang menunggu persetujuan Anda.
-      @else
-        Semua surat tugas <b>sekolah</b> — kelola, filter, cetak PDF, dan lacak statusnya di sini.
-      @endif
-    </div>
-  </div>
-</div>
+<div class="card card-outline card-primary filter-card mb-3">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="fas fa-search"></i> Pencarian & Filter
+        </h3>
 
-{{-- STATISTIK --}}
-<div class="d-flex justify-content-center w-100 mb-3">
-  <div class="stat-wrapper py-1" style="width:100%;max-width:650px;">
-    @foreach([
-      'draft'     => ['icon'=>'fa-file-alt',       'label'=>'Draft',     'count'=>$stats['draft'] ?? 0,     'color'=>'secondary'],
-      'pending'   => ['icon'=>'fa-hourglass-half', 'label'=>'Pending',   'count'=>$stats['pending'] ?? 0,   'color'=>'warning'],
-      'disetujui' => ['icon'=>'fa-check-circle',   'label'=>'Disetujui', 'count'=>$stats['disetujui'] ?? 0, 'color'=>'success'],
-    ] as $status => $info)
-      <div class="stat-card card shadow-sm mx-2">
-        <div class="card-body">
-          <div class="icon text-{{ $info['color'] }}" data-toggle="tooltip" title="{{ $info['label'] }}">
-            <i class="fas {{ $info['icon'] }}"></i>
-          </div>
-          <div class="label">{{ $info['label'] }}</div>
-          <div class="value text-{{ $info['color'] }}">{{ $info['count'] }}</div>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="fas fa-minus"></i>
+            </button>
         </div>
-      </div>
-    @endforeach
-  </div>
-</div>
-
-{{-- FILTER + TOMBOL --}}
-<div class="card filter-card mb-4 shadow-sm">
-  <div class="card-header bg-white border-0 py-3">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 w-100">
-      <h5 class="mb-0 font-weight-bold">
-        <i class="fas fa-filter mr-2 text-primary"></i>Filter & Pencarian
-      </h5>
-
-      @if ($showButtons)
-        <div class="d-flex flex-wrap gap-2">
-          <a href="{{ route('surat_tugas.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus mr-2"></i>Tambah Surat Tugas
-          </a>
-          <a href="{{ route('jenis_surat_tugas.index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-folder mr-2"></i>Jenis Surat Tugas
-          </a>
-          <a href="{{ route('klasifikasi_surat.index') }}" class="btn btn-outline-info">
-            <i class="fas fa-folder-open mr-2"></i>Klasifikasi Surat
-          </a>
-        </div>
-      @endif
     </div>
-  </div>
 
-  <div class="card-body">
-    <form class="row">
-      <div class="col-md-6 form-group mb-2">
-        <input id="globalSearch" type="text" class="form-control"
-               placeholder="Cari berdasarkan nomor, perihal, pembuat, atau penerima...">
-      </div>
-      <div class="col-md-3 form-group mb-2">
-        <select id="statusFilter" class="form-control">
-          <option value="">Semua Status</option>
-          <option value="draft">Draft</option>
-          <option value="pending">Pending</option>
-          <option value="disetujui">Disetujui</option>
-          <option value="ditolak">Ditolak</option>
-        </select>
-      </div>
-      <div class="col-md-3 form-group mb-2">
-        <button id="resetFilters" class="btn btn-outline-secondary w-100" type="button">
-          <i class="fas fa-redo mr-1"></i>Reset Filter
-        </button>
-      </div>
-    </form>
-  </div>
+    <div class="card-body">
+        <form method="GET" action="{{ $currentUrl }}" id="filterForm">
+            <div class="row">
+                {{-- Search --}}
+                <div class="col-md-4 mb-3">
+                    <label for="search" class="form-label">
+                        <i class="fas fa-search mr-1"></i> Cari Kata Kunci
+                    </label>
+                    <input type="text" id="search" name="search" class="form-control"
+                        placeholder="Nomor, Nama Kegiatan/Tugas, atau Nama Umum..." value="{{ $currentSearch }}">
+                    <small class="form-text text-muted">
+                        Cari di nomor surat, nama umum, atau ringkasan tugas
+                    </small>
+                </div>
+
+                {{-- Status --}}
+                <div class="col-md-2 mb-3">
+                    <label for="status" class="form-label">
+                        <i class="fas fa-flag mr-1"></i> Status
+                    </label>
+                    <select id="status" name="status" class="form-control">
+                        <option value="">Semua Status</option>
+                        <option value="draft" {{ $currentStatus === 'draft' ? 'selected' : '' }}>Draft</option>
+                        <option value="pending" {{ $currentStatus === 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="disetujui" {{ $currentStatus === 'disetujui' ? 'selected' : '' }}>Disetujui
+                        </option>
+                        <option value="ditolak" {{ $currentStatus === 'ditolak' ? 'selected' : '' }}>Ditolak</option>
+                    </select>
+                </div>
+
+                {{-- Tahun --}}
+                <div class="col-md-2 mb-3">
+                    <label for="tahun" class="form-label">
+                        <i class="fas fa-calendar-alt mr-1"></i> Tahun
+                    </label>
+                    <select id="tahun" name="tahun" class="form-control">
+                        <option value="">Semua Tahun</option>
+                        @foreach ($filterData['tahun'] ?? [] as $thn)
+                            <option value="{{ $thn }}"
+                                {{ (string) $currentTahun === (string) $thn ? 'selected' : '' }}>
+                                {{ $thn }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Bulan --}}
+                <div class="col-md-2 mb-3">
+                    <label for="bulan" class="form-label">
+                        <i class="fas fa-calendar mr-1"></i> Bulan
+                    </label>
+                    <select id="bulan" name="bulan" class="form-control">
+                        <option value="">Semua Bulan</option>
+                        @foreach ($filterData['bulan'] ?? [] as $key => $bln)
+                            <option value="{{ $key }}"
+                                {{ (string) $currentBulan === (string) $key ? 'selected' : '' }}>
+                                {{ $bln }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Penandatangan --}}
+                <div class="col-md-2 mb-3">
+                    <label for="penandatangan" class="form-label">
+                        <i class="fas fa-user-tie mr-1"></i> Penandatangan
+                    </label>
+                    <select id="penandatangan" name="penandatangan" class="form-control">
+                        <option value="">Semua Penandatangan</option>
+                        @foreach ($filterData['penandatangan'] ?? [] as $pejabat)
+                            <option value="{{ $pejabat->id }}"
+                                {{ (string) $currentPenandatangan === (string) $pejabat->id ? 'selected' : '' }}>
+                                {{ $pejabat->nama_lengkap }}
+                                @if ($pejabat->jabatan)
+                                    ({{ $pejabat->jabatan }})
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                {{-- Pembuat --}}
+                <div class="col-md-3 mb-3">
+                    <label for="pembuat" class="form-label">
+                        <i class="fas fa-user-edit mr-1"></i> Pembuat (Admin TU)
+                    </label>
+                    <select id="pembuat" name="pembuat" class="form-control">
+                        <option value="">Semua Pembuat</option>
+                        @foreach ($filterData['pembuat'] ?? [] as $user)
+                            <option value="{{ $user->id }}"
+                                {{ (string) $currentPembuat === (string) $user->id ? 'selected' : '' }}>
+                                {{ $user->nama_lengkap }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Tanggal dari --}}
+                <div class="col-md-3 mb-3">
+                    <label for="tanggal_dari" class="form-label">
+                        <i class="fas fa-calendar-day mr-1"></i> Tanggal Dari
+                    </label>
+                    <input type="date" id="tanggal_dari" name="tanggal_dari" class="form-control"
+                        value="{{ $currentTanggalDari }}">
+                </div>
+
+                {{-- Tanggal sampai --}}
+                <div class="col-md-3 mb-3">
+                    <label for="tanggal_sampai" class="form-label">
+                        <i class="fas fa-calendar-check mr-1"></i> Tanggal Sampai
+                    </label>
+                    <input type="date" id="tanggal_sampai" name="tanggal_sampai" class="form-control"
+                        value="{{ $currentTanggalSampai }}">
+                </div>
+
+                {{-- Sort --}}
+                <div class="col-md-2 mb-3">
+                    <label for="sort" class="form-label">
+                        <i class="fas fa-sort mr-1"></i> Urutkan
+                    </label>
+                    <select id="sort" name="sort" class="form-control">
+                        <option value="created_at" {{ $currentSort === 'created_at' ? 'selected' : '' }}>Tgl Dibuat
+                        </option>
+                        <option value="tanggal_surat" {{ $currentSort === 'tanggal_surat' ? 'selected' : '' }}>Tgl
+                            Surat</option>
+                        <option value="nomor" {{ $currentSort === 'nomor' ? 'selected' : '' }}>Nomor</option>
+                    </select>
+                </div>
+
+                {{-- Order --}}
+                <div class="col-md-1 mb-3">
+                    <label for="order" class="form-label">Arah</label>
+                    <select id="order" name="order" class="form-control">
+                        <option value="desc" {{ $currentOrder === 'desc' ? 'selected' : '' }}>↓</option>
+                        <option value="asc" {{ $currentOrder === 'asc' ? 'selected' : '' }}>↑</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-12 d-flex flex-wrap justify-content-between align-items-center">
+                    <div class="mb-2">
+                        <button type="submit" class="btn btn-primary mr-2">
+                            <i class="fas fa-filter mr-1"></i> Terapkan Filter
+                        </button>
+                        <a href="{{ $currentUrl }}" class="btn btn-outline-secondary" id="btnResetFilter">
+                            <i class="fas fa-redo mr-1"></i> Reset
+                        </a>
+
+                        @if ($hasActiveFilter)
+                            <span class="badge badge-info ml-2">
+                                <i class="fas fa-info-circle mr-1"></i> Filter aktif
+                            </span>
+                        @endif
+                    </div>
+
+                    <small class="text-muted mb-2">
+                        Gunakan kombinasi filter untuk mempersempit daftar surat tugas.
+                    </small>
+                </div>
+            </div>
+        </form>
+    </div>
 </div>
+
+@push('scripts')
+    <script>
+        $(function() {
+            // Optional: auto-submit kalau pilih status/tahun/bulan/penandatangan/pembuat/sort/order
+            // $('#status, #tahun, #bulan, #penandatangan, #pembuat, #sort, #order').on('change', function () {
+            //     $('#filterForm').submit();
+            // });
+
+            $('#tanggal_sampai').on('change', function() {
+                const dari = $('#tanggal_dari').val();
+                const sampai = $(this).val();
+
+                if (dari && sampai && sampai < dari) {
+                    alert('Tanggal sampai tidak boleh lebih awal dari tanggal dari.');
+                    $(this).val('');
+                }
+            });
+
+            $('#btnResetFilter').on('click', function(e) {
+                // biar reset bersih tanpa query string lama
+                e.preventDefault();
+                window.location.href = '{{ $currentUrl }}';
+            });
+        });
+    </script>
+@endpush
