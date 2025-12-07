@@ -65,34 +65,57 @@ class KeputusanHeaderPolicy
     }
 
     /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, KeputusanHeader $sk): bool
-    {
-        // ✅ IMPROVED: Validate status
-        $status = validate_status($sk->status_surat, ['draft', 'ditolak', 'pending', 'disetujui']);
+ * Determine whether the user can update the model.
+ */
+public function update(User $user, KeputusanHeader $sk): bool
+{
+    \Log::info('Policy update() dipanggil', [
+        'user_id'        => $user->id,
+        'user_peran_id'  => $user->peran_id,
+        'sk_id'          => $sk->id,
+        'sk_status_raw'  => $sk->status_surat,
+        'sk_dibuat_oleh' => $sk->dibuat_oleh,
+    ]);
 
-        // Hanya draft/ditolak yang bisa diupdate
-        if (!in_array($status, ['draft', 'ditolak'], true)) {
-            return false;
-        }
+    $userPeranId = (int) $user->peran_id;
+    $userId      = (int) $user->id;
+    $pembuatId   = (int) $sk->dibuat_oleh;
 
-        // ✅ IMPROVED: Validate IDs
-        $userPeranId = validate_integer_id($user->peran_id);
-        $userId = validate_integer_id($user->id);
-        $pembuatId = validate_integer_id($sk->dibuat_oleh);
+    // 1) Admin TU boleh update apa saja
+    if ($userPeranId === 1) {
+        \Log::info('Policy update() DIIZINKAN: Admin TU (bypass status)');
+        return true;
+    }
 
-        // Admin atau pembuat sendiri
-        if ($userPeranId === 1) {
-            return true;
-        }
+    // 2) Normalisasi status (null => draft)
+    $rawStatus     = $sk->status_surat ?? 'draft';
+    $currentStatus = trim(strtolower($rawStatus));
+    $allowedStatuses = ['draft', 'ditolak'];
 
-        if ($userId !== null && $pembuatId !== null && $userId === $pembuatId) {
-            return true;
-        }
-
+    if (! in_array($currentStatus, $allowedStatuses, true)) {
+        \Log::warning('Policy update() DITOLAK: Status tidak valid untuk non-admin', [
+            'current_status'   => $sk->status_surat,
+            'normalized'       => $currentStatus,
+            'allowed_statuses' => $allowedStatuses,
+        ]);
         return false;
     }
+
+    // 3) Pembuat sendiri boleh update draft/ditolak
+    if ($userId > 0 && $pembuatId > 0 && $userId === $pembuatId) {
+        \Log::info('Policy update() DIIZINKAN: User adalah pembuat SK');
+        return true;
+    }
+
+    \Log::warning('Policy update() DITOLAK: User bukan Admin atau Pembuat', [
+        'user_id'    => $userId,
+        'pembuat_id' => $pembuatId,
+    ]);
+
+    return false;
+}
+
+
 
     /**
      * Determine whether the user can delete the model.
@@ -147,33 +170,58 @@ class KeputusanHeaderPolicy
     }
 
     /**
-     * Determine whether the user can submit for approval.
-     */
-    public function submit(User $user, KeputusanHeader $sk): bool
-    {
-        // ✅ IMPROVED: Validate status
-        $status = validate_status($sk->status_surat, ['draft']);
+ * Determine whether the user can submit for approval.
+ */
+public function submit(User $user, KeputusanHeader $sk): bool
+{
+    // ✅ DEBUG: Log untuk tracking
+    \Log::info('Policy submit() dipanggil', [
+        'user_id' => $user->id,
+        'user_peran_id' => $user->peran_id,
+        'sk_id' => $sk->id,
+        'sk_status' => $sk->status_surat,
+        'sk_dibuat_oleh' => $sk->dibuat_oleh,
+    ]);
 
-        if ($status !== 'draft') {
-            return false;
-        }
-
-        // ✅ IMPROVED: Validate IDs
-        $userPeranId = validate_integer_id($user->peran_id);
-        $userId = validate_integer_id($user->id);
-        $pembuatId = validate_integer_id($sk->dibuat_oleh);
-
-        // Admin atau pembuat sendiri
-        if ($userPeranId === 1) {
-            return true;
-        }
-
-        if ($userId !== null && $pembuatId !== null && $userId === $pembuatId) {
-            return true;
-        }
-
+    // ✅ PERBAIKAN: SK draft atau ditolak bisa diajukan
+    $allowedStatuses = ['draft', 'ditolak'];
+    
+    if (empty($sk->status_surat)) {
+        \Log::warning('Policy submit() DITOLAK: Status SK kosong');
         return false;
     }
+
+    $currentStatus = trim(strtolower($sk->status_surat));
+    $isStatusValid = in_array($currentStatus, $allowedStatuses, true);
+    
+    if (!$isStatusValid) {
+        \Log::warning('Policy submit() DITOLAK: Status tidak valid', [
+            'current_status' => $sk->status_surat,
+            'allowed_statuses' => $allowedStatuses,
+        ]);
+        return false;
+    }
+
+    // ✅ PERBAIKAN: Validasi user
+    $userPeranId = (int) $user->peran_id;
+    $userId = (int) $user->id;
+    $pembuatId = (int) $sk->dibuat_oleh;
+
+    // Admin atau pembuat sendiri
+    if ($userPeranId === 1) {
+        \Log::info('Policy submit() DIIZINKAN: User adalah Admin TU');
+        return true;
+    }
+
+    if ($userId > 0 && $pembuatId > 0 && $userId === $pembuatId) {
+        \Log::info('Policy submit() DIIZINKAN: User adalah pembuat SK');
+        return true;
+    }
+
+    \Log::warning('Policy submit() DITOLAK: User bukan Admin atau Pembuat');
+    return false;
+}
+
 
     /**
      * Determine whether the user can approve the model.

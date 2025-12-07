@@ -5,7 +5,7 @@
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
-    
+
     <style>
         /* --- Style Asli Anda (Dipertahankan & Disamakan) --- */
         body {
@@ -52,7 +52,7 @@
         /* Statistik Cards */
         .stat-wrapper {
             display: flex;
-            justify-content: center; /* Agar di tengah */
+            justify-content: center;
             gap: 1.2rem;
             margin-bottom: 2.1rem;
             flex-wrap: wrap;
@@ -63,7 +63,7 @@
             border-radius: .85rem;
             border: none;
             background: #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         }
 
         .stat-card .card-body {
@@ -91,19 +91,24 @@
             line-height: 1.1;
         }
 
-        /* --- PERBAIKAN PADA TABEL (Agar tidak gepeng) --- */
+        /* --- KARTU TABEL --- */
         .card.data-card {
             border-radius: 1rem;
             border: none;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
-        /* PENTING: Padding standar agar search & pagination tidak mepet */
         .card.data-card .card-body {
-            padding: 1.5rem; 
+            padding: 1.5rem;
         }
 
         /* Styling Tabel agar serasi */
+        #table-tugas {
+            width: 100% !important;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
         #table-tugas thead th {
             background-color: #f8f9fa;
             border-bottom: 2px solid #e9ecef;
@@ -112,12 +117,32 @@
             font-size: 0.8rem;
             letter-spacing: 0.5px;
             padding: 1rem 0.75rem;
+            white-space: nowrap;
         }
 
         #table-tugas tbody td {
             vertical-align: middle !important;
             padding: 0.75rem;
             color: #333;
+        }
+
+        /* Hover row yang halus */
+        #table-tugas tbody tr:hover {
+            background-color: #f5f9ff;
+        }
+
+        /* Kolom-kolom numerik / ikon rata tengah */
+        #table-tugas th:nth-child(1),
+        #table-tugas th:nth-child(4),
+        #table-tugas th:nth-child(7),
+        #table-tugas th:nth-child(8),
+        #table-tugas th:nth-child(9),
+        #table-tugas td:nth-child(1),
+        #table-tugas td:nth-child(4),
+        #table-tugas td:nth-child(7),
+        #table-tugas td:nth-child(8),
+        #table-tugas td:nth-child(9) {
+            text-align: center;
         }
 
         /* Badge Pill Custom */
@@ -132,7 +157,7 @@
         .filter-card-user {
             border-radius: 1rem;
             border: none;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             margin-bottom: 1.5rem;
         }
 
@@ -143,6 +168,46 @@
             padding: 1rem 1.5rem;
         }
 
+        /* --- RAPIKAN KOMPONEN DATATABLES --- */
+
+        /* Kita sudah punya filter & search sendiri di card atas,
+           jadi hide bawaan DataTables supaya tidak dobel */
+        div.dataTables_wrapper div.dataTables_length,
+        div.dataTables_wrapper div.dataTables_filter {
+            display: none !important;
+        }
+
+        /* Top & bottom row wrapper */
+        div.dataTables_wrapper .row:first-child {
+            margin-bottom: 0.75rem;
+        }
+
+        div.dataTables_wrapper div.dataTables_info {
+            padding-top: 0.8rem;
+            font-size: 0.85rem;
+            color: #6c757d;
+            white-space: nowrap;
+        }
+
+        div.dataTables_wrapper div.dataTables_paginate {
+            padding-top: 0.4rem;
+        }
+
+        div.dataTables_wrapper .pagination .page-link {
+            border-radius: 0.4rem;
+            margin: 0 0.12rem;
+            font-size: 0.85rem;
+        }
+
+        div.dataTables_wrapper .pagination .page-item.active .page-link {
+            box-shadow: 0 0 0 0.05rem rgba(20, 152, 255, 0.4);
+        }
+
+        /* Hilangkan margin ekstra bawaan table dalam wrapper responsif */
+        .table-responsive > #table-tugas {
+            margin-bottom: 0;
+        }
+
         /* Responsiveness */
         @media (max-width: 767.98px) {
             .surat-header {
@@ -151,11 +216,24 @@
                 padding: 1.2rem 1rem;
                 gap: .7rem;
             }
+
             .stat-wrapper {
                 gap: .8rem;
             }
+
             .stat-card {
-                width: 48%; /* 2 kolom di mobile */
+                width: 48%;
+                /* 2 kolom di mobile */
+            }
+
+            /* Info & pagination stack rapi di mobile */
+            div.dataTables_wrapper div.dataTables_info {
+                padding-top: 0.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            div.dataTables_wrapper div.dataTables_paginate {
+                text-align: center;
             }
         }
     </style>
@@ -170,7 +248,8 @@
             <div>
                 <div class="surat-header-title">Surat Tugas Saya</div>
                 <div class="surat-header-desc">
-                    Daftar semua <b>surat tugas</b> yang ditujukan ke Anda. Lihat detail, download PDF, serta pantau status surat di sini.
+                    Daftar semua <b>surat tugas</b> yang ditujukan ke Anda. Lihat detail, download PDF, serta pantau status
+                    surat di sini.
                 </div>
             </div>
         </div>
@@ -208,11 +287,12 @@
                     <h5 class="mb-0 font-weight-bold text-primary">
                         <i class="fas fa-filter mr-2"></i>Filter & Pencarian
                     </h5>
-                    
+
                     {{-- Tombol Tambah hanya untuk Admin TU --}}
                     @if (auth()->user()->peran_id === 1)
                         <div>
-                            <a href="{{ route('surat_tugas.create') }}" class="btn btn-sm btn-primary font-weight-bold shadow-sm">
+                            <a href="{{ route('surat_tugas.create') }}"
+                               class="btn btn-sm btn-primary font-weight-bold shadow-sm">
                                 <i class="fas fa-plus mr-1"></i> Buat Surat
                             </a>
                         </div>
@@ -225,9 +305,12 @@
                         <label class="small font-weight-bold text-muted text-uppercase">Pencarian</label>
                         <div class="input-group">
                             <div class="input-group-prepend">
-                                <span class="input-group-text bg-light border-right-0"><i class="fas fa-search text-muted"></i></span>
+                                <span class="input-group-text bg-light border-right-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
                             </div>
-                            <input id="globalSearch" type="text" class="form-control border-left-0" placeholder="Cari nomor atau perihal...">
+                            <input id="globalSearch" type="text" class="form-control border-left-0"
+                                   placeholder="Cari nomor atau perihal...">
                         </div>
                     </div>
                     <div class="col-md-3 mb-3 mb-md-0">
@@ -249,9 +332,8 @@
             </div>
         </div>
 
-        {{-- 3. TABEL UTAMA (Fixed Layout) --}}
+        {{-- 3. TABEL UTAMA --}}
         <div class="card data-card shadow-sm">
-            <!-- Header Tabel Opsional -->
             <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
                 <h5 class="m-0 font-weight-bold text-primary">
                     <i class="fas fa-table mr-2"></i> Daftar Surat Tugas Anda
@@ -280,10 +362,10 @@
                                     <td class="text-center">{{ $loop->iteration }}</td>
                                     <td class="font-weight-bold">{{ $h->nomor ?? '—' }}</td>
                                     <td>{{ \Illuminate\Support\Str::limit($h->nama_umum, 50) }}</td>
-                                    
+
                                     {{-- Tanggal --}}
                                     <td class="text-center" data-sort="{{ optional($h->tanggal_surat)->timestamp ?? 0 }}">
-                                        @if($h->tanggal_surat)
+                                        @if ($h->tanggal_surat)
                                             {{ $h->tanggal_surat->format('d M Y') }}
                                             <br>
                                             <small class="text-muted">{{ $h->tanggal_surat->diffForHumans() }}</small>
@@ -300,10 +382,11 @@
                                             $penerima = $h->penerima->pluck('pengguna.nama_lengkap')->filter();
                                             $count = $penerima->count();
                                         @endphp
-                                        @if($count > 0)
+                                        @if ($count > 0)
                                             {{ $penerima->first() }}
-                                            @if($count > 1)
-                                                <span class="badge badge-info ml-1" title="Total Penerima">+{{ $count - 1 }}</span>
+                                            @if ($count > 1)
+                                                <span class="badge badge-info ml-1"
+                                                      title="Total Penerima">+{{ $count - 1 }}</span>
                                             @endif
                                         @else
                                             -
@@ -313,7 +396,12 @@
                                     {{-- Status --}}
                                     <td class="text-center">
                                         @php
-                                            $colors = ['draft'=>'secondary', 'pending'=>'warning', 'disetujui'=>'success', 'ditolak'=>'danger'];
+                                            $colors = [
+                                                'draft' => 'secondary',
+                                                'pending' => 'warning',
+                                                'disetujui' => 'success',
+                                                'ditolak' => 'danger',
+                                            ];
                                             $color = $colors[$h->status_surat] ?? 'secondary';
                                         @endphp
                                         <span class="badge badge-pill badge-{{ $color }}">
@@ -324,7 +412,9 @@
                                     {{-- File --}}
                                     <td class="text-center">
                                         @if ($h->status_surat == 'disetujui' && $h->signed_pdf_path)
-                                            <a href="{{ route('surat_tugas.downloadPdf', $h->id) }}" class="btn btn-sm btn-outline-danger" title="Download PDF" target="_blank">
+                                            <a href="{{ route('surat_tugas.downloadPdf', $h->id) }}"
+                                               class="btn btn-sm btn-outline-danger"
+                                               title="Download PDF" target="_blank">
                                                 <i class="fas fa-file-pdf"></i>
                                             </a>
                                         @else
@@ -335,41 +425,48 @@
                                     {{-- Aksi --}}
                                     <td class="text-center">
                                         <div class="dropdown">
-                                            <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-toggle="dropdown">
+                                            <button class="btn btn-sm btn-light border dropdown-toggle" type="button"
+                                                    data-toggle="dropdown">
                                                 <i class="fas fa-cog"></i>
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-right shadow-sm">
-                                                
+
                                                 {{-- Quick View --}}
-                                                <a class="dropdown-item text-info quick-view" href="#" 
+                                                <a class="dropdown-item text-info quick-view" href="#"
                                                    data-url="{{ route('surat_tugas.preview', $h->id) }}">
                                                     <i class="fas fa-search mr-2"></i> Lihat Cepat
                                                 </a>
 
                                                 {{-- Detail --}}
-                                                <a class="dropdown-item text-primary" href="{{ route('surat_tugas.show', $h->id) }}">
+                                                <a class="dropdown-item text-primary"
+                                                   href="{{ route('surat_tugas.show', $h->id) }}">
                                                     <i class="fas fa-eye mr-2"></i> Detail
                                                 </a>
 
                                                 {{-- Download jika disetujui --}}
                                                 @if ($h->status_surat == 'disetujui')
                                                     <div class="dropdown-divider"></div>
-                                                    <a class="dropdown-item text-danger" href="{{ route('surat_tugas.downloadPdf', $h->id) }}" target="_blank">
+                                                    <a class="dropdown-item text-danger"
+                                                       href="{{ route('surat_tugas.downloadPdf', $h->id) }}"
+                                                       target="_blank">
                                                         <i class="fas fa-file-pdf mr-2"></i> Download PDF
                                                     </a>
                                                 @endif
 
-                                                {{-- Edit (Jika Policy Mengizinkan) --}}
-                                                @can('update', $h)
-                                                    <div class="dropdown-divider"></div>
-                                                    <a class="dropdown-item text-warning" href="{{ route('surat_tugas.edit', $h->id) }}">
-                                                        <i class="fas fa-edit mr-2"></i> Edit / Koreksi
-                                                    </a>
-                                                @endcan
+                                                @if ($h->status_surat !== 'disetujui')
+                                                    @can('update', $h)
+                                                        <div class="dropdown-divider"></div>
+                                                        <a class="dropdown-item text-warning"
+                                                           href="{{ route('surat_tugas.edit', $h->id) }}">
+                                                            <i class="fas fa-edit mr-2"></i> Edit / Koreksi
+                                                        </a>
+                                                    @endcan
+                                                @endif
 
                                                 {{-- Hapus (Jika Policy Mengizinkan) --}}
                                                 @can('delete', $h)
-                                                    <a class="dropdown-item text-danger btn-delete" href="#" data-url="{{ route('surat_tugas.destroy', $h->id) }}">
+                                                    <a class="dropdown-item text-danger btn-delete" href="#"
+                                                       data-url="{{ route('surat_tugas.destroy', $h->id) }}">
                                                         <i class="fas fa-trash mr-2"></i> Hapus Draft
                                                     </a>
                                                 @endcan
@@ -395,7 +492,8 @@
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <div class="modal-body p-0" style="height: 80vh;">
-                    <div class="spinner-border text-primary quickview-spinner" style="position:absolute;top:50%;left:50%;"></div>
+                    <div class="spinner-border text-primary quickview-spinner"
+                         style="position:absolute;top:50%;left:50%;"></div>
                     <iframe src="about:blank" style="width:100%;height:100%;border:none;"></iframe>
                 </div>
             </div>

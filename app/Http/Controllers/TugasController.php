@@ -285,20 +285,39 @@ class TugasController extends Controller
     {
         $mode = $this->resolveMode($request);
         $validated = $request->validated();
-        if (!isset($validated['tanggal_surat'])) {
-            $validated['tanggal_surat'] = now()->format('Y-m-d');
-        }
 
         try {
             $tugas = $this->tugasService->createTugas($validated, $mode);
+
             $message = $tugas->status_surat === 'pending' ? 'Surat tugas berhasil diajukan!' : 'Surat tugas disimpan sebagai draft!';
+
             return redirect()->route('surat_tugas.index')->with('success', $message);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // ✅ Tangkap validation error
+            \Log::error('Validation Failed: Surat Tugas', [
+                'errors' => $e->errors(),
+                'input' => $request->except(['_token']),
+                'user_id' => auth()->id(),
+            ]);
+
+            // Tampilkan error detail ke user
+            $errorMessages = collect($e->errors())->flatten()->implode(' | ');
+
+            return back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('error', 'Gagal menyimpan: ' . $errorMessages);
         } catch (\Exception $e) {
             \Log::error('Gagal menyimpan Surat Tugas', [
-                'error' => sanitize_log_message($e->getMessage()),
-                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+                'user_id' => auth()->id(),
             ]);
-            return back()->withInput()->with('error', 'Terjadi kesalahan saat menyimpan surat tugas.');
+
+            return back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
@@ -553,17 +572,27 @@ class TugasController extends Controller
     {
         $user = Auth::user();
         $peranId = $user->peran_id;
-        $tugas->load(['penerima.pengguna']);
+
+        // ✅ FIXED: Load relasi yang dibutuhkan
+        $tugas->load([
+            'penerima.pengguna',
+            'pembuat', // ✅ TAMBAHKAN
+            'klasifikasiSurat', // ✅ TAMBAHKAN
+        ]);
         $tanggalHariIni = now()->format('Y-m-d');
 
+        // Parse nomor surat untuk editing
         $nomorParts = explode('/', $tugas->nomor);
         $baseNomor = '/' . implode('/', array_slice($nomorParts, 1));
 
-        if ($peranId === 1) {
-            if (!($tugas->dibuat_oleh === $user->id && in_array($tugas->status_surat, ['draft', 'ditolak'], true))) {
+        // Authorization check
+        if ($peranId == 1) {
+            // Admin TU - boleh edit draft/ditolak yang dia buat
+            if ($tugas->dibuat_oleh != $user->id || !in_array($tugas->status_surat, ['draft', 'ditolak'], true)) {
                 abort(403, 'Anda tidak berhak mengedit surat ini.');
             }
         } elseif (in_array($peranId, [2, 3], true)) {
+            // Dekan/WD - boleh edit saat pending dan dia penandatangannya
             if (!($tugas->status_surat === 'pending' && $tugas->penandatangan == $user->id)) {
                 abort(403, 'Anda hanya dapat merevisi surat yang menunggu persetujuan Anda.');
             }
@@ -578,7 +607,7 @@ class TugasController extends Controller
             'nomor' => $tugas->nomor,
             'tanggal_surat' => $tugas->tanggal_surat?->format('Y-m-d') ?? $tanggalHariIni,
             'tanggal_asli' => $tugas->tanggal_asli?->format('Y-m-d\TH:i'),
-            'nama_pembuat' => $tugas->nama_pembuat,
+            'nama_pembuat' => $tugas->pembuat?->nama_lengkap ?? $tugas->dibuat_oleh, // ✅ FIXED
             'asal_surat' => $tugas->asal_surat,
             'jenis_tugas' => $tugas->jenis_tugas,
             'tugas' => $tugas->tugas,

@@ -22,7 +22,7 @@ class NomorSuratService
     public function reserve(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): array
     {
         // ✅ GOOD: Sanitasi input dengan helpers
-        $unit = sanitize_alphanumeric(trim($unit), '_-');
+        $unit = sanitize_alphanumeric(trim($unit), '_-.');
         $klas = sanitize_kode(trim($kodeKlasifikasi));
         $bulan = sanitize_alphanumeric(strtoupper(trim($bulanRomawi)));
         $tahun = filter_var($tahun, FILTER_VALIDATE_INT);

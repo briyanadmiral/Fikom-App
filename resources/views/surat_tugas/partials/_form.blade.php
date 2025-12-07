@@ -97,7 +97,8 @@
         {{-- Minor tweaks --}}
         <style>
             .select2-container--bootstrap4 {
-                width: 100% !important; /* pastikan full width kolom */
+                width: 100% !important;
+                /* pastikan full width kolom */
             }
 
             .select2-container--bootstrap4 .select2-selection--single {
@@ -107,12 +108,14 @@
 
             .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
                 line-height: calc(2.25rem + 2px) !important;
-                padding-left: .75rem; /* biar teks sejajar dgn input lain */
+                padding-left: .75rem;
+                /* biar teks sejajar dgn input lain */
             }
 
             .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
                 height: calc(2.25rem + 2px) !important;
-                top: 0; /* center vertikal */
+                top: 0;
+                /* center vertikal */
             }
 
             #penerima-table thead th {
@@ -204,6 +207,60 @@
             #task-preview .preview-content {
                 font-size: 1.1rem
             }
+
+            /* ===============================
+   * FIX LAYOUT TEMBUSAN / TAGIFY (REVISI FINAL)
+   * ===============================*/
+  
+  /* Container Utama Tagify */
+  .tembusan-body .tagify {
+      width: 100%;
+      height: auto !important;  /* Wajib auto agar memanjang ke bawah */
+      min-height: 44px;
+      
+      background: #fff;
+      border: 1px solid #ced4da;
+      border-radius: .6rem;
+      padding: 4px 8px; /* Padding di dalam kotak putih */
+
+      /* Layout: Gunakan Flexbox + Wrap */
+      display: flex;
+      align-items: center; /* Pastikan item sejajar vertikal (tengah) */
+      flex-wrap: wrap;     /* Wajib wrap agar turun baris */
+  }
+
+  /* Style Tag Individual */
+  .tembusan-body .tagify__tag {
+      /* Gunakan MARGIN, jangan GAP. Ini lebih stabil untuk Tagify */
+      margin: 3px 6px 3px 0 !important; 
+  }
+  
+  /* Area Input (Tempat Mengetik) */
+  .tembusan-body .tagify__input {
+      margin: 3px 0 !important;
+      padding: 0;
+      
+      /* Penting: Input harus mengisi sisa ruang (flex-grow) 
+         dan punya lebar minimal agar tidak gepeng */
+      flex-grow: 1; 
+      min-width: 150px; 
+      
+      line-height: 2rem; /* Tinggi baris disesuaikan agar placeholder pas */
+      display: inline-block;
+  }
+
+  /* Fix untuk Placeholder "Misal: Yth..." agar tidak tertutup */
+  .tembusan-body .tagify__input::before {
+      line-height: 2rem !important;
+      position: static !important; /* Hindari absolute positioning */
+      display: inline-block;
+      color: #adb5bd; /* Warna text placeholder */
+  }
+
+  /* Dropdown suggestions */
+  .tembusan-body .tagify__dropdown {
+      z-index: 1060;
+  }
         </style>
     @endpush
 @endonce
@@ -326,7 +383,8 @@
                                 <input type="text" id="nama_umum" name="nama_umum"
                                     class="form-control @error('nama_umum') is-invalid @enderror"
                                     placeholder="Contoh: Penugasan Panitia Seminar AI"
-                                    value="{{ old('nama_umum', $isEdit ? $tugas->nama_umum : '') }}" required>
+                                    value="{{ old('nama_umum', $isEdit ? $tugas->nama_umum : '') }}"
+                                    autocomplete="off" onkeydown="return true;" required>
                                 @error('nama_umum')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -1061,78 +1119,108 @@
             }
 
             function buildNomorFromParts() {
-                const noUrut = String($('#nomor_urut').val() || '').padStart(3, '0');
-                const kode = ($('#klasifikasi_kode').val() || '').trim() || '...';
-                const bulan = ($('#bulan').val() || '').toUpperCase() || '...';
-                const tahun = $('#tahun-nomor').val() || '....';
-                return `${noUrut}/${kode}/TG/UNIKA/${bulan}/${tahun}`;
-            }
+    const noUrut = String($('#nomor_urut').val() || '').padStart(3, '0');
+    const kode = ($('#klasifikasi_kode').val() || '').trim() || '...';
+    const bulan = ($('#bulan').val() || '').toUpperCase() || '...';
+    const tahun = $('#tahun-nomor').val() || '....';
+    
+    // ✅ DEBUG
+    console.log('=== BUILD NOMOR ===');
+    console.log('No Urut:', noUrut);
+    console.log('Kode dari #klasifikasi_kode:', kode);
+    console.log('Bulan:', bulan);
+    console.log('Tahun:', tahun);
+    
+    const result = `${noUrut}/${kode}/ST.IKOM/UNIKA/${bulan}/${tahun}`;
+    console.log('Nomor final:', result);
+    
+    return result;
+}
+
 
             async function reserveNomor(showToast = true) {
-                const manual = $manual.val().trim();
-                if (manual) {
-                    $disp.val(manual);
-                    $hidden.val(manual);
-                    $urut.val(extractNoUrut(manual));
-                    if (showToast) Swal.fire({
-                        icon: 'success',
-                        title: 'Nomor Manual Dipakai',
-                        text: manual,
-                        timer: 1400,
-                        showConfirmButton: false
-                    });
-                    return {
-                        nomor: manual,
-                        manual: true
-                    };
-                }
-                const kodeKlas = ($('#klasifikasi_kode').val() || '').trim();
-                const bulan = ($('#bulan').val() || '').toUpperCase();
-                const tahun = parseInt($('#tahun-nomor').val(), 10) || new Date().getFullYear();
-                if (!kodeKlas || !bulan || !tahun) {
-                    Swal.fire('Lengkapi Kode/Bulan/Tahun dahulu', '', 'info');
-                    return null;
-                }
+    const manual = $manual.val().trim();
+    if (manual) {
+        $disp.val(manual);
+        $hidden.val(manual);
+        $urut.val(extractNoUrut(manual));
+        if (showToast) Swal.fire({
+            icon: 'success',
+            title: 'Nomor Manual Dipakai',
+            text: manual,
+            timer: 1400,
+            showConfirmButton: false
+        });
+        return { nomor: manual, manual: true };
+    }
+    
+    // ✅ PERBAIKAN: Jangan strip titik!
+    const kodeKlas = ($('#klasifikasi_kode').val() || '').trim();
+    const bulan = ($('#bulan').val() || '').toUpperCase();
+    const tahun = parseInt($('#tahun-nomor').val(), 10) || new Date().getFullYear();
+    
+    // ✅ DEBUG
+    console.log('=== DATA YANG DIKIRIM KE SERVER ===');
+    console.log('kode_klasifikasi:', kodeKlas);
+    console.log('Apakah ada titik?', kodeKlas.includes('.'));
+    console.log('bulan_romawi:', bulan);
+    console.log('tahun:', tahun);
+    
+    if (!kodeKlas || !bulan || !tahun) {
+        Swal.fire('Lengkapi Kode/Bulan/Tahun dahulu', '', 'info');
+        return null;
+    }
 
-                try {
-                    $('#btn-reserve-nomor').prop('disabled', true);
-                    const csrf = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]')
-                        .val();
-                    const res = await fetch(@json(route('ajax.nomor.reserve')), {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrf
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            doc_type: 'ST',
-                            unit_display: 'ST.IKOM',
-                            kode_klasifikasi: kodeKlas,
-                            bulan_romawi: bulan,
-                            tahun
-                        })
-                    });
-                    if (!res.ok) throw new Error('Reserve nomor gagal');
-                    const data = await res.json();
-                    $disp.val(data.nomor);
-                    $hidden.val(data.nomor);
-                    $urut.val(extractNoUrut(data.nomor));
-                    if (showToast) Swal.fire({
-                        icon: 'success',
-                        title: 'Nomor Disiapkan',
-                        text: data.nomor,
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                    return data;
-                } catch (e) {
-                    Swal.fire('Gagal', 'Tidak bisa menyiapkan nomor. Coba lagi.', 'error');
-                    return null;
-                } finally {
-                    $('#btn-reserve-nomor').prop('disabled', false);
-                }
-            }
+    try {
+        $('#btn-reserve-nomor').prop('disabled', true);
+        const csrf = $('meta[name="csrf-token"]').attr('content') || $('input[name="_token"]').val();
+        
+        const payload = {
+            doc_type: 'ST',
+            unit_display: 'ST.IKOM',
+            kode_klasifikasi: kodeKlas,  // ✅ Harus tetap ada titik!
+            bulan_romawi: bulan,
+            tahun
+        };
+        
+        console.log('Payload JSON:', JSON.stringify(payload));
+        
+        const res = await fetch(@json(route('ajax.nomor.reserve')), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+        });
+        
+        if (!res.ok) throw new Error('Reserve nomor gagal');
+        const data = await res.json();
+        
+        console.log('Response dari server:', data);
+        
+        $disp.val(data.nomor);
+        $hidden.val(data.nomor);
+        $urut.val(extractNoUrut(data.nomor));
+        
+        if (showToast) Swal.fire({
+            icon: 'success',
+            title: 'Nomor Disiapkan',
+            text: data.nomor,
+            timer: 1500,
+            showConfirmButton: false
+        });
+        
+        return data;
+    } catch (e) {
+        console.error('Error reserve nomor:', e);
+        Swal.fire('Gagal', 'Tidak bisa menyiapkan nomor. Coba lagi.', 'error');
+        return null;
+    } finally {
+        $('#btn-reserve-nomor').prop('disabled', false);
+    }
+}
 
             if (isEdit) {
                 const updateNomorSurat = () => {

@@ -22,10 +22,10 @@ use App\Jobs\SendSuratTugasEmail;
 use App\Models\KeputusanHeader;
 
 // ❌ HAPUS: Redirect ke login (sistem eksternal yang handle)
-// Route::redirect('/', '/login');
+ Route::redirect('/', '/login');
 
 // ❌ HAPUS: Auth routes Laravel (login/register dihandle dashboard eksternal)
-// Auth::routes();
+ Auth::routes();
 
 // ✅ TAMBAH: Entry point dari Dashboard Menu eksternal
 Route::get('/entry', [ExternalEntryController::class, 'entry'])->name('external.entry');
@@ -192,137 +192,136 @@ Route::middleware('check.session.role')->group(function () {
     Route::patch('notifikasi/mark-all-read', [NotifikasiController::class, 'markAllAsRead'])->name('notifikasi.markAllRead');
 
     // 8) Surat Keputusan (SK)
-    Route::prefix('surat_keputusan')
-        ->name('surat_keputusan.')
-        ->group(function () {
-            Route::get('/', [SuratKeputusanController::class, 'index'])->name('index');
+Route::prefix('surat_keputusan')
+    ->name('surat_keputusan.')
+    ->group(function () {
+        Route::get('/', [SuratKeputusanController::class, 'index'])->name('index');
 
-            Route::get('approve-list', [SuratKeputusanController::class, 'approveList'])
-                ->name('approveList')
-                ->middleware('can:viewAny,App\Models\KeputusanHeader');
+        Route::get('approve-list', [SuratKeputusanController::class, 'approveList'])
+            ->name('approveList')
+            ->middleware('can:viewAny,App\Models\KeputusanHeader');
 
-            Route::get('approve', [RedirectController::class, 'toApproveListSk'])
-                ->name('approveRedirect')
-                ->middleware('can:viewAny,App\Models\KeputusanHeader');
+        Route::get('approve', [RedirectController::class, 'toApproveListSk'])
+            ->name('approveRedirect')
+            ->middleware('can:viewAny,App\Models\KeputusanHeader');
 
-            Route::get('saya', [SuratKeputusanController::class, 'mine'])->name('mine');
+        Route::get('saya', [SuratKeputusanController::class, 'mine'])->name('mine');
 
-            // Semua user boleh lihat SK Terbit (dikontrol di policy jika mau dibatasi)
-            Route::get('terbit', [SuratKeputusanController::class, 'terbitList'])
-                ->name('terbitList')
-                ->middleware('can:viewAny,App\Models\KeputusanHeader');
+        // Semua user boleh lihat SK Terbit (dikontrol di policy jika mau dibatasi)
+        Route::get('terbit', [SuratKeputusanController::class, 'terbitList'])
+            ->name('terbitList')
+            ->middleware('can:viewAny,App\Models\KeputusanHeader');
 
-            // Arsip: khusus Admin TU (peran_id 1) via ability viewArchive
-            Route::get('arsip', [SuratKeputusanController::class, 'arsipList'])
-                ->name('arsipList')
-                ->middleware('can:viewArchive,App\Models\KeputusanHeader');
+        // Arsip: khusus Admin TU (peran_id 1) via ability viewArchive
+        Route::get('arsip', [SuratKeputusanController::class, 'arsipList'])
+            ->name('arsipList')
+            ->middleware('can:viewArchive,App\Models\KeputusanHeader');
 
-            Route::get('/create', [SuratKeputusanController::class, 'create'])
-                ->name('create')
-                ->middleware('can:create,' . KeputusanHeader::class);
+        Route::get('/create', [SuratKeputusanController::class, 'create'])
+            ->name('create')
+            ->middleware('can:create,' . KeputusanHeader::class);
 
-            // (catatan: kamu punya 2x route create sebelumnya; cukup satu ini saja kalau mau dirapikan)
+        Route::post('/', [SuratKeputusanController::class, 'store'])
+            ->name('store')
+            ->middleware('can:create,' . KeputusanHeader::class);
 
-            Route::post('/', [SuratKeputusanController::class, 'store'])
-                ->name('store')
-                ->middleware('can:create,' . KeputusanHeader::class);
+        // ✅ PERBAIKAN: Hapus middleware authorization dari route edit & update
+        // Biarkan controller yang handle authorization
+        Route::get('/{surat_keputusan}/edit', [SuratKeputusanController::class, 'edit'])
+            ->name('edit')
+            ->whereNumber('surat_keputusan');
+            // ->middleware('can:update,surat_keputusan');  ← HAPUS
 
-            Route::get('/{surat_keputusan}/edit', [SuratKeputusanController::class, 'edit'])
-                ->name('edit')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:update,surat_keputusan');
+        Route::put('/{surat_keputusan}', [SuratKeputusanController::class, 'update'])
+            ->name('update')
+            ->whereNumber('surat_keputusan');
+            // ->middleware('can:update,surat_keputusan');  ← HAPUS
 
-            Route::put('/{surat_keputusan}', [SuratKeputusanController::class, 'update'])
-                ->name('update')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:update,surat_keputusan');
+        Route::delete('/{surat_keputusan}', [SuratKeputusanController::class, 'destroy'])
+            ->name('destroy')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:delete,surat_keputusan');
 
-            Route::delete('/{surat_keputusan}', [SuratKeputusanController::class, 'destroy'])
-                ->name('destroy')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:delete,surat_keputusan');
+        Route::post('/{surat_keputusan}/submit', [SuratKeputusanController::class, 'submit'])
+            ->name('submit')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:submit,surat_keputusan');
 
-            Route::post('/{surat_keputusan}/submit', [SuratKeputusanController::class, 'submit'])
-                ->name('submit')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:submit,surat_keputusan');
+        Route::post('/{surat_keputusan}/approve', [SuratKeputusanController::class, 'approve'])
+            ->name('approve')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:approve,surat_keputusan');
 
-            Route::post('/{surat_keputusan}/approve', [SuratKeputusanController::class, 'approve'])
-                ->name('approve')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:approve,surat_keputusan');
+        Route::post('/{surat_keputusan}/reject', [SuratKeputusanController::class, 'reject'])
+            ->name('reject')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:reject,surat_keputusan');
 
-            Route::post('/{surat_keputusan}/reject', [SuratKeputusanController::class, 'reject'])
-                ->name('reject')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:reject,surat_keputusan');
+        Route::post('/{surat_keputusan}/reopen', [SuratKeputusanController::class, 'reopen'])
+            ->name('reopen')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:reopen,surat_keputusan');
 
-            Route::post('/{surat_keputusan}/reopen', [SuratKeputusanController::class, 'reopen'])
-                ->name('reopen')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:reopen,surat_keputusan');
+        Route::post('{surat_keputusan}/terbitkan', [SuratKeputusanController::class, 'terbitkan'])
+            ->name('terbitkan')
+            ->whereNumber('surat_keputusan');
 
-            Route::post('{surat_keputusan}/terbitkan', [SuratKeputusanController::class, 'terbitkan'])
-                ->name('terbitkan')
-                ->whereNumber('surat_keputusan');
+        Route::post('{surat_keputusan}/arsipkan', [SuratKeputusanController::class, 'arsipkan'])
+            ->name('arsipkan')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:archive,surat_keputusan');
 
-            Route::post('{surat_keputusan}/arsipkan', [SuratKeputusanController::class, 'arsipkan'])
-                ->name('arsipkan')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:archive,surat_keputusan');
+        Route::post('{surat_keputusan}/batal-terbitkan', [SuratKeputusanController::class, 'batalTerbitkan'])
+            ->name('batal_terbitkan')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:unpublish,surat_keputusan');
 
-            Route::post('{surat_keputusan}/batal-terbitkan', [SuratKeputusanController::class, 'batalTerbitkan'])
-                ->name('batal_terbitkan')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:unpublish,surat_keputusan');
+        Route::get('/{surat_keputusan}/approve-form', [SuratKeputusanController::class, 'approveForm'])
+            ->name('approveForm')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:approve,surat_keputusan');
 
-            Route::get('/{surat_keputusan}/approve-form', [SuratKeputusanController::class, 'approveForm'])
-                ->name('approveForm')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:approve,surat_keputusan');
+        Route::get('/{surat_keputusan}/approve-preview', [SuratKeputusanController::class, 'approvePreview'])
+            ->name('approvePreview')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:approve,surat_keputusan');
 
-            Route::get('/{surat_keputusan}/approve-preview', [SuratKeputusanController::class, 'approvePreview'])
-                ->name('approvePreview')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:approve,surat_keputusan');
+        Route::get('/{surat_keputusan}/preview', [SuratKeputusanController::class, 'preview'])
+            ->name('preview')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:view,surat_keputusan');
 
-            Route::get('/{surat_keputusan}/preview', [SuratKeputusanController::class, 'preview'])
-                ->name('preview')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:view,surat_keputusan');
+        Route::get('/{surat_keputusan}/download', [SuratKeputusanController::class, 'downloadPdf'])
+            ->name('downloadPdf')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:view,surat_keputusan');
 
-            Route::get('/{surat_keputusan}/download', [SuratKeputusanController::class, 'downloadPdf'])
-                ->name('downloadPdf')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:view,surat_keputusan');
+        Route::get('/{surat_keputusan}', [SuratKeputusanController::class, 'show'])
+            ->name('show')
+            ->whereNumber('surat_keputusan')
+            ->middleware('can:view,surat_keputusan');
 
-            Route::get('/{surat_keputusan}', [SuratKeputusanController::class, 'show'])
-                ->name('show')
-                ->whereNumber('surat_keputusan')
-                ->middleware('can:view,surat_keputusan');
+        // ✅ FASE 1.2: Lampiran file routes (NESTED RESOURCE)
+        Route::prefix('{surat_keputusan}')
+            ->whereNumber('surat_keputusan')
+            ->group(function () {
+                // ✅ PERBAIKAN: Hapus middleware dari upload & delete attachment
+                Route::post('/attachments', [SuratKeputusanController::class, 'uploadAttachment'])
+                    ->name('attachments.upload');
+                    // ->middleware('can:update,surat_keputusan');  ← HAPUS
 
-            // ✅ FASE 1.2: Lampiran file routes (NESTED RESOURCE)
-            Route::prefix('{surat_keputusan}')
-                ->whereNumber('surat_keputusan')
-                ->group(function () {
-                    // Upload attachment
-                    Route::post('/attachments', [SuratKeputusanController::class, 'uploadAttachment'])
-                        ->name('attachments.upload')
-                        ->middleware('can:update,surat_keputusan');
+                Route::get('/attachments/{attachment}', [SuratKeputusanController::class, 'downloadAttachment'])
+                    ->name('attachments.download')
+                    ->whereNumber('attachment')
+                    ->middleware('can:view,surat_keputusan');
 
-                    // Download attachment
-                    Route::get('/attachments/{attachment}', [SuratKeputusanController::class, 'downloadAttachment'])
-                        ->name('attachments.download')
-                        ->whereNumber('attachment')
-                        ->middleware('can:view,surat_keputusan');
+                Route::delete('/attachments/{attachment}', [SuratKeputusanController::class, 'deleteAttachment'])
+                    ->name('attachments.delete')
+                    ->whereNumber('attachment');
+                    // ->middleware('can:update,surat_keputusan');  ← HAPUS
+            });
+    });
 
-                    // Delete attachment
-                    Route::delete('/attachments/{attachment}', [SuratKeputusanController::class, 'deleteAttachment'])
-                        ->name('attachments.delete')
-                        ->whereNumber('attachment')
-                        ->middleware('can:update,surat_keputusan');
-                });
-        });
 
     Route::get('/surat-keputusan/{any?}', [RedirectController::class, 'legacySk'])->where('any', '.*');
 

@@ -1,387 +1,470 @@
 /**
- * ============================================================================
- * ANTI-INJECTION PROTECTION FOR ALL FORMS
- * ============================================================================
- * 
- * Sistem keamanan otomatis untuk mencegah SQL Injection, XSS, dan serangan
- * injection lainnya di client-side.
- * 
- * Features:
- * - Auto-detect semua form di halaman
- * - Sanitasi input sebelum submit
- * - Real-time character filtering
- * - File upload validation
- * - Visual feedback untuk user
- * 
- * @version 1.0.0
- * @author Surat SIEGA Security Team
- * @date 2025-10-20
- */
+* ============================================================================
+* ANTI-INJECTION PROTECTION FOR ALL FORMS - IMPROVED VERSION
+* ============================================================================
+*
+* Sistem keamanan client-side yang TIDAK MENGGANGGU USER EXPERIENCE
+*
+* Improvements:
+* - ✅ Whitelist approach untuk field tertentu
+* - ✅ Sanitasi HANYA saat submit (bukan real-time)
+* - ✅ Pattern detection lebih pintar (context-aware)
+* - ✅ Visual warning tanpa auto-replace
+* - ✅ Configurable per field
+*
+* @version 2.0.0
+* @author SIEGA Security Team (Improved)
+* @date 2025-12-06
+*/
 
 (function() {
-    'use strict';
+'use strict';
 
-    // ============================================================================
-    // CONFIGURATION
-    // ============================================================================
-    
-    const CONFIG = {
-        // Maximum input length untuk mencegah buffer overflow
-        maxInputLength: 10000,
-        
-        // Maximum file size (5MB)
-        maxFileSize: 5 * 1024 * 1024,
-        
-        // Allowed file extensions
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx'],
-        
-        // Enable/disable real-time validation
-        enableRealTime: true,
-        
-        // Enable/disable console logging
-        debugMode: false
-    };
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
 
-    // ============================================================================
-    // DANGEROUS PATTERNS
-    // ============================================================================
-    
-    const DANGEROUS_PATTERNS = {
-        // SQL Injection patterns
-        sql: [
-            /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|DECLARE)\b)/gi,
-            /(--|\#|\/\*|\*\/)/g,
-            /('|")(;|\s)*(OR|AND|UNION|SELECT)/gi,
-            /(;|\s)*DROP\s+TABLE/gi,
-            /(\bOR\b|\bAND\b)\s*['"]?\d+['"]?\s*=\s*['"]?\d+/gi
-        ],
-        
-        // XSS patterns
-        xss: [
-            /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-            /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
-            /javascript:/gi,
-            /on\w+\s*=/gi, // onerror=, onload=, onclick=, etc.
-            /<embed\b/gi,
-            /<object\b/gi,
-            /<img[^>]+src\s*=\s*["']?\s*javascript:/gi
-        ],
-        
-        // Path traversal
-        pathTraversal: [
-            /\.\.\//g,
-            /\.\.\\+/g,
-            /%2e%2e%2f/gi,
-            /%2e%2e\//gi
-        ],
-        
-        // Command injection
-        commandInjection: [
-            /[;&|`$()]/g,
-            /\b(eval|exec|system|shell_exec|passthru)\b/gi
-        ]
-    };
+const CONFIG = {
+// Maximum input length untuk mencegah buffer overflow
+maxInputLength: 10000,
 
-    // ============================================================================
-    // SANITIZATION FUNCTIONS
-    // ============================================================================
+// Maximum file size (5MB)
+maxFileSize: 5 * 1024 * 1024,
 
-    /**
-     * Sanitize text input
-     * @param {string} value - Input value
-     * @param {object} options - Sanitization options
-     * @returns {string} Sanitized value
-     */
-    function sanitizeText(value, options = {}) {
-        if (!value || typeof value !== 'string') return '';
+// Allowed file extensions
+allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'],
 
-        let clean = value.trim();
+// ❌ NONAKTIFKAN real-time validation (terlalu invasif!)
+enableRealTime: false,
 
-        // Apply length limit
-        const maxLength = options.maxLength || CONFIG.maxInputLength;
-        clean = clean.substring(0, maxLength);
+// Enable/disable console logging
+debugMode: true, // Set false di production
 
-        // Remove SQL injection patterns
-        DANGEROUS_PATTERNS.sql.forEach(pattern => {
-            clean = clean.replace(pattern, '');
-        });
+// ✅ WHITELIST: Field yang TIDAK perlu sanitasi ketat
+whitelistedFields: [
+'nama_umum', // Judul Surat
+'redaksi_pembuka', // Redaksi
+'penutup', // Penutup
+'detail_tugas', // Detail
+'tempat', // Tempat
+'keterangan', // Keterangan
+'catatan', // Catatan
+'deskripsi' // Deskripsi
+],
 
-        // Remove XSS patterns
-        DANGEROUS_PATTERNS.xss.forEach(pattern => {
-            clean = clean.replace(pattern, '');
-        });
+// ✅ Field yang butuh validasi email
+emailFields: ['email', 'email_pengirim', 'email_penerima'],
 
-        // Remove path traversal patterns
-        DANGEROUS_PATTERNS.pathTraversal.forEach(pattern => {
-            clean = clean.replace(pattern, '');
-        });
+// ✅ Field yang harus numeric
+numericFields: ['tahun', 'tahun_nomor', 'nomor_urut', 'jumlah', 'harga']
+};
 
-        // Remove command injection patterns
-        DANGEROUS_PATTERNS.commandInjection.forEach(pattern => {
-            clean = clean.replace(pattern, '');
-        });
+// ============================================================================
+// IMPROVED DANGEROUS PATTERNS (Lebih Spesifik & Context-Aware)
+// ============================================================================
 
-        // Remove null bytes
-        clean = clean.replace(/\0/g, '');
+const DANGEROUS_PATTERNS = {
+// ✅ SQL Injection patterns - HANYA dalam konteks SQL yang jelas
+sql: [
+// Detect SQL dengan statement lengkap (lebih aman)
+/(\bSELECT\b.*\bFROM\b)/gi,
+/(\bINSERT\b.*\bINTO\b)/gi,
+/(\bUPDATE\b.*\bSET\b)/gi,
+/(\bDELETE\b.*\bFROM\b)/gi,
+/(\bDROP\b.*\bTABLE\b)/gi,
+/(\bCREATE\b.*\bTABLE\b)/gi,
+/(\bALTER\b.*\bTABLE\b)/gi,
 
-        // Normalize whitespace
-        clean = clean.replace(/\s+/g, ' ');
+// SQL comments
+/(--[^\r\n]*)/g,
+/(\/\*[\s\S]*?\*\/)/g,
 
-        return clean;
-    }
+// UNION-based injection
+/(\bUNION\b.*\bSELECT\b)/gi,
 
-    /**
-     * Sanitize email input
-     * @param {string} email - Email value
-     * @returns {string} Sanitized email
-     */
-    function sanitizeEmail(email) {
-        if (!email) return '';
-        
-        let clean = email.trim().toLowerCase();
-        
-        // Remove dangerous characters
-        clean = clean.replace(/[<>"';]/g, '');
-        
-        // Basic email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(clean)) {
-            return '';
-        }
-        
-        return clean;
-    }
+// OR/AND-based injection (dengan quote)
+/(['"])\s*(OR|AND)\s+['"]?\w+['"]?\s*=\s*['"]?\w+/gi,
 
-    /**
-     * Sanitize numeric input
-     * @param {string} value - Numeric value
-     * @returns {string} Sanitized number
-     */
-    function sanitizeNumber(value) {
-        if (!value) return '';
-        
-        // Only allow digits, dots, and minus
-        let clean = value.toString().replace(/[^\d.-]/g, '');
-        
-        return clean;
-    }
+// Semicolon injection
+/;\s*(SELECT|INSERT|UPDATE|DELETE|DROP)/gi
+],
 
-    /**
-     * Validate file upload
-     * @param {File} file - File object
-     * @returns {object} Validation result
-     */
-    function validateFile(file) {
-        const result = {
-            valid: true,
-            message: ''
-        };
+// ✅ XSS patterns - Lebih specific
+xss: [
+/<script\b[^>]*>[\s\S]*?<\ /script>/gi,
+        /<iframe\b[^>]*>[\s\S]*?<\ /iframe>/gi,
+                /javascript\s*:/gi,
+                /<embed\b[^>]*>/gi,
+                    /<object\b[^>]*>/gi,
 
-        // Check file size
-        if (file.size > CONFIG.maxFileSize) {
-            result.valid = false;
-            result.message = `File terlalu besar. Maksimal ${CONFIG.maxFileSize / (1024 * 1024)}MB`;
-            return result;
-        }
+                        // Event handlers dengan context
+                        /<[^>]+\s+(on\w+)\s*=\s*["'][^"']*["']/gi,
 
-        // Check file extension
-        const fileName = file.name.toLowerCase();
-        const extension = fileName.split('.').pop();
-        
-        if (!CONFIG.allowedExtensions.includes(extension)) {
-            result.valid = false;
-            result.message = `Format file tidak diizinkan. Hanya: ${CONFIG.allowedExtensions.join(', ')}`;
-            return result;
-        }
+                            // Data URI dengan javascript
+                            /data:text\/html[^,]*,/gi,
 
-        // Check for double extensions (file.php.jpg)
-        const parts = fileName.split('.');
-        if (parts.length > 2) {
-            result.valid = false;
-            result.message = 'Nama file tidak valid (double extension)';
-            return result;
-        }
+                            // Base64 encoded scripts (advanced)
+                            /eval\s*\(\s*atob\s*\(/gi
+                            ],
 
-        return result;
-    }
+                            // Path traversal
+                            pathTraversal: [
+                            /\.\.\//g,
+                            /\.\.\\+/g,
+                            /%2e%2e%2f/gi,
+                            /%2e%2e\//gi,
+                            /\.\.%2f/gi
+                            ],
 
-    // ============================================================================
-    // FORM PROTECTION
-    // ============================================================================
+                            // Command injection (lebih spesifik)
+                            commandInjection: [
+                            /;\s*(wget|curl|bash|sh|cmd|powershell)/gi,
+                            /\$\([^)]*\)/g, // $(command)
+                            /`[^`]*`/g, // `command`
+                            /&&\s*\w+/g, // && command
+                            /\|\|\s*\w+/g // || command
+                            ]
+                            };
 
-    /**
-     * Protect single form
-     * @param {HTMLFormElement} form - Form element
-     */
-    function protectForm(form) {
-        if (!form || form.dataset.protected === 'true') return;
+                            // ============================================================================
+                            // SANITIZATION FUNCTIONS - IMPROVED
+                            // ============================================================================
 
-        // Mark as protected
-        form.dataset.protected = 'true';
+                            /**
+                            * Check if input has dangerous patterns
+                            * @param {string} value - Input value
+                            * @returns {object} Detection result
+                            */
+                            function detectThreats(value) {
+                            if (!value || typeof value !== 'string') {
+                            return { hasThreat: false, threats: [] };
+                            }
 
-        // Add submit handler
-        form.addEventListener('submit', function(e) {
-            if (CONFIG.debugMode) {
-                console.log('Form submit intercepted:', form.id || form.name);
-            }
+                            const threats = [];
 
-            // Get all inputs
-            const textInputs = form.querySelectorAll('input[type="text"], input[type="search"], textarea');
-            const emailInputs = form.querySelectorAll('input[type="email"]');
-            const numberInputs = form.querySelectorAll('input[type="number"]');
-            const fileInputs = form.querySelectorAll('input[type="file"]');
+                            // Check SQL injection
+                            DANGEROUS_PATTERNS.sql.forEach((pattern, index) => {
+                            if (pattern.test(value)) {
+                            threats.push({ type: 'SQL Injection', pattern: index });
+                            }
+                            });
 
-            // Sanitize text inputs
-            textInputs.forEach(input => {
-                const original = input.value;
-                input.value = sanitizeText(original);
-                
-                if (CONFIG.debugMode && original !== input.value) {
-                    console.warn('Input sanitized:', input.name, {original, sanitized: input.value});
-                }
-            });
+                            // Check XSS
+                            DANGEROUS_PATTERNS.xss.forEach((pattern, index) => {
+                            if (pattern.test(value)) {
+                            threats.push({ type: 'XSS Attack', pattern: index });
+                            }
+                            });
 
-            // Sanitize email inputs
-            emailInputs.forEach(input => {
-                const original = input.value;
-                input.value = sanitizeEmail(original);
-                
-                if (CONFIG.debugMode && original !== input.value) {
-                    console.warn('Email sanitized:', input.name, {original, sanitized: input.value});
-                }
-            });
+                            // Check path traversal
+                            DANGEROUS_PATTERNS.pathTraversal.forEach((pattern, index) => {
+                            if (pattern.test(value)) {
+                            threats.push({ type: 'Path Traversal', pattern: index });
+                            }
+                            });
 
-            // Sanitize number inputs
-            numberInputs.forEach(input => {
-                const original = input.value;
-                input.value = sanitizeNumber(original);
-                
-                if (CONFIG.debugMode && original !== input.value) {
-                    console.warn('Number sanitized:', input.name, {original, sanitized: input.value});
-                }
-            });
+                            // Check command injection
+                            DANGEROUS_PATTERNS.commandInjection.forEach((pattern, index) => {
+                            if (pattern.test(value)) {
+                            threats.push({ type: 'Command Injection', pattern: index });
+                            }
+                            });
 
-            // Validate file uploads
-            let fileError = false;
-            fileInputs.forEach(input => {
-                if (input.files.length > 0) {
-                    for (let i = 0; i < input.files.length; i++) {
-                        const validation = validateFile(input.files[i]);
-                        if (!validation.valid) {
-                            e.preventDefault();
-                            alert(validation.message);
-                            fileError = true;
-                            break;
-                        }
-                    }
-                }
-            });
+                            return {
+                            hasThreat: threats.length > 0,
+                            threats: threats
+                            };
+                            }
 
-            if (fileError) return false;
-        });
+                            /**
+                            * ✅ Sanitize text input - SOFT APPROACH
+                            * @param {string} value - Input value
+                            * @param {object} options - Sanitization options
+                            * @returns {string} Sanitized value
+                            */
+                            function sanitizeText(value, options = {}) {
+                            if (!value || typeof value !== 'string') return '';
 
-        // Add real-time validation if enabled
-        if (CONFIG.enableRealTime) {
-            addRealTimeValidation(form);
-        }
-    }
+                            let clean = value.trim();
 
-    /**
-     * Add real-time validation to form inputs
-     * @param {HTMLFormElement} form - Form element
-     */
-    function addRealTimeValidation(form) {
-        const textInputs = form.querySelectorAll('input[type="text"], input[type="search"], textarea');
-        
-        textInputs.forEach(input => {
-            // Create warning indicator
-            const warning = document.createElement('small');
-            warning.className = 'text-danger d-none';
-            warning.style.fontSize = '0.8em';
-            warning.textContent = '⚠️ Karakter berbahaya dihapus';
-            
-            // Insert after input
-            if (input.nextSibling) {
-                input.parentNode.insertBefore(warning, input.nextSibling);
-            } else {
-                input.parentNode.appendChild(warning);
-            }
+                            // Apply length limit
+                            const maxLength = options.maxLength || CONFIG.maxInputLength;
+                            clean = clean.substring(0, maxLength);
 
-            // Add input handler with debounce
-            let timeout;
-            input.addEventListener('input', function() {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    const original = this.value;
-                    const sanitized = sanitizeText(original);
-                    
-                    if (original !== sanitized) {
-                        this.value = sanitized;
-                        warning.classList.remove('d-none');
-                        
-                        setTimeout(() => {
-                            warning.classList.add('d-none');
-                        }, 3000);
-                    }
-                }, 500);
-            });
-        });
-    }
+                            // ✅ HANYA hapus pattern yang BENAR-BENAR berbahaya
+                            DANGEROUS_PATTERNS.sql.forEach(pattern => {
+                            clean = clean.replace(pattern, '');
+                            });
 
-    // ============================================================================
-    // INITIALIZATION
-    // ============================================================================
+                            DANGEROUS_PATTERNS.xss.forEach(pattern => {
+                            clean = clean.replace(pattern, '');
+                            });
 
-    /**
-     * Initialize anti-injection protection
-     */
-    function init() {
-        if (CONFIG.debugMode) {
-            console.log('Anti-Injection Protection Initialized');
-        }
+                            DANGEROUS_PATTERNS.pathTraversal.forEach(pattern => {
+                            clean = clean.replace(pattern, '');
+                            });
 
-        // Protect all existing forms
-        document.querySelectorAll('form').forEach(protectForm);
+                            DANGEROUS_PATTERNS.commandInjection.forEach(pattern => {
+                            clean = clean.replace(pattern, '');
+                            });
 
-        // Watch for dynamically added forms
-        if (typeof MutationObserver !== 'undefined') {
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.tagName === 'FORM') {
-                            protectForm(node);
-                        } else if (node.querySelectorAll) {
-                            node.querySelectorAll('form').forEach(protectForm);
-                        }
-                    });
-                });
-            });
+                            // Remove null bytes
+                            clean = clean.replace(/\0/g, '');
 
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-        }
-    }
+                            // ✅ JANGAN normalize whitespace! Biarkan user bebas
+                            // clean = clean.replace(/\s+/g, ' '); // ❌ DIHAPUS!
 
-    // Auto-initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+                            return clean;
+                            }
 
-    // ============================================================================
-    // PUBLIC API
-    // ============================================================================
+                            /**
+                            * Sanitize with whitelist check
+                            * @param {HTMLInputElement} input - Input element
+                            * @returns {string} Sanitized value
+                            */
+                            function smartSanitize(input) {
+                            const fieldName = input.name || input.id || '';
+                            const value = input.value;
 
-    window.AntiInjection = {
-        sanitizeText,
-        sanitizeEmail,
-        sanitizeNumber,
-        validateFile,
-        protectForm,
-        config: CONFIG
-    };
+                            // ✅ Check if field is whitelisted (skip sanitization)
+                            const isWhitelisted = CONFIG.whitelistedFields.some(field =>
+                            fieldName.toLowerCase().includes(field.toLowerCase())
+                            );
 
-})();
+                            if (isWhitelisted) {
+                            if (CONFIG.debugMode) {
+                            console.log(`✅ Field "${fieldName}" whitelisted - minimal sanitization`);
+                            }
+
+                            // Hanya hapus tag HTML berbahaya
+                            return value
+                            .replace(/<script\b[^>]*>[\s\S]*?<\ /script>/gi, '')
+                                    .replace(/<iframe\b[^>]*>[\s\S]*?<\ /iframe>/gi, '')
+                                            .replace(/javascript:/gi, '');
+                                            }
+
+                                            // Email fields
+                                            if (CONFIG.emailFields.includes(fieldName)) {
+                                            return sanitizeEmail(value);
+                                            }
+
+                                            // Numeric fields
+                                            if (CONFIG.numericFields.includes(fieldName)) {
+                                            return sanitizeNumber(value);
+                                            }
+
+                                            // Default: full sanitization
+                                            return sanitizeText(value);
+                                            }
+
+                                            /**
+                                            * Sanitize email input
+                                            * @param {string} email - Email value
+                                            * @returns {string} Sanitized email
+                                            */
+                                            function sanitizeEmail(email) {
+                                            if (!email) return '';
+
+                                            let clean = email.trim().toLowerCase();
+
+                                            // Remove dangerous characters
+                                            clean = clean.replace(/[<>"';]/g, '');
+
+                                                return clean;
+                                                }
+
+                                                /**
+                                                * Sanitize numeric input
+                                                * @param {string} value - Numeric value
+                                                * @returns {string} Sanitized number
+                                                */
+                                                function sanitizeNumber(value) {
+                                                if (!value) return '';
+
+                                                // Only allow digits, dots, and minus
+                                                let clean = value.toString().replace(/[^\d.-]/g, '');
+
+                                                return clean;
+                                                }
+
+                                                /**
+                                                * Validate file upload
+                                                * @param {File} file - File object
+                                                * @returns {object} Validation result
+                                                */
+                                                function validateFile(file) {
+                                                const result = {
+                                                valid: true,
+                                                message: ''
+                                                };
+
+                                                // Check file size
+                                                if (file.size > CONFIG.maxFileSize) {
+                                                result.valid = false;
+                                                result.message = `File terlalu besar. Maksimal ${CONFIG.maxFileSize /
+                                                (1024 * 1024)}MB`;
+                                                return result;
+                                                }
+
+                                                // Check file extension
+                                                const fileName = file.name.toLowerCase();
+                                                const extension = fileName.split('.').pop();
+
+                                                if (!CONFIG.allowedExtensions.includes(extension)) {
+                                                result.valid = false;
+                                                result.message = `Format file tidak diizinkan. Hanya:
+                                                ${CONFIG.allowedExtensions.join(', ')}`;
+                                                return result;
+                                                }
+
+                                                // Check for double extensions (file.php.jpg)
+                                                const parts = fileName.split('.');
+                                                if (parts.length > 2) {
+                                                result.valid = false;
+                                                result.message = 'Nama file tidak valid (double extension detected)';
+                                                return result;
+                                                }
+
+                                                // Check for executable extensions in name
+                                                const dangerousExts = ['php', 'exe', 'sh', 'bat', 'cmd', 'com', 'pif',
+                                                'scr'];
+                                                if (dangerousExts.some(ext => fileName.includes('.' + ext))) {
+                                                result.valid = false;
+                                                result.message = 'Nama file mengandung ekstensi berbahaya';
+                                                return result;
+                                                }
+
+                                                return result;
+                                                }
+
+                                                //
+                                                ============================================================================
+                                                // FORM PROTECTION - IMPROVED
+                                                //
+                                                ============================================================================
+
+                                                /**
+                                                * Protect single form
+                                                * @param {HTMLFormElement} form - Form element
+                                                */
+                                                function protectForm(form) {
+                                                if (!form || form.dataset.protected === 'true') return;
+
+                                                // Mark as protected
+                                                form.dataset.protected = 'true';
+
+                                                // ✅ Add submit handler (HANYA sanitasi saat submit!)
+                                                form.addEventListener('submit', function(e) {
+                                                if (CONFIG.debugMode) {
+                                                console.log('🔒 Form submit intercepted:', form.id || form.name);
+                                                }
+
+                                                let hasBlockedThreat = false;
+                                                const threats = [];
+
+                                                // Get all text-based inputs
+                                                const inputs = form.querySelectorAll('input[type="text"],
+                                                input[type="search"], input[type="email"], textarea');
+
+                                                inputs.forEach(input => {
+                                                const original = input.value;
+
+                                                // ✅ Detect threats BEFORE sanitizing
+                                                const detection = detectThreats(original);
+
+                                                if (detection.hasThreat) {
+                                                threats.push({
+                                                field: input.name || input.id,
+                                                threats: detection.threats
+                                                });
+
+                                                // ✅ BLOCK submit jika ada ancaman serius
+                                                if (detection.threats.some(t => t.type === 'SQL Injection' || t.type
+                                                === 'XSS Attack')) {
+                                                hasBlockedThreat = true;
+                                                }
+                                                }
+
+                                                // Sanitize dengan smart approach
+                                                const sanitized = smartSanitize(input);
+                                                input.value = sanitized;
+
+                                                if (CONFIG.debugMode && original !== sanitized) {
+                                                console.warn('⚠️ Input sanitized:', input.name || input.id, {
+                                                original: original.substring(0, 50) + '...',
+                                                sanitized: sanitized.substring(0, 50) + '...'
+                                                });
+                                                }
+                                                });
+
+                                                // ✅ BLOCK submit jika ada threat serius
+                                                if (hasBlockedThreat) {
+                                                e.preventDefault();
+
+                                                // Show SweetAlert jika tersedia
+                                                if (typeof Swal !== 'undefined') {
+                                                Swal.fire({
+                                                icon: 'error',
+                                                title: 'Input Berbahaya Terdeteksi',
+                                                html: '<p>Sistem mendeteksi pola berbahaya pada input Anda:</p>' +
+                                                '<ul style="text-align:left; padding-left: 30px;">' +
+                                                    threats.map(t =>
+                                                    `<li><strong>${t.field}:</strong> ${t.threats.map(th =>
+                                                        th.type).join(', ')}</li>`
+                                                    ).join('') +
+                                                    '</ul>' +
+                                                '<p class="mt-2 text-muted">Mohon periksa kembali input Anda.</p>',
+                                                confirmButtonText: 'OK, Saya Mengerti',
+                                                width: '600px'
+                                                });
+                                                } else {
+                                                alert('⚠️ Input berbahaya terdeteksi!\n\nField: ' + threats.map(t =>
+                                                t.field).join(', '));
+                                                }
+
+                                                return false;
+                                                }
+
+                                                // Validate file uploads
+                                                const fileInputs = form.querySelectorAll('input[type="file"]');
+                                                let fileError = false;
+
+                                                fileInputs.forEach(input => {
+                                                if (input.files.length > 0) {
+                                                for (let i = 0; i < input.files.length; i++) { const
+                                                    validation=validateFile(input.files[i]); if (!validation.valid) {
+                                                    e.preventDefault(); if (typeof Swal !=='undefined' ) { Swal.fire({
+                                                    icon: 'error' , title: 'File Tidak Valid' , text:
+                                                    validation.message, confirmButtonText: 'OK' }); } else {
+                                                    alert(validation.message); } fileError=true; break; } } } }); if
+                                                    (fileError) return false; }); // ❌ REAL-TIME VALIDATION
+                                                    DINONAKTIFKAN (terlalu invasif!) // if (CONFIG.enableRealTime) { //
+                                                    addRealTimeValidation(form); // } }
+                                                    //============================================================================//
+                                                    INITIALIZATION
+                                                    //============================================================================/**
+                                                    * Initialize anti-injection protection */ function init() { if
+                                                    (CONFIG.debugMode) { console.log('%c🛡️ Anti-Injection Protection
+                                                    v2.0
+                                                    Initialized', 'background: #28a745; color: white; font-size: 14px; padding: 5px 10px; border-radius: 3px;'
+                                                    ); console.log('Whitelisted fields:', CONFIG.whitelistedFields); }
+                                                    // Protect all existing forms
+                                                    document.querySelectorAll('form').forEach(protectForm); // Watch for
+                                                    dynamically added forms if (typeof MutationObserver !=='undefined' )
+                                                    { const observer=new MutationObserver(function(mutations) {
+                                                    mutations.forEach(function(mutation) {
+                                                    mutation.addedNodes.forEach(function(node) { if
+                                                    (node.tagName==='FORM' ) { protectForm(node); } else if
+                                                    (node.querySelectorAll) {
+                                                    node.querySelectorAll('form').forEach(protectForm); } }); }); });
+                                                    observer.observe(document.body, { childList: true, subtree: true });
+                                                    } } // Auto-initialize when DOM is ready if
+                                                    (document.readyState==='loading' ) {
+                                                    document.addEventListener('DOMContentLoaded', init); } else {
+                                                    init(); }
+                                                    //============================================================================//
+                                                    PUBLIC API
+                                                    //============================================================================window.AntiInjection={
+                                                    sanitizeText, sanitizeEmail, sanitizeNumber, validateFile,
+                                                    protectForm, detectThreats, smartSanitize, config: CONFIG,
+                                                    version: '2.0.0' }; })();

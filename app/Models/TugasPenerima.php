@@ -309,25 +309,25 @@ class TugasPenerima extends Model
     }
 
     // ==================== MODEL EVENTS =========================
-
     protected static function boot()
     {
         parent::boot();
 
-        // ✅ ADDED: Validate before saving
+        // ✅ IMPROVED: Validate before saving (lebih lenient)
         static::saving(function ($model) {
+            // Validate tugas_id (ini wajib)
             if (empty($model->tugas_id)) {
                 throw new \InvalidArgumentException('Tugas ID wajib diisi');
             }
 
-            // Validate tugas_id
             $tugasId = validate_integer_id($model->tugas_id);
             if ($tugasId === null) {
                 throw new \InvalidArgumentException('Tugas ID tidak valid');
             }
 
-            // Validate recipient data
-            if ($model->is_internal) {
+            // ✅ FIXED: Validate recipient data (hanya jika is_internal = true)
+            if ($model->is_internal === true || $model->is_internal === 1) {
+                // Penerima internal: wajib punya pengguna_id
                 if (empty($model->pengguna_id)) {
                     throw new \InvalidArgumentException('Pengguna ID wajib diisi untuk penerima internal');
                 }
@@ -336,11 +336,12 @@ class TugasPenerima extends Model
                 if ($userId === null) {
                     throw new \InvalidArgumentException('Pengguna ID tidak valid');
                 }
-            } else {
-                if (empty($model->nama_eksternal)) {
-                    throw new \InvalidArgumentException('Nama eksternal wajib diisi untuk penerima eksternal');
-                }
             }
+            // ✅ REMOVED: Validasi penerima eksternal dihapus
+            // Karena:
+            // 1. Penerima eksternal OPTIONAL
+            // 2. Validasi sudah ada di FormRequest
+            // 3. Tidak semua surat tugas butuh penerima eksternal
         });
     }
 }

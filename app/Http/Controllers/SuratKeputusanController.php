@@ -373,41 +373,162 @@ class SuratKeputusanController extends Controller
         );
     }
 
+        /**
+     * ✅ Update SK dengan validasi status dan mode yang benar
+     *
+     * @param  \App\Http\Requests\UpdateKeputusanRequest  $request
+     * @param  \App\Models\KeputusanHeader  $surat_keputusan
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function update(UpdateKeputusanRequest $request, KeputusanHeader $surat_keputusan)
     {
-        $this->authorize('update', $surat_keputusan);
+        // ✅ DEBUG: Log request untuk tracking
+        \Log::info('SuratKeputusanController update() dipanggil', [
+            'user_id'        => auth()->id(),
+            'user_peran_id'  => auth()->user()->peran_id,
+            'sk_id'          => $surat_keputusan->id,
+            'sk_status'      => $surat_keputusan->status_surat,
+            'sk_dibuat_oleh' => $surat_keputusan->dibuat_oleh,
+            'mode'           => $request->input('mode'),
+        ]);
 
-        $validatedData = $request->validated();
-        $mode = $request->input('mode');
+        // ✅ Authorization check dengan error handling
+        try {
+            $this->authorize('update', $surat_keputusan);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            \Log::warning('Update SK unauthorized', [
+                'user_id'        => auth()->id(),
+                'user_peran_id'  => auth()->user()->peran_id,
+                'sk_id'          => $surat_keputusan->id,
+                'sk_status'      => $surat_keputusan->status_surat,
+                'sk_dibuat_oleh' => $surat_keputusan->dibuat_oleh,
+                'error'          => $e->getMessage(),
+            ]);
 
-        if ($mode === 'pending' || $mode === 'terkirim') {
-            if (!in_array($surat_keputusan->status_surat, ['draft', 'ditolak'])) {
-                return back()->withErrors(['mode' => 'SK dengan status ' . $surat_keputusan->status_surat . ' tidak bisa diajukan.']);
-            }
-            $newStatus = 'pending';
-        } else {
-            $newStatus = $surat_keputusan->status_surat;
-        }
-
-        if ($newStatus === 'pending' && empty($validatedData['penandatangan']) && empty($surat_keputusan->penandatangan)) {
             return back()
-                ->withErrors(['penandatangan' => 'Penandatangan wajib diisi saat pengajuan.'])
+                ->withErrors([
+                    'authorization' => 'Anda tidak memiliki akses untuk mengubah SK ini. Status: ' . $surat_keputusan->status_surat,
+                ])
                 ->withInput();
         }
 
-        try {
-            $sk = $this->skService->updateKeputusan($surat_keputusan, $validatedData, $newStatus);
+        $validatedData = $request->validated();
+        $mode          = $request->input('mode');
 
-            $message = $newStatus === 'pending' ? 'Perubahan disimpan & SK diajukan kembali.' : 'SK berhasil diperbarui.';
+        // ✅ Logika status yang benar
+        if ($mode === 'pending' || $mode === 'terkirim') {
+            // Hanya draft atau ditolak yang bisa diajukan
+            if (!in_array($surat_keputusan->status_surat, ['draft', 'ditolak'], true)) {
+                \Log::warning('Update SK gagal: Status tidak valid untuk pengajuan', [
+                    'sk_id'          => $surat_keputusan->id,
+                    'current_status' => $surat_keputusan->status_surat,
+                    'mode'           => $mode,
+                ]);
 
-            return redirect()->route('surat_keputusan.index')->with('success', $message);
-        } catch (\Illuminate\Database\QueryException $e) {
-            if ($e->getCode() === '23000') {
                 return back()
-                    ->withErrors(['nomor' => 'Nomor surat sudah digunakan. Silakan generate nomor baru.'])
+                    ->withErrors([
+                        'mode' => "SK dengan status {$surat_keputusan->status_surat} tidak bisa diajukan.",
+                    ])
                     ->withInput();
             }
-            throw $e;
+
+            $newStatus = 'pending';
+        } elseif ($mode === 'draft') {
+            // Mode "Simpan Draft"
+            $newStatus = 'draft';
+
+            \Log::info('Update SK: Mode draft dipilih', [
+                'sk_id'      => $surat_keputusan->id,
+                'old_status' => $surat_keputusan->status_surat,
+                'new_status' => 'draft',
+            ]);
+        } else {
+            // Mode kosong / tidak dikenali → pertahankan status lama
+            $newStatus = $surat_keputusan->status_surat;
+
+            \Log::info('Update SK: Mode tidak dikenali, status dipertahankan', [
+                'sk_id'  => $surat_keputusan->id,
+                'mode'   => $mode,
+                'status' => $newStatus,
+            ]);
+        }
+
+        // ✅ Validasi penandatangan untuk pengajuan
+        if ($newStatus === 'pending') {
+            if (empty($validatedData['penandatangan']) && empty($surat_keputusan->penandatangan)) {
+                \Log::warning('Update SK gagal: Penandatangan kosong saat pengajuan', [
+                    'sk_id' => $surat_keputusan->id,
+                    'mode'  => $mode,
+                ]);
+
+                return back()
+                    ->withErrors([
+                        'penandatangan' => 'Penandatangan wajib diisi saat pengajuan.',
+                    ])
+                    ->withInput();
+            }
+        }
+
+        try {
+            // ✅ Update SK melalui service
+            $sk = $this->skService->updateKeputusan($surat_keputusan, $validatedData, $newStatus);
+
+            \Log::info('Update SK berhasil', [
+                'sk_id'      => $sk->id,
+                'old_status' => $surat_keputusan->status_surat,
+                'new_status' => $sk->status_surat,
+                'mode'       => $mode,
+                'nomor'      => $sk->nomor,
+            ]);
+
+            $message = $newStatus === 'pending'
+                ? 'Perubahan disimpan & SK diajukan kembali.'
+                : 'SK berhasil diperbarui.';
+
+            return redirect()
+                ->route('surat_keputusan.index')
+                ->with('success', $message);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            // ✅ Duplicate nomor surat
+            if ($e->getCode() === '23000' || strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                \Log::error('Update SK gagal: Nomor duplikat', [
+                    'sk_id' => $surat_keputusan->id,
+                    'nomor' => $validatedData['nomor'] ?? null,
+                    'error' => $e->getMessage(),
+                ]);
+
+                return back()
+                    ->withErrors([
+                        'nomor' => 'Nomor surat sudah digunakan. Silakan generate nomor baru.',
+                    ])
+                    ->withInput();
+            }
+
+            \Log::error('Update SK gagal: Database error', [
+                'sk_id' => $surat_keputusan->id,
+                'error' => $e->getMessage(),
+                'code'  => $e->getCode(),
+            ]);
+
+            return back()
+                ->withErrors([
+                    'database' => 'Terjadi kesalahan database. Silakan coba lagi.',
+                ])
+                ->withInput();
+
+        } catch (\Exception $e) {
+            \Log::error('Update SK gagal: Unexpected error', [
+                'sk_id' => $surat_keputusan->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()
+                ->withErrors([
+                    'error' => 'Terjadi kesalahan saat memperbarui SK. Silakan coba lagi.',
+                ])
+                ->withInput();
         }
     }
 

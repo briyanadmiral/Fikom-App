@@ -414,11 +414,16 @@
                                 <i class="fas fa-check-double mr-2"></i>Tinjau & Setujui
                             </a>
                         @endif
-                        @can('update', $tugas)
-                            <a href="{{ route('surat_tugas.edit', $tugas->id) }}" class="btn btn-warning btn-block">
-                                <i class="fas fa-pencil-alt mr-2"></i>Edit Surat
-                            </a>
-                        @endcan
+
+                        {{-- ✅ FIXED: Hide edit button jika sudah disetujui --}}
+                        @if ($tugas->status_surat !== 'disetujui')
+                            @can('update', $tugas)
+                                <a href="{{ route('surat_tugas.edit', $tugas->id) }}" class="btn btn-warning btn-block">
+                                    <i class="fas fa-pencil-alt mr-2"></i>Edit Surat
+                                </a>
+                            @endcan
+                        @endif
+
                         <a href="{{ route('surat_tugas.downloadPdf', $tugas->id) }}" class="btn btn-danger btn-block"
                             target="_blank">
                             <i class="fas fa-file-pdf mr-2"></i>Download PDF

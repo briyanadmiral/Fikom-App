@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Policy untuk mengatur authorization Surat Tugas
- * ✅ REFACTORED: Enhanced security dengan validate helpers dan sanitized logging
+ * ✅ FIXED: Block edit untuk status disetujui
  */
 class TugasHeaderPolicy
 {
@@ -57,40 +57,58 @@ class TugasHeaderPolicy
     }
 
     /**
-     * Determine if user can update the tugas
+     * ✅ FIXED: Determine if user can update the tugas
      */
     public function update(User $user, TugasHeader $tugas): bool
     {
-        // ✅ DEBUG: Log setiap policy check
-        \Log::info('TugasHeaderPolicy::update called', [
-            'user_id' => $user->id,
-            'user_peran_id' => $user->peran_id,
-            'tugas_id' => $tugas->id,
-            'tugas_status' => $tugas->status_surat,
-            'tugas_dibuat_oleh' => $tugas->dibuat_oleh,
-        ]);
-
-        // Hanya draft/pending/ditolak yang bisa diupdate
-        if (!in_array($tugas->status_surat, ['draft', 'pending', 'ditolak'], true)) {
-            \Log::warning('Policy update DITOLAK: status tidak valid', [
-                'tugas_status' => $tugas->status_surat,
+        // ✅ FIXED: TIDAK BOLEH edit surat yang sudah disetujui
+        if ($tugas->status_surat === 'disetujui') {
+            Log::info('Policy update DITOLAK: Status sudah disetujui', [
+                'user_id' => $user->id,
+                'tugas_id' => $tugas->id,
+                'tugas_nomor' => sanitize_log_message($tugas->nomor ?? ''),
+                'status' => $tugas->status_surat,
             ]);
             return false;
         }
 
-        // Admin TU (peran_id 1) bisa update semua
+        // Admin TU (peran_id 1) - boleh edit draft/pending/ditolak yang dia buat
         if ($user->peran_id === 1) {
-            \Log::info('Policy update DIIZINKAN: User adalah Admin TU');
-            return true;
+            $canUpdate = $tugas->dibuat_oleh === $user->id 
+                && in_array($tugas->status_surat, ['draft', 'pending', 'ditolak'], true);
+            
+            Log::info('Policy update - Admin TU', [
+                'user_id' => $user->id,
+                'tugas_id' => $tugas->id,
+                'status' => $tugas->status_surat,
+                'can_update' => $canUpdate,
+            ]);
+            
+            return $canUpdate;
         }
 
-        // Pembuat bisa update
-        if ($tugas->dibuat_oleh === $user->id) {
-            \Log::info('Policy update DIIZINKAN: User adalah pembuat');
-            return true;
+        // Dekan/WD (peran_id 2/3) - boleh edit saat pending dan dia penandatangannya
+        if (in_array($user->peran_id, [2, 3], true)) {
+            $canUpdate = $tugas->status_surat === 'pending' 
+                && (int)$tugas->penandatangan === (int)$user->id;
+            
+            Log::info('Policy update - Dekan/WD', [
+                'user_id' => $user->id,
+                'tugas_id' => $tugas->id,
+                'status' => $tugas->status_surat,
+                'penandatangan' => $tugas->penandatangan,
+                'can_update' => $canUpdate,
+            ]);
+            
+            return $canUpdate;
         }
 
-        \Log::warning('Policy update DITOLAK: User bukan Admin TU atau pembuat');
+        Log::warning('Policy update DITOLAK: User tidak memiliki akses', [
+            'user_id' => $user->id,
+            'user_peran_id' => $user->peran_id,
+            'tugas_id' => $tugas->id,
+        ]);
+        
         return false;
     }
 
@@ -303,23 +321,28 @@ class TugasHeaderPolicy
             'user_role' => $roleId,
             'action' => sanitize_log_message($action),
             'tugas_id' => $tugasId,
-            'tugas_nomor' => sanitize_log_message($tugas->nomor ?? '(kosong)'), // ✅ ADDED
+            'tugas_nomor' => sanitize_log_message($tugas->nomor ?? '(kosong)'),
             'tugas_status' => sanitize_log_message($tugas->status_surat),
             'reason' => sanitize_log_message($reason),
             'ip_address' => request()->ip(),
-            'user_agent' => sanitize_log_message(request()->userAgent() ?? 'unknown'), // ✅ ADDED
+            'user_agent' => sanitize_log_message(request()->userAgent() ?? 'unknown'),
             'timestamp' => now()->toDateTimeString(),
         ]);
     }
 
     /**
-     * ✅ ADDED: Before hook - runs before all policy checks
+     * ✅ FIXED: Before hook - runs before all policy checks
      */
     public function before(User $user, string $ability): ?bool
     {
-        // Admin dapat melakukan semua action kecuali approve
-        // (approve harus tetap melalui next_approver)
-        if ($user->isAdmin() && $ability !== 'approve') {
+        // ✅ FIXED: Jangan bypass policy untuk 'update' dan 'approve'
+        // Biarkan method-specific policy yang handle
+        if (in_array($ability, ['update', 'approve', 'reject'], true)) {
+            return null; // Continue ke method spesifik
+        }
+
+        // Admin dapat melakukan action lain (view, create, delete, dll)
+        if ($user->isAdmin()) {
             return true;
         }
 

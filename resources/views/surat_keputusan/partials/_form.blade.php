@@ -58,7 +58,38 @@ $prefMenetapkan = $menetapkanData ?: [['judul' => 'KESATU', 'isi' => '']];
 
 // Tembusan
 $tembusanVal = $getPref('tembusan', '');
-$prefTembusanCsv = is_array($tembusanVal) ? implode(', ', $tembusanVal) : $tembusanVal;
+
+// Jika string dan kelihatannya JSON Tagify lama → decode dulu
+if (is_string($tembusanVal)) {
+    $raw = trim(html_entity_decode($tembusanVal, ENT_QUOTES, 'UTF-8'));
+
+    if ($raw !== '' && str_starts_with($raw, '[{')) {
+        $decoded = json_decode($raw, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $tembusanVal = collect($decoded)
+                ->map(function ($item) {
+                    $val = is_array($item)
+                        ? ($item['value'] ?? ($item['text'] ?? ($item['name'] ?? reset($item))))
+                        : $item;
+                    return trim((string) $val);
+                })
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        }
+    } else {
+        // Format baru: newline → ubah jadi array
+        $parts = preg_split('/[\r\n]+/', $raw);
+        $tembusanVal = array_values(array_filter(array_map('trim', $parts)));
+    }
+}
+
+// Terakhir, jadikan CSV untuk value awal Tagify
+$prefTembusanCsv = is_array($tembusanVal)
+    ? implode(', ', $tembusanVal)
+    : (string) $tembusanVal;
+
 
 // Tembusan presets
 $tembusanPresets = $tembusanPresets ?? [
@@ -80,7 +111,6 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
 
 @endphp
 
-@once
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
@@ -103,70 +133,101 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
   .card.data-card .card-body{padding-top:1.2rem}
   .table th,.table td{vertical-align:middle!important}
   .table{background:#fff}
-  
-  /* ✅ Dropdown dengan warna berbeda (FIXED) */
-  .dropdown-menu .dropdown-item {
-    cursor: pointer;
-    padding: 0.5rem 1rem;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-  }
-  .dropdown-menu .dropdown-item i {
-    width: 20px;
-    text-align: center;
-    margin-right: 8px;
-  }
-  
-  /* ✅ Warna default (sebelum hover) */
-  .dropdown-item.text-info { color: #17a2b8 !important; }
-  .dropdown-item.text-warning { color: #ffc107 !important; }
-  .dropdown-item.text-success { color: #28a745 !important; }
-  .dropdown-item.text-danger { color: #dc3545 !important; }
-  .dropdown-item.text-primary { color: #007bff !important; }
-  .dropdown-item.text-dark { color: #343a40 !important; }
-  .dropdown-item.text-secondary { color: #6c757d !important; }
-  
-  /* ✅ Hover effect - background berwarna, text putih */
-  .dropdown-item.text-info:hover { 
-    background-color: #17a2b8 !important; 
-    color: white !important; 
-  }
-  .dropdown-item.text-warning:hover { 
-    background-color: #ffc107 !important; 
-    color: #212529 !important;
-  }
-  .dropdown-item.text-success:hover { 
-    background-color: #28a745 !important; 
-    color: white !important; 
-  }
-  .dropdown-item.text-danger:hover { 
-    background-color: #dc3545 !important; 
-    color: white !important; 
-  }
-  .dropdown-item.text-primary:hover { 
-    background-color: #007bff !important; 
-    color: white !important; 
-  }
-  .dropdown-item.text-dark:hover { 
-    background-color: #343a40 !important; 
-    color: white !important; 
-  }
-  .dropdown-item.text-secondary:hover { 
-    background-color: #6c757d !important; 
-    color: white !important; 
-  }
-  
-  .dropdown-item.text-warning:hover i { color: #212529 !important; }
-  .dropdown-item:hover i { color: inherit !important; }
-  
+
+  /* Dropdown warna */
+  .dropdown-menu .dropdown-item{cursor:pointer;padding:.5rem 1rem;transition:.2s;display:flex;align-items:center}
+  .dropdown-menu .dropdown-item i{width:20px;text-align:center;margin-right:8px}
+  .dropdown-item.text-info{color:#17a2b8!important}
+  .dropdown-item.text-warning{color:#ffc107!important}
+  .dropdown-item.text-success{color:#28a745!important}
+  .dropdown-item.text-danger{color:#dc3545!important}
+  .dropdown-item.text-primary{color:#007bff!important}
+  .dropdown-item.text-dark{color:#343a40!important}
+  .dropdown-item.text-secondary{color:#6c757d!important}
+  .dropdown-item.text-info:hover{background-color:#17a2b8!important;color:#fff!important}
+  .dropdown-item.text-warning:hover{background-color:#ffc107!important;color:#212529!important}
+  .dropdown-item.text-success:hover{background-color:#28a745!important;color:#fff!important}
+  .dropdown-item.text-danger:hover{background-color:#dc3545!important;color:#fff!important}
+  .dropdown-item.text-primary:hover{background-color:#007bff!important;color:#fff!important}
+  .dropdown-item.text-dark:hover{background-color:#343a40!important;color:#fff!important}
+  .dropdown-item.text-secondary:hover{background-color:#6c757d!important;color:#fff!important}
+  .dropdown-item.text-warning:hover i{color:#212529!important}
+  .dropdown-item:hover i{color:inherit!important}
+
   .badge-pill{
-    padding:0.45rem 0.85rem;
-    font-size:0.85rem;
+    padding:.45rem .85rem;
+    font-size:.85rem;
     font-weight:600;
-    letter-spacing:0.3px;
+    letter-spacing:.3px;
+  }
+
+  /* ===============================
+   *  FIX LAYOUT TEMBUSAN / TAGIFY
+   * ===============================*/
+  .tembusan-wrap{
+      background:#f8f9ff;
+      border-radius:1rem;
+      border:1px solid #e0e6ed;
+      padding:1.25rem 1.5rem;
+  }
+  .tembusan-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:.75rem;
+  }
+  .tembusan-tools .btn{
+      padding:.25rem .5rem;
+      border-radius:.5rem;
+  }
+  /* Container Tagify full width & multi-row rapi */
+  /* Container Tagify */
+  .tembusan-body .tagify {
+      width: 100%;
+      height: auto !important; /* Paksa tinggi menyesuaikan isi */
+      min-height: 44px;
+      border-radius: .6rem;
+      border: 1px solid #ced4da;
+      background: #fff;
+      
+      /* FIX NABRAK: Gunakan flexbox agar tag turun ke bawah dengan rapi */
+      display: flex;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 5px; /* Jarak antar elemen */
+      padding: 5px 8px;
+  }
+
+  /* Style Tag Individual */
+  .tembusan-body .tagify__tag {
+      margin: 0 !important; /* Reset margin karena sudah pakai gap */
   }
   
+  /* Input area pengetikan agar tidak sempit */
+  .tembusan-body .tagify__input {
+      margin: 0 !important;
+      min-width: 150px; /* Beri ruang minimal untuk mengetik */
+      line-height: 24px; /* Sesuaikan tinggi baris */
+  }
+
+  /* Dropdown suggestions */
+  .tembusan-body .tagify__dropdown {
+      z-index: 1060;
+  }
+  /* Preview di-box sendiri */
+  .tembusan-preview{
+      margin-top:1rem;
+      padding:.75rem 1rem;
+      border-radius:.75rem;
+      border:1px dashed #d0d7e2;
+      background:#fff;
+      font-size:.9rem;
+  }
+  .tembusan-preview ol{
+      margin-bottom:0;
+      padding-left:1.1rem;
+  }
+
   @media (max-width:767.98px){
     .surat-header{flex-direction:column;align-items:flex-start;padding:1.2rem 1rem;gap:.7rem}
     .stat-wrapper{flex-direction:column;gap:.8rem}
@@ -174,11 +235,10 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
     .surat-header-title{font-size:1.18rem}
     .surat-header-desc{font-size:.99rem}
     .card.filter-card,.card.data-card{border-radius:.6rem}
+    .tembusan-wrap{padding:1rem}
   }
 </style>
 @endpush
-@endonce
-
 
 {{-- ============ FORM START ============ --}}
 @if($errors->any())
@@ -203,242 +263,237 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
         <div class="col-lg-8 mb-3">
 
             {{-- 1) DATA UTAMA --}}
-            <section id="section-utama" class="card shadow-sm mb-4">
-                <header id="h-utama" class="card-h card-h--purple" data-base="purple">
-                    <strong><i class="fas fa-file-alt mr-2"></i>Data Utama</strong>
-                </header>
-                <div class="card-body">
-                    <div class="row">
-                        {{-- Nomor SK --}}
-                        <div class="col-md-7 mb-3">
-                            <label for="nomor" class="form-label font-weight-bold">Nomor SK</label>
-                            <div class="input-group">
-                                <input type="text" id="nomor" name="nomor" 
-                                       class="form-control @error('nomor') is-invalid @enderror"
-                                       value="{{ $getPref('nomor', $autoNomor ?? '') }}" 
-                                       placeholder="Nomor akan dibuat otomatis"
-                                       aria-describedby="nomorHelp">
-                                <div class="input-group-append">
-                                    <button type="button" id="btn-reserve-nomor" class="btn btn-outline-primary" title="Ambil nomor terbaru dari server">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            @error('nomor')
-                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                            @enderror
-
-                            <div class="d-flex align-items-center mt-2">
-                                <div class="custom-control custom-checkbox mr-3">
-                                    <input type="checkbox" class="custom-control-input" id="toggleNomorManual">
-                                    <label class="custom-control-label small text-muted" for="toggleNomorManual">Mode Manual</label>
-                                </div>
-                                <a href="#" class="ml-auto small text-primary" id="toggleBuilder">
-                                    <i class="fas fa-sliders-h mr-1"></i>Atur Komponen
-                                </a>
-                            </div>
-
-                            {{-- Nomor Builder --}}
-                            <div class="nomor-builder mt-3" aria-live="polite">
-                                <div class="d-flex flex-wrap align-items-end gap-2">
-                                    <div>
-                                        <label class="small mb-1 text-muted" for="nourut">No Urut</label>
-                                        <input type="text" id="nourut" class="form-control form-control-sm" value="001" style="width:70px;">
-                                    </div>
-                                    <span class="text-muted">/</span>
-                                    <div>
-                                        <label class="small mb-1 text-muted" for="noklasifikasi">Klasifikasi</label>
-                                        <input type="text" id="noklasifikasi" class="form-control form-control-sm" 
-                                               value="{{ old('kode_klasifikasi', 'B.10.1') }}" style="width:100px;">
-                                    </div>
-                                    <span class="text-muted">/</span>
-                                    <div>
-                                        <label class="small mb-1 text-muted" for="nounit">Unit</label>
-                                        <input type="text" id="nounit" class="form-control form-control-sm" 
-                                               value="{{ old('unit', 'TG') }}" style="width:70px;">
-                                    </div>
-                                    <span class="text-muted">/UNIKA/</span>
-                                    <div>
-                                        <label class="small mb-1 text-muted" for="noromawi">Bulan</label>
-                                        <input type="text" id="noromawi" class="form-control form-control-sm" 
-                                               value="{{ $currentRomawi ?? 'X' }}" style="width:60px;">
-                                    </div>
-                                    <span class="text-muted">/</span>
-                                    <div>
-                                        <label class="small mb-1 text-muted" for="notahun">Tahun</label>
-                                        <input type="text" id="notahun" class="form-control form-control-sm" 
-                                               value="{{ $currentYear ?? date('Y') }}" style="width:80px;">
-                                    </div>
-                                </div>
-                                <div class="alert alert-info mt-3 mb-0 py-2 px-3">
-                                    <small class="mb-0">
-                                        <strong>Preview:</strong> <span class="nomor-builder-preview font-weight-bold" id="nomorPreviewText"></span>
-                                    </small>
-                                </div>
-                            </div>
-
-                        {{-- ✅ REVISI: Tanggal Surat --}}
-                        <div class="col-md-5 mb-3">
-                            <label for="tanggal_surat" class="form-label font-weight-bold">
-                                Tanggal Surat <span class="text-danger">*</span>
-                            </label>
-                            <input type="date" id="tanggal_surat" name="tanggal_surat" 
-                                   class="form-control @error('tanggal_surat') is-invalid @enderror" 
-                                   required 
-                                   value="{{ old('tanggal_surat', $isEdit ? optional($keputusan->tanggal_surat)->format('Y-m-d') : ($tanggalHariIni ?? now()->format('Y-m-d'))) }}">
-                            @error('tanggal_surat')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i>Tanggal resmi yang tercetak di surat
-                            </small>
-                        </div>
-
-                        {{-- ✅ BARU: Kota Penetapan (tepat di bawah tanggal) --}}
-                        <div class="col-md-5 mb-3">
-                            <label for="kota_penetapan">Kota Penetapan</label>
-                            <input type="text" name="kota_penetapan" id="kota_penetapan"
-                                   class="form-control @error('kota_penetapan') is-invalid @enderror"
-                                   value="{{ $getPref('kota_penetapan', 'Semarang') }}"
-                                   placeholder="Semarang"
-                                   maxlength="100">
-                            @error('kota_penetapan')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="text-muted">
-                                <i class="fas fa-map-marker-alt text-danger"></i> 
-                                Kota tempat surat ditetapkan (contoh: Semarang, Jakarta, Yogyakarta)
-                            </small>
-                        </div>
-
-                        {{-- Tentang --}}
-                        <div class="col-12 mb-3">
-                            <label for="tentang" class="form-label font-weight-bold">
-                                Tentang <span class="text-danger">*</span>
-                            </label>
-                            <textarea id="tentang" name="tentang" rows="3" required 
-                                      class="form-control @error('tentang') is-invalid @enderror" 
-                                      placeholder="Contoh: Penetapan Visi, Misi, dan Tujuan Fakultas Ilmu Komputer">{{ $getPref('tentang') }}</textarea>
-                            @error('tentang')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        {{-- ✅ BARU: Judul Penetapan --}}
-                        <div class="col-12 mb-3">
-                            <div class="form-group mb-0">
-                                <label for="judul_penetapan">Judul Penetapan (Bagian "Menetapkan")</label>
-                                <input type="text" name="judul_penetapan" id="judul_penetapan"
-                                       class="form-control @error('judul_penetapan') is-invalid @enderror"
-                                       value="{{ $getPref('judul_penetapan', 'KEPUTUSAN DEKAN TENTANG ' . strtoupper($getPref('tentang', ''))) }}"
-                                       placeholder="Contoh: KEPUTUSAN DEKAN TENTANG PENETAPAN VISI DAN MISI FAKULTAS ILMU KOMPUTER"
-                                       maxlength="500">
-                                @error('judul_penetapan')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle text-info"></i> 
-                                    Judul lengkap yang akan muncul di bagian <strong>"Menetapkan"</strong> pada surat. 
-                                    Biarkan kosong jika tidak diperlukan.
-                                </small>
-                            </div>
-                        </div>
-
-                        {{-- Penandatangan (utama) --}}
-                        <div class="col-12 mb-3">
-                            <label for="penandatangan" class="form-label font-weight-bold">
-                                Penandatangan <span class="badge badge-secondary">opsional</span>
-                            </label>
-                            <select id="penandatangan" name="penandatangan" class="form-control select2 @error('penandatangan') is-invalid @enderror">
-                                <option value="">-- Pilih Penandatangan --</option>
-                                @foreach($pejabat ?? [] as $p)
-                                    <option value="{{ $p->id }}" 
-                                            data-npp="{{ $p->npp ?? '' }}"
-                                            {{ old('penandatangan', $getPref('penandatangan')) == $p->id ? 'selected' : '' }}>
-                                        {{ $p->nama_lengkap }}
-                                        @if($p->peran_id == 2) (Dekan) @endif
-                                        @if($p->peran_id == 3) (Wakil Dekan) @endif
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('penandatangan')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle mr-1"></i>Pilih pejabat yang berwenang menandatangani surat
-                            </small>
-                        </div>
-
-                        {{-- ✅ BARU: NPP Penandatangan (hidden + display) --}}
-                        <div class="col-12 mb-3">
-                            <input type="hidden" name="npp_penandatangan" id="npp_penandatangan" 
-                                   value="{{ $getPref('npp_penandatangan') }}">
-
-                            <div class="form-group" id="npp_display_group" style="display: none;">
-                                <label class="text-muted">
-                                    <i class="fas fa-id-card"></i> NPP Penandatangan
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" id="npp_display" class="form-control-plaintext text-muted" readonly>
-                                    <div class="input-group-append">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                                onclick="$('#modal_edit_npp').modal('show')">
-                                            <i class="fas fa-edit"></i> Ubah
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Tembusan --}}
-                        <div class="col-12">
-                            <div class="tembusan-wrap">
-                                <div class="tembusan-head">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-copy mr-2"></i>
-                                        <strong>Tembusan</strong>
-                                        <span class="ml-2 badge badge-light">opsional</span>
-                                    </div>
-                                    <div class="tembusan-tools">
-                                        <button type="button" class="btn btn-sm btn-light" id="btnPasteTembusan" title="Tempel daftar dari clipboard">
-                                            <i class="fas fa-clipboard-list"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-light" id="btnClearTembusan" title="Kosongkan">
-                                            <i class="fas fa-eraser"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="tembusan-body">
-                                    <label for="tembusan-input" class="mb-2 small">
-                                        <i class="fas fa-info-circle text-info mr-1"></i>
-                                        Ketik + tekan <kbd>Enter</kbd> atau <kbd>,</kbd> untuk membuat tag
-                                    </label>
-                                    <input id="tembusan-input" name="tembusan" value="{{ $prefTembusanCsv ?? '' }}" 
-                                           class="form-control" placeholder="Contoh: Yth. Rektor, BAAK, Arsip">
-                                    @error('tembusan')
-                                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                                    @enderror
-
-                                    <div class="custom-control custom-switch mt-3">
-                                        <input type="checkbox" class="custom-control-input" id="tembusanShowTitle" checked>
-                                        <label class="custom-control-label small" for="tembusanShowTitle">
-                                            Cetak judul <em>"Tembusan Yth"</em>
-                                        </label>
-                                    </div>
-
-                                    <div class="tembusan-preview mt-3" id="tembusanPreview" aria-live="polite">
-                                        <h6 class="mb-2"><i class="fas fa-eye mr-1"></i>Pratinjau</h6>
-                                        <div class="text-muted small">Belum ada tembusan. Tambahkan minimal satu.</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <input type="hidden" name="tembusan_formatted" id="tembusanformatted">
-                        </div>
-
+<section id="section-utama" class="card shadow-sm mb-4">
+    <header id="h-utama" class="card-h card-h--purple" data-base="purple">
+        <strong><i class="fas fa-file-alt mr-2"></i>Data Utama</strong>
+    </header>
+    <div class="card-body">
+        <div class="row">
+            {{-- BARIS 1: Nomor SK (7 kolom) + Tanggal Surat (5 kolom) --}}
+            <div class="col-md-7 mb-3">
+                <label for="nomor" class="form-label font-weight-bold">Nomor SK</label>
+                <div class="input-group">
+                    <input type="text" id="nomor" name="nomor" 
+                           class="form-control @error('nomor') is-invalid @enderror"
+                           value="{{ $getPref('nomor', $autoNomor ?? '') }}" 
+                           placeholder="Nomor akan dibuat otomatis">
+                    <div class="input-group-append">
+                        <button type="button" id="btn-reserve-nomor" class="btn btn-outline-primary">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                     </div>
                 </div>
-            </section>
+                @error('nomor')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
 
+                <div class="d-flex align-items-center mt-2">
+                    <div class="custom-control custom-checkbox mr-3">
+                        <input type="checkbox" class="custom-control-input" id="toggleNomorManual">
+                        <label class="custom-control-label small text-muted" for="toggleNomorManual">Mode Manual</label>
+                    </div>
+                    <a href="#" class="ml-auto small text-primary" id="toggleBuilder">
+                        <i class="fas fa-sliders-h mr-1"></i>Atur Komponen
+                    </a>
+                </div>
+
+                {{-- Nomor Builder --}}
+                <div class="nomor-builder mt-3">
+                    <div class="d-flex flex-wrap align-items-end gap-2">
+                        <div>
+                            <label class="small mb-1 text-muted" for="nourut">No Urut</label>
+                            <input type="text" id="nourut" class="form-control form-control-sm" value="001" style="width:70px;">
+                        </div>
+                        <span class="text-muted">/</span>
+                        <div>
+                            <label class="small mb-1 text-muted" for="noklasifikasi">Klasifikasi</label>
+                            <input type="text" id="noklasifikasi" class="form-control form-control-sm" 
+                                   value="{{ old('kode_klasifikasi', 'B.10.1') }}" style="width:100px;">
+                        </div>
+                        <span class="text-muted">/</span>
+                        <div>
+                            <label class="small mb-1 text-muted" for="nounit">Unit</label>
+                            <input type="text" id="nounit" class="form-control form-control-sm" 
+                                   value="{{ old('unit', 'TG') }}" style="width:70px;">
+                        </div>
+                        <span class="text-muted">/UNIKA/</span>
+                        <div>
+                            <label class="small mb-1 text-muted" for="noromawi">Bulan</label>
+                            <input type="text" id="noromawi" class="form-control form-control-sm" 
+                                   value="{{ $currentRomawi ?? 'X' }}" style="width:60px;">
+                        </div>
+                        <span class="text-muted">/</span>
+                        <div>
+                            <label class="small mb-1 text-muted" for="notahun">Tahun</label>
+                            <input type="text" id="notahun" class="form-control form-control-sm" 
+                                   value="{{ $currentYear ?? date('Y') }}" style="width:80px;">
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3 mb-0 py-2 px-3">
+                        <small class="mb-0">
+                            <strong>Preview:</strong> <span class="nomor-builder-preview font-weight-bold" id="nomorPreviewText"></span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5 mb-3">
+                <label for="tanggal_surat" class="form-label font-weight-bold">
+                    Tanggal Surat <span class="text-danger">*</span>
+                </label>
+                <input type="date" id="tanggal_surat" name="tanggal_surat" 
+                       class="form-control @error('tanggal_surat') is-invalid @enderror" 
+                       required 
+                       value="{{ old('tanggal_surat', $isEdit ? optional($keputusan->tanggal_surat)->format('Y-m-d') : ($tanggalHariIni ?? now()->format('Y-m-d'))) }}">
+                @error('tanggal_surat')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="form-text text-muted">
+                    <i class="fas fa-info-circle mr-1"></i>Tanggal resmi yang tercetak di surat
+                </small>
+            </div>
+
+            {{-- BARIS 2: Kota Penetapan (6 kolom) + Penandatangan (6 kolom) --}}
+            <div class="col-md-6 mb-3">
+                <label for="kota_penetapan">Kota Penetapan</label>
+                <input type="text" name="kota_penetapan" id="kota_penetapan"
+                       class="form-control @error('kota_penetapan') is-invalid @enderror"
+                       value="{{ $getPref('kota_penetapan', 'Semarang') }}"
+                       placeholder="Semarang"
+                       maxlength="100">
+                @error('kota_penetapan')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="text-muted">
+                    <i class="fas fa-map-marker-alt text-danger"></i> 
+                    Kota tempat surat ditetapkan (contoh: Semarang, Jakarta, Yogyakarta)
+                </small>
+            </div>
+
+            <div class="col-md-6 mb-3">
+    <label for="penandatangan" class="form-label font-weight-bold">
+        Penandatangan <span class="badge badge-secondary">opsional</span>
+    </label>
+    <select id="penandatangan" name="penandatangan" 
+            class="form-control @error('penandatangan') is-invalid @enderror">
+        <option value="">-- Pilih Penandatangan --</option>
+        @foreach($pejabat ?? [] as $p)
+            <option value="{{ $p->id }}" 
+                    data-npp="{{ $p->npp ?? '' }}"
+                    {{ old('penandatangan', $getPref('penandatangan')) == $p->id ? 'selected' : '' }}>
+                {{ $p->nama_lengkap }}
+                @if($p->peran_id == 2) (Dekan) @endif
+                @if($p->peran_id == 3) (Wakil Dekan) @endif
+            </option>
+        @endforeach
+    </select>
+    @error('penandatangan')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+    <small class="form-text text-muted">
+        <i class="fas fa-user-tie mr-1"></i>Pejabat yang menandatangani
+    </small>
+</div>
+
+            {{-- BARIS 3: Tentang (Full Width) --}}
+            <div class="col-12 mb-3">
+                <label for="tentang" class="form-label font-weight-bold">
+                    Tentang <span class="text-danger">*</span>
+                </label>
+                <textarea id="tentang" name="tentang" rows="3" required 
+                          class="form-control @error('tentang') is-invalid @enderror" 
+                          placeholder="Contoh: Penetapan Visi, Misi, dan Tujuan Fakultas Ilmu Komputer">{{ $getPref('tentang') }}</textarea>
+                @error('tentang')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- BARIS 4: Judul Penetapan (Full Width) --}}
+            <div class="col-12 mb-3">
+                <label for="judul_penetapan">Judul Penetapan (Bagian "Menetapkan")</label>
+                <input type="text" name="judul_penetapan" id="judul_penetapan"
+                       class="form-control @error('judul_penetapan') is-invalid @enderror"
+                       value="{{ $getPref('judul_penetapan', 'KEPUTUSAN DEKAN TENTANG ' . strtoupper($getPref('tentang', ''))) }}"
+                       placeholder="Contoh: KEPUTUSAN DEKAN TENTANG PENETAPAN VISI DAN MISI FAKULTAS ILMU KOMPUTER"
+                       maxlength="500">
+                @error('judul_penetapan')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                <small class="text-muted">
+                    <i class="fas fa-info-circle text-info"></i> 
+                    Judul lengkap yang akan muncul di bagian <strong>"Menetapkan"</strong> pada surat. 
+                    Biarkan kosong jika tidak diperlukan.
+                </small>
+            </div>
+
+            {{-- BARIS 5: NPP Penandatangan (Hidden + Display, jika ada) --}}
+            <div class="col-12 mb-3">
+                <input type="hidden" name="npp_penandatangan" id="npp_penandatangan" 
+                       value="{{ $getPref('npp_penandatangan') }}">
+
+                <div class="form-group" id="npp_display_group" style="display: none;">
+                    <label class="text-muted">
+                        <i class="fas fa-id-card"></i> NPP Penandatangan
+                    </label>
+                    <div class="input-group">
+                        <input type="text" id="npp_display" class="form-control-plaintext text-muted" readonly>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                    onclick="$('#modal_edit_npp').modal('show')">
+                                <i class="fas fa-edit"></i> Ubah
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- BARIS 6: Tembusan (Full Width) --}}
+            <div class="col-12">
+                <div class="tembusan-wrap">
+                    <div class="tembusan-head">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-copy mr-2"></i>
+                            <strong>Tembusan</strong>
+                            <span class="ml-2 badge badge-light">opsional</span>
+                        </div>
+                        <div class="tembusan-tools">
+                            <button type="button" class="btn btn-sm btn-light" id="btnPasteTembusan" title="Tempel daftar dari clipboard">
+                                <i class="fas fa-clipboard-list"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-light" id="btnClearTembusan" title="Kosongkan">
+                                <i class="fas fa-eraser"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tembusan-body">
+                        <label for="tembusan-input" class="mb-2 small">
+                            <i class="fas fa-info-circle text-info mr-1"></i>
+                            Ketik + tekan <kbd>Enter</kbd> atau <kbd>,</kbd> untuk membuat tag
+                        </label>
+                        <input id="tembusan-input" name="tembusan" value="{{ $prefTembusanCsv ?? '' }}" 
+                               class="form-control" placeholder="Contoh: Yth. Rektor, BAAK, Arsip">
+                        @error('tembusan')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+
+                        <div class="custom-control custom-switch mt-3">
+                            <input type="checkbox" class="custom-control-input" id="tembusanShowTitle" checked>
+                            <label class="custom-control-label small" for="tembusanShowTitle">
+                                Cetak judul <em>"Tembusan Yth"</em>
+                            </label>
+                        </div>
+
+                        <div class="tembusan-preview mt-3" id="tembusanPreview">
+                            <h6 class="mb-2"><i class="fas fa-eye mr-1"></i>Pratinjau</h6>
+                            <div class="text-muted small">Belum ada tembusan. Tambahkan minimal satu.</div>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" name="tembusan_formatted" id="tembusanformatted">
+            </div>
+        </div>
+    </div>
+</section>
 
             {{-- 2) MENIMBANG --}}
             <section id="section-menimbang" class="card shadow-sm mb-4">
@@ -699,63 +754,72 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
     const qsa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
     const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
 
-    // ============ Select2 (penandatangan + klasifikasi) ============
-    $(document).ready(function() {
-        $('#penandatangan').select2({
-            theme: 'bootstrap4',
-            placeholder: 'Pilih Pejabat Penandatangan',
-            width: '100%'
+        // ============ Select2 (penandatangan + helper sidebar) ============
+    const penandatanganSelect  = qs('#penandatangan');
+    const penandatanganSidebar = qs('#penandatangan_sidebar');
+
+    // Native JS: auto-fill NPP saat penandatangan dipilih
+    if (penandatanganSelect) {
+        penandatanganSelect.addEventListener('change', function () {
+            const selectedOption   = this.options[this.selectedIndex];
+            const npp              = selectedOption.getAttribute('data-npp') || '';
+
+            const nppField         = qs('#npp_penandatangan');
+            const nppDisplay       = qs('#npp_display');
+            const nppDisplayGroup  = qs('#npp_display_group');
+            const nppManualInput   = qs('#npp_manual_input');
+
+            if (nppField) nppField.value = npp;
+
+            if (npp) {
+                if (nppDisplay)      nppDisplay.value     = 'NPP. ' + npp;
+                if (nppDisplayGroup) nppDisplayGroup.style.display = 'block';
+            } else {
+                if (nppDisplay)      nppDisplay.value     = '';
+                if (nppDisplayGroup) nppDisplayGroup.style.display = 'none';
+            }
+
+            if (nppManualInput) nppManualInput.value = npp;
         });
 
-        // ============================================
-        // ✅ BARU: Auto-fill NPP saat pilih penandatangan
-        // ============================================
-        $('#penandatangan').on('change', function() {
-            const selectedOption = $(this).find('option:selected');
-            const npp = selectedOption.data('npp') || '';
-            
-            // Set hidden field
-            $('#npp_penandatangan').val(npp);
-            
-            // Update display
-            if (npp) {
-                $('#npp_display').val('NPP. ' + npp);
-                $('#npp_display_group').slideDown(200);
-            } else {
-                $('#npp_display').val('');
-                $('#npp_display_group').slideUp(200);
-            }
-            
-            // Update modal input
-            $('#npp_manual_input').val(npp);
-        });
-        
-        // Trigger change on page load (untuk edit mode)
-        @if($isEdit && $keputusan && $keputusan->penandatangan)
-            $('#penandatangan').trigger('change');
-        @endif
-        
-        // ============================================
-        // ✅ BARU: Auto-generate judul penetapan dari tentang
-        // ============================================
-        $('#tentang').on('input', function() {
-            const tentang = $(this).val().trim();
-            const currentJudul = $('#judul_penetapan').val();
-            
+        // Trigger saat edit (prefill NPP)
+        if (IS_EDIT && penandatanganSelect.value) {
+            penandatanganSelect.dispatchEvent(new Event('change'));
+        }
+    }
+
+    // jQuery: select2 + auto-generate judul + sinkronisasi sidebar
+    $(function () {
+        // aktifkan select2 kalau ada jQuery
+        if ($('#penandatangan').length && $.fn.select2) {
+            $('#penandatangan').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Pilih Pejabat Penandatangan',
+                width: '100%'
+            });
+        }
+
+        // Auto-generate judul penetapan dari "Tentang"
+        $('#tentang').on('input', function () {
+            const tentang      = $(this).val().trim();
+            const $judulField  = $('#judul_penetapan');
+            const currentJudul = $judulField.val();
+
             if (!currentJudul || currentJudul.startsWith('KEPUTUSAN DEKAN TENTANG')) {
                 if (tentang) {
-                    $('#judul_penetapan').val('KEPUTUSAN DEKAN TENTANG ' + tentang.toUpperCase());
+                    $judulField.val('KEPUTUSAN DEKAN TENTANG ' + tentang.toUpperCase());
                 } else {
-                    $('#judul_penetapan').val('');
+                    $judulField.val('');
                 }
             }
         });
 
-        // Sinkronisasi dropdown sidebar (helper) dengan field utama
-        $('#penandatangan_sidebar').on('change', function() {
+        // Sinkronisasi dropdown sidebar dengan field utama
+        $('#penandatangan_sidebar').on('change', function () {
             const val = $(this).val();
             $('#penandatangan').val(val).trigger('change');
         });
+
         const currentSigner = $('#penandatangan').val();
         if (currentSigner) {
             $('#penandatangan_sidebar').val(currentSigner);

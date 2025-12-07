@@ -11,6 +11,48 @@
             in_array($statusSurat, ['disetujui', 'terbit', 'arsip'], true) && !empty($keputusan->signed_at ?? null);
     }
 
+    // ============================
+    // PARSING TEMBUSAN (GLOBAL)
+    // ============================
+    $rawTembusan = (string) ($keputusan->tembusan ?? '');
+    $tembusanItems = collect();
+
+    if ($rawTembusan !== '') {
+        // decode &quot; → "
+        $decodedStr = trim(html_entity_decode($rawTembusan, ENT_QUOTES, 'UTF-8'));
+
+        // Format lama: JSON Tagify [{"value":"Yth. Rektor"}, ...]
+        if (str_starts_with($decodedStr, '[{')) {
+            $json = json_decode($decodedStr, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($json)) {
+                $tembusanItems = collect($json)
+                    ->map(function ($item) {
+                        if (is_array($item)) {
+                            $val = $item['value'] ?? ($item['text'] ?? ($item['name'] ?? reset($item)));
+                        } else {
+                            $val = $item;
+                        }
+
+                        return trim((string) $val);
+                    })
+                    ->filter()
+                    ->unique()
+                    ->values();
+            }
+        }
+
+        // Kalau bukan JSON → anggap format baru (per baris / koma / titik koma)
+        if ($tembusanItems->isEmpty()) {
+            $tembusanItems = collect(
+                preg_split('/[\r\n,;]+/', $decodedStr)
+            )
+                ->map(fn($v) => trim($v))
+                ->filter()
+                ->unique()
+                ->values();
+        }
+    }
 @endphp
 
 @extends('layouts.app')
@@ -116,7 +158,7 @@
             text-align: right
         }
 
-        .btn-block+.btn-block {
+        .btn-block + .btn-block {
             margin-top: .5rem
         }
     </style>
@@ -143,12 +185,12 @@
                         'keputusan' => $keputusan,
                         'kop' => $kop ?? null,
                         // preferensi ukuran/opacity (opsional; fallback di _core)
-                        'ttdW' => $preview['ttd_w_mm'] ?? null,
-                        'capW' => $preview['cap_w_mm'] ?? null,
-                        'capOpacity' => $preview['cap_opacity'] ?? null,
+                        'ttdW' => $ttdW ?? ($preview['ttd_w_mm'] ?? null),
+                        'capW' => $capW ?? ($preview['cap_w_mm'] ?? null),
+                        'capOpacity' => $capOpacity ?? ($preview['cap_opacity'] ?? null),
                         // aset TTD/Cap hanya bila boleh tampil
-                        'ttdImageB64' => $showSigns ? $ttdImageB64 ?? ($preview['ttd_image_b64'] ?? null) : null,
-                        'capImageB64' => $showSigns ? $capImageB64 ?? ($preview['cap_image_b64'] ?? null) : null,
+                        'ttdImageB64' => $showSigns ? ($ttdImageB64 ?? ($preview['ttd_image_b64'] ?? null)) : null,
+                        'capImageB64' => $showSigns ? ($capImageB64 ?? ($preview['cap_image_b64'] ?? null)) : null,
                         'showSigns' => $showSigns,
                     ])
                 </div>
@@ -166,7 +208,7 @@
                         @if ($keputusan->status_surat === 'pending')
                             @can('approve', $keputusan)
                                 <a href="{{ route('surat_keputusan.approveForm', $keputusan->id) }}"
-                                    class="btn btn-success btn-block">
+                                   class="btn btn-success btn-block">
                                     <i class="fas fa-check-double mr-2"></i>Tinjau & Setujui
                                 </a>
                             @endcan
@@ -174,13 +216,13 @@
 
                         @can('update', $keputusan)
                             <a href="{{ route('surat_keputusan.edit', $keputusan->id) }}"
-                                class="btn btn-warning btn-block text-dark">
+                               class="btn btn-warning btn-block text-dark">
                                 <i class="fas fa-pencil-alt mr-2"></i>Edit
                             </a>
                         @endcan
 
                         <a href="{{ route('surat_keputusan.downloadPdf', $keputusan->id) }}"
-                            class="btn btn-danger btn-block" target="_blank">
+                           class="btn btn-danger btn-block" target="_blank">
                             <i class="fas fa-file-pdf mr-2"></i>Download PDF
                         </a>
 
@@ -223,7 +265,7 @@
                                 </span>
                             </li>
 
-                            {{-- Info Disetujui (existing dari catatan) --}}
+                            {{-- Info Disetujui --}}
                             @if ($keputusan->status_surat === 'disetujui' && $keputusan->approved_at)
                                 <li>
                                     <span class="label">Disetujui Pada</span>
@@ -237,7 +279,7 @@
                                 </li>
                             @endif
 
-                            {{-- ✅ Info Terbit --}}
+                            {{-- Info Terbit --}}
                             @if (in_array($keputusan->status_surat, ['terbit', 'arsip']) && $keputusan->tanggal_terbit)
                                 <li>
                                     <span class="label">Diterbitkan Pada</span>
@@ -254,7 +296,7 @@
                                 </li>
                             @endif
 
-                            {{-- ✅ Info Arsip --}}
+                            {{-- Info Arsip --}}
                             @if ($keputusan->status_surat === 'arsip' && $keputusan->tanggal_arsip)
                                 <li>
                                     <span class="label">Diarsipkan Pada</span>
@@ -286,8 +328,9 @@
                             </li>
                             <li>
                                 <span class="label">Penandatangan</span>
-                                <span
-                                    class="value">{{ optional($keputusan->penandatanganUser)->nama_lengkap ?? '-' }}</span>
+                                <span class="value">
+                                    {{ optional($keputusan->penandatanganUser)->nama_lengkap ?? '-' }}
+                                </span>
                             </li>
                         </ul>
                     </div>
@@ -316,24 +359,33 @@
                             </li>
                             <li>
                                 <span class="label">Tembusan</span>
-                                @php
-                                    $tembRaw = (string) ($keputusan->tembusan ?? '');
-                                    $tembusanItems = collect(preg_split('/[\r\n,]+/', $tembRaw))
-                                        ->map(fn($v) => trim($v))
-                                        ->filter()
-                                        ->values();
-                                @endphp
                                 <span class="value">{{ $tembusanItems->count() }}</span>
                             </li>
                         </ul>
                     </div>
                 </div>
 
+                {{-- Daftar Tembusan (opsional) --}}
+                @if($tembusanItems->count())
+                    <div class="card info-card">
+                        <div class="card-header">
+                            <i class="fas fa-copy mr-2 text-secondary"></i>Tembusan
+                        </div>
+                        <div class="card-body">
+                            <ol class="mb-0 pl-3">
+                                @foreach($tembusanItems as $t)
+                                    <li>{{ $t }}</li>
+                                @endforeach
+                            </ol>
+                        </div>
+                    </div>
+                @endif
+
             </div>
         </div>
     </div>
 
-    {{-- ✅ FASE 1.2: Tampilkan Lampiran di Detail --}}
+    {{-- Lampiran --}}
     @if ($keputusan && $keputusan->attachments && $keputusan->attachments->count() > 0)
         <div class="card card-outline card-secondary mt-3">
             <div class="card-header">
@@ -352,7 +404,8 @@
                                             <i class="{{ $att->file_icon }} fa-3x"></i>
                                         </div>
                                         <div class="flex-grow-1">
-                                            <h6 class="mb-1">{{ \Illuminate\Support\Str::limit($att->nama_file, 30) }}
+                                            <h6 class="mb-1">
+                                                {{ \Illuminate\Support\Str::limit($att->nama_file, 30) }}
                                             </h6>
                                             <small class="text-muted d-block mb-1">
                                                 <span class="badge badge-info">{{ $att->kategori_label }}</span>
@@ -376,7 +429,7 @@
                                             @endif
                                         </small>
                                         <a href="{{ route('surat_keputusan.attachments.download', [$keputusan->id, $att->id]) }}"
-                                            class="btn btn-sm btn-success">
+                                           class="btn btn-sm btn-success">
                                             <i class="fas fa-download"></i> Download
                                         </a>
                                     </div>
