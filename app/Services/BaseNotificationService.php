@@ -115,7 +115,7 @@ abstract class BaseNotificationService
             return null;
         }
 
-        return User::where('id', $validUserId)->where('status', 'active')->first();
+        return User::where('id', $validUserId)->where('status', 'aktif')->first();
     }
 
     /**

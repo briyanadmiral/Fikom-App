@@ -415,6 +415,22 @@
                             </a>
                         @endif
 
+                        {{-- ✅ FIXED: Tombol Ajukan (Direct Submit) untuk Draft --}}
+                        @if (($tugas->status_surat ?? null) === 'draft')
+                            @can('update', $tugas)
+                                <form action="{{ route('surat_tugas.submit', $tugas->id) }}" method="POST" class="mb-2">
+                                    @csrf
+                                    <button type="submit" class="btn btn-info btn-block"
+                                        data-confirm-message="Apakah Anda yakin ingin mengajukan surat tugas ini? Status akan berubah menjadi PENDING."
+                                        data-confirm-title="Konfirmasi Pengajuan"
+                                        data-confirm-text="Ya, Ajukan!"
+                                        data-confirm-icon="question">
+                                        <i class="fas fa-paper-plane mr-2"></i>Ajukan ke Approver
+                                    </button>
+                                </form>
+                            @endcan
+                        @endif
+
                         {{-- ✅ FIXED: Hide edit button jika sudah disetujui --}}
                         @if ($tugas->status_surat !== 'disetujui')
                             @can('update', $tugas)

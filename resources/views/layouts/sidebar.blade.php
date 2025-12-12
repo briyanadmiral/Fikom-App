@@ -86,6 +86,7 @@
                 </li>
 
                 <!-- Notifikasi -->
+                @auth
                 <li class="nav-item">
                     <a href="{{ route('notifikasi.index') }}"
                         class="nav-link {{ $isRoute('notifikasi.*') ? 'active' : '' }}">
@@ -101,6 +102,7 @@
                         </p>
                     </a>
                 </li>
+                @endauth
 
                 <!-- CRUD Pengguna (Admin TU Only) -->
                 @if ($peranId === 1)

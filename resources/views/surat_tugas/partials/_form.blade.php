@@ -37,7 +37,7 @@
         $bulanInit = old('bulan', $tugas->bulan ?? ($parts[4] ?? $bulanRomawi));
         $tahunNomor = old('tahun_nomor', $tugas->tahun ?? ($parts[5] ?? date('Y')));
     } else {
-        $noUrutInit = old('nomor_urut', '');
+        $noUrutInit = old('nomor_urut'); // ✅ FIX: Don't set default empty string
         $bulanInit = old('bulan', $bulanRomawi);
         $tahunNomor = old('tahun_nomor', date('Y'));
     }
@@ -477,7 +477,7 @@
                                         <input type="text" id="nomor_urut" name="nomor_urut"
                                             class="form-control text-center" value="{{ $noUrutInit }}"
                                             {{ $lockStructural ? 'readonly' : (!$isEdit ? 'readonly' : '') }}>
-                                        @if ($lockStructural)
+                                        @if ($lockStructural && $noUrutInit)
                                             <input type="hidden" name="nomor_urut" value="{{ $noUrutInit }}">
                                         @endif
                                     </div>
@@ -1561,6 +1561,15 @@
             $('#asal_surat_id').on('change', syncAsalSurat);
             syncNamaPembuat();
             syncAsalSurat();
+
+            // ✅ AUTO-SYNC: Saat Asal Surat (Pejabat) dipilih, otomatis set Penandatangan ke orang yang sama
+            $('#asal_surat_id').on('change', function() {
+                const selectedPejabat = $(this).val();
+                if (selectedPejabat) {
+                    // Set value dan trigger change agar Select2 update UI
+                    $('#penandatangan_id').val(selectedPejabat).trigger('change');
+                }
+            });
 
             // Safeguard sebelum submit (isi hidden ID bila readonly)
             tugasForm.on('submit', function() {

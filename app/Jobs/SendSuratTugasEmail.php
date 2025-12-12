@@ -70,6 +70,42 @@ class SendSuratTugasEmail implements ShouldQueue
                 ->all();
 
             $emails = array_values(array_unique(array_filter($rows)));
+
+            // ✅ Update subject untuk recipients
+            $subject = 'Surat Tugas Disetujui: ' . ($st->nomor ?: '(tanpa nomor)');
+
+        } elseif ($this->mode === 'to_approver') {
+            // ✅ ADDED: Kirim email ke approver (next_approver)
+            if ($st->next_approver) {
+                $approver = DB::table('pengguna')
+                    ->where('id', $st->next_approver)
+                    ->where('status', 'aktif')
+                    ->whereNotNull('email')
+                    ->first();
+
+                if ($approver && $approver->email) {
+                    $emails = [$approver->email];
+                }
+            }
+
+            // ✅ Update subject untuk approver
+            $subject = 'Permintaan Persetujuan Surat Tugas: ' . ($st->nomor ?: '(draft)');
+
+            // ✅ Update payload untuk approver
+            $payload = (object) [
+                'nomor'          => $st->nomor ?: '(belum ada nomor)',
+                'tugas'          => $st->tugas,
+                'tanggal_surat'  => $st->tanggal_surat,
+                'waktu_mulai'    => $st->waktu_mulai,
+                'waktu_selesai'  => $st->waktu_selesai,
+                'tempat'         => $st->tempat,
+                'redaksi_pembuka'=> $st->redaksi_pembuka,
+                'penutup'        => $st->penutup,
+                'is_approval_request' => true, // Flag untuk template email
+            ];
+
+            // Tidak perlu attachment untuk approval request
+            $attachmentPath = null;
         }
 
         if (empty($emails)) {

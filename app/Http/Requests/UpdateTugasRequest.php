@@ -74,7 +74,7 @@ class UpdateTugasRequest extends FormRequest
             'nomor' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->ignore($tugasId)->whereNull('deleted_at')],
             'no_surat_manual' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->ignore($tugasId)->whereNull('deleted_at')],
             'tahun_nomor' => ['sometimes', 'integer', 'digits:4'],
-            'nomor_urut' => ['sometimes', 'string', 'max:10', 'regex:/^[0-9]+$/'],
+            'nomor_urut' => ['nullable', 'string', 'max:10', 'regex:/^[0-9]+$/'],
 
             // === Legacy Field Support ===
             'nama_pembuat' => ['sometimes', 'nullable', 'integer', 'exists:pengguna,id'],
@@ -197,6 +197,39 @@ class UpdateTugasRequest extends FormRequest
                     return !empty($p['nama']) && !empty($p['jabatan']);
                 }),
             ]);
+        }
+
+        // ====================================================================
+        // STEP 5.5: Normalize NOMOR_URUT (filter empty strings and strip prefix)
+        // ====================================================================
+        if ($this->has('nomor_urut')) {
+            $value = $this->input('nomor_urut');
+            
+            // Convert empty string to null
+            if ($value === '' || $value === null) {
+                $this->merge(['nomor_urut' => null]);
+                Log::debug('UpdateTugasRequest: nomor_urut set to null', [
+                    'original_value' => $value,
+                ]);
+            } else {
+                // ✅ FIX: Strip non-numeric prefix (e.g., 'ST-001' -> '001')
+                $cleaned = preg_replace('/^[^0-9]+/', '', (string) $value);
+                
+                // If result is still not purely numeric, set to null
+                if ($cleaned === '' || !preg_match('/^[0-9]+$/', $cleaned)) {
+                    $this->merge(['nomor_urut' => null]);
+                    Log::warning('UpdateTugasRequest: nomor_urut invalid format, set to null', [
+                        'original_value' => $value,
+                        'cleaned_value' => $cleaned,
+                    ]);
+                } else {
+                    $this->merge(['nomor_urut' => $cleaned]);
+                    Log::debug('UpdateTugasRequest: nomor_urut normalized', [
+                        'original_value' => $value,
+                        'cleaned_value' => $cleaned,
+                    ]);
+                }
+            }
         }
 
         // ====================================================================

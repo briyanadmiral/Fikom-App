@@ -154,6 +154,12 @@ Route::middleware('check.session.role')->group(function () {
                 ->middleware('can:addRecipient,tugas')
                 ->whereNumber('tugas');
 
+            // ✅ TAMBAH: Route khusus submit dari detail (bypass edit form)
+            Route::post('{tugas}/submit', [TugasController::class, 'submit'])
+                ->name('submit')
+                ->middleware('can:update,tugas')
+                ->whereNumber('tugas');
+
             Route::get('{tugas}', [TugasController::class, 'show'])
                 ->whereNumber('tugas')
                 ->name('show');
@@ -351,13 +357,4 @@ Route::prefix('surat_keputusan')
     })->whereNumber('id');
 });
 
-// Di luar middleware group
-Route::get('/test-entry', function () {
-    // Simulasi Dashboard Menu set session
-    session([
-        'user_id' => 1, // Ganti dengan ID user yang ada di database
-        'user_role' => 'admin',
-    ]);
 
-    return redirect()->route('home');
-})->name('test.entry');

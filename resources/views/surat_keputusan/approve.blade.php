@@ -162,7 +162,7 @@
                         </div>
                         <div class="card-body">
                             {{-- Meng-include file partial untuk kontrol slider TTD/Cap --}}
-                            @include('surat_keputusan.partials.approve-controls', [
+                            @include('surat_keputusan.partials._approve_controls', [
                                 'ttdW' => old('ttd_w_mm', $ttdW ?? 42),
                                 'capW' => old('cap_w_mm', $capW ?? 35),
                                 'capOpacity' => old('cap_opacity', $capOpacity ?? 0.95),
@@ -209,7 +209,7 @@
                             <div id="pv-spinner" class="spinner-border text-primary" style="display:none;"></div>
                             <div id="pv-content">
                                 {{-- Meng-include file partial untuk pratinjau surat --}}
-                                @include('surat_keputusan.partials.approve-preview', [
+                                @include('surat_keputusan.partials._approve_preview', [
                                     'sk' => $sk,
                                     'kop' => $kop ?? null,
                                     'showSigns' => true,

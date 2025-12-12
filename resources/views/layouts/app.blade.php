@@ -253,6 +253,36 @@
                     }
                 });
             });
+
+            // ===== Generic Confirm Action =====
+            $(document).on('click', '[data-confirm-message]', function(e) {
+                e.preventDefault();
+                const form = $(this).closest('form');
+                const message = $(this).data('confirm-message');
+                const title = $(this).data('confirm-title') || 'Konfirmasi';
+                const icon = $(this).data('confirm-icon') || 'question';
+                const confirmText = $(this).data('confirm-text') || 'Ya, Lanjutkan';
+                const confirmColor = $(this).data('confirm-color') || '#3085d6';
+
+                Swal.fire({
+                    title: title,
+                    text: message,
+                    icon: icon,
+                    showCancelButton: true,
+                    confirmButtonColor: confirmColor,
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: confirmText,
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        if(form.length > 0) {
+                            showLoading('Memproses...');
+                            form.submit();
+                        }
+                    }
+                });
+            });
             
             // ===== Prevent Double Submit =====
             $('form').on('submit', function() {

@@ -157,19 +157,13 @@
                         </div>
                         <div class="card-body">
                             {{-- Partial kontrol yang sudah di-refactor --}}
-                            @include('surat_tugas.partials.approve-controls', [
+                            @include('surat_tugas.partials._approve_controls', [
                                 'ttdW' => old('ttd_w_mm', $preview['ttd_w_mm']),
                                 'capW' => old('cap_w_mm', $preview['cap_w_mm']),
                                 'capOpacity' => old('cap_opacity', $preview['cap_opacity']),
                             ])
 
-                            @if ($errors->any())
-                                <div class="alert alert-danger mt-3 py-2 small">
-                                    @foreach ($errors->all() as $error)
-                                        <div>{{ $error }}</div>
-                                    @endforeach
-                                </div>
-                            @endif
+                            {{-- Inline alert removed in favor of global SweetAlert2 handler --}}
 
                             <div class="mt-4">
                                 <button type="submit" class="btn btn-success btn-lg btn-block">
@@ -196,7 +190,7 @@
                         <div class="card-body" id="preview-container">
                             <div id="preview-pane">
                                 <div id="pv-spinner" class="spinner-border text-primary" style="display:none;"></div>
-                                @include('surat_tugas.partials.approve-preview', [
+                                @include('surat_tugas.partials._approve_preview', [
                                     'tugas' => $tugas,
                                     'kop' => $kop,
                                     'preview' => $preview,

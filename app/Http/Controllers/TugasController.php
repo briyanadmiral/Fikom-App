@@ -195,12 +195,12 @@ class TugasController extends Controller
         $peranId = $user->peran_id;
 
         if ($peranId === 1) {
-            $list = TugasHeader::with(['penerima.pengguna', 'pembuat', 'penandatanganUser'])
+            $list = TugasHeader::with(['penerima.pengguna', 'pembuat', 'penandatanganUser', 'klasifikasi'])
                 ->where('dibuat_oleh', $user->id)
                 ->orderByDesc('created_at')
                 ->get();
         } else {
-            $list = TugasHeader::with(['penerima.pengguna', 'pembuat', 'penandatanganUser'])
+            $list = TugasHeader::with(['penerima.pengguna', 'pembuat', 'penandatanganUser', 'klasifikasi'])
                 ->where('status_surat', 'disetujui')
                 ->whereHas('penerima', fn($q) => $q->where('pengguna_id', $user->id))
                 ->orderByDesc('created_at')
@@ -325,7 +325,7 @@ class TugasController extends Controller
     {
         $this->authorize('viewApproveList', TugasHeader::class);
 
-        $list = TugasHeader::with(['pembuat', 'penerima.pengguna'])
+        $list = TugasHeader::with(['pembuat', 'penerima.pengguna', 'penandatanganUser', 'klasifikasi'])
             ->where('status_surat', 'pending')
             ->where('next_approver', Auth::id())
             ->orderByDesc('created_at')
@@ -387,7 +387,7 @@ class TugasController extends Controller
             'cap_opacity' => $capOpacity !== false ? $capOpacity : $assets['capOpacity'],
         ];
 
-        return view('surat_tugas.partials.approve-preview', [
+        return view('surat_tugas.partials._approve_preview', [
             'tugas' => $tugas,
             'kop' => $assets['kop'],
             'preview' => $preview,
@@ -656,6 +656,41 @@ class TugasController extends Controller
                 'user_id' => Auth::id(),
             ]);
             return back()->withInput()->with('error', 'Terjadi kesalahan saat memperbarui surat tugas.');
+        }
+    }
+
+    public function submit(Request $request, TugasHeader $tugas)
+    {
+        // 1. Validasi status harus draft
+        if ($tugas->status_surat !== 'draft') {
+            return back()->with('error', 'Hanya surat dengan status draft yang dapat diajukan.');
+        }
+
+        // 2. Validasi kelengkapan data minimal
+        if (!$tugas->penandatangan && !$tugas->penandatangan_id) {
+            return back()->with('error', 'Penandatangan belum dipilih. Silakan edit surat terlebih dahulu.');
+        }
+
+        try {
+            // 3. Siapkan data untuk update (hanya kirim data yang diperlukan untuk trigger logic submit)
+            // Service membutuhkan 'penandatangan_id' atau 'penandatangan' untuk set next_approver
+            $data = [
+                'penandatangan_id' => $tugas->penandatangan_id ?? $tugas->penandatangan,
+                // Kita kirim ulang penandatangan ID agar service bisa resolve next_approver
+            ];
+
+            // 4. Panggil service dengan mode 'submit'
+            // Service akan handle transisi status ke 'pending' dan kirim notifikasi
+            $this->tugasService->updateTugas($tugas, $data, 'submit');
+
+            return redirect()->route('surat_tugas.index')->with('success', 'Surat tugas berhasil diajukan untuk persetujuan!');
+        } catch (\Exception $e) {
+            \Log::error('Gagal submit Surat Tugas (Direct)', [
+                'tugas_id' => $tugas->id,
+                'error' => sanitize_log_message($e->getMessage()),
+                'user_id' => Auth::id(),
+            ]);
+            return back()->with('error', 'Terjadi kesalahan saat mengajukan surat.');
         }
     }
 

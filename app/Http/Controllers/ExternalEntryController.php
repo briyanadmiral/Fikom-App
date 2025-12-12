@@ -82,10 +82,7 @@ class ExternalEntryController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // 4️⃣ URL Dashboard Menu (sesuaikan dengan URL teman Anda)
-        $dashboardUrl = config('app.dashboard_menu_url', 'http://localhost:8000/dashboard');
-
-        // 5️⃣ Redirect ke Dashboard Menu eksternal
-        return redirect()->away($dashboardUrl);
+        // 4️⃣ Redirect ke halaman login
+        return redirect('/login')->with('success', 'Anda telah berhasil logout.');
     }
 }

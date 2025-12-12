@@ -243,7 +243,7 @@ class SuratKeputusanController extends Controller
 
     public function approveList()
     {
-        $list = KeputusanHeader::with(['pembuat', 'penerima:id,nama_lengkap'])
+        $list = KeputusanHeader::with(['pembuat', 'penerima:id,nama_lengkap', 'penandatanganUser:id,nama_lengkap'])
             ->where('status_surat', 'pending')
             ->where('penandatangan', Auth::id())
             ->orderByDesc('created_at')
@@ -582,7 +582,7 @@ class SuratKeputusanController extends Controller
         $capW = (int) $request->input('cap_w_mm', $surat_keputusan->cap_w_mm ?? $assets['capW']);
         $capOpacity = (float) $request->input('cap_opacity', $surat_keputusan->cap_opacity ?? $assets['capOpacity']);
 
-        return view('surat_keputusan.partials.approve-preview', [
+        return view('surat_keputusan.partials._approve_preview', [
             'sk' => $surat_keputusan,
             'kop' => $assets['kop'],
             'showSigns' => true,

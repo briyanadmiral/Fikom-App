@@ -238,8 +238,10 @@ class SuratTugasService
 
             $tugas->update($data);
 
-            // Sinkron penerima
-            $this->syncPenerima($tugas, $validatedData['penerima_internal'] ?? [], $validatedData['penerima_eksternal'] ?? []);
+            // Sinkron penerima (HANYA jika ada data penerima di input, agar tidak terhapus saat submit)
+            if (array_key_exists('penerima_internal', $validatedData) || array_key_exists('penerima_eksternal', $validatedData)) {
+                $this->syncPenerima($tugas, $validatedData['penerima_internal'] ?? [], $validatedData['penerima_eksternal'] ?? []);
+            }
 
             if ($oldStatus === 'draft' && $newStatus === 'pending') {
                 $this->notificationService->notifyApprovalRequest($tugas);

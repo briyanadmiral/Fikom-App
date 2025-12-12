@@ -501,6 +501,18 @@
                                                        href="{{ route('surat_tugas.edit', $h->id) }}">
                                                         <i class="fas fa-edit"></i> Edit Draft
                                                     </a>
+                                                    {{-- ✅ ADDED: Tombol Ajukan ke Approver untuk draft --}}
+                                                    <form action="{{ route('surat_tugas.submit', $h->id) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item text-info w-100 text-left"
+                                                            data-confirm-message="Apakah Anda yakin ingin mengajukan surat tugas ini? Status akan berubah menjadi PENDING."
+                                                            data-confirm-title="Konfirmasi Pengajuan"
+                                                            data-confirm-text="Ya, Ajukan!"
+                                                            data-confirm-icon="question"
+                                                            style="border:none;background:transparent;cursor:pointer">
+                                                            <i class="fas fa-paper-plane"></i> Ajukan ke Approver
+                                                        </button>
+                                                    </form>
                                                     <div class="dropdown-divider"></div>
                                                 @endif
 
@@ -513,14 +525,14 @@
                                                     <div class="dropdown-divider"></div>
                                                 @endif
 
-                                                {{-- 5. Edit/Koreksi (untuk approver via policy) --}}
-                                                @can('edit-surat', $h)
+                                                {{-- 5. Edit/Koreksi (HANYA untuk peran_id 2 dan 3 = Dekan/Wakil Dekan) --}}
+                                                @if (in_array((int) auth()->user()->peran_id, [2, 3], true) && $h->status_surat === 'pending' && (int) $h->next_approver === (int) auth()->id())
                                                     <a class="dropdown-item text-warning"
                                                        href="{{ route('surat_tugas.edit', ['tugas' => $h->id, 'mode' => 'koreksi']) }}">
                                                         <i class="fas fa-pen"></i> Koreksi (Approver)
                                                     </a>
                                                     <div class="dropdown-divider"></div>
-                                                @endcan
+                                                @endif
 
                                                 {{-- 6. Download PDF dari menu (kalau sudah disetujui) --}}
                                                 @if ($h->status_surat == 'disetujui' && $h->signed_pdf_path)

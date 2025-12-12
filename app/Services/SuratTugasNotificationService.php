@@ -290,7 +290,7 @@ class SuratTugasNotificationService extends BaseNotificationService
                 ->join('pengguna as u', 'u.id', '=', 'tp.pengguna_id') // ✅ FIXED: Use correct table name
                 ->where('tp.tugas_id', $tugasId)
                 ->whereNotNull('tp.pengguna_id')
-                ->where('u.status', 'active')
+                ->where('u.status', 'aktif')
                 ->whereNotNull('u.email')
                 ->select(['u.id as pengguna_id', 'u.nama_lengkap as nama', 'u.email as email'])
                 ->distinct()

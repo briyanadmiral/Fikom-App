@@ -136,11 +136,11 @@
                             @if (in_array($keputusan->status_surat, ['draft', 'ditolak']))
                                 <form
                                     action="{{ route('surat_keputusan.attachments.delete', [$keputusan->id, $attachment->id]) }}"
-                                    method="POST" style="display:inline;"
-                                    onsubmit="return confirm('Yakin hapus lampiran {{ $attachment->nama_file }}?')">
+                                    method="POST" style="display:inline;">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
+                                    <button type="button" class="btn btn-sm btn-danger btn-delete" 
+                                        title="Hapus" data-item-name="lampiran {{ $attachment->nama_file }}">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>

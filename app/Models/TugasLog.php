@@ -11,22 +11,25 @@ class TugasLog extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'tugas_logs'; // atau nama tabel yang sebenarnya
+    protected $table = 'tugas_log'; // ✅ FIXED: Sesuai dengan tabel di database
+
+    public $timestamps = false; // ✅ FIXED: Tabel hanya punya created_at, tidak ada updated_at
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = null;
     
     protected $fillable = [
         'tugas_id',
         'user_id',
-        'action', // 'created', 'updated', 'submitted', 'approved', 'rejected'
-        'old_status',
-        'new_status',
-        'notes',
+        'status_lama',    // ✅ FIXED: sesuai kolom di tabel tugas_log
+        'status_baru',    // ✅ FIXED: sesuai kolom di tabel tugas_log
+        'ip_address',     // ✅ ADDED: ada di tabel tugas_log
+        'user_agent',     // ✅ ADDED: ada di tabel tugas_log
     ];
 
     protected $casts = [
         'tugas_id' => 'integer',
         'user_id' => 'integer',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime',
     ];
 
     public function tugas(): BelongsTo
