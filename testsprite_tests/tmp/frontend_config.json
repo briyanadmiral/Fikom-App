@@ -1,0 +1,16 @@
+{
+  "status": "init",
+  "scope": "codebase",
+  "type": "frontend",
+  "localEndpoint": "http://localhost:5173/",
+  "serverPort": 5173,
+  "executionArgs": {
+    "envs": {
+      "NODE_ENV": "test",
+      "VITEST_ENV": "jsdom"
+    },
+    "command": "npm",
+    "args": ["run", "test:ui"],
+    "projectPath": "c:\\laragon\\www\\surat_siega"
+  }
+}

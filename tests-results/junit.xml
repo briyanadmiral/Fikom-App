@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="C:\laragon\www\surat_siega\phpunit.xml" tests="2" assertions="2" errors="0" failures="0" skipped="0" time="5.548509">
+    <testsuite name="Unit" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.677041">
+      <testsuite name="Tests\Unit\ExampleTest" file="C:\laragon\www\surat_siega\tests\Unit\ExampleTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="0.677041">
+        <testcase name="test_that_true_is_true" file="C:\laragon\www\surat_siega\tests\Unit\ExampleTest.php" line="12" class="Tests\Unit\ExampleTest" classname="Tests.Unit.ExampleTest" assertions="1" time="0.677041"/>
+      </testsuite>
+    </testsuite>
+    <testsuite name="Feature" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="4.871469">
+      <testsuite name="Tests\Feature\ExampleTest" file="C:\laragon\www\surat_siega\tests\Feature\ExampleTest.php" tests="1" assertions="1" errors="0" failures="0" skipped="0" time="4.871469">
+        <testcase name="test_the_application_returns_a_successful_response" file="C:\laragon\www\surat_siega\tests\Feature\ExampleTest.php" line="13" class="Tests\Feature\ExampleTest" classname="Tests.Feature.ExampleTest" assertions="1" time="4.871469"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

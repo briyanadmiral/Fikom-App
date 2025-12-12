@@ -1,0 +1,1429 @@
+{
+    "tech_stack": [
+        "PHP 8.2",
+        "Laravel 11",
+        "MySQL/MariaDB",
+        "AdminLTE 3.15",
+        "Bootstrap 5",
+        "Vue.js 3",
+        "Vite",
+        "Vitest",
+        "PHPUnit",
+        "barryvdh/laravel-dompdf (PDF generation)",
+        "mews/purifier (HTML sanitization)",
+        "JavaScript/jQuery"
+    ],
+    "features": [
+        {
+            "name": "Authentication & Session",
+            "description": "Session-based authentication integrated with external dashboard menu system. Users log in via external system and session data is passed to the application.",
+            "files": [
+                "app/Http/Controllers/ExternalEntryController.php",
+                "app/Http/Middleware/CheckSessionRole.php",
+                "routes/web.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/entry": {
+                        "get": {
+                            "summary": "Entry point from external dashboard",
+                            "description": "Receives session data from external authentication system",
+                            "responses": {
+                                "302": {
+                                    "description": "Redirects to /home"
+                                }
+                            }
+                        }
+                    },
+                    "/exit": {
+                        "post": {
+                            "summary": "Exit point back to external dashboard",
+                            "description": "Clears session and returns user to external system",
+                            "responses": {
+                                "302": {
+                                    "description": "Redirects to external dashboard"
+                                }
+                            }
+                        }
+                    },
+                    "/login": {
+                        "get": {
+                            "summary": "Show login form",
+                            "responses": {
+                                "200": {
+                                    "description": "Login page displayed"
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Process login",
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/x-www-form-urlencoded": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "password": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "email",
+                                                "password"
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect to /home on success, back to /login on failure"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Dashboard",
+            "description": "Main dashboard showing statistics, quick actions, recent documents, and pending approvals",
+            "files": [
+                "app/Http/Controllers/HomeController.php",
+                "resources/views/home.blade.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/home": {
+                        "get": {
+                            "summary": "Display main dashboard",
+                            "description": "Shows statistics (draft, pending, approved), quick action buttons, recent documents, and pending approvals",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Dashboard page"
+                                },
+                                "302": {
+                                    "description": "Redirect to login if not authenticated"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Surat Tugas Management",
+            "description": "CRUD and workflow management for Surat Tugas (Assignment Letters) including draft creation, submission, approval, rejection, and PDF generation",
+            "files": [
+                "app/Http/Controllers/TugasController.php",
+                "app/Models/TugasHeader.php",
+                "app/Models/TugasPenerima.php",
+                "app/Models/TugasLog.php",
+                "app/Services/SuratTugasService.php",
+                "app/Policies/TugasPolicy.php",
+                "app/Http/Requests/StoreTugasRequest.php",
+                "app/Http/Requests/UpdateTugasRequest.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/surat_tugas": {
+                        "get": {
+                            "summary": "List my Surat Tugas documents",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Document list"
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Create new Surat Tugas",
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/x-www-form-urlencoded": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "klasifikasi_id": {
+                                                    "type": "integer"
+                                                },
+                                                "jenis_tugas_id": {
+                                                    "type": "integer"
+                                                },
+                                                "nama_umum": {
+                                                    "type": "string",
+                                                    "maxLength": 255
+                                                },
+                                                "penandatangan_id": {
+                                                    "type": "integer"
+                                                },
+                                                "tanggal_dari": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                },
+                                                "tanggal_sampai": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                },
+                                                "recipients": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "klasifikasi_id",
+                                                "jenis_tugas_id",
+                                                "nama_umum",
+                                                "penandatangan_id",
+                                                "tanggal_dari",
+                                                "tanggal_sampai",
+                                                "recipients"
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect to document detail on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_tugas/create": {
+                        "get": {
+                            "summary": "Show create form",
+                            "responses": {
+                                "200": {
+                                    "description": "Create form page"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_tugas/tugas_saya": {
+                        "get": {
+                            "summary": "List documents created by me",
+                            "responses": {
+                                "200": {
+                                    "description": "My documents list"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_tugas/semua": {
+                        "get": {
+                            "summary": "List all Surat Tugas (with filters)",
+                            "parameters": [
+                                {
+                                    "name": "search",
+                                    "in": "query",
+                                    "schema": {
+                                        "type": "string"
+                                    }
+                                },
+                                {
+                                    "name": "status",
+                                    "in": "query",
+                                    "schema": {
+                                        "type": "string",
+                                        "enum": [
+                                            "draft",
+                                            "pending",
+                                            "disetujui",
+                                            "ditolak"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "name": "tahun",
+                                    "in": "query",
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                },
+                                {
+                                    "name": "bulan",
+                                    "in": "query",
+                                    "schema": {
+                                        "type": "string"
+                                    }
+                                },
+                                {
+                                    "name": "penandatangan",
+                                    "in": "query",
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                },
+                                {
+                                    "name": "pembuat",
+                                    "in": "query",
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "All documents list"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_tugas/approve-list": {
+                        "get": {
+                            "summary": "List documents pending my approval",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "policy": [
+                                        "viewApproveList"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Pending approvals list"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_tugas/{id}": {
+                        "get": {
+                            "summary": "View document detail",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Document detail"
+                                }
+                            }
+                        },
+                        "put": {
+                            "summary": "Update document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/x-www-form-urlencoded": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "nama_umum": {
+                                                    "type": "string"
+                                                },
+                                                "tanggal_dari": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                },
+                                                "tanggal_sampai": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        },
+                        "delete": {
+                            "summary": "Delete draft document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect to list on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_tugas/{id}/edit": {
+                        "get": {
+                            "summary": "Show edit form",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Edit form page"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_tugas/{id}/approve": {
+                        "get": {
+                            "summary": "Show approval form",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Approval form page"
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Approve or reject document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/x-www-form-urlencoded": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "action": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "approve",
+                                                        "reject"
+                                                    ]
+                                                },
+                                                "rejection_reason": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "action"
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_tugas/{id}/download-pdf": {
+                        "get": {
+                            "summary": "Download PDF of the document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "PDF file",
+                                    "content": {
+                                        "application/pdf": {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Surat Keputusan Management",
+            "description": "CRUD and workflow management for Surat Keputusan (Decision Letters) including draft creation, submission, approval, rejection, publishing, archiving, and PDF generation",
+            "files": [
+                "app/Http/Controllers/SuratKeputusanController.php",
+                "app/Models/KeputusanHeader.php",
+                "app/Models/KeputusanAttachment.php",
+                "app/Services/SuratKeputusanService.php",
+                "app/Policies/KeputusanPolicy.php",
+                "app/Http/Requests/StoreKeputusanRequest.php",
+                "app/Http/Requests/UpdateKeputusanRequest.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/surat_keputusan": {
+                        "get": {
+                            "summary": "List all Surat Keputusan I created",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Document list"
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Create new Surat Keputusan",
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/x-www-form-urlencoded": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "tentang": {
+                                                    "type": "string",
+                                                    "maxLength": 500
+                                                },
+                                                "tanggal_surat": {
+                                                    "type": "string",
+                                                    "format": "date"
+                                                },
+                                                "penandatangan_user_id": {
+                                                    "type": "integer"
+                                                },
+                                                "menimbang": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "minItems": 1
+                                                },
+                                                "mengingat": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    },
+                                                    "minItems": 1
+                                                },
+                                                "memutuskan": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "tentang",
+                                                "tanggal_surat",
+                                                "penandatangan_user_id",
+                                                "menimbang",
+                                                "mengingat",
+                                                "memutuskan"
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect to document detail on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/create": {
+                        "get": {
+                            "summary": "Show create form",
+                            "responses": {
+                                "200": {
+                                    "description": "Create form page"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/saya": {
+                        "get": {
+                            "summary": "List Surat Keputusan where I am a recipient",
+                            "responses": {
+                                "200": {
+                                    "description": "My received documents list"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/terbit": {
+                        "get": {
+                            "summary": "List all published Surat Keputusan",
+                            "responses": {
+                                "200": {
+                                    "description": "Published documents list"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/arsip": {
+                        "get": {
+                            "summary": "List all archived Surat Keputusan (Admin only)",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "policy": [
+                                        "viewArchive"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Archived documents list"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/approve-list": {
+                        "get": {
+                            "summary": "List documents pending my approval",
+                            "responses": {
+                                "200": {
+                                    "description": "Pending approvals list"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}": {
+                        "get": {
+                            "summary": "View document detail",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Document detail"
+                                }
+                            }
+                        },
+                        "put": {
+                            "summary": "Update document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        },
+                        "delete": {
+                            "summary": "Delete draft document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect to list on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}/edit": {
+                        "get": {
+                            "summary": "Show edit form",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Edit form page"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}/submit": {
+                        "post": {
+                            "summary": "Submit draft for approval",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}/approve": {
+                        "post": {
+                            "summary": "Approve document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}/reject": {
+                        "post": {
+                            "summary": "Reject document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/x-www-form-urlencoded": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "rejection_reason": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "rejection_reason"
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}/reopen": {
+                        "post": {
+                            "summary": "Reopen rejected document to draft",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}/terbitkan": {
+                        "post": {
+                            "summary": "Publish approved document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}/arsipkan": {
+                        "post": {
+                            "summary": "Archive published document (Admin only)",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}/batal-terbitkan": {
+                        "post": {
+                            "summary": "Unpublish document (Admin only)",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/surat_keputusan/{id}/download": {
+                        "get": {
+                            "summary": "Download PDF of the document",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "PDF file",
+                                    "content": {
+                                        "application/pdf": {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "User Management",
+            "description": "CRUD for user accounts with roles and permissions",
+            "files": [
+                "app/Http/Controllers/UserController.php",
+                "app/Models/User.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/users": {
+                        "get": {
+                            "summary": "List all users",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "role": [
+                                        "admin"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "User list"
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Create new user",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "role": [
+                                        "admin"
+                                    ]
+                                }
+                            ],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/x-www-form-urlencoded": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "format": "email"
+                                                },
+                                                "password": {
+                                                    "type": "string"
+                                                },
+                                                "peran_id": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "name",
+                                                "email",
+                                                "password",
+                                                "peran_id"
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/users/{id}": {
+                        "get": {
+                            "summary": "View user detail",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "role": [
+                                        "admin"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "User detail"
+                                }
+                            }
+                        },
+                        "put": {
+                            "summary": "Update user",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "role": [
+                                        "admin"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        },
+                        "delete": {
+                            "summary": "Delete user",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "role": [
+                                        "admin"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Role Management",
+            "description": "CRUD for role (peran) management",
+            "files": [
+                "app/Http/Controllers/RoleController.php",
+                "app/Models/Peran.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/roles": {
+                        "get": {
+                            "summary": "List all roles",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "role": [
+                                        "admin"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Role list"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Klasifikasi Surat Management",
+            "description": "CRUD for document classification codes",
+            "files": [
+                "app/Http/Controllers/KlasifikasiSuratController.php",
+                "app/Models/KlasifikasiSurat.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/klasifikasi_surat": {
+                        "get": {
+                            "summary": "List all classification codes",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Classification list"
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Create new classification",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "role": [
+                                        "admin"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Jenis Tugas Management",
+            "description": "CRUD for assignment types and sub-tasks",
+            "files": [
+                "app/Http/Controllers/JenisTugasController.php",
+                "app/Http/Controllers/SubTugasController.php",
+                "app/Models/JenisTugas.php",
+                "app/Models/SubTugas.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/jenis_surat_tugas": {
+                        "get": {
+                            "summary": "List all assignment types",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Assignment type list"
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Create new assignment type",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "role": [
+                                        "admin"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/jenis_surat_tugas/{id}/sub_tugas": {
+                        "get": {
+                            "summary": "List sub-tasks for assignment type",
+                            "responses": {
+                                "200": {
+                                    "description": "Sub-task list"
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Create new sub-task",
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Notifications",
+            "description": "Display and manage user notifications for document events",
+            "files": [
+                "app/Http/Controllers/NotifikasiController.php",
+                "app/Models/Notifikasi.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/notifikasi": {
+                        "get": {
+                            "summary": "List all my notifications",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Notification list"
+                                }
+                            }
+                        }
+                    },
+                    "/notifikasi/{id}/read": {
+                        "patch": {
+                            "summary": "Mark notification as read",
+                            "parameters": [
+                                {
+                                    "name": "id",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": {
+                                        "type": "integer"
+                                    }
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/notifikasi/mark-all-read": {
+                        "patch": {
+                            "summary": "Mark all notifications as read",
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Master Kop Surat (Letterhead)",
+            "description": "Manage letterhead configuration including logo, signature, and stamp settings",
+            "files": [
+                "app/Http/Controllers/MasterKopSuratController.php",
+                "app/Models/MasterKopSurat.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/pengaturan/kop-surat": {
+                        "get": {
+                            "summary": "View letterhead settings (Admin only)",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "ability": [
+                                        "manage-kop-surat"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Letterhead settings page"
+                                }
+                            }
+                        },
+                        "put": {
+                            "summary": "Update letterhead settings",
+                            "security": [
+                                {
+                                    "session": [],
+                                    "ability": [
+                                        "manage-kop-surat"
+                                    ]
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "User Signature",
+            "description": "Manage personal signature image for document signing",
+            "files": [
+                "app/Http/Controllers/MySignatureController.php",
+                "app/Models/UserSignature.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/kop-surat/ttd-saya": {
+                        "get": {
+                            "summary": "View my signature settings",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Signature settings page"
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Upload/update my signature",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "multipart/form-data": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "signature_image": {
+                                                    "type": "string",
+                                                    "format": "binary"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        },
+                        "delete": {
+                            "summary": "Delete my signature",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "Account Settings",
+            "description": "User profile and password management",
+            "files": [
+                "app/Http/Controllers/AccountSettingsController.php"
+            ],
+            "api_doc": {
+                "openapi": "3.0.0",
+                "paths": {
+                    "/pengaturan/akun": {
+                        "get": {
+                            "summary": "View account settings",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Account settings page"
+                                }
+                            }
+                        }
+                    },
+                    "/pengaturan/akun/profile": {
+                        "put": {
+                            "summary": "Update profile",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    },
+                    "/pengaturan/akun/password": {
+                        "put": {
+                            "summary": "Change password",
+                            "security": [
+                                {
+                                    "session": []
+                                }
+                            ],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/x-www-form-urlencoded": {
+                                        "schema": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_password": {
+                                                    "type": "string"
+                                                },
+                                                "new_password": {
+                                                    "type": "string"
+                                                },
+                                                "new_password_confirmation": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "current_password",
+                                                "new_password",
+                                                "new_password_confirmation"
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "302": {
+                                    "description": "Redirect on success"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

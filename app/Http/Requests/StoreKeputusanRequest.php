@@ -145,38 +145,14 @@ class StoreKeputusanRequest extends FormRequest
         }
 
         // ====================================================================
-// STEP 4: Normalisasi + sanitasi TEMBUSAN (Tagify JSON → list baris)
-// ====================================================================
-$rawTembusan = $this->input('tembusan');
-$tembusanList = [];
+        // STEP 4: Normalisasi + sanitasi TEMBUSAN (Tagify JSON → list baris)
+        // ====================================================================
+        $rawTembusan = $this->input('tembusan');
+        $tembusanList = [];
 
-// 4.1 Jika sudah array (jarang, tapi amanin)
-if (is_array($rawTembusan)) {
-    foreach ($rawTembusan as $item) {
-        $val = is_array($item)
-            ? ($item['value'] ?? ($item['text'] ?? ($item['name'] ?? reset($item))))
-            : $item;
-
-        $val = strip_tags(trim((string) $val));
-        $val = sanitize_input($val, 255);
-
-        if ($val !== '') {
-            $tembusanList[] = $val;
-        }
-    }
-}
-
-// 4.2 Jika string (UMUM: Tagify simpan sebagai JSON string)
-elseif (is_string($rawTembusan)) {
-    // Decode entity & trim
-    $s = trim(html_entity_decode($rawTembusan, ENT_QUOTES, 'UTF-8'));
-
-    if ($s !== '') {
-        // Coba decode JSON Tagify: [{"value":"..."}, ...]
-        $decoded = json_decode($s, true);
-
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            foreach ($decoded as $item) {
+        // 4.1 Jika sudah array
+        if (is_array($rawTembusan)) {
+            foreach ($rawTembusan as $item) {
                 $val = is_array($item)
                     ? ($item['value'] ?? ($item['text'] ?? ($item['name'] ?? reset($item))))
                     : $item;
@@ -188,26 +164,46 @@ elseif (is_string($rawTembusan)) {
                     $tembusanList[] = $val;
                 }
             }
-        } else {
-            // Fallback: anggap dipisah koma / newline / titik koma
-            $parts = preg_split('/[,\n;]+/', $s);
-            foreach ($parts as $part) {
-                $val = strip_tags(trim((string) $part));
-                $val = sanitize_input($val, 255);
-                if ($val !== '') {
-                    $tembusanList[] = $val;
+        }
+        // 4.2 Jika string (Tagify → JSON string)
+        elseif (is_string($rawTembusan)) {
+            $s = trim(html_entity_decode($rawTembusan, ENT_QUOTES, 'UTF-8'));
+
+            if ($s !== '') {
+                $decoded = json_decode($s, true);
+
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    foreach ($decoded as $item) {
+                        $val = is_array($item)
+                            ? ($item['value'] ?? ($item['text'] ?? ($item['name'] ?? reset($item))))
+                            : $item;
+
+                        $val = strip_tags(trim((string) $val));
+                        $val = sanitize_input($val, 255);
+
+                        if ($val !== '') {
+                            $tembusanList[] = $val;
+                        }
+                    }
+                } else {
+                    // Fallback: koma / newline / titik koma
+                    $parts = preg_split('/[,\n;]+/', $s);
+                    foreach ($parts as $part) {
+                        $val = strip_tags(trim((string) $part));
+                        $val = sanitize_input($val, 255);
+                        if ($val !== '') {
+                            $tembusanList[] = $val;
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-// 4.3 Unik & join pakai newline (format simpan di DB)
-$tembusanList = array_values(array_unique($tembusanList));
-$tembusan = $tembusanList ? implode("\n", $tembusanList) : '';
+        // 4.3 Unik & join newline
+        $tembusanList = array_values(array_unique($tembusanList));
+        $tembusan = $tembusanList ? implode("\n", $tembusanList) : '';
 
-$this->merge(['tembusan' => $tembusan]);
-
+        $this->merge(['tembusan' => $tembusan]);
 
         // ====================================================================
         // STEP 5: Sanitize MENIMBANG array
@@ -266,7 +262,6 @@ $this->merge(['tembusan' => $tembusan]);
                     // ✅ Additional XSS protection
                     $isi = $this->stripDangerousHtml($isi);
 
-                    // Skip empty diktum
                     if ($judul === '' && trim(strip_tags($isi)) === '') {
                         return null;
                     }
@@ -297,7 +292,6 @@ $this->merge(['tembusan' => $tembusan]);
                         $val = trim((string) $item);
                     }
 
-                    // ✅ Sanitize external recipient names
                     $val = strip_tags(sanitize_input($val, 255));
 
                     return $val === '' || $val === null ? null : $val;
@@ -337,34 +331,35 @@ $this->merge(['tembusan' => $tembusan]);
     }
 
     /**
- * ✅ Remove dangerous characters (SQL/XSS patterns)
- */
-private function removeDangerousChars(?string $value): string
-{
-    if ($value === null || $value === '') {
-        return '';
-    }
-    
-    $value = str_replace("\0", '', $value);
-    $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value);
-    return $value;
-}
+     * ✅ Remove dangerous characters (SQL/XSS patterns)
+     */
+    private function removeDangerousChars(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
 
+        $value = str_replace("\0", '', $value);
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value);
+        return $value;
+    }
 
     /**
- * ✅ Strip dangerous HTML patterns
- */
-private function stripDangerousHtml(?string $value): string
-{
-    if ($value === null || $value === '') {
-        return '';
+     * ✅ Strip dangerous HTML patterns
+     */
+    private function stripDangerousHtml(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        $value = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $value);
+        $value = preg_replace('/<iframe\b[^>]*>[\s\S]*?<\/iframe>/i', '', $value);
+        $value = preg_replace('/<[^>]+\s+on\w+\s*=\s*["\'][^"\']*["\']/i', '', $value);
+        $value = preg_replace('/javascript:/i', '', $value);
+
+        return $value;
     }
-    
-    $value = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $value);
-    $value = preg_replace('/<iframe\b[^>]*>[\s\S]*?<\/iframe>/i', '', $value);
-    $value = preg_replace('/<[^>]+\s+on\w+\s*=\s*["\'][^"\']*["\']/i', '', $value);
-    $value = preg_replace('/javascript:/i', '', $value);
-    return $value;
 
     /**
      * ✅ Ensure at least one penerima exists
@@ -372,7 +367,6 @@ private function stripDangerousHtml(?string $value): string
     private function validatePenerimaExists(): void
     {
         $hasInternal = is_array($this->input('penerima_internal')) && count($this->input('penerima_internal')) > 0;
-
         $hasEksternal = is_array($this->input('penerima_eksternal')) && count($this->input('penerima_eksternal')) > 0;
 
         if (!$hasInternal && !$hasEksternal) {

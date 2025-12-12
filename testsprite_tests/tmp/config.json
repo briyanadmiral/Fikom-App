@@ -1,0 +1,21 @@
+{
+  "status": "init",
+  "scope": "codebase",
+  "type": "frontend",
+  "localEndpoint": "http://localhost:8000/",
+  "serverPort": 59226,
+  "executionArgs": {
+    "envs": {
+      "APP_ENV": "testing",
+      "APP_DEBUG": "false"
+    },
+    "command": "php",
+    "args": [
+      "vendor\\bin\\phpunit",
+      "--colors=always",
+      "--log-junit",
+      "tests-results/junit.xml"
+    ],
+    "projectPath": "c:\\laragon\\www\\surat_siega"
+  }
+}
