@@ -55,6 +55,10 @@ class TugasHeader extends Model
         'cap_w_mm',
         'cap_opacity',
         'dikunci_pada',
+        // Nomor Turunan (Suffix Letter)
+        'suffix',
+        'parent_tugas_id',
+        'nomor_urut_int',
     ];
 
     /**
@@ -87,6 +91,8 @@ class TugasHeader extends Model
         'tahun' => 'integer',
         'ttd_w_mm' => 'integer',
         'cap_w_mm' => 'integer',
+        'parent_tugas_id' => 'integer',
+        'nomor_urut_int' => 'integer',
 
         'cap_opacity' => 'float',
 
@@ -95,6 +101,7 @@ class TugasHeader extends Model
         'nomor' => 'string',
         'nomor_status' => 'string',
         'status_surat' => 'string',
+        'suffix' => 'string',
 
         'ttd_config' => 'array',
         'cap_config' => 'array',
@@ -203,6 +210,36 @@ class TugasHeader extends Model
     }
 
     // =========================================================
+    // NOMOR TURUNAN (SUFFIX LETTER) RELATIONS
+    // =========================================================
+
+    /**
+     * Parent surat tugas untuk nomor turunan
+     * Contoh: 002A -> parent = 002
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(TugasHeader::class, 'parent_tugas_id');
+    }
+
+    /**
+     * Children surat tugas (nomor turunan)
+     * Contoh: 002 -> children = [002A, 002B]
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(TugasHeader::class, 'parent_tugas_id');
+    }
+
+    /**
+     * Check if this is a turunan (derivative) surat
+     */
+    public function isTurunan(): bool
+    {
+        return !empty($this->suffix) || !empty($this->parent_tugas_id);
+    }
+
+    // =========================================================
     // SCOPES
     // =========================================================
 
@@ -219,6 +256,31 @@ class TugasHeader extends Model
     public function scopeDisetujui($query)
     {
         return $query->where('status_surat', 'disetujui');
+    }
+
+    /**
+     * Scope untuk sorting nomor dengan benar (1, 2, 2A, 2B, 3, ... 10, 11)
+     * Menghindari leksikal sorting yang salah (1, 10, 11, 2, 2A, ...)
+     */
+    public function scopeOrderByNomor($query, string $direction = 'asc')
+    {
+        $dir = strtolower($direction) === 'desc' ? 'DESC' : 'ASC';
+        
+        return $query->orderBy('tahun', $dir)
+                     ->orderBy('bulan', $dir)
+                     ->orderBy('kode_surat', $dir)
+                     ->orderBy('nomor_urut_int', $dir)
+                     ->orderByRaw("COALESCE(suffix, '') {$dir}");
+    }
+
+    /**
+     * Scope untuk filter hanya nomor utama (tanpa suffix)
+     * Dipakai untuk dropdown parent nomor turunan
+     */
+    public function scopeOnlyMainNomor($query)
+    {
+        return $query->whereNull('suffix')
+                     ->whereNull('parent_tugas_id');
     }
 
     /**

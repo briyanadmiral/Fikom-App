@@ -190,6 +190,15 @@ public function getNamaAttribute(): ?string
     return $this->nama_lengkap;
 }
 
+/**
+ * ✅ AdminLTE COMPATIBILITY: Accessor for 'name' attribute
+ * AdminLTE expects $user->name, but we use nama_lengkap
+ */
+public function getNameAttribute(): ?string
+{
+    return $this->nama_lengkap;
+}
+
 
     /**
      * ✅ IMPROVED: Nama peran dari relasi jika tersedia

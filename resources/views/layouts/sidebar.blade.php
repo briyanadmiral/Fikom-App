@@ -371,16 +371,112 @@
                     </li>
                 @endif
 
-                {{-- TTD Saya (Dekan/Wakil) --}}
-                @if (in_array($peranId, [2, 3], true))
+                {{-- TTD Saya moved to AKUN SAYA section --}}
+
+                {{-- =============== LIBRARY KONTEN (Admin Only) =============== --}}
+                @if ($peranId === 1)
+                    @php
+                        $libraryRoutes = ['menimbang_library.*', 'mengingat_library.*', 'surat_templates.*'];
+                        $libraryOpen = $isRoute(...$libraryRoutes);
+                    @endphp
+                    <li class="nav-item {{ $libraryOpen ? 'menu-is-opening menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ $libraryOpen ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-book-open"></i>
+                            <p>
+                                Library Konten
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('menimbang_library.index') }}"
+                                    class="nav-link {{ $isRoute('menimbang_library.*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon text-info"></i>
+                                    <p>Library Menimbang</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('mengingat_library.index') }}"
+                                    class="nav-link {{ $isRoute('mengingat_library.*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon text-warning"></i>
+                                    <p>Library Mengingat</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('surat_templates.index') }}"
+                                    class="nav-link {{ $isRoute('surat_templates.*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon text-success"></i>
+                                    <p>Template Surat</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                @endif
+
+                {{-- =============== LAPORAN & MONITORING (Admin Only) =============== --}}
+                @if ($peranId === 1)
+                    <li class="nav-header" style="color: #a78bfa !important;">LAPORAN</li>
                     <li class="nav-item">
-                        <a href="{{ route('kop.ttd.edit') }}"
-                            class="nav-link {{ $isRoute('kop.ttd.edit') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-signature"></i>
-                            <p>Tanda Tangan Saya</p>
+                        <a href="{{ route('laporan.dashboard') }}"
+                            class="nav-link {{ $isRoute('laporan.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-chart-pie"></i>
+                            <p>Dashboard Laporan</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('audit_logs.index') }}"
+                            class="nav-link {{ $isRoute('audit_logs.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-history"></i>
+                            <p>Audit Log</p>
                         </a>
                     </li>
                 @endif
+
+                {{-- =============== TOOLS (Admin Only) =============== --}}
+                @if ($peranId === 1)
+                    <li class="nav-header" style="color: #a78bfa !important;">TOOLS</li>
+                    <li class="nav-item">
+                        <a href="{{ route('import.penerima.index') }}"
+                            class="nav-link {{ $isRoute('import.penerima.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-file-import"></i>
+                            <p>Import Penerima ST</p>
+                        </a>
+                    </li>
+                @endif
+
+                {{-- =============== AKUN SAYA (All Users) =============== --}}
+                @auth
+                    <li class="nav-header" style="color: #a78bfa !important;">AKUN SAYA</li>
+                    
+                    {{-- Signature (Dekan/Wakil Only) --}}
+                    @if (in_array($peranId, [2, 3], true))
+                        <li class="nav-item">
+                            <a href="{{ route('signature.edit') }}"
+                                class="nav-link {{ $isRoute('signature.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-signature"></i>
+                                <p>Tanda Tangan Saya</p>
+                            </a>
+                        </li>
+                    @endif
+
+                    {{-- Notification Preferences (All) --}}
+                    <li class="nav-item">
+                        <a href="{{ route('notification_preferences.edit') }}"
+                            class="nav-link {{ $isRoute('notification_preferences.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-bell-slash"></i>
+                            <p>Preferensi Notifikasi</p>
+                        </a>
+                    </li>
+
+                    {{-- Account Settings --}}
+                    <li class="nav-item">
+                        <a href="{{ route('account.settings') }}"
+                            class="nav-link {{ $isRoute('account.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-user-cog"></i>
+                            <p>Pengaturan Akun</p>
+                        </a>
+                    </li>
+                @endauth
 
             </ul>
         </nav>

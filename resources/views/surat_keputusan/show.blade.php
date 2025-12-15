@@ -226,6 +226,17 @@
                             <i class="fas fa-file-pdf mr-2"></i>Download PDF
                         </a>
 
+                        {{-- Duplicate SK Button --}}
+                        @can('create', App\Models\KeputusanHeader::class)
+                            <form action="{{ route('surat_keputusan.duplicate', $keputusan->id) }}" method="POST" class="d-inline w-100">
+                                @csrf
+                                <button type="submit" class="btn btn-info btn-block" 
+                                        onclick="return confirm('Duplikat SK ini ke draft baru?')">
+                                    <i class="fas fa-copy mr-2"></i>Duplikat ke Draft
+                                </button>
+                            </form>
+                        @endcan
+
                         <a href="{{ url()->previous() }}" class="btn btn-secondary btn-block">
                             <i class="fas fa-arrow-left mr-2"></i>Kembali
                         </a>

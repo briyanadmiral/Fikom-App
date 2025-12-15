@@ -533,6 +533,57 @@
                                 @enderror
                             </div>
 
+                            {{-- Row 7: Mode Nomor Turunan (Suffix Letter) - HANYA UNTUK CREATE --}}
+                            @if (!$isEdit && auth()->user()->peran_id == 1)
+                            <div class="form-group" id="turunan-wrapper">
+                                <div class="card card-outline card-warning">
+                                    <div class="card-header py-2">
+                                        <div class="custom-control custom-switch">
+                                            <input type="checkbox" class="custom-control-input" 
+                                                   id="is_turunan" name="is_turunan" value="1"
+                                                   {{ old('is_turunan') ? 'checked' : '' }}>
+                                            <label class="custom-control-label" for="is_turunan">
+                                                <strong><i class="fas fa-code-branch mr-1"></i> Mode Turunan (Suffix Letter)</strong>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="card-body py-2" id="turunan-section" style="display:none;">
+                                        <small class="form-text text-muted mb-2">
+                                            <i class="fas fa-info-circle text-warning"></i> 
+                                            Untuk surat yang menggunakan nomor induk yang sudah ada (misal: 002 → 002A, 002B).
+                                            Biasa digunakan untuk surat yang ditandatangani setelah kegiatan berlangsung.
+                                        </small>
+                                        
+                                        <label for="parent_tugas_id">Pilih Nomor Induk <span class="text-danger">*</span></label>
+                                        <select name="parent_tugas_id" id="parent_tugas_id" 
+                                                class="form-control select2bs4">
+                                            <option value="">-- Pilih Nomor Induk --</option>
+                                            @foreach($parentableNomors ?? [] as $pn)
+                                                <option value="{{ $pn->id }}" 
+                                                        data-nomor="{{ $pn->nomor }}"
+                                                        {{ old('parent_tugas_id') == $pn->id ? 'selected' : '' }}>
+                                                    {{ $pn->nomor }} - {{ Str::limit($pn->nama_umum, 40) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        
+                                        <div class="mt-3 p-3 rounded" id="suffix-preview" style="display:none; background-color: #f4f6f9; border: 1px solid #dcdcdc; border-left: 5px solid #28a745;">
+                                            <div class="row align-items-center">
+                                                <div class="col-md-3 col-sm-4 border-right">
+                                                    <label class="text-uppercase text-secondary mb-0" style="font-size: 0.75rem; letter-spacing: 0.5px;">Suffix</label>
+                                                    <div class="font-weight-bold text-success" style="font-size: 2rem; line-height: 1;" id="next-suffix">A</div>
+                                                </div>
+                                                <div class="col-md-9 col-sm-8 pl-md-4">
+                                                    <label class="text-uppercase text-secondary mb-0" style="font-size: 0.75rem; letter-spacing: 0.5px;">Preview Nomor Lengkap</label>
+                                                    <div class="font-weight-bold text-dark" style="font-size: 1.25rem; word-break: break-all; color: #333 !important;" id="suffix-nomor-preview">...</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
                             {{-- === TEMBUSAN === --}}
                             @php
                                 $tembusanPresets = [
@@ -618,6 +669,39 @@
 
                         {{-- TAB 2: DETAIL TUGAS --}}
                         <div class="tab-pane fade" id="tab-isi" role="tabpanel">
+                            
+                            {{-- Template Selector --}}
+                            @if(isset($templates) && count($templates) > 0)
+                                <div class="alert alert-secondary mb-4">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-7">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-magic text-warning mr-3 fa-lg"></i>
+                                                <div>
+                                                    <h6 class="mb-0 font-weight-bold">Gunakan Template Cepat</h6>
+                                                    <small>Isi formulir otomatis menggunakan template yang tersedia.</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-5 mt-2 mt-md-0">
+                                            <div class="input-group">
+                                                <select id="template_selector" class="form-control select2bs4">
+                                                    <option value="">-- Pilih Template --</option>
+                                                    @foreach($templates as $tpl)
+                                                        <option value="{{ $tpl->id }}">{{ $tpl->nama }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <div class="input-group-append">
+                                                    <button type="button" class="btn btn-warning" id="btn-apply-template" title="Terapkan Template">
+                                                        <i class="fas fa-arrow-down mr-1"></i> Pakai
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
                             <div class="row">
                                 <div class="col-md-7">
                                     <div class="form-group">
@@ -1103,7 +1187,11 @@
                             }
                         }
                     }
-                }).catch(console.error);
+                })
+                .then(editor => {
+                    window.detailEditor = editor;
+                })
+                .catch(console.error);
             }
 
             // ====== NOMOR SURAT ======
@@ -1347,6 +1435,7 @@
                         t.value = v;
                     }
                 });
+                window.tagifyTembusan = tagify;
                 const renderTembusanPreview = () => {
                     const data = tagify.value.map(t => (t.value || '').trim()).filter(Boolean);
                     const showTitle = $('#tembusanShowTitle').is(':checked');
@@ -1678,6 +1767,145 @@
                 setTimeout(function() {
                     updateTaskPreview();
                 }, 300);
+            @endif
+
+
+            // ====== TEMPLATE SELECTOR LOGIC ======
+            @if(isset($templates) && count($templates) > 0)
+                const availableTemplates = @json($templates);
+
+                $('#btn-apply-template').on('click', function() {
+                    const tplId = $('#template_selector').val();
+                    if(!tplId) return;
+
+                    const tpl = availableTemplates.find(t => t.id == tplId);
+                    if(!tpl) return;
+
+                    Swal.fire({
+                        title: 'Terapkan Template?',
+                        html: `Isi <strong>Detail Tugas</strong> dan <strong>Tembusan</strong> akan diganti dengan template:<br>
+                               "<em>${tpl.nama}</em>"`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Ya, Terapkan!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // 1. Set Detail Tugas (CKEditor)
+                            if(window.detailEditor) {
+                                window.detailEditor.setData(tpl.detail_tugas || '');
+                            } else {
+                                $('#detail_tugas_editor').val(tpl.detail_tugas || '');
+                            }
+
+                            // 2. Set Tembusan (Tagify)
+                            const tembusanCsv = tpl.tembusan || '';
+                            if(window.tagifyTembusan) {
+                                window.tagifyTembusan.removeAllTags();
+                                if(tembusanCsv) {
+                                    window.tagifyTembusan.addTags(tembusanCsv.split(','));
+                                }
+                            } else {
+                                $('#tembusan-input').val(tembusanCsv);
+                            }
+
+                            // 3. Set Jenis Tugas (jika ada match nama)
+                            if(tpl.jenis_tugas_id && tpl.jenis_tugas) {
+                                const jtName = tpl.jenis_tugas.nama;
+                                const $jtSelect = $('#jenis_tugas');
+                                // Cari option yang text-nya match atau value-nya match
+                                // Di sini value option == nama
+                                if($jtSelect.find(`option[value="${jtName}"]`).length) {
+                                    $jtSelect.val(jtName).trigger('change');
+                                }
+                            }
+                            
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Template Diterapkan',
+                                showConfirmButton: false,
+                                timer: 1000
+                            });
+                        }
+                    })
+                });
+            @endif
+
+            // ====== MODE TURUNAN (SUFFIX LETTER) LOGIC ======
+            @if (!$isEdit && auth()->user()->peran_id == 1)
+                const $isTurunan = $('#is_turunan');
+                const $turunanSection = $('#turunan-section');
+                const $parentSelect = $('#parent_tugas_id');
+                const $suffixPreview = $('#suffix-preview');
+                const $nextSuffix = $('#next-suffix');
+                const $suffixNomorPreview = $('#suffix-nomor-preview');
+
+                // Toggle turunan section
+                $isTurunan.on('change', function() {
+                    const isChecked = $(this).is(':checked');
+                    $turunanSection.toggle(isChecked);
+                    
+                    if (isChecked) {
+                        // Disable komponen nomor biasa
+                        $('#nomor_urut, #bulan, #tahun-nomor').prop('readonly', true);
+                        $('#btn-reserve-nomor').prop('disabled', true);
+                        $('#nomor_surat_lengkap_display').val('-- Mode Turunan Aktif --');
+                    } else {
+                        // Re-enable komponen nomor biasa
+                        $('#bulan, #tahun-nomor').prop('readonly', false);
+                        $('#btn-reserve-nomor').prop('disabled', false);
+                        $suffixPreview.hide();
+                        buildNomorPreview();
+                    }
+                });
+
+                // Trigger on page load if already checked (old value)
+                if ($isTurunan.is(':checked')) {
+                    $isTurunan.trigger('change');
+                }
+
+                // Initialize Select2 for parent selector
+                $parentSelect.select2({
+                    theme: 'bootstrap4',
+                    placeholder: '-- Pilih Nomor Induk --',
+                    allowClear: true,
+                    width: '100%'
+                });
+
+                // Load next suffix when parent selected
+                $parentSelect.on('change', function() {
+                    const parentId = $(this).val();
+                    if (!parentId) {
+                        $suffixPreview.hide();
+                        $('#nomor_surat_lengkap_hidden').val('');
+                        return;
+                    }
+                    
+                    // Show loading
+                    $nextSuffix.text('...');
+                    $suffixNomorPreview.text('Memuat...');
+                    $suffixPreview.show();
+                    
+                    $.get('/ajax/surat-tugas/' + parentId + '/next-suffix')
+                        .done(function(data) {
+                            $nextSuffix.text(data.suffix);
+                            $suffixNomorPreview.text(data.nomor_preview);
+                            $('#nomor_surat_lengkap_hidden').val(data.nomor_preview);
+                            $('#nomor_surat_lengkap_display').val(data.nomor_preview);
+                        })
+                        .fail(function(xhr) {
+                            const msg = xhr.responseJSON?.error || 'Gagal memuat suffix';
+                            $nextSuffix.text('!');
+                            $suffixNomorPreview.text(msg);
+                            Swal.fire('Error', msg, 'error');
+                        });
+                });
+
+                // Trigger if already has old value
+                if ($parentSelect.val()) {
+                    $parentSelect.trigger('change');
+                }
             @endif
 
         });

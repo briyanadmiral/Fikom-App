@@ -902,6 +902,63 @@ class SuratKeputusanController extends Controller
         }
     }
 
+    /**
+     * Duplikat SK menjadi draft baru
+     * Copy header + struktur, reset nomor & status
+     */
+    public function duplicate(KeputusanHeader $surat_keputusan)
+    {
+        $this->authorize('view', $surat_keputusan);
+
+        try {
+            $newSk = DB::transaction(function () use ($surat_keputusan) {
+                // Replicate SK without certain fields
+                $new = $surat_keputusan->replicate([
+                    'nomor',
+                    'status_surat',
+                    'signed_at',
+                    'signed_pdf_path',
+                    'approved_by',
+                    'approved_at',
+                    'rejected_by',
+                    'rejected_at',
+                    'tanggal_terbit',
+                    'terbitkan_oleh',
+                    'tanggal_arsip',
+                    'arsipkan_oleh',
+                    'published_by',
+                    'published_at',
+                ]);
+
+                // Reset to draft
+                $new->nomor = null;
+                $new->status_surat = 'draft';
+                $new->dibuat_oleh = Auth::id();
+                $new->tanggal_surat = now()->format('Y-m-d');
+                $new->tahun = now()->year;
+                $new->save();
+
+                // Copy penerima
+                foreach ($surat_keputusan->penerima as $penerima) {
+                    $new->penerima()->attach($penerima->id);
+                }
+
+                return $new;
+            });
+
+            return redirect()
+                ->route('surat_keputusan.edit', $newSk->id)
+                ->with('success', 'SK berhasil diduplikasi sebagai draft baru. Silakan sesuaikan dan tambahkan nomor.');
+        } catch (\Exception $e) {
+            Log::error('Gagal menduplikat SK #' . $surat_keputusan->id, [
+                'error' => sanitize_log_message($e->getMessage()),
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->with('error', 'Terjadi kesalahan saat menduplikat SK.');
+        }
+    }
+
     /* ==================== PDF & Preview ==================== */
 
     public function downloadPdf(KeputusanHeader $surat_keputusan)

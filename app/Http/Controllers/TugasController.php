@@ -278,7 +278,19 @@ class TugasController extends Controller
         $bulanRomawi = $this->toRoman($bulanInt);
         $autoNomor = sprintf('/TG/UNIKA/%s/%s', $bulanRomawi, $tahun);
         $tanggalHariIni = now()->format('Y-m-d');
-        return view('surat_tugas.create', compact('admins', 'pejabat', 'users', 'taskMaster', 'autoNomor', 'tahun', 'semester', 'klasifikasi', 'bulanRomawi', 'tanggalHariIni'))->with('tugas', null);
+        
+        // ✅ PHASE 1: Load active templates for template selector
+        $templates = \App\Models\SuratTemplate::active()->with('jenisTugas')->orderBy('nama')->get();
+        
+        // ✅ NOMOR TURUNAN: Load parentable nomors (approved, no suffix, current year)
+        $parentableNomors = TugasHeader::where('status_surat', 'disetujui')
+            ->onlyMainNomor()  // scope: whereNull('suffix')->whereNull('parent_tugas_id')
+            ->where('tahun', $tahun)
+            ->orderByNomor('desc')
+            ->limit(100)
+            ->get(['id', 'nomor', 'nama_umum']);
+        
+        return view('surat_tugas.create', compact('admins', 'pejabat', 'users', 'taskMaster', 'autoNomor', 'tahun', 'semester', 'klasifikasi', 'bulanRomawi', 'tanggalHariIni', 'templates', 'parentableNomors'))->with('tugas', null);
     }
 
     public function store(StoreTugasRequest $request)

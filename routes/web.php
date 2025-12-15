@@ -180,6 +180,21 @@ Route::middleware('check.session.role')->group(function () {
                 ->whereNumber('tugas');
         });
 
+    // 6b) AJAX: Nomor Turunan (Suffix) - untuk ST
+    Route::get('/ajax/surat-tugas/{tugas}/next-suffix', function (\App\Models\TugasHeader $tugas) {
+        $service = app(\App\Services\NomorSuratService::class);
+        try {
+            return response()->json([
+                'suffix' => $service->getNextSuffix($tugas->id),
+                'nomor_preview' => $service->previewSuffixNomor($tugas->id),
+                'parent_nomor' => $tugas->nomor,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    })->name('ajax.surat_tugas.nextSuffix')
+      ->whereNumber('tugas');
+
     Route::get('/surat-tugas/{any?}', [RedirectController::class, 'legacySt'])->where('any', '.*');
 
     // 7) Account Settings & Notifications
@@ -355,6 +370,139 @@ Route::prefix('surat_keputusan')
         SendSuratTugasEmail::dispatch((int) $id, 'to_recipients');
         return "Job dikirim untuk surat ID {$id}. Cek inbox (atau MailHog).";
     })->whereNumber('id');
+
+    // ==================== PHASE 1 ROUTES ====================
+
+    // 11) Template Surat Tugas
+    Route::resource('surat_templates', \App\Http\Controllers\SuratTemplateController::class);
+    Route::post('/surat_templates/{surat_template}/duplicate', [\App\Http\Controllers\SuratTemplateController::class, 'duplicate'])
+        ->name('surat_templates.duplicate');
+    Route::get('/ajax/surat_templates/{id}', [\App\Http\Controllers\SuratTemplateController::class, 'getTemplate'])
+        ->name('ajax.template.get')
+        ->whereNumber('id');
+
+    // 12) Audit Logs (Admin only)
+    Route::get('/pengaturan/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])
+        ->name('audit.index');
+    Route::get('/ajax/audit-logs/entity', [\App\Http\Controllers\AuditLogController::class, 'forEntity'])
+        ->name('ajax.audit.entity');
+
+    // ==================== PHASE 2 & 3 ROUTES ====================
+
+    // 13) Menimbang Library (SK)
+    Route::prefix('pengaturan/menimbang-library')
+        ->name('menimbang_library.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\MenimbangLibraryController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\MenimbangLibraryController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\MenimbangLibraryController::class, 'store'])->name('store');
+            Route::get('/{menimbangLibrary}/edit', [\App\Http\Controllers\MenimbangLibraryController::class, 'edit'])->name('edit');
+            Route::put('/{menimbangLibrary}', [\App\Http\Controllers\MenimbangLibraryController::class, 'update'])->name('update');
+            Route::delete('/{menimbangLibrary}', [\App\Http\Controllers\MenimbangLibraryController::class, 'destroy'])->name('destroy');
+        });
+    Route::get('/ajax/menimbang-library/search', [\App\Http\Controllers\MenimbangLibraryController::class, 'search'])
+        ->name('ajax.menimbang.search');
+    Route::post('/ajax/menimbang-library/{menimbangLibrary}/usage', [\App\Http\Controllers\MenimbangLibraryController::class, 'incrementUsage'])
+        ->name('ajax.menimbang.usage');
+
+    // 14) Mengingat Library (SK)
+    Route::prefix('pengaturan/mengingat-library')
+        ->name('mengingat_library.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\MengingatLibraryController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\MengingatLibraryController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\MengingatLibraryController::class, 'store'])->name('store');
+            Route::get('/{mengingatLibrary}/edit', [\App\Http\Controllers\MengingatLibraryController::class, 'edit'])->name('edit');
+            Route::put('/{mengingatLibrary}', [\App\Http\Controllers\MengingatLibraryController::class, 'update'])->name('update');
+            Route::delete('/{mengingatLibrary}', [\App\Http\Controllers\MengingatLibraryController::class, 'destroy'])->name('destroy');
+        });
+    Route::get('/ajax/mengingat-library/search', [\App\Http\Controllers\MengingatLibraryController::class, 'search'])
+        ->name('ajax.mengingat.search');
+    Route::get('/ajax/mengingat-library/categories', [\App\Http\Controllers\MengingatLibraryController::class, 'categories'])
+        ->name('ajax.mengingat.categories');
+    Route::post('/ajax/mengingat-library/{mengingatLibrary}/usage', [\App\Http\Controllers\MengingatLibraryController::class, 'incrementUsage'])
+        ->name('ajax.mengingat.usage');
+
+    // 15) Duplicate SK Feature
+    Route::post('/surat_keputusan/{surat_keputusan}/duplicate', [\App\Http\Controllers\SuratKeputusanController::class, 'duplicate'])
+        ->name('surat_keputusan.duplicate');
+
+    // 16) Reports Dashboard
+    Route::prefix('laporan')
+        ->name('laporan.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\ReportController::class, 'dashboard'])->name('dashboard');
+            Route::get('/export/excel', [\App\Http\Controllers\ReportController::class, 'exportExcel'])->name('export.excel');
+            Route::get('/export/pdf', [\App\Http\Controllers\ReportController::class, 'exportPdf'])->name('export.pdf');
+        });
+
+    // 17) Audit Logs (aliased)
+    Route::get('/pengaturan/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])
+        ->name('audit_logs.index');
+
+    // 18) Recipient Import (ST)
+    Route::prefix('surat-tugas/import-penerima')
+        ->name('recipient_import.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\RecipientImportController::class, 'index'])->name('index');
+            Route::post('/preview', [\App\Http\Controllers\RecipientImportController::class, 'preview'])->name('preview');
+            Route::post('/confirm', [\App\Http\Controllers\RecipientImportController::class, 'confirm'])->name('confirm');
+            Route::get('/template', [\App\Http\Controllers\RecipientImportController::class, 'downloadTemplate'])->name('template');
+        });
+
+    // 19) Signature Capture
+    Route::prefix('signature')
+        ->name('signature.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\SignatureController::class, 'edit'])->name('edit');
+            Route::put('/', [\App\Http\Controllers\SignatureController::class, 'update'])->name('update');
+            Route::delete('/', [\App\Http\Controllers\SignatureController::class, 'destroy'])->name('destroy');
+            Route::get('/preview', [\App\Http\Controllers\SignatureController::class, 'preview'])->name('preview');
+        });
+
+    // 20) Notification Preferences
+    Route::prefix('pengaturan/notifikasi')
+        ->name('notification_preferences.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\NotificationPreferenceController::class, 'edit'])->name('edit');
+            Route::put('/', [\App\Http\Controllers\NotificationPreferenceController::class, 'update'])->name('update');
+        });
+
+    // 21) Multiple Kop Templates
+    Route::prefix('pengaturan/kop-surat')
+        ->name('kop.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\MasterKopController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\MasterKopController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\MasterKopController::class, 'store'])->name('store');
+            Route::get('/{kop}/edit', [\App\Http\Controllers\MasterKopController::class, 'edit'])->name('edit');
+            Route::put('/{kop}', [\App\Http\Controllers\MasterKopController::class, 'update'])->name('update');
+            Route::delete('/{kop}', [\App\Http\Controllers\MasterKopController::class, 'destroy'])->name('destroy');
+            Route::post('/{kop}/set-default', [\App\Http\Controllers\MasterKopController::class, 'setDefault'])->name('setDefault');
+        });
+    Route::get('/ajax/kop-surat/list', [\App\Http\Controllers\MasterKopController::class, 'list'])
+        ->name('ajax.kop.list');
+
+    // 22) Archive Export (ST & SK)
+    Route::prefix('arsip/export')
+        ->name('arsip_export.')
+        ->group(function () {
+            Route::get('/surat-tugas/csv', [\App\Http\Controllers\ArchiveExportController::class, 'exportStCsv'])->name('st.csv');
+            Route::get('/surat-tugas/excel', [\App\Http\Controllers\ArchiveExportController::class, 'exportStExcel'])->name('st.excel');
+            Route::get('/surat-keputusan/csv', [\App\Http\Controllers\ArchiveExportController::class, 'exportSkCsv'])->name('sk.csv');
+            Route::get('/surat-keputusan/excel', [\App\Http\Controllers\ArchiveExportController::class, 'exportSkExcel'])->name('sk.excel');
+        });
+
+    // 23) Recipient Import (Bulk Import Penerima ST)
+    Route::prefix('import-penerima')
+        ->name('import.penerima.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\RecipientImportController::class, 'index'])->name('index');
+            Route::post('/preview', [\App\Http\Controllers\RecipientImportController::class, 'preview'])->name('preview');
+            Route::post('/confirm', [\App\Http\Controllers\RecipientImportController::class, 'confirm'])->name('confirm');
+            Route::get('/template', [\App\Http\Controllers\RecipientImportController::class, 'downloadTemplate'])->name('template');
+        });
+
 });
 
 

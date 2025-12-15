@@ -370,30 +370,6 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
                 </small>
             </div>
 
-            <div class="col-md-6 mb-3">
-    <label for="penandatangan" class="form-label font-weight-bold">
-        Penandatangan <span class="badge badge-secondary">opsional</span>
-    </label>
-    <select id="penandatangan" name="penandatangan" 
-            class="form-control @error('penandatangan') is-invalid @enderror">
-        <option value="">-- Pilih Penandatangan --</option>
-        @foreach($pejabat ?? [] as $p)
-            <option value="{{ $p->id }}" 
-                    data-npp="{{ $p->npp ?? '' }}"
-                    {{ old('penandatangan', $getPref('penandatangan')) == $p->id ? 'selected' : '' }}>
-                {{ $p->nama_lengkap }}
-                @if($p->peran_id == 2) (Dekan) @endif
-                @if($p->peran_id == 3) (Wakil Dekan) @endif
-            </option>
-        @endforeach
-    </select>
-    @error('penandatangan')
-        <div class="invalid-feedback">{{ $message }}</div>
-    @enderror
-    <small class="form-text text-muted">
-        <i class="fas fa-user-tie mr-1"></i>Pejabat yang menandatangani
-    </small>
-</div>
 
             {{-- BARIS 3: Tentang (Full Width) --}}
             <div class="col-12 mb-3">
@@ -501,6 +477,14 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
                     <strong><i class="fas fa-balance-scale mr-2"></i>Menimbang</strong>
                 </header>
                 <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> Pertimbangan yang mendasari keputusan
+                        </small>
+                        <button type="button" class="btn btn-sm btn-success" data-toggle="modal" data-target="#modalMenimbangLibrary">
+                            <i class="fas fa-book mr-1"></i>Pilih dari Library
+                        </button>
+                    </div>
                     <div id="menimbang-list" class="dynamic-list">
                         @foreach($prefMenimbang as $val)
                         <div class="input-group mb-2 dynamic-item menimbang-item">
@@ -527,6 +511,14 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
                     <strong><i class="fas fa-book-open mr-2"></i>Mengingat</strong>
                 </header>
                 <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> Dasar hukum yang menjadi rujukan
+                        </small>
+                        <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#modalMengingatLibrary">
+                            <i class="fas fa-book mr-1"></i>Pilih dari Library
+                        </button>
+                    </div>
                     <div id="mengingat-list" class="dynamic-list">
                         @foreach($prefMengingat as $val)
                         <div class="input-group mb-2 dynamic-item mengingat-item">
@@ -631,18 +623,27 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
                 </div>
                 <div class="card-body">
                     <div class="form-group mb-3">
-                        <label for="penandatangan_sidebar" class="form-label font-weight-bold">Penandatangan</label>
-                        {{-- NOTE: Sidebar hanya tampilan helper, field utama ada di Data Utama --}}
-                        <select id="penandatangan_sidebar" class="form-control">
-                            <option value="">-- Pilih Pejabat --</option>
-                            @foreach($pejabat ?? collect() as $p)
-                                <option value="{{ $p->id }}">
-                                    {{ $p->nama_lengkap }} ({{ $p->peran->deskripsi ?? 'Pejabat' }})
+                        <label for="penandatangan" class="form-label font-weight-bold">
+                            Penandatangan <span class="badge badge-secondary">opsional</span>
+                        </label>
+                        <select id="penandatangan" name="penandatangan" 
+                                class="form-control @error('penandatangan') is-invalid @enderror">
+                            <option value="">-- Pilih Penandatangan --</option>
+                            @foreach($pejabat ?? [] as $p)
+                                <option value="{{ $p->id }}" 
+                                        data-npp="{{ $p->npp ?? '' }}"
+                                        {{ old('penandatangan', $getPref('penandatangan')) == $p->id ? 'selected' : '' }}>
+                                    {{ $p->nama_lengkap }}
+                                    @if($p->peran_id == 2) (Dekan) @endif
+                                    @if($p->peran_id == 3) (Wakil Dekan) @endif
                                 </option>
                             @endforeach
                         </select>
-                        <small class="text-muted d-block mt-1">
-                            Pilihan ini akan mengikuti field Penandatangan di bagian Data Utama.
+                        @error('penandatangan')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="form-text text-muted">
+                            <i class="fas fa-user-tie mr-1"></i>Pejabat yang menandatangani
                         </small>
                     </div>
 
@@ -727,6 +728,66 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
                 <button type="button" class="btn btn-primary" onclick="saveNppManual()">
                     <i class="fas fa-save"></i> Simpan
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ✅ Modal Library Menimbang --}}
+<div class="modal fade" id="modalMenimbangLibrary" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-book"></i> Pilih dari Library Menimbang
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" id="search-menimbang" class="form-control" placeholder="Cari konten menimbang...">
+                </div>
+                <div id="menimbang-library-list" style="max-height: 400px; overflow-y: auto;">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p class="mt-2">Memuat library...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ✅ Modal Library Mengingat --}}
+<div class="modal fade" id="modalMengingatLibrary" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-book"></i> Pilih dari Library Mengingat
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="text" id="search-mengingat" class="form-control" placeholder="Cari dasar hukum...">
+                </div>
+                <div id="mengingat-library-list" style="max-height: 400px; overflow-y: auto;">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p class="mt-2">Memuat library...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -1218,6 +1279,112 @@ function saveNppManual() {
         toastr.success('NPP berhasil diperbarui');
     }
 }
+
+// ============ LIBRARY INTEGRATION ============
+// Load Menimbang Library
+$('#modalMenimbangLibrary').on('show.bs.modal', function() {
+    loadLibraryItems('menimbang');
+});
+
+// Load Mengingat Library
+$('#modalMengingatLibrary').on('show.bs.modal', function() {
+    loadLibraryItems('mengingat');
+});
+
+// Search in libraries
+let searchTimeout;
+$('#search-menimbang, #search-mengingat').on('keyup', function() {
+    clearTimeout(searchTimeout);
+    const type = $(this).attr('id').includes('menimbang') ? 'menimbang' : 'mengingat';
+    const query = $(this).val();
+    
+    searchTimeout = setTimeout(() => {
+        loadLibraryItems(type, query);
+    }, 300);
+});
+
+function loadLibraryItems(type, search = '') {
+    const container = $(`#${type}-library-list`);
+    const url = `/ajax/${type}-library/search?q=${encodeURIComponent(search)}`;
+    
+    container.html(`
+        <div class="text-center text-muted py-4">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p class="mt-2">Memuat library...</p>
+        </div>
+    `);
+    
+    $.get(url)
+        .done(function(response) {
+            if (response.data && response.data.length > 0) {
+                let html = '<div class="list-group">';
+                response.data.forEach(item => {
+                    html += `
+                        <a href="#" class="list-group-item list-group-item-action library-item" 
+                           data-type="${type}" data-content="${escapeHtml(item.isi)}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <p class="mb-1">${escapeHtml(item.isi)}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-plus-circle"></i>
+                                </small>
+                            </div>
+                            ${item.kategori ? `<small class="badge badge-info">${item.kategori}</small>` : ''}
+                            ${item.jumlah_penggunaan ? `<small class="text-muted ml-2"><i class="fas fa-chart-line"></i> ${item.jumlah_penggunaan}x</small>` : ''}
+                        </a>
+                    `;
+                });
+                html += '</div>';
+                container.html(html);
+            } else {
+                container.html(`
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <p>Tidak ada data di library</p>
+                        <small>Silakan tambahkan melalui menu Library Konten</small>
+                    </div>
+                `);
+            }
+        })
+        .fail(function() {
+            container.html(`
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> Gagal memuat library. Silakan coba lagi.
+                </div>
+            `);
+        });
+}
+
+// Insert library item ke form
+$(document).on('click', '.library-item', function(e) {
+    e.preventDefault();
+    const type = $(this).data('type');
+    const content = $(this).data('content');
+    
+    // Add row baru dengan konten dari library
+    const addBtn = $(`#add-${type}`);
+    addBtn.click();
+    
+    // Isi konten ke row terakhir
+    setTimeout(() => {
+        const lastInput = $(`#${type}-list .dynamic-item:last-child input`);
+        lastInput.val(content);
+        lastInput.focus();
+        
+        // Close modal
+        $(`#modal${type.charAt(0).toUpperCase() + type.slice(1)}Library`).modal('hide');
+        
+        if (window.toastr && toastr.success) {
+            toastr.success('Konten berhasil ditambahkan dari library');
+        }
+    }, 100);
+});
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 </script>
 @endpush
 @endonce

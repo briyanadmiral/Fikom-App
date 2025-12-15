@@ -318,4 +318,114 @@ class NomorSuratService
             '{TAHUN}' => (string) $tahun,
         ]);
     }
+
+    // =========================================================
+    // NOMOR TURUNAN (SUFFIX LETTER) METHODS
+    // =========================================================
+
+    /**
+     * Get next available suffix for a parent tugas
+     * Returns: A, B, C, ... Z (max 26 derivatives)
+     *
+     * @param int $parentTugasId
+     * @return string Next suffix letter (A-Z)
+     * @throws \RuntimeException if max suffix (Z) exceeded
+     */
+    public function getNextSuffix(int $parentTugasId): string
+    {
+        $parent = \App\Models\TugasHeader::find($parentTugasId);
+        
+        if (!$parent) {
+            throw new \InvalidArgumentException('Parent tugas tidak ditemukan.');
+        }
+
+        // Get existing suffixes for this parent
+        $existingSuffixes = \App\Models\TugasHeader::where('parent_tugas_id', $parentTugasId)
+            ->whereNotNull('suffix')
+            ->pluck('suffix')
+            ->map(fn($s) => strtoupper($s))
+            ->toArray();
+
+        // Generate next letter (A-Z)
+        $alphabet = range('A', 'Z');
+        
+        foreach ($alphabet as $letter) {
+            if (!in_array($letter, $existingSuffixes, true)) {
+                return $letter;
+            }
+        }
+
+        throw new \RuntimeException('Maksimum suffix (Z) telah tercapai untuk nomor ini.');
+    }
+
+    /**
+     * Preview suffix nomor tanpa reserve (read-only)
+     *
+     * @param int $parentTugasId
+     * @return string Preview nomor lengkap dengan suffix
+     */
+    public function previewSuffixNomor(int $parentTugasId): string
+    {
+        $parent = \App\Models\TugasHeader::find($parentTugasId);
+        
+        if (!$parent) {
+            return '[Parent tidak ditemukan]';
+        }
+
+        $nextSuffix = $this->getNextSuffix($parentTugasId);
+        
+        // Parse parent nomor dan sisipkan suffix
+        // Format: 002/A.3.1/ST.IKOM/UNIKA/XII/2025 -> 002A/A.3.1/ST.IKOM/UNIKA/XII/2025
+        $parts = explode('/', $parent->nomor);
+        
+        if (count($parts) >= 1) {
+            // Tambahkan suffix ke bagian pertama (nomor urut)
+            $parts[0] = $parts[0] . $nextSuffix;
+        }
+
+        return implode('/', $parts);
+    }
+
+    /**
+     * Reserve suffix nomor untuk turunan
+     * 
+     * @param int $parentTugasId ID surat induk
+     * @return array{suffix: string, nomor: string, parent_id: int, nomor_urut_int: int}
+     * @throws \InvalidArgumentException
+     * @throws \RuntimeException
+     */
+    public function reserveSuffix(int $parentTugasId): array
+    {
+        $parent = \App\Models\TugasHeader::find($parentTugasId);
+        
+        if (!$parent) {
+            throw new \InvalidArgumentException('Parent tugas tidak ditemukan.');
+        }
+
+        if ($parent->suffix !== null || $parent->parent_tugas_id !== null) {
+            throw new \InvalidArgumentException('Tidak bisa membuat turunan dari nomor yang sudah turunan.');
+        }
+
+        $suffix = $this->getNextSuffix($parentTugasId);
+        $nomor = $this->previewSuffixNomor($parentTugasId);
+
+        // Extract nomor_urut_int from parent
+        $parts = explode('/', $parent->nomor);
+        $nomorUrutInt = (int) preg_replace('/\D/', '', $parts[0] ?? '0');
+
+        Log::info('Suffix nomor reserved', [
+            'parent_id' => $parentTugasId,
+            'parent_nomor' => sanitize_log_message($parent->nomor),
+            'suffix' => $suffix,
+            'new_nomor' => sanitize_log_message($nomor),
+        ]);
+
+        return [
+            'suffix' => $suffix,
+            'nomor' => $nomor,
+            'parent_id' => $parentTugasId,
+            'nomor_urut_int' => $nomorUrutInt,
+        ];
+    }
 }
+

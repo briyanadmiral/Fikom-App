@@ -122,6 +122,7 @@
                 'tahun' => $tahun ?? now()->year,
                 'semester' => $semester ?? 'Ganjil',
                 'bulanRomawi' => $bulanRomawi ?? null,
+                'templates' => $templates ?? collect([]),
             ])
         @else
             {{-- Guard akses --}}

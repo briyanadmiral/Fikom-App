@@ -66,7 +66,27 @@ class SuratTugasService
 
             // Nomor surat: pakai input jika ada, kalau kosong → reserve otomatis
             $nomor = trim((string) ($validatedData['nomor'] ?? ''));
-            if ($nomor === '') {
+            $suffix = null;
+            $parentTugasId = null;
+            $nomorUrutInt = null;
+            
+            // ✅ MODE TURUNAN: Gunakan suffix dari parent jika is_turunan = true
+            if (!empty($validatedData['is_turunan']) && !empty($validatedData['parent_tugas_id'])) {
+                $parentId = (int) $validatedData['parent_tugas_id'];
+                $suffixData = $this->nomorService->reserveSuffix($parentId);
+                
+                $nomor = $suffixData['nomor'];
+                $suffix = $suffixData['suffix'];
+                $parentTugasId = $suffixData['parent_id'];
+                $nomorUrutInt = $suffixData['nomor_urut_int'];
+                
+                Log::info('Mode Turunan: Created suffix nomor', [
+                    'parent_id' => $parentId,
+                    'suffix' => $suffix,
+                    'nomor' => $nomor,
+                ]);
+            } elseif ($nomor === '') {
+                // Normal mode: reserve nomor baru
                 $klasifikasiId = (int) ($validatedData['klasifikasi_surat_id'] ?? 0);
                 $klasifikasi = $klasifikasiId ? KlasifikasiSurat::find($klasifikasiId) : null;
                 $kodeKlas = $klasifikasi ? $klasifikasi->kode : 'B.10.1';
@@ -77,6 +97,10 @@ class SuratTugasService
 
                 $res = $this->nomorService->reserve($unit, $kodeKlas, $bulanR, $tahun);
                 $nomor = $res['nomor'];
+                
+                // Extract nomor_urut_int untuk sorting
+                $parts = explode('/', $nomor);
+                $nomorUrutInt = (int) preg_replace('/\D/', '', $parts[0] ?? '0');
             }
 
             $segmen = $this->resolveSegmenPenerima($validatedData['status_penerima'] ?? null);
@@ -109,6 +133,10 @@ class SuratTugasService
                 'next_approver' => $nextApprover ? (int) $nextApprover : null,
                 'tembusan' => sanitize_input($validatedData['tembusan'] ?? '', 500),
                 'submitted_at' => $status === 'pending' ? now() : null,
+                // ✅ NOMOR TURUNAN (Suffix Letter)
+                'suffix' => $suffix,
+                'parent_tugas_id' => $parentTugasId,
+                'nomor_urut_int' => $nomorUrutInt,
             ];
 
             // ✅ FIX: Set semua FK yang dibutuhkan

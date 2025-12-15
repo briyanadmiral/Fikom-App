@@ -5,7 +5,9 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
 use App\Models\TugasHeader;
+use App\Models\KeputusanHeader;
 use App\Observers\TugasHeaderObserver;
+use App\Observers\KeputusanHeaderObserver;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema; // ✅ ADDED
@@ -22,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\SuratTugasNotificationService::class);
         $this->app->singleton(\App\Services\SuratKeputusanNotificationService::class);
         $this->app->singleton(\App\Services\NomorSuratService::class);
+        $this->app->singleton(\App\Services\AuditService::class); // ✅ PHASE 1: AuditService
 
         // ✅ ADDED: Register helpers as singletons if they're classes
         // (Skip if helpers are functions)
@@ -57,10 +60,7 @@ class AppServiceProvider extends ServiceProvider
 
         // ✅ GOOD: Observers registration
         TugasHeader::observe(TugasHeaderObserver::class);
-
-        // ✅ ADDED: Register other observers if they exist
-        // KeputusanHeader::observe(KeputusanHeaderObserver::class);
-        // User::observe(UserObserver::class);
+        KeputusanHeader::observe(KeputusanHeaderObserver::class); // ✅ PHASE 1: SK Observer
 
         // ✅ GOOD: Force HTTPS di production
         if (app()->environment('production')) {

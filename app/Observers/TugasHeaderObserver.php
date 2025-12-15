@@ -4,8 +4,10 @@ namespace App\Observers;
 
 use App\Jobs\SendSuratTugasEmail;
 use App\Models\TugasHeader;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB; // ✅ ADDED
+
 
 /**
  * ✅ REFACTORED: Security enhanced dengan sanitized logging
@@ -62,6 +64,9 @@ class TugasHeaderObserver
             'nomor' => sanitize_log_message($tugas->nomor ?? '(belum ada)'),
             'created_by' => $userId ?? 'system',
         ]);
+
+        // ✅ PHASE 1: Audit logging
+        app(AuditService::class)->logCreate($tugas);
     }
 
     /**
