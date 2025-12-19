@@ -51,6 +51,10 @@ class AppServiceProvider extends ServiceProvider
             report($e);
         }
 
+        // ✅ FIX: Set Carbon locale and timezone for correct diffForHumans()
+        \Carbon\Carbon::setLocale(config('app.locale', 'id'));
+        date_default_timezone_set(config('app.timezone', 'Asia/Jakarta'));
+
         // ✅ GOOD: Bootstrap pagination
         if (method_exists(Paginator::class, 'useBootstrapFive')) {
             Paginator::useBootstrapFive();

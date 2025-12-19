@@ -34,6 +34,12 @@
   $capW = isset($capW) ? (int)$capW : (int)($sk->cap_config['w_mm'] ?? 35);
   $capOpacity = isset($capOpacity) ? (float)$capOpacity : (float)($sk->cap_config['opacity'] ?? 0.95);
 
+  // ✅ OFFSETS (X/Y)
+  $ttdX = isset($ttdX) ? (int)$ttdX : (isset($sk->ttd_config['x']) ? (int)$sk->ttd_config['x'] : 0);
+  $ttdY = isset($ttdY) ? (int)$ttdY : (isset($sk->ttd_config['y']) ? (int)$sk->ttd_config['y'] : 0);
+  $capX = isset($capX) ? (int)$capX : (isset($sk->cap_config['x']) ? (int)$sk->cap_config['x'] : 0);
+  $capY = isset($capY) ? (int)$capY : (isset($sk->cap_config['y']) ? (int)$sk->cap_config['y'] : 0);
+
   // Tembusan
   $tembusanRaw = (string)($sk->tembusan ?? '');
   $tembusanItems = collect(preg_split('/[\r\n,]+/', $tembusanRaw))
@@ -136,12 +142,27 @@
   .ttd-area-sign .ttd, .ttd-area-sign .cap { display: inline-block; vertical-align: bottom; }
 
   .ttd-area-sign .ttd {
+    /* translateX(-50%) keeps it centered, then we add X offset */
+    transform: translateX(calc(-50% + var(--ttd-x, 0mm)));
+    bottom: var(--ttd-y, 0mm); 
     width: var(--ttd-w, 42mm);
-    margin-left: -30mm; margin-bottom: 10mm;
+    left: 50%;
+    margin-bottom: 0; margin-left: 0; /* Override legacy margins */
   }
+  
+  .ttd-area-sign .ttd img, .ttd-area-sign .cap img {
+    width: 100%; height: auto; display: block;
+  }
+
   .ttd-area-sign .cap {
-    width: var(--cap-w, 35mm); opacity: var(--cap-opacity, 0.95);
-    position: relative; z-index: 2; margin-left: -20mm; margin-bottom: 6mm;
+    /* translateX(-25%) default offset for stamp, then add X offset */
+    transform: translateX(calc(-25% + var(--cap-x, 0mm)));
+    bottom: var(--cap-y, 0mm);
+    width: var(--cap-w, 35mm);
+    opacity: var(--cap-opacity, .95);
+    z-index: 2;
+    left: 50%;
+    margin-bottom: 0; margin-left: 0; /* Override legacy margins */
   }
 
   .tembusan { margin-top: .6cm; }
@@ -197,8 +218,38 @@
 
   .ttd-area-sign { position: relative; min-height: 28mm; margin-top: 6mm; text-align: center; }
   .ttd-area-sign .ttd, .ttd-area-sign .cap { display: inline-block; vertical-align: bottom; }
-  .ttd-area-sign .ttd { width: var(--ttd-w, 42mm); margin-left: -30mm; margin-bottom: 10mm; }
-  .ttd-area-sign .cap { width: var(--cap-w, 35mm); opacity: var(--cap-opacity, 0.95); margin-left: -20mm; margin-bottom: 6mm; position: relative; z-index: 2; }
+  .ttd-area-sign .ttd {
+    transform: translateX(calc(-50% + var(--ttd-x, 0mm)));
+    bottom: var(--ttd-y, 0mm); 
+    width: var(--ttd-w, 42mm);
+    left: 50%;
+    margin-bottom: 0; margin-left: 0;
+  }
+
+  .ttd-area-sign .ttd img, .ttd-area-sign .cap img {
+    width: 100%; height: auto; display: block;
+  }
+  .resize-handle {
+    width: 12px; height: 12px;
+    background: #ffffff;
+    border: 1px solid #007bff;
+    border-radius: 50%;
+    position: absolute;
+    bottom: -6px; right: -6px;
+    cursor: nwse-resize;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .ttd-area-sign .cap {
+    transform: translateX(calc(-25% + var(--cap-x, 0mm)));
+    bottom: var(--cap-y, 0mm);
+    width: var(--cap-w, 35mm);
+    opacity: var(--cap-opacity, .95);
+    z-index: 2;
+    left: 50%;
+    margin-bottom: 0; margin-left: 0;
+  }
 
   .tembusan-list { padding-left: 0; list-style-type: none; margin-top: 2mm; }
 </style>
@@ -296,13 +347,19 @@
       {!! $jabatanPrefix !!}{{ rtrim($jabatanBaris1, ',') }},
     </div>
 
-    <div class="ttd-area-sign" style="--ttd-w: {{$ttdW}}mm; --cap-w: {{$capW}}mm; --cap-opacity: {{$capOpacity}};">
+    <div class="ttd-area-sign" style="--ttd-w: {{$ttdW}}mm; --cap-w: {{$capW}}mm; --cap-opacity: {{$capOpacity}}; --ttd-x: {{$ttdX}}mm; --ttd-y: {{$ttdY}}mm; --cap-x: {{$capX}}mm; --cap-y: {{$capY}}mm;">
       @if($showSigns)
         @if(!empty($ttdImageB64))
-          <img class="ttd" src="{{ $ttdImageB64 }}" alt="TTD">
+            <div class="ttd-draggable ttd">
+                <img src="{{ $ttdImageB64 }}" alt="TTD">
+                <div class="resize-handle ttd-handle"></div>
+            </div>
         @endif
         @if(!empty($capImageB64))
-          <img class="cap" src="{{ $capImageB64 }}" alt="Cap">
+            <div class="cap-draggable cap">
+                <img src="{{ $capImageB64 }}" alt="Cap">
+                <div class="resize-handle cap-handle"></div>
+            </div>
         @endif
       @endif
     </div>

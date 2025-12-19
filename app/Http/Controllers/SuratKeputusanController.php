@@ -555,9 +555,14 @@ class SuratKeputusanController extends Controller
         $preview = [
             'ttd_image_b64' => $assets['ttdImageB64'],
             'cap_image_b64' => $assets['capImageB64'],
-            'ttd_w_mm' => $surat_keputusan->ttd_w_mm ?? $assets['ttdW'],
-            'cap_w_mm' => $surat_keputusan->cap_w_mm ?? $assets['capW'],
-            'cap_opacity' => $surat_keputusan->cap_opacity ?? $assets['capOpacity'],
+            'ttd_w_mm' => $surat_keputusan->ttd_config['w_mm'] ?? ($surat_keputusan->ttd_w_mm ?? $assets['ttdW']),
+            'cap_w_mm' => $surat_keputusan->cap_config['w_mm'] ?? ($surat_keputusan->cap_w_mm ?? $assets['capW']),
+            'cap_opacity' => $surat_keputusan->cap_config['opacity'] ?? ($surat_keputusan->cap_opacity ?? $assets['capOpacity']),
+            // Offsets
+            'ttd_x_mm' => $surat_keputusan->ttd_config['x'] ?? 0,
+            'ttd_y_mm' => $surat_keputusan->ttd_config['y'] ?? 0,
+            'cap_x_mm' => $surat_keputusan->cap_config['x'] ?? 0,
+            'cap_y_mm' => $surat_keputusan->cap_config['y'] ?? 0,
         ];
 
         return view('surat_keputusan.approve', [
@@ -567,6 +572,12 @@ class SuratKeputusanController extends Controller
             'ttdW' => $preview['ttd_w_mm'],
             'capW' => $preview['cap_w_mm'],
             'capOpacity' => $preview['cap_opacity'],
+            
+            'ttdX' => $preview['ttd_x_mm'],
+            'ttdY' => $preview['ttd_y_mm'],
+            'capX' => $preview['cap_x_mm'],
+            'capY' => $preview['cap_y_mm'],
+
             'ttdImageB64' => $assets['ttdImageB64'],
             'capImageB64' => $assets['capImageB64'],
             'showSigns' => true,
@@ -581,6 +592,12 @@ class SuratKeputusanController extends Controller
         $ttdW = (int) $request->input('ttd_w_mm', $surat_keputusan->ttd_w_mm ?? $assets['ttdW']);
         $capW = (int) $request->input('cap_w_mm', $surat_keputusan->cap_w_mm ?? $assets['capW']);
         $capOpacity = (float) $request->input('cap_opacity', $surat_keputusan->cap_opacity ?? $assets['capOpacity']);
+        
+        // Offsets
+        $ttdX = (int) $request->input('ttd_x_mm', $surat_keputusan->ttd_config['x'] ?? 0);
+        $ttdY = (int) $request->input('ttd_y_mm', $surat_keputusan->ttd_config['y'] ?? 0);
+        $capX = (int) $request->input('cap_x_mm', $surat_keputusan->cap_config['x'] ?? 0);
+        $capY = (int) $request->input('cap_y_mm', $surat_keputusan->cap_config['y'] ?? 0);
 
         return view('surat_keputusan.partials._approve_preview', [
             'sk' => $surat_keputusan,
@@ -591,6 +608,10 @@ class SuratKeputusanController extends Controller
             'ttdW' => $ttdW,
             'capW' => $capW,
             'capOpacity' => $capOpacity,
+            'ttdX' => $ttdX,
+            'ttdY' => $ttdY,
+            'capX' => $capX,
+            'capY' => $capY,
         ]);
     }
 
@@ -599,14 +620,45 @@ class SuratKeputusanController extends Controller
         $this->authorize('approve', $surat_keputusan);
 
         $validated = $request->validate([
-            'ttd_w_mm' => 'required|integer|min:30|max:60',
-            'cap_w_mm' => 'required|integer|min:25|max:45',
+            'ttd_w_mm' => 'required|integer|min:10|max:150',
+            'cap_w_mm' => 'required|integer|min:10|max:100',
             'cap_opacity' => 'required|numeric|min:0.7|max:1.0',
+            'ttd_x_mm' => 'nullable|integer|min:-100|max:100',
+            'ttd_y_mm' => 'nullable|integer|min:-100|max:100',
+            'cap_x_mm' => 'nullable|integer|min:-100|max:100',
+            'cap_y_mm' => 'nullable|integer|min:-100|max:100',
             'kode_klasifikasi' => 'nullable|string|max:20',
             'unit' => 'nullable|string|max:20',
         ]);
 
         try {
+            // Update config JSON sebelum generate PDF
+            $surat_keputusan->ttd_config = [
+                'w_mm' => $validated['ttd_w_mm'],
+                'x' => $validated['ttd_x_mm'] ?? 0,
+                'y' => $validated['ttd_y_mm'] ?? 0,
+            ];
+            $surat_keputusan->cap_config = [
+                'w_mm' => $validated['cap_w_mm'],
+                'opacity' => $validated['cap_opacity'],
+                'x' => $validated['cap_x_mm'] ?? 0,
+                'y' => $validated['cap_y_mm'] ?? 0,
+            ];
+            
+            // Simpan legacy columns juga jika perlu
+            $surat_keputusan->ttd_w_mm = $validated['ttd_w_mm'];
+            $surat_keputusan->cap_w_mm = $validated['cap_w_mm'];
+            $surat_keputusan->cap_opacity = $validated['cap_opacity'];
+            $surat_keputusan->save(); // Ensure config is saved
+            
+            // Simpan perubahan config ke DB dulu agar persistent?
+            // Service 'approveAndGenerateNumber' mungkin melakukan save() sendiri.
+            // Kita update instance model di memori, lalu service melakukan update status & nomor.
+            // Sebaiknya kita save dulu attribute ini ATAU biarkan service save.
+            // Cek implementation service... asumsikan service melakukan $sk->save().
+            // Tapi untuk amannya kita set attribute ini pada object $surat_keputusan
+            // yang dilempar ke service.
+
             $sk = $this->skService->approveAndGenerateNumber($surat_keputusan, $validated);
 
             $pdfBytes = $this->renderSkPdfWithSign($sk);
@@ -1007,7 +1059,7 @@ class SuratKeputusanController extends Controller
         }
 
         $capImageB64 = null;
-        $kop = MasterKopSurat::query()->first();
+        $kop = MasterKopSurat::getInstance();
         if ($kop && !empty($kop->cap_path)) {
             $capImageB64 = $this->b64FromStorage($kop->cap_path);
         }
@@ -1064,7 +1116,7 @@ class SuratKeputusanController extends Controller
 
     private function renderSkPdfDraft(KeputusanHeader $sk): string
     {
-        $kop = MasterKopSurat::query()->first();
+        $kop = MasterKopSurat::getInstance();
 
         $html = view('surat_keputusan.surat_pdf', [
             'sk' => $sk,

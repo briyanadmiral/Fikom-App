@@ -224,7 +224,10 @@ $(function() {
     const canvas = document.getElementById('signaturePad');
     const signaturePad = new SignaturePad(canvas, {
         backgroundColor: 'rgba(255, 255, 255, 0)',
-        penColor: 'rgb(0, 0, 0)'
+        penColor: 'rgb(0, 0, 0)',
+        minWidth: 2.0,              // Garis lebih tebal (default: 0.5)
+        maxWidth: 5.0,              // Maksimal tebal (default: 2.5)
+        velocityFilterWeight: 0.7   // Smooth velocity untuk konsistensi
     });
 
     // Resize canvas

@@ -533,15 +533,17 @@
                                 @enderror
                             </div>
 
-                            {{-- Row 7: Mode Nomor Turunan (Suffix Letter) - HANYA UNTUK CREATE --}}
-                            @if (!$isEdit && auth()->user()->peran_id == 1)
+
+                            {{-- Row 7: Mode Nomor Turunan (Suffix Letter) --}}
+                            {{-- Muncul saat CREATE atau EDIT surat PENDING (Admin TU only) --}}
+                            @if (auth()->user()->peran_id == 1 && (!$isEdit || ($isEdit && $tugas->status_surat === 'pending')))
                             <div class="form-group" id="turunan-wrapper">
                                 <div class="card card-outline card-warning">
                                     <div class="card-header py-2">
                                         <div class="custom-control custom-switch">
                                             <input type="checkbox" class="custom-control-input" 
                                                    id="is_turunan" name="is_turunan" value="1"
-                                                   {{ old('is_turunan') ? 'checked' : '' }}>
+                                                   {{ old('is_turunan', $tugas->suffix ?? false) ? 'checked' : '' }}>
                                             <label class="custom-control-label" for="is_turunan">
                                                 <strong><i class="fas fa-code-branch mr-1"></i> Mode Turunan (Suffix Letter)</strong>
                                             </label>
@@ -552,6 +554,7 @@
                                             <i class="fas fa-info-circle text-warning"></i> 
                                             Untuk surat yang menggunakan nomor induk yang sudah ada (misal: 002 → 002A, 002B).
                                             Biasa digunakan untuk surat yang ditandatangani setelah kegiatan berlangsung.
+                                            <br><strong>Catatan:</strong> Surat induk bisa yang masih Pending (belum ditandatangani) atau yang sudah Disetujui.
                                         </small>
                                         
                                         <label for="parent_tugas_id">Pilih Nomor Induk <span class="text-danger">*</span></label>
@@ -559,10 +562,15 @@
                                                 class="form-control select2bs4">
                                             <option value="">-- Pilih Nomor Induk --</option>
                                             @foreach($parentableNomors ?? [] as $pn)
+                                                @php
+                                                    $statusBadge = $pn->status_surat === 'disetujui' 
+                                                        ? '✓ Disetujui' 
+                                                        : '⏳ Pending';
+                                                @endphp
                                                 <option value="{{ $pn->id }}" 
                                                         data-nomor="{{ $pn->nomor }}"
-                                                        {{ old('parent_tugas_id') == $pn->id ? 'selected' : '' }}>
-                                                    {{ $pn->nomor }} - {{ Str::limit($pn->nama_umum, 40) }}
+                                                        {{ old('parent_tugas_id', $tugas->parent_tugas_id ?? null) == $pn->id ? 'selected' : '' }}>
+                                                    {{ $pn->nomor }} - {{ Str::limit($pn->nama_umum, 40) }} [{{ $statusBadge }}]
                                                 </option>
                                             @endforeach
                                         </select>
@@ -571,7 +579,7 @@
                                             <div class="row align-items-center">
                                                 <div class="col-md-3 col-sm-4 border-right">
                                                     <label class="text-uppercase text-secondary mb-0" style="font-size: 0.75rem; letter-spacing: 0.5px;">Suffix</label>
-                                                    <div class="font-weight-bold text-success" style="font-size: 2rem; line-height: 1;" id="next-suffix">A</div>
+                                                    <div class="font-weight-bold text-success" style="font-size: 2rem; line-height: 1;" id="next-suffix">{{ $tugas->suffix ?? 'A' }}</div>
                                                 </div>
                                                 <div class="col-md-9 col-sm-8 pl-md-4">
                                                     <label class="text-uppercase text-secondary mb-0" style="font-size: 0.75rem; letter-spacing: 0.5px;">Preview Nomor Lengkap</label>
@@ -1833,7 +1841,10 @@
             @endif
 
             // ====== MODE TURUNAN (SUFFIX LETTER) LOGIC ======
-            @if (!$isEdit && auth()->user()->peran_id == 1)
+            @php
+                $showModeTurunan = auth()->user()->peran_id == 1 && (!$isEdit || ($isEdit && $tugas->status_surat === 'pending'));
+            @endphp
+            @if ($showModeTurunan)
                 const $isTurunan = $('#is_turunan');
                 const $turunanSection = $('#turunan-section');
                 const $parentSelect = $('#parent_tugas_id');
@@ -1889,10 +1900,156 @@
                     
                     $.get('/ajax/surat-tugas/' + parentId + '/next-suffix')
                         .done(function(data) {
+                            // Update suffix preview
                             $nextSuffix.text(data.suffix);
                             $suffixNomorPreview.text(data.nomor_preview);
                             $('#nomor_surat_lengkap_hidden').val(data.nomor_preview);
                             $('#nomor_surat_lengkap_display').val(data.nomor_preview);
+                            
+                            // ✅ AUTO-FILL form dari parent data
+                            if (data.parent_data) {
+                                const pd = data.parent_data;
+                                
+                                // Field teks biasa
+                                if (pd.nama_umum) $('#nama_umum').val(pd.nama_umum);
+                                if (pd.tempat) $('#tempat').val(pd.tempat);
+                                if (pd.redaksi_pembuka) $('#redaksi_pembuka').val(pd.redaksi_pembuka);
+                                if (pd.penutup) $('#penutup').val(pd.penutup);
+                                
+                                // Detail tugas (use correct ID: detail_tugas_editor)
+                                if (pd.detail_tugas) {
+                                    $('#detail_tugas_editor').val(pd.detail_tugas);
+                                    // Update TinyMCE jika ada
+                                    if (typeof tinymce !== 'undefined' && tinymce.get('detail_tugas_editor')) {
+                                        tinymce.get('detail_tugas_editor').setContent(pd.detail_tugas);
+                                    }
+                                }
+                                
+                                // Datetime fields
+                                if (pd.waktu_mulai) $('#waktu_mulai').val(pd.waktu_mulai);
+                                if (pd.waktu_selesai) $('#waktu_selesai').val(pd.waktu_selesai);
+                                
+                                // Select fields - FIXED klasifikasi modal fields
+                                if (pd.klasifikasi_surat_id) {
+                                    // Set hidden ID (for form submission)
+                                    $('#klasifikasi_surat_id').val(pd.klasifikasi_surat_id);
+                                    // Set display field (readonly text showing label)
+                                    if (pd.klasifikasi_label) {
+                                        $('#klasifikasi_display').val(pd.klasifikasi_label);
+                                    }
+                                    // Set kode hidden field (for nomor generation)
+                                    if (pd.klasifikasi_kode) {
+                                        $('#klasifikasi_kode').val(pd.klasifikasi_kode);
+                                    }
+                                    // Trigger nomor regeneration
+                                    if (typeof refreshNomorPreview === 'function') {
+                                        refreshNomorPreview();
+                                    }
+                                    console.log('Klasifikasi auto-filled:', pd.klasifikasi_surat_id, pd.klasifikasi_label);
+                                }
+                                if (pd.asal_surat_id) {
+                                    $('#asal_surat_id').val(pd.asal_surat_id).trigger('change');
+                                }
+                                if (pd.jenis_tugas) {
+                                    $('#jenis_tugas').val(pd.jenis_tugas).trigger('change');
+                                    // Tunggu sebentar agar dropdown tugas ter-load
+                                    setTimeout(function() {
+                                        if (pd.tugas) {
+                                            $('#tugas').val(pd.tugas).trigger('change');
+                                        }
+                                    }, 300);
+                                }
+                                if (pd.status_penerima) $('#status_penerima').val(pd.status_penerima);
+                                if (pd.penandatangan_id) $('#penandatangan_id').val(pd.penandatangan_id).trigger('change');
+                                
+                                // Tembusan (correct ID: tembusan-input, use Tagify API)
+                                if (pd.tembusan) {
+                                    const $tembusanInput = $('#tembusan-input');
+                                    if ($tembusanInput.length) {
+                                        // Set nilai input langsung
+                                        $tembusanInput.val(pd.tembusan);
+                                        
+                                        // Jika menggunakan Tagify, update tags
+                                        if ($tembusanInput[0] && $tembusanInput[0].tagify) {
+                                            const tagifyInstance = $tembusanInput[0].tagify;
+                                            const tembusanArr = pd.tembusan.split(',').map(t => t.trim()).filter(t => t);
+                                            tagifyInstance.removeAllTags();
+                                            tagifyInstance.addTags(tembusanArr);
+                                        }
+                                    }
+                                }
+                                
+                                // Penerima Internal & Eksternal
+                                // FIXED: Use penerimaState structure (internal is object, not array)
+                                console.log('Auto-filling penerima...', pd);
+                                
+                                // Check if penerimaState and allUsersData exist (defined in form script)
+                                if (typeof penerimaState !== 'undefined' && typeof allUsersData !== 'undefined') {
+                                    console.log('penerimaState found, updating...');
+                                    
+                                    // Clear existing
+                                    penerimaState.internal = {};
+                                    penerimaState.eksternal = [];
+                                    
+                                    // Add internal penerima - MUST match penerimaState structure
+                                    if (pd.penerima_internal && pd.penerima_internal.length > 0) {
+                                        console.log('Adding internal penerima:', pd.penerima_internal);
+                                        pd.penerima_internal.forEach(function(userId) {
+                                            const u = allUsersData[userId];
+                                            if (u) {
+                                                penerimaState.internal[userId] = {
+                                                    nama: u.nama_lengkap || u.nama || 'User #' + userId,
+                                                    peran_id: u.peran_id || null
+                                                };
+                                            } else {
+                                                // Fallback jika user tidak ada di allUsersData
+                                                penerimaState.internal[userId] = {
+                                                    nama: 'User #' + userId,
+                                                    peran_id: null
+                                                };
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Add external penerima
+                                    if (pd.penerima_eksternal && pd.penerima_eksternal.length > 0) {
+                                        console.log('Adding external penerima:', pd.penerima_eksternal);
+                                        pd.penerima_eksternal.forEach(function(penerima) {
+                                            penerimaState.eksternal.push({
+                                                nama: penerima.nama || '',
+                                                jabatan: penerima.jabatan || '',
+                                                instansi: penerima.instansi || ''
+                                            });
+                                        });
+                                    }
+                                    
+                                    console.log('Final penerimaState:', penerimaState);
+                                    
+                                    // Trigger render - function is in same scope
+                                    setTimeout(function() {
+                                        if (typeof renderPenerimaList === 'function') {
+                                            console.log('Calling renderPenerimaList()...');
+                                            renderPenerimaList();
+                                            updateStatusPenerima();
+                                        } else {
+                                            console.warn('renderPenerimaList function not found in scope!');
+                                        }
+                                    }, 500);
+                                } else {
+                                    console.warn('penerimaState or allUsersData not defined!');
+                                }
+                                
+                                // Show success notification
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Data Ter-copy!',
+                                    text: 'Form otomatis terisi dari surat induk',
+                                    timer: 2000,
+                                    showConfirmButton: false,
+                                    position: 'top-end',
+                                    toast: true
+                                });
+                            }
                         })
                         .fail(function(xhr) {
                             const msg = xhr.responseJSON?.error || 'Gagal memuat suffix';

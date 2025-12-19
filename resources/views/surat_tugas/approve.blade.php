@@ -187,9 +187,9 @@
                             <h6 class="mb-0 font-weight-bold"><i class="fas fa-file-alt mr-2"></i>Pratinjau Dokumen Final
                             </h6>
                         </div>
-                        <div class="card-body" id="preview-container">
+                        <div class="card-body" id="preview-container" style="position: relative;">
+                            <div id="pv-spinner" class="spinner-border text-primary" style="display:none;"></div>
                             <div id="preview-pane">
-                                <div id="pv-spinner" class="spinner-border text-primary" style="display:none;"></div>
                                 @include('surat_tugas.partials._approve_preview', [
                                     'tugas' => $tugas,
                                     'kop' => $kop,
@@ -206,108 +206,278 @@
 @endsection
 
 @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const pane = document.getElementById('preview-pane');
-            const spinner = document.getElementById('pv-spinner');
-            const urlBase =
-            "{{ route('surat_tugas.show', $tugas->id) }}"; // Menggunakan route show dengan flag partial
-
-            // Ambil semua elemen kontrol
-            const controls = {
-                ttd_w_mm: {
-                    num: document.querySelector('input[name="ttd_w_mm"]'),
-                    slider: document.querySelector('input[name="ttd_w_mm_slider"]')
-                },
-                cap_w_mm: {
-                    num: document.querySelector('input[name="cap_w_mm"]'),
-                    slider: document.querySelector('input[name="cap_w_mm_slider"]')
-                },
-                cap_opacity: {
-                    num: document.querySelector('input[name="cap_opacity"]'),
-                    slider: document.querySelector('input[name="cap_opacity_slider"]')
-                }
-            };
-
-            // Nilai default
-            const defaults = {
-                ttd_w_mm: "{{ $preview['ttd_w_mm'] }}",
-                cap_w_mm: "{{ $preview['cap_w_mm'] }}",
-                cap_opacity: "{{ $preview['cap_opacity'] }}"
-            };
-
-            const btnReset = document.getElementById('btn-reset');
-
-            function debounce(fn, wait = 250) {
-                let timeout;
-                return function(...args) {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => fn.apply(this, args), wait);
-                };
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Controls ---
+        const controls = {
+            ttd_w_mm: {
+                num: document.querySelector('input[name="ttd_w_mm"]'),
+                slider: document.querySelector('input[name="ttd_w_mm_slider"]')
+            },
+            cap_w_mm: {
+                num: document.querySelector('input[name="cap_w_mm"]'),
+                slider: document.querySelector('input[name="cap_w_mm_slider"]')
+            },
+            cap_opacity: {
+                num: document.querySelector('input[name="cap_opacity"]'),
+                slider: document.querySelector('input[name="cap_opacity_slider"]')
             }
+        };
 
-            function loadPreview() {
-                const params = new URLSearchParams({
-                    partial: 'true',
-                    ttd_w_mm: controls.ttd_w_mm.num.value,
-                    cap_w_mm: controls.cap_w_mm.num.value,
-                    cap_opacity: controls.cap_opacity.num.value
-                });
+        const defaults = {
+            ttd_w_mm: "{{ (int)($ttdW ?? 42) }}",
+            cap_w_mm: "{{ (int)($capW ?? 35) }}",
+            cap_opacity: "{{ (float)($capOpacity ?? 0.95) }}" // Note: This might need blade var if set
+        };
 
-                spinner.style.display = 'block';
+        const urlBase = "{{ route('surat_tugas.approvePreview', $tugas->id) }}";
+        const btnReset = document.getElementById('btn-reset');
+        const spinner = document.getElementById('pv-spinner');
+        const pane = document.getElementById('preview-pane');
 
-                fetch(`${urlBase}?${params.toString()}`, {
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(r => r.text())
-                    .then(html => {
-                        pane.innerHTML = html;
-                    })
-                    .catch(() => {
-                        pane.innerHTML =
-                            '<div class="text-danger p-5 text-center">Gagal memuat pratinjau. Coba refresh halaman.</div>';
-                    })
-                    .finally(() => {
-                        spinner.style.display = 'none';
-                    });
-            }
+        // --- Drag & Resize Variables ---
+        let activeEl = null;
+        let startX = 0, startY = 0;
+        let initialOffX = 0, initialOffY = 0;
+        
+        let activeResizeEl = null;
+        let startResizeX = 0;
+        let startWidthMm = 0;
 
-            const debouncedLoadPreview = debounce(loadPreview);
+        function debounce(fn, wait = 250) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, args), wait);
+            };
+        }
 
-            // Sinkronisasi slider dan input angka
-            Object.keys(controls).forEach(key => {
-                const {
-                    num,
-                    slider
-                } = controls[key];
-                if (num && slider) {
-                    slider.addEventListener('input', () => {
-                        num.value = slider.value;
-                        debouncedLoadPreview();
-                    });
-                    num.addEventListener('input', () => {
-                        slider.value = num.value;
-                        debouncedLoadPreview();
-                    });
-                }
+        // --- Helpers ---
+        function getMmRatio() {
+            const sheet = pane.querySelector('.sheet');
+            if (!sheet) return 0.265; // fallback
+            return 210 / sheet.getBoundingClientRect().width; // mm per pixel
+        }
+
+        function getType(el) {
+            return el.classList.contains('cap') ? 'cap' : 'ttd';
+        }
+
+        // --- Drag Logic ---
+        function initDragAndResize() {
+            const ttdEl = pane.querySelector('.ttd');
+            const capEl = pane.querySelector('.cap');
+
+            [ttdEl, capEl].forEach(el => {
+                if (!el) return;
+                
+                // DRAG
+                el.style.cursor = 'move';
+                el.removeEventListener('mousedown', dragStart);
+                el.addEventListener('mousedown', dragStart);
+                
+                // WHEEL RESIZE
+                el.removeEventListener('wheel', resizeWheel);
+                el.addEventListener('wheel', resizeWheel, {passive: false});
             });
 
-            // Reset ke nilai default
-            btnReset.addEventListener('click', function() {
-                Object.keys(controls).forEach(key => {
-                    const {
-                        num,
-                        slider
-                    } = controls[key];
-                    if (num && slider) {
-                        num.value = defaults[key];
-                        slider.value = defaults[key];
-                    }
-                });
-                loadPreview(); // Langsung load tanpa debounce saat reset
+            // RESIZE HANDLE
+            const handles = pane.querySelectorAll('.resize-handle');
+            handles.forEach(h => {
+                h.removeEventListener('mousedown', resizeStart);
+                h.addEventListener('mousedown', resizeStart);
             });
+        }
+
+        function dragStart(e) {
+            if (e.target.classList.contains('resize-handle')) return; // Pass to resizeStart
+            e.preventDefault();
+            activeEl = e.currentTarget; // The wrapper div
+            
+            const type = getType(activeEl);
+            const inpX = document.querySelector(`input[name="${type}_x_mm"]`);
+            const inpY = document.querySelector(`input[name="${type}_y_mm"]`);
+            
+            initialOffX = parseInt(inpX.value) || 0;
+            initialOffY = parseInt(inpY.value) || 0;
+
+            startX = e.clientX;
+            startY = e.clientY;
+
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', dragEnd);
+        }
+
+        function dragMove(e) {
+            if (!activeEl) return;
+            const mmRatio = getMmRatio();
+            const dxPx = e.clientX - startX;
+            const dyPx = startY - e.clientY; // Inverted Y
+
+            const newX = initialOffX + Math.round(dxPx * mmRatio);
+            const newY = initialOffY + Math.round(dyPx * mmRatio);
+
+            const type = getType(activeEl);
+            const wrapper = activeEl.closest('.ttd-area-sign');
+            wrapper.style.setProperty(`--${type}-x`, `${newX}mm`);
+            wrapper.style.setProperty(`--${type}-y`, `${newY}mm`);
+        }
+
+        function dragEnd(e) {
+            if (!activeEl) return;
+            const mmRatio = getMmRatio();
+            const dxPx = e.clientX - startX;
+            const dyPx = startY - e.clientY;
+            
+            const newX = initialOffX + Math.round(dxPx * mmRatio);
+            const newY = initialOffY + Math.round(dyPx * mmRatio);
+            
+            const type = getType(activeEl);
+            document.querySelector(`input[name="${type}_x_mm"]`).value = newX;
+            document.querySelector(`input[name="${type}_y_mm"]`).value = newY;
+
+            activeEl = null;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            debouncedLoadPreview();
+        }
+
+        // --- Resize Logic ---
+        function resizeStart(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            activeResizeEl = e.target.closest('.ttd, .cap');
+            
+            const type = getType(activeResizeEl);
+            const input = document.querySelector(`input[name="${type}_w_mm"]`);
+            startWidthMm = parseInt(input.value) || (type === 'ttd' ? 42 : 35);
+            startResizeX = e.clientX;
+
+            document.addEventListener('mousemove', resizeMove);
+            document.addEventListener('mouseup', resizeEnd);
+        }
+
+        function resizeMove(e) {
+            if (!activeResizeEl) return;
+            const mmRatio = getMmRatio();
+            const dxPx = e.clientX - startResizeX;
+            // 2x factor because center anchored
+            const wChange = Math.round(dxPx * mmRatio * 2); 
+            let newW = startWidthMm + wChange;
+            
+            if (newW < 10) newW = 10;
+            if (newW > 150) newW = 150;
+
+            const type = getType(activeResizeEl);
+            const wrapper = activeResizeEl.closest('.ttd-area-sign');
+            wrapper.style.setProperty(`--${type}-w`, `${newW}mm`);
+        }
+
+        function resizeEnd(e) {
+            if (!activeResizeEl) return;
+            const mmRatio = getMmRatio();
+            const dxPx = e.clientX - startResizeX;
+            const wChange = Math.round(dxPx * mmRatio * 2);
+            let newW = startWidthMm + wChange;
+            if (newW < 10) newW = 10;
+            if (newW > 150) newW = 150;
+
+            const type = getType(activeResizeEl);
+            const input = document.querySelector(`input[name="${type}_w_mm"]`);
+            const slider = document.querySelector(`input[name="${type}_w_mm_slider"]`);
+            
+            if (input) input.value = newW;
+            if (slider) slider.value = newW;
+
+            activeResizeEl = null;
+            document.removeEventListener('mousemove', resizeMove);
+            document.removeEventListener('mouseup', resizeEnd);
+            debouncedLoadPreview();
+        }
+        
+        function resizeWheel(e) {
+            e.preventDefault();
+            const el = e.currentTarget;
+            const type = getType(el);
+            const input = document.querySelector(`input[name="${type}_w_mm"]`);
+            let currentW = parseInt(input.value) || 40;
+            
+            // Scroll UP (deltaY < 0) -> Increase
+            const delta = e.deltaY < 0 ? 2 : -2; 
+            let newW = currentW + delta;
+            
+            if (newW < 10) newW = 10;
+            if (newW > 150) newW = 150;
+            
+            const wrapper = el.closest('.ttd-area-sign');
+            wrapper.style.setProperty(`--${type}-w`, `${newW}mm`);
+            
+            const slider = document.querySelector(`input[name="${type}_w_mm_slider"]`);
+            if (input) input.value = newW;
+            if (slider) slider.value = newW;
+            
+            debouncedLoadPreview();
+        }
+
+        // --- Core ---
+        function loadPreview() {
+            const ttdX = document.querySelector('input[name="ttd_x_mm"]').value;
+            const ttdY = document.querySelector('input[name="ttd_y_mm"]').value;
+            const capX = document.querySelector('input[name="cap_x_mm"]').value;
+            const capY = document.querySelector('input[name="cap_y_mm"]').value;
+
+            const params = new URLSearchParams({
+                partial: 'true',
+                ttd_w_mm: controls.ttd_w_mm.num.value,
+                cap_w_mm: controls.cap_w_mm.num.value,
+                cap_opacity: controls.cap_opacity.num.value,
+                ttd_x_mm: ttdX, ttd_y_mm: ttdY, cap_x_mm: capX, cap_y_mm: capY
+            });
+
+            spinner.style.display = 'block';
+            fetch(`${urlBase}?${params.toString()}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(r => r.text())
+                .then(html => {
+                    pane.innerHTML = html;
+                    initDragAndResize(); // Re-init
+                })
+                .catch(() => {
+                    pane.innerHTML = '<div class="text-danger p-5 text-center">Gagal memuat pratinjau.</div>';
+                })
+                .finally(() => {
+                    spinner.style.display = 'none';
+                });
+        }
+
+        const debouncedLoadPreview = debounce(loadPreview);
+
+        Object.keys(controls).forEach(key => {
+            const { num, slider } = controls[key];
+            if (num && slider) {
+                slider.addEventListener('input', () => {
+                    num.value = slider.value;
+                    debouncedLoadPreview();
+                });
+                num.addEventListener('input', () => {
+                    slider.value = num.value;
+                    debouncedLoadPreview();
+                });
+            }
         });
-    </script>
+
+        btnReset.addEventListener('click', function() {
+            document.querySelector('input[name="ttd_x_mm"]').value = 0;
+            document.querySelector('input[name="ttd_y_mm"]').value = 0;
+            document.querySelector('input[name="cap_x_mm"]').value = 0;
+            document.querySelector('input[name="cap_y_mm"]').value = 0;
+            /* Defaults hard reload or reset inputs */
+             location.reload(); 
+        });
+        
+        // Init
+        initDragAndResize();
+    });
+</script>
 @endpush

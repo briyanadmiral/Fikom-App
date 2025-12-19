@@ -337,7 +337,7 @@ class TugasHeaderPolicy
     {
         // ✅ FIXED: Jangan bypass policy untuk 'update' dan 'approve'
         // Biarkan method-specific policy yang handle
-        if (in_array($ability, ['update', 'approve', 'reject'], true)) {
+        if (in_array($ability, ['update', 'approve', 'reject', 'delete'], true)) {
             return null; // Continue ke method spesifik
         }
 

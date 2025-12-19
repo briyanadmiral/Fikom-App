@@ -3,37 +3,36 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED (optional)
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Cache;
+use App\Services\AuditService;
 
 /**
  * Model untuk Master Kop Surat
  * SECURITY: Singleton pattern dengan caching untuk performance
- * ✅ REFACTORED: Menggunakan global helpers untuk DRY code
+ * ✅ UPDATED: Added audit logging, dual logo support, image optimization hooks
  */
 class MasterKopSurat extends Model
 {
-    use SoftDeletes; // ✅ ADDED (optional untuk consistency)
+    use SoftDeletes;
 
     protected $table = 'master_kop_surat';
 
     /**
      * CRITICAL: Mass Assignment Protection
-     * Gunakan $guarded untuk protect ID dan timestamps
      */
-    protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at']; // ✅ ADDED deleted_at
+    protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at'];
 
     /**
      * Type casting untuk data integrity
      */
     protected $casts = [
         'tampilkan_logo_kanan' => 'boolean',
+        'tampilkan_logo_kiri' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime', // ✅ ADDED
-
-        // ✅ ADDED: Type cast for numeric fields
+        'deleted_at' => 'datetime',
         'logo_size' => 'integer',
         'font_size_title' => 'integer',
         'font_size_text' => 'integer',
@@ -45,7 +44,7 @@ class MasterKopSurat extends Model
      * Hidden attributes untuk JSON serialization
      * SECURITY: Hide file paths dari public API
      */
-    protected $hidden = ['logo_path', 'logo_kanan_path', 'cap_path', 'background_path', 'background_header_path'];
+    protected $hidden = ['logo_kanan_path', 'logo_kiri_path', 'cap_path', 'background_path'];
 
     /**
      * Cache key untuk singleton pattern
@@ -57,9 +56,6 @@ class MasterKopSurat extends Model
 
     /**
      * Get the singleton instance with caching
-     * PERFORMANCE: Cache untuk mengurangi database query
-     *
-     * @return self|null
      */
     public static function getInstance(): ?self
     {
@@ -70,9 +66,6 @@ class MasterKopSurat extends Model
 
     /**
      * Clear cache untuk force refresh
-     * Call ini setelah update data kop surat
-     *
-     * @return void
      */
     public static function clearCache(): void
     {
@@ -80,29 +73,38 @@ class MasterKopSurat extends Model
     }
 
     /**
-     * Override save method untuk auto-clear cache
-     *
-     * @param array $options
-     * @return bool
+     * Override save method untuk auto-clear cache dan audit logging
      */
     public function save(array $options = []): bool
     {
+        $isNew = !$this->exists;
+        $original = $this->getOriginal();
+        
         $saved = parent::save($options);
 
         if ($saved) {
             self::clearCache();
+            
+            // Audit logging
+            $auditService = app(AuditService::class);
+            if ($isNew) {
+                $auditService->logCreate($this);
+            } else {
+                $auditService->logUpdate($this, $original);
+            }
         }
 
         return $saved;
     }
 
     /**
-     * Override delete method untuk auto-clear cache
-     *
-     * @return bool|null
+     * Override delete method untuk auto-clear cache dan audit logging
      */
     public function delete(): ?bool
     {
+        $auditService = app(AuditService::class);
+        $auditService->logDelete($this);
+        
         $deleted = parent::delete();
 
         if ($deleted) {
@@ -116,9 +118,6 @@ class MasterKopSurat extends Model
 
     /**
      * Get default header data dengan fallback values
-     * ✅ REFACTORED: Gunakan sanitize_output() helper
-     *
-     * @return array
      */
     public function getDefaultHeaderData(): array
     {
@@ -130,131 +129,86 @@ class MasterKopSurat extends Model
         ];
     }
 
-    /**
-     * Accessor untuk nama fakultas dengan sanitasi
-     * ✅ GOOD: Already using global helpers
-     */
     protected function namaFakultas(): Attribute
     {
         return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 255));
     }
 
-    /**
-     * Accessor untuk alamat lengkap dengan sanitasi
-     * ✅ GOOD: Already using global helpers
-     */
     protected function alamatLengkap(): Attribute
     {
         return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 500));
     }
 
-    /**
-     * Accessor untuk telepon lengkap dengan sanitasi
-     * ✅ GOOD: Already using sanitize_phone() helper
-     */
     protected function teleponLengkap(): Attribute
     {
         return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_phone($value));
     }
 
-    /**
-     * Accessor untuk email & website dengan sanitasi
-     * ✅ GOOD: Already using global helpers
-     */
     protected function emailWebsite(): Attribute
     {
         return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 255));
     }
 
-    /**
-     * ✅ ADDED: Accessor untuk text_color dengan validation
-     */
     protected function textColor(): Attribute
     {
         return Attribute::make(
             get: fn(?string $value) => $value,
             set: function (?string $value) {
-                // Validate hex color format
                 if ($value && preg_match('/^#([A-Fa-f0-9]{6})$/', $value)) {
                     return strtoupper($value);
                 }
-                return '#000000'; // Default black
+                return '#000000';
             },
         );
     }
 
     // ==================== FILE PATH VALIDATION =========================
 
-    /**
-     * Get logo path dengan validasi
-     * ✅ GOOD: Already using validate_file_path() helper
-     *
-     * @return string|null
-     */
     public function getValidatedLogoPath(): ?string
     {
-        return validate_file_path($this->logo_path);
+        return validate_file_path($this->attributes['logo_path'] ?? null);
     }
 
-    /**
-     * Get logo kanan path dengan validasi
-     * ✅ GOOD: Already using validate_file_path() helper
-     *
-     * @return string|null
-     */
     public function getValidatedLogoKananPath(): ?string
     {
         return validate_file_path($this->logo_kanan_path);
     }
 
     /**
-     * Get cap path dengan validasi
-     * ✅ GOOD: Already using validate_file_path() helper
-     *
-     * @return string|null
+     * Get logo kiri path dengan validasi
      */
+    public function getValidatedLogoKiriPath(): ?string
+    {
+        return validate_file_path($this->logo_kiri_path);
+    }
+
     public function getValidatedCapPath(): ?string
     {
         return validate_file_path($this->cap_path);
     }
 
-    /**
-     * ✅ ADDED: Get background path dengan validasi
-     *
-     * @return string|null
-     */
     public function getValidatedBackgroundPath(): ?string
     {
         return validate_file_path($this->background_path);
     }
 
-    /**
-     * ✅ ADDED: Get background header path dengan validasi
-     *
-     * @return string|null
-     */
-    public function getValidatedBackgroundHeaderPath(): ?string
-    {
-        return validate_file_path($this->background_header_path ?? null);
-    }
-
     // ==================== PUBLIC METHODS =========================
 
-    /**
-     * Check apakah logo kanan harus ditampilkan
-     *
-     * @return bool
-     */
     public function shouldShowLogoKanan(): bool
     {
         return $this->tampilkan_logo_kanan === true && !empty($this->logo_kanan_path);
     }
 
     /**
+     * Check apakah logo kiri harus ditampilkan
+     */
+    public function shouldShowLogoKiri(): bool
+    {
+        return $this->tampilkan_logo_kiri === true && !empty($this->logo_kiri_path);
+    }
+
+    /**
      * Get all header data dengan validation
-     * ✅ GOOD: Semua sanitasi menggunakan helpers
-     *
-     * @return array
      */
     public function getHeaderDataWithValidation(): array
     {
@@ -265,18 +219,16 @@ class MasterKopSurat extends Model
             'email_website' => $this->email_website,
             'logo_path' => $this->getValidatedLogoPath(),
             'logo_kanan_path' => $this->getValidatedLogoKananPath(),
+            'logo_kiri_path' => $this->getValidatedLogoKiriPath(),
             'cap_path' => $this->getValidatedCapPath(),
-            'background_path' => $this->getValidatedBackgroundPath(), // ✅ ADDED
-            'background_header_path' => $this->getValidatedBackgroundHeaderPath(), // ✅ ADDED
+            'background_path' => $this->getValidatedBackgroundPath(),
             'tampilkan_logo_kanan' => $this->shouldShowLogoKanan(),
+            'tampilkan_logo_kiri' => $this->shouldShowLogoKiri(),
         ];
     }
 
     /**
-     * ✅ GOOD: Get header data dengan format HTML safe
-     * Untuk display di view
-     *
-     * @return array
+     * Get header data untuk view
      */
     public function getHeaderDataForView(): array
     {
@@ -287,16 +239,14 @@ class MasterKopSurat extends Model
             'email_website' => $this->email_website,
             'has_logo' => !empty($this->getValidatedLogoPath()),
             'has_logo_kanan' => $this->shouldShowLogoKanan(),
+            'has_logo_kiri' => $this->shouldShowLogoKiri(),
             'has_cap' => !empty($this->getValidatedCapPath()),
-            'has_background' => !empty($this->getValidatedBackgroundPath()), // ✅ ADDED
-            'has_background_header' => !empty($this->getValidatedBackgroundHeaderPath()), // ✅ ADDED
+            'has_background' => !empty($this->getValidatedBackgroundPath()),
         ];
     }
 
     /**
-     * ✅ ADDED: Get styling configuration dengan validation
-     *
-     * @return array
+     * Get styling configuration dengan validation
      */
     public function getStylingConfig(): array
     {
@@ -311,17 +261,39 @@ class MasterKopSurat extends Model
         ];
     }
 
+    /**
+     * Export konfigurasi sebagai array untuk backup/import
+     */
+    public function exportConfig(): array
+    {
+        return [
+            'version' => '1.0',
+            'exported_at' => now()->toIso8601String(),
+            'config' => [
+                'mode_type' => $this->mode_type,
+                'text_align' => $this->text_align,
+                'nama_fakultas' => $this->nama_fakultas,
+                'alamat_lengkap' => $this->alamat_lengkap,
+                'telepon_lengkap' => $this->telepon_lengkap,
+                'email_website' => $this->email_website,
+                'logo_size' => $this->logo_size,
+                'font_size_title' => $this->font_size_title,
+                'font_size_text' => $this->font_size_text,
+                'text_color' => $this->text_color,
+                'header_padding' => $this->header_padding,
+                'background_opacity' => $this->background_opacity,
+                'tampilkan_logo_kanan' => $this->tampilkan_logo_kanan,
+                'tampilkan_logo_kiri' => $this->tampilkan_logo_kiri,
+            ],
+        ];
+    }
+
     // ==================== BOOT METHOD =========================
 
-    /**
-     * Boot model event listeners
-     * Auto-clear cache on model events
-     */
     protected static function boot()
     {
         parent::boot();
 
-        // Clear cache saat ada perubahan
         static::saved(function () {
             self::clearCache();
         });
@@ -334,7 +306,6 @@ class MasterKopSurat extends Model
             self::clearCache();
         });
 
-        // ✅ ADDED: Clear cache on restore (if using soft deletes)
         static::restored(function () {
             self::clearCache();
         });

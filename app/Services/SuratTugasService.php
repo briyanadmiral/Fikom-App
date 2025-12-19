@@ -292,9 +292,6 @@ class SuratTugasService
             $table = $tugas->getTable();
 
             $update = [
-                'ttd_w_mm' => (int) ($validatedData['ttd_w_mm'] ?? 0),
-                'cap_w_mm' => (int) ($validatedData['cap_w_mm'] ?? 0),
-                'cap_opacity' => (float) ($validatedData['cap_opacity'] ?? 1),
                 'tanggal_surat' => $tugas->tanggal_surat ?? now()->toDateString(),
                 'status_surat' => 'disetujui',
                 'signed_at' => now(),
@@ -302,6 +299,18 @@ class SuratTugasService
                 'nomor_status' => 'locked', // 🔒 kunci nomor saat approve
                 'dikunci_pada' => now(),
             ];
+
+            // ✅ FIX: Only update size values if explicitly provided
+            // This preserves values already saved by controller
+            if (array_key_exists('ttd_w_mm', $validatedData)) {
+                $update['ttd_w_mm'] = (int) $validatedData['ttd_w_mm'];
+            }
+            if (array_key_exists('cap_w_mm', $validatedData)) {
+                $update['cap_w_mm'] = (int) $validatedData['cap_w_mm'];
+            }
+            if (array_key_exists('cap_opacity', $validatedData)) {
+                $update['cap_opacity'] = (float) $validatedData['cap_opacity'];
+            }
 
             // Simpan penandatangan ke kolom yang tersedia
             if (Schema::hasColumn($table, 'penandatangan_id')) {

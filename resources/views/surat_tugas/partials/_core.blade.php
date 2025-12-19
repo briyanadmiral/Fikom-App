@@ -51,6 +51,13 @@
     $capW_final = filter_var($capW ?? 35, FILTER_VALIDATE_INT) ?: 35;
     $capOpacity_final = filter_var($capOpacity ?? 0.95, FILTER_VALIDATE_FLOAT) ?: 0.95;
 
+    // ✅ OFFSETS (X/Y)
+    $ttdX_final = isset($ttdX) ? (int)$ttdX : (isset($tugas->ttd_config['x']) ? (int)$tugas->ttd_config['x'] : 0);
+    $ttdY_final = isset($ttdY) ? (int)$ttdY : (isset($tugas->ttd_config['y']) ? (int)$tugas->ttd_config['y'] : 0);
+    
+    $capX_final = isset($capX) ? (int)$capX : (isset($tugas->cap_config['x']) ? (int)$tugas->cap_config['x'] : 0);
+    $capY_final = isset($capY) ? (int)$capY : (isset($tugas->cap_config['y']) ? (int)$tugas->cap_config['y'] : 0);
+
     // HARDENING: Jika belum boleh tampil, kosongkan aset base64
     if (!$showSigns) {
         $ttdImageB64 = null;
@@ -172,15 +179,25 @@
         }
 
         .ttd-area-sign .ttd {
-            transform: translateX(-50%);
+            /* translateX(-50%) keeps it centered, then we add X offset */
+            transform: translateX(calc(-50% + var(--ttd-x, 0mm)));
+            bottom: var(--ttd-y, 0mm); 
             width: var(--ttd-w, 42mm);
+            /* left: 50% already set in common rule */
+        }
+        
+        .ttd-area-sign .ttd img, .ttd-area-sign .cap img {
+            width: 100%; height: auto; display: block;
         }
 
         .ttd-area-sign .cap {
-            transform: translateX(-25%);
+            /* translateX(-25%) default offset for stamp, then add X offset */
+            transform: translateX(calc(-25% + var(--cap-x, 0mm)));
+            bottom: var(--cap-y, 0mm);
             width: var(--cap-w, 35mm);
             opacity: var(--cap-opacity, .95);
             z-index: 2;
+            /* left: 50% already set in common rule */
         }
     </style>
 @else
@@ -306,12 +323,29 @@
         }
 
         .ttd-area-sign .ttd {
-            transform: translateX(-50%);
+            transform: translateX(calc(-50% + var(--ttd-x, 0mm)));
+            bottom: var(--ttd-y, 0mm); 
             width: var(--ttd-w, 42mm);
+        }
+        
+        .ttd-area-sign .ttd img, .ttd-area-sign .cap img {
+            width: 100%; height: auto; display: block;
+        }
+        .resize-handle {
+            width: 12px; height: 12px;
+            background: #ffffff;
+            border: 1px solid #007bff;
+            border-radius: 50%;
+            position: absolute;
+            bottom: -6px; right: -6px;
+            cursor: nwse-resize;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         .ttd-area-sign .cap {
-            transform: translateX(-25%);
+            transform: translateX(calc(-25% + var(--cap-x, 0mm)));
+            bottom: var(--cap-y, 0mm);
             width: var(--cap-w, 35mm);
             opacity: var(--cap-opacity, .95);
             z-index: 2;
@@ -465,13 +499,23 @@
 
         {{-- AREA TTD & CAP --}}
         <div class="ttd-area-sign"
-            style="--ttd-w: {{ $ttdW_final }}mm; --cap-w: {{ $capW_final }}mm; --cap-opacity: {{ $capOpacity_final }};">
+            style="--ttd-w: {{ $ttdW_final }}mm; --cap-w: {{ $capW_final }}mm; --cap-opacity: {{ $capOpacity_final }}; --ttd-x: {{ $ttdX_final }}mm; --ttd-y: {{ $ttdY_final }}mm; --cap-x: {{ $capX_final }}mm; --cap-y: {{ $capY_final }}mm;">
             @if ($showSigns)
                 @if (!empty($ttdImageB64))
-                    <img class="ttd" src="{{ $ttdImageB64 }}" alt="TTD">
+                    <div class="ttd-draggable ttd">
+                        <img src="{{ $ttdImageB64 }}" alt="TTD">
+                        @if ($context === 'web')
+                            <div class="resize-handle ttd-handle"></div>
+                        @endif
+                    </div>
                 @endif
                 @if (!empty($capImageB64))
-                    <img class="cap" src="{{ $capImageB64 }}" alt="Cap">
+                    <div class="cap-draggable cap">
+                        <img src="{{ $capImageB64 }}" alt="Cap">
+                        @if ($context === 'web')
+                            <div class="resize-handle cap-handle"></div>
+                        @endif
+                    </div>
                 @endif
             @endif
         </div>

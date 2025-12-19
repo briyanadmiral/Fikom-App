@@ -4,270 +4,351 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\MasterKopSurat;
+use App\Services\ImageOptimizerService;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Http\JsonResponse;
+use App\Models\User;
 
+/**
+ * Controller untuk pengaturan Kop Surat
+ * ✅ UPDATED: Added dual logo, image optimization, presets, export/import
+ */
 class MasterKopSuratController extends Controller
 {
+    protected ImageOptimizerService $imageOptimizer;
+
+    public function __construct(ImageOptimizerService $imageOptimizer)
+    {
+        $this->imageOptimizer = $imageOptimizer;
+    }
+
     /**
      * Cek admin (owner/peran_id = 1) secara aman
      */
     private function ensureAdmin(): void
     {
+        /** @var User|null $user */
         $user = auth()->user();
         $isAdmin = $user && ($user->id === 1 || (int) ($user->peran_id ?? 0) === 1);
         abort_unless($isAdmin, 403);
     }
 
+    /**
+     * Show settings page
+     */
     public function index()
     {
         $this->ensureAdmin();
+        
+        $kop = MasterKopSurat::firstOrNew([]);
+        
+        // Defaults jika baru
+        if (!$kop->exists) {
+            $kop->mode_type = 'custom';
+            $kop->text_align = 'left';
+            $kop->logo_size = 160;
+            $kop->font_size_title = 19;
+            $kop->font_size_text = 12;
+            $kop->header_padding = 5;
+            $kop->background_opacity = 100;
+            $kop->tampilkan_logo_kanan = true;
+            $kop->tampilkan_logo_kiri = false;
+        }
 
-        $kop = MasterKopSurat::firstOrCreate([]);
-        return view('pengaturan.kop_surat', compact('kop'));
+        // Get presets from config
+        $presets = config('kop_surat_presets.presets', []);
+        $paperSizes = config('kop_surat_presets.paper_sizes', []);
+
+        return view('pengaturan.kop_surat.index', compact('kop', 'presets', 'paperSizes'));
     }
 
+    /**
+     * Update settings
+     */
     public function update(Request $r)
     {
         $this->ensureAdmin();
+        
+        $kop = MasterKopSurat::firstOrNew([]);
 
-        // Validasi ketat + normalisasi
         $data = $r->validate([
             'mode_type' => ['required', 'in:custom,upload'],
             'text_align' => ['nullable', 'in:left,right,center'],
-
-            // Kontrol styling
+            
+            // Styling controls
             'logo_size' => ['nullable', 'integer', 'min:30', 'max:200'],
             'font_size_title' => ['nullable', 'integer', 'min:10', 'max:30'],
             'font_size_text' => ['nullable', 'integer', 'min:8', 'max:20'],
-            // #RRGGBB
             'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'header_padding' => ['nullable', 'integer', 'min:0', 'max:50'],
             'background_opacity' => ['nullable', 'integer', 'min:0', 'max:100'],
 
-            // Data teks (disanitasi lagi di bawah)
+            // Text content
             'nama_fakultas' => ['nullable', 'string', 'max:255'],
             'alamat_lengkap' => ['nullable', 'string', 'max:500'],
             'telepon_lengkap' => ['nullable', 'string', 'max:255'],
             'email_website' => ['nullable', 'string', 'max:255'],
 
-            // Upload files (ukuran dalam KB)
+            // Files
             'logo_kanan' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
-            'background_header' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
+            'logo_kiri' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
             'background' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
             'cap' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
 
-            // boolean switch
+            // Toggles
             'tampilkan_logo_kanan' => ['sometimes', 'boolean'],
+            'tampilkan_logo_kiri' => ['sometimes', 'boolean'],
         ]);
 
-        // Ambil/buat baris
-        $kop = MasterKopSurat::firstOrCreate([]);
+        // Normalize boolean values
+        $data['tampilkan_logo_kanan'] = isset($data['tampilkan_logo_kanan']) ? (bool)$data['tampilkan_logo_kanan'] : false;
+        $data['tampilkan_logo_kiri'] = isset($data['tampilkan_logo_kiri']) ? (bool)$data['tampilkan_logo_kiri'] : false;
 
-        // Jika mode upload, kosongkan field custom text agar tidak ambigu
-        if (($data['mode_type'] ?? 'custom') === 'upload') {
-            $data['nama_fakultas'] = null;
-            $data['alamat_lengkap'] = null;
-            $data['telepon_lengkap'] = null;
-            $data['email_website'] = null;
-        }
-
-        // Default text_align
-        if (!isset($data['text_align'])) {
-            $data['text_align'] = 'right';
-        }
-
-        // Normalisasi boolean tampilkan_logo_kanan (simpan 0/1 bila kolom ada)
-        if (array_key_exists('tampilkan_logo_kanan', $data)) {
-            $data['tampilkan_logo_kanan'] = (bool) $data['tampilkan_logo_kanan'];
-        }
-
-        // Sanitasi teks sederhana (strip_tags + trim + batasi panjang)
-        $sanitize = function (?string $v, int $max = 255): ?string {
-            if ($v === null || $v === '') {
-                return $v;
-            }
-            $clean = strip_tags($v);
-            $clean = trim($clean);
-            $clean = mb_substr($clean, 0, $max);
-            return $clean === '' ? null : $clean;
-        };
-        foreach (['nama_fakultas' => 255, 'alamat_lengkap' => 500, 'telepon_lengkap' => 255, 'email_website' => 255] as $key => $limit) {
-            if (array_key_exists($key, $data)) {
-                $data[$key] = $sanitize($data[$key], $limit);
-            }
-        }
-
-        // ------- Upload berkas (hapus lama jika ada) -------
-        // Kolom adaptif: dukung background_header_path jika tabel memilikinya
-        $hasBgHeaderCol = Schema::hasColumn('master_kop_surat', 'background_header_path');
-
+        // File handling with optimization
         $fileTargets = [
-            'logo_kanan' => 'logo_kanan_path',
-            'background_header' => $hasBgHeaderCol ? 'background_header_path' : 'background_path',
-            'background' => 'background_path',
-            'cap' => 'cap_path',
+            'logo_kanan' => ['column' => 'logo_kanan_path', 'method' => 'optimizeLogo'],
+            'logo_kiri' => ['column' => 'logo_kiri_path', 'method' => 'optimizeLogo'],
+            'background' => ['column' => 'background_path', 'method' => 'optimizeBackground'],
+            'cap' => ['column' => 'cap_path', 'method' => 'optimizeStamp'],
         ];
 
-        foreach ($fileTargets as $inputName => $columnName) {
+        foreach ($fileTargets as $inputName => $config) {
             if ($r->hasFile($inputName)) {
-                Log::info("Processing file: {$inputName}");
+                $columnName = $config['column'];
+                $optimizeMethod = $config['method'];
 
-                // ✅ FIXED: Validate old file path
+                // Delete old file
                 if (!empty($kop->$columnName)) {
-                    $oldPath = validate_file_path($kop->$columnName);
-
-                    if ($oldPath !== null) {
-                        try {
-                            if (Storage::disk('public')->exists($oldPath)) {
-                                Storage::disk('public')->delete($oldPath);
-                                Log::info("Deleted old file: {$oldPath}");
-                            }
-                        } catch (\Throwable $e) {
-                            Log::warning("Gagal hapus file lama {$columnName}: " . sanitize_log_message($e->getMessage()));
-                        }
+                    $oldPath = $kop->$columnName;
+                    if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
                     }
                 }
 
-                // Upload file baru
-                $file = $r->file($inputName);
-                $path = $file->store('kop', 'public'); // Storage aman, path relatif
+                // Optimize and store new file
+                $path = $this->imageOptimizer->$optimizeMethod($r->file($inputName));
                 $data[$columnName] = $path;
-
-                Log::info("File uploaded: {$inputName} -> {$path}");
             }
         }
 
-        // Pastikan field file input tidak ikut ter-mass assign
-        unset($data['logo_kanan'], $data['background_header'], $data['background'], $data['cap']);
+        // Cleanup file inputs from data
+        unset($data['logo_kanan'], $data['logo_kiri'], $data['background'], $data['cap']);
 
-        // Set updated_by jika kolom ada
         if (Schema::hasColumn('master_kop_surat', 'updated_by')) {
             $data['updated_by'] = auth()->id();
         }
 
-        try {
-            $kop->update($data);
-            Log::info('Kop surat updated', ['user_id' => auth()->id()]);
-            return back()->with('success', 'Pengaturan kop surat berhasil diperbarui.');
-        } catch (\Throwable $e) {
-            // ✅ FIXED: Sanitize error message in log
-            Log::error('Kop surat update failed', [
-                'error' => sanitize_log_message($e->getMessage()),
-                'user_id' => auth()->id(),
-            ]);
-            return back()
-                ->withErrors(['update' => 'Gagal memperbarui pengaturan.'])
-                ->withInput();
-        }
+        $kop->fill($data);
+        $kop->save();
+
+        MasterKopSurat::clearCache();
+
+        return back()->with('success', 'Pengaturan kop surat berhasil disimpan.');
     }
 
-    // METHOD BARU: Delete Image
-    public function deleteImage($type)
+    /**
+     * Delete uploaded image
+     */
+    public function deleteImage($type): JsonResponse
     {
         $this->ensureAdmin();
+        $kop = MasterKopSurat::firstOrFail();
 
-        $kop = MasterKopSurat::first();
-        if (!$kop) {
-            return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
-        }
-
-        // Map type ke column name (adaptif untuk background_header_path)
-        $hasBgHeaderCol = Schema::hasColumn('master_kop_surat', 'background_header_path');
         $columnMap = [
             'logo' => 'logo_kanan_path',
+            'logo_kanan' => 'logo_kanan_path',
+            'logo_kiri' => 'logo_kiri_path',
             'background' => 'background_path',
-            'bg_header' => $hasBgHeaderCol ? 'background_header_path' : 'background_path',
             'cap' => 'cap_path',
         ];
 
         if (!isset($columnMap[$type])) {
-            return response()->json(['success' => false, 'message' => 'Tipe gambar tidak valid'], 400);
+            return response()->json(['success' => false, 'message' => 'Invalid type'], 400);
         }
 
-        $columnName = $columnMap[$type];
-        $filePath = $kop->$columnName;
-
-        if (!$filePath) {
-            return response()->json(['success' => false, 'message' => 'Gambar tidak ditemukan'], 404);
+        $col = $columnMap[$type];
+        if ($kop->$col && Storage::disk('public')->exists($kop->$col)) {
+            Storage::disk('public')->delete($kop->$col);
         }
+        
+        $kop->$col = null;
+        $kop->save();
 
-        // ✅ FIXED: Validate file path
-        $validatedPath = validate_file_path($filePath);
-
-        if ($validatedPath === null) {
-            return response()->json(['success' => false, 'message' => 'Path tidak valid'], 400);
-        }
-
-        try {
-            if (Storage::disk('public')->exists($validatedPath)) {
-                Storage::disk('public')->delete($validatedPath);
-            }
-
-            $kop->update([$columnName => null]);
-
-            Log::info("Image deleted: {$type}");
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Gambar berhasil dihapus',
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('Failed to delete image: ' . sanitize_log_message($e->getMessage()));
-            return response()->json(
-                [
-                    'success' => false,
-                    'message' => 'Gagal menghapus gambar.',
-                ],
-                500,
-            );
-        }
+        return response()->json(['success' => true]);
     }
 
+    /**
+     * Preview kop surat (AJAX)
+     */
     public function preview(Request $r)
     {
-        // Tidak perlu admin full untuk sekadar preview, tapi bisa dibatasi jika perlu.
-        // $this->ensureAdmin();
-
+        $this->ensureAdmin();
+        
         $kop = MasterKopSurat::first() ?? new MasterKopSurat();
-
-        // Normalisasi + sanitasi nilai preview (tidak disimpan ke DB)
-        $safeInt = fn($v, $min, $max, $def) => is_numeric($v) ? max($min, min((int) $v, $max)) : $def;
-        $safeHex = function ($v, $def = '#000000') {
-            if (is_string($v) && preg_match('/^#([A-Fa-f0-9]{6})$/', $v)) {
-                return $v;
-            }
-            return $def;
-        };
-        $sanitize = function (?string $v, int $max = 500): ?string {
-            if ($v === null || $v === '') {
-                return $v;
-            }
-            $clean = strip_tags($v);
-            $clean = trim($clean);
-            $clean = mb_substr($clean, 0, $max);
-            return $clean === '' ? null : $clean;
-        };
-
-        $kop->text_align = in_array($r->input('text_align'), ['left', 'right', 'center'], true) ? $r->input('text_align') : 'right';
-        $kop->logo_size = $safeInt($r->input('logo_size'), 30, 200, (int) ($kop->logo_size ?? 100));
-        $kop->font_size_title = $safeInt($r->input('font_size_title'), 10, 30, (int) ($kop->font_size_title ?? 14));
-        $kop->font_size_text = $safeInt($r->input('font_size_text'), 8, 20, (int) ($kop->font_size_text ?? 10));
-        $kop->text_color = $safeHex($r->input('text_color') ?? ($kop->text_color ?? '#000000'));
-        $kop->header_padding = $safeInt($r->input('header_padding'), 0, 50, (int) ($kop->header_padding ?? 15));
-        $kop->background_opacity = $safeInt($r->input('background_opacity'), 0, 100, (int) ($kop->background_opacity ?? 100));
-
-        $kop->nama_fakultas = $sanitize($r->input('nama_fakultas') ?? $kop->nama_fakultas, 255);
-        $kop->alamat_lengkap = $sanitize($r->input('alamat_lengkap') ?? $kop->alamat_lengkap, 500);
-        $kop->telepon_lengkap = $sanitize($r->input('telepon_lengkap') ?? $kop->telepon_lengkap, 255);
-        $kop->email_website = $sanitize($r->input('email_website') ?? $kop->email_website, 255);
-
-        // Render partial tanpa menyimpan, context: 'web'
+        
+        // Fill with request data for preview
+        $kop->fill($r->except(['logo_kanan', 'logo_kiri', 'background', 'cap']));
+        
         return view('shared._kop_surat', [
             'kop' => $kop,
             'context' => 'web',
             'showDivider' => true,
         ])->render();
+    }
+
+    /**
+     * Apply preset configuration
+     */
+    public function applyPreset(Request $r): JsonResponse
+    {
+        $this->ensureAdmin();
+
+        $presetKey = $r->input('preset');
+        $presets = config('kop_surat_presets.presets', []);
+
+        if (!isset($presets[$presetKey])) {
+            return response()->json(['success' => false, 'message' => 'Preset not found'], 404);
+        }
+
+        $presetConfig = $presets[$presetKey]['config'];
+
+        return response()->json([
+            'success' => true,
+            'config' => $presetConfig,
+            'name' => $presets[$presetKey]['name'],
+        ]);
+    }
+
+    /**
+     * Export kop surat configuration as JSON
+     */
+    public function export(): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->ensureAdmin();
+
+        $kop = MasterKopSurat::first();
+        if (!$kop) {
+            return back()->with('error', 'Tidak ada konfigurasi kop surat untuk di-export.');
+        }
+
+        $exportData = $kop->exportConfig();
+
+        // Include base64 encoded images if they exist
+        $imagePaths = [
+            'logo_kanan' => $kop->logo_kanan_path,
+            'logo_kiri' => $kop->logo_kiri_path,
+            'background' => $kop->background_path,
+            'cap' => $kop->cap_path,
+        ];
+
+        foreach ($imagePaths as $key => $path) {
+            if ($path && Storage::disk('public')->exists($path)) {
+                $contents = Storage::disk('public')->get($path);
+                $mimeType = mime_content_type(Storage::disk('public')->path($path));
+                $exportData['images'][$key] = [
+                    'filename' => basename($path),
+                    'mime_type' => $mimeType,
+                    'data' => base64_encode($contents),
+                ];
+            }
+        }
+
+        $filename = 'kop_surat_backup_' . date('Y-m-d_His') . '.json';
+
+        return Response::make(json_encode($exportData, JSON_PRETTY_PRINT), 200, [
+            'Content-Type' => 'application/json',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Import kop surat configuration from JSON
+     */
+    public function import(Request $r): JsonResponse
+    {
+        $this->ensureAdmin();
+
+        $r->validate([
+            'file' => ['required', 'file', 'mimes:json', 'max:10240'],
+        ]);
+
+        try {
+            $contents = file_get_contents($r->file('file')->getPathname());
+            $importData = json_decode($contents, true);
+
+            if (!$importData || !isset($importData['config'])) {
+                return response()->json(['success' => false, 'message' => 'Invalid import file format'], 400);
+            }
+
+            $kop = MasterKopSurat::firstOrNew([]);
+            
+            // Apply configuration
+            $kop->fill($importData['config']);
+
+            // Handle imported images
+            if (isset($importData['images'])) {
+                foreach ($importData['images'] as $key => $imageData) {
+                    if (isset($imageData['data']) && isset($imageData['filename'])) {
+                        $columnMap = [
+                            'logo_kanan' => 'logo_kanan_path',
+                            'logo_kiri' => 'logo_kiri_path',
+                            'background' => 'background_path',
+                            'cap' => 'cap_path',
+                        ];
+
+                        if (isset($columnMap[$key])) {
+                            $columnName = $columnMap[$key];
+                            
+                            // Delete old file
+                            if ($kop->$columnName && Storage::disk('public')->exists($kop->$columnName)) {
+                                Storage::disk('public')->delete($kop->$columnName);
+                            }
+
+                            // Save new file
+                            $path = 'kop/' . uniqid() . '_' . $imageData['filename'];
+                            Storage::disk('public')->put($path, base64_decode($imageData['data']));
+                            $kop->$columnName = $path;
+                        }
+                    }
+                }
+            }
+
+            $kop->updated_by = auth()->id();
+            $kop->save();
+
+            MasterKopSurat::clearCache();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Konfigurasi berhasil diimport.',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Import kop surat failed', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Gagal import: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get list of available presets
+     */
+    public function getPresets(): JsonResponse
+    {
+        $this->ensureAdmin();
+
+        $presets = config('kop_surat_presets.presets', []);
+        
+        $result = [];
+        foreach ($presets as $key => $preset) {
+            $result[$key] = [
+                'name' => $preset['name'],
+                'description' => $preset['description'],
+            ];
+        }
+
+        return response()->json($result);
     }
 }

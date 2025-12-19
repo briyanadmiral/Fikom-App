@@ -30,10 +30,10 @@ class CheckSessionRole
         $userId = session('user_id');
         $userRole = session('user_role');
 
-        // Jika tidak ada session user_id, tolak akses
+        // Jika tidak ada session user_id, redirect ke login
         if (!$userId) {
-            // Redirect atau abort dengan pesan error
-            abort(403, 'Akses ditolak. Silakan login melalui Dashboard Menu.');
+            return redirect()->route('login')
+                ->with('error', 'Silakan login terlebih dahulu.');
         }
 
         // 3️⃣ Cari user di database berdasarkan user_id dari session
@@ -43,7 +43,8 @@ class CheckSessionRole
         if (!$user || !$user->isActive()) {
             // Hapus session yang invalid
             session()->flush();
-            abort(403, 'User tidak ditemukan atau tidak aktif. Silakan login ulang.');
+            return redirect()->route('login')
+                ->with('error', 'User tidak ditemukan atau tidak aktif. Silakan login ulang.');
         }
 
         // 4️⃣ Login user secara programmatic (agar Auth::user() bisa dipakai)

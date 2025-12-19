@@ -73,6 +73,10 @@ class StoreTugasRequest extends FormRequest
             'no_surat_manual' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->whereNull('deleted_at')],
             'tahun_nomor' => ['sometimes', 'integer', 'digits:4'],
             'nomor_urut' => ['nullable', 'string', 'max:10', 'regex:/^[0-9]+$/'],
+            
+            // === Mode Turunan (Suffix Letter) ===
+            'is_turunan' => ['nullable', 'boolean'],
+            'parent_tugas_id' => ['nullable', 'integer', 'exists:tugas_header,id'],
 
             // === Legacy Field Support ===
             'nama_pembuat' => ['sometimes', 'nullable', 'integer', 'exists:pengguna,id'],
@@ -345,6 +349,15 @@ class StoreTugasRequest extends FormRequest
                 $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'];
                 $this->merge(['bulan' => $romanMap[$bulanInt] ?? 'I']);
             }
+        }
+        
+        // ====================================================================
+        // STEP 14: Normalize MODE TURUNAN checkbox
+        // ====================================================================
+        if ($this->has('is_turunan')) {
+            // Convert checkbox value "1" or "on" to boolean true
+            $value = $this->input('is_turunan');
+            $this->merge(['is_turunan' => in_array($value, ['1', 'on', true, 1], true)]);
         }
     }
 

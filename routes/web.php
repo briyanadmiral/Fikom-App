@@ -16,16 +16,23 @@ use App\Http\Controllers\AccountSettingsController;
 use App\Http\Controllers\SuratKeputusanController;
 use App\Http\Controllers\SuratKeputusan\NomorSuratController;
 use App\Http\Controllers\RedirectController;
-use App\Http\Controllers\ExternalEntryController; // ✅ TAMBAH: Import controller baru
+use App\Http\Controllers\ExternalEntryController;
 use App\Models\TugasHeader;
 use App\Jobs\SendSuratTugasEmail;
 use App\Models\KeputusanHeader;
 
 // ❌ HAPUS: Redirect ke login (sistem eksternal yang handle)
- Route::redirect('/', '/login');
+// Route::redirect('/', '/login');
 
-// ❌ HAPUS: Auth routes Laravel (login/register dihandle dashboard eksternal)
- Auth::routes();
+// ✅ RESTORE: Auth routes Laravel untuk login dengan email/password
+// External dashboard entry (/entry?user_id=X) tetap berfungsi untuk integrasi
+Auth::routes(['register' => false, 'reset' => false, 'verify' => false]);
+
+// ❌ DISABLE: Login redirect ke external entry (sudah ada Auth::routes di atas)
+// ✅ FIX: Define 'login' route name to prevent RouteNotFoundException
+// Route::get('/login', function () {
+//     return redirect()->route('external.entry');
+// })->name('login');
 
 // ✅ TAMBAH: Entry point dari Dashboard Menu eksternal
 Route::get('/entry', [ExternalEntryController::class, 'entry'])->name('external.entry');
@@ -41,7 +48,7 @@ Route::get('/', function () {
 // ✅ REVISI: Ganti middleware 'auth' jadi 'check.session.role'
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])
     ->name('home')
-    ->middleware('check.session.role'); // ✅ GANTI dari implicit auth ke explicit
+    ->middleware('check.session.role');
 
 // ✅ REVISI: Ganti middleware 'auth' jadi 'check.session.role'
 Route::middleware('check.session.role')->group(function () {
@@ -183,17 +190,53 @@ Route::middleware('check.session.role')->group(function () {
     // 6b) AJAX: Nomor Turunan (Suffix) - untuk ST
     Route::get('/ajax/surat-tugas/{tugas}/next-suffix', function (\App\Models\TugasHeader $tugas) {
         $service = app(\App\Services\NomorSuratService::class);
+
+        // Load relasi yang dibutuhkan untuk auto-fill
+        $tugas->load(['penerima.pengguna', 'klasifikasiSurat']);
+
         try {
             return response()->json([
                 'suffix' => $service->getNextSuffix($tugas->id),
                 'nomor_preview' => $service->previewSuffixNomor($tugas->id),
                 'parent_nomor' => $tugas->nomor,
+                // Data untuk auto-fill form
+                'parent_data' => [
+                    'jenis_tugas' => $tugas->jenis_tugas,
+                    'tugas' => $tugas->tugas,
+                    'detail_tugas' => $tugas->detail_tugas,
+                    'status_penerima' => $tugas->status_penerima,
+                    'redaksi_pembuka' => $tugas->redaksi_pembuka,
+                    'penutup' => $tugas->penutup,
+                    'waktu_mulai' => $tugas->waktu_mulai?->format('Y-m-d\TH:i'),
+                    'waktu_selesai' => $tugas->waktu_selesai?->format('Y-m-d\TH:i'),
+                    'tempat' => $tugas->tempat,
+                    'tembusan' => $tugas->tembusan,
+                    'klasifikasi_surat_id' => $tugas->klasifikasi_surat_id,
+                    'klasifikasi_kode' => optional($tugas->klasifikasiSurat)->kode ?? '',
+                    'klasifikasi_label' => optional($tugas->klasifikasiSurat)->kode ? optional($tugas->klasifikasiSurat)->kode . ' - ' . (optional($tugas->klasifikasiSurat)->deskripsi ?? (optional($tugas->klasifikasiSurat)->nama ?? '')) : '',
+                    'nama_umum' => $tugas->nama_umum,
+                    'asal_surat_id' => $tugas->asal_surat_id ?? $tugas->asal_surat,
+                    'penandatangan_id' => $tugas->penandatangan_id ?? $tugas->penandatangan,
+                    'penerima_internal' => $tugas->penerima->where('pengguna_id', '!=', null)->pluck('pengguna_id')->toArray(),
+                    'penerima_eksternal' => $tugas->penerima
+                        ->where('pengguna_id', null)
+                        ->map(function ($p) {
+                            return [
+                                'nama' => $p->nama_penerima,
+                                'jabatan' => $p->jabatan_penerima,
+                                'instansi' => $p->instansi,
+                            ];
+                        })
+                        ->values()
+                        ->toArray(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }
-    })->name('ajax.surat_tugas.nextSuffix')
-      ->whereNumber('tugas');
+    })
+        ->name('ajax.surat_tugas.nextSuffix')
+        ->whereNumber('tugas');
 
     Route::get('/surat-tugas/{any?}', [RedirectController::class, 'legacySt'])->where('any', '.*');
 
@@ -213,152 +256,143 @@ Route::middleware('check.session.role')->group(function () {
     Route::patch('notifikasi/mark-all-read', [NotifikasiController::class, 'markAllAsRead'])->name('notifikasi.markAllRead');
 
     // 8) Surat Keputusan (SK)
-Route::prefix('surat_keputusan')
-    ->name('surat_keputusan.')
-    ->group(function () {
-        Route::get('/', [SuratKeputusanController::class, 'index'])->name('index');
+    Route::prefix('surat_keputusan')
+        ->name('surat_keputusan.')
+        ->group(function () {
+            Route::get('/', [SuratKeputusanController::class, 'index'])->name('index');
 
-        Route::get('approve-list', [SuratKeputusanController::class, 'approveList'])
-            ->name('approveList')
-            ->middleware('can:viewAny,App\Models\KeputusanHeader');
+            Route::get('approve-list', [SuratKeputusanController::class, 'approveList'])
+                ->name('approveList')
+                ->middleware('can:viewAny,App\Models\KeputusanHeader');
 
-        Route::get('approve', [RedirectController::class, 'toApproveListSk'])
-            ->name('approveRedirect')
-            ->middleware('can:viewAny,App\Models\KeputusanHeader');
+            Route::get('approve', [RedirectController::class, 'toApproveListSk'])
+                ->name('approveRedirect')
+                ->middleware('can:viewAny,App\Models\KeputusanHeader');
 
-        Route::get('saya', [SuratKeputusanController::class, 'mine'])->name('mine');
+            Route::get('saya', [SuratKeputusanController::class, 'mine'])->name('mine');
 
-        // Semua user boleh lihat SK Terbit (dikontrol di policy jika mau dibatasi)
-        Route::get('terbit', [SuratKeputusanController::class, 'terbitList'])
-            ->name('terbitList')
-            ->middleware('can:viewAny,App\Models\KeputusanHeader');
+            // Semua user boleh lihat SK Terbit (dikontrol di policy jika mau dibatasi)
+            Route::get('terbit', [SuratKeputusanController::class, 'terbitList'])
+                ->name('terbitList')
+                ->middleware('can:viewAny,App\Models\KeputusanHeader');
 
-        // Arsip: khusus Admin TU (peran_id 1) via ability viewArchive
-        Route::get('arsip', [SuratKeputusanController::class, 'arsipList'])
-            ->name('arsipList')
-            ->middleware('can:viewArchive,App\Models\KeputusanHeader');
+            // Arsip: khusus Admin TU (peran_id 1) via ability viewArchive
+            Route::get('arsip', [SuratKeputusanController::class, 'arsipList'])
+                ->name('arsipList')
+                ->middleware('can:viewArchive,App\Models\KeputusanHeader');
 
-        Route::get('/create', [SuratKeputusanController::class, 'create'])
-            ->name('create')
-            ->middleware('can:create,' . KeputusanHeader::class);
+            Route::get('/create', [SuratKeputusanController::class, 'create'])
+                ->name('create')
+                ->middleware('can:create,' . KeputusanHeader::class);
 
-        Route::post('/', [SuratKeputusanController::class, 'store'])
-            ->name('store')
-            ->middleware('can:create,' . KeputusanHeader::class);
+            Route::post('/', [SuratKeputusanController::class, 'store'])
+                ->name('store')
+                ->middleware('can:create,' . KeputusanHeader::class);
 
-        // ✅ PERBAIKAN: Hapus middleware authorization dari route edit & update
-        // Biarkan controller yang handle authorization
-        Route::get('/{surat_keputusan}/edit', [SuratKeputusanController::class, 'edit'])
-            ->name('edit')
-            ->whereNumber('surat_keputusan');
-            // ->middleware('can:update,surat_keputusan');  ← HAPUS
+            // ✅ PERBAIKAN: Hapus middleware authorization dari route edit & update
+            // Biarkan controller yang handle authorization
+            Route::get('/{surat_keputusan}/edit', [SuratKeputusanController::class, 'edit'])
+                ->name('edit')
+                ->whereNumber('surat_keputusan');
 
-        Route::put('/{surat_keputusan}', [SuratKeputusanController::class, 'update'])
-            ->name('update')
-            ->whereNumber('surat_keputusan');
-            // ->middleware('can:update,surat_keputusan');  ← HAPUS
+            Route::put('/{surat_keputusan}', [SuratKeputusanController::class, 'update'])
+                ->name('update')
+                ->whereNumber('surat_keputusan');
 
-        Route::delete('/{surat_keputusan}', [SuratKeputusanController::class, 'destroy'])
-            ->name('destroy')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:delete,surat_keputusan');
+            Route::delete('/{surat_keputusan}', [SuratKeputusanController::class, 'destroy'])
+                ->name('destroy')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:delete,surat_keputusan');
 
-        Route::post('/{surat_keputusan}/submit', [SuratKeputusanController::class, 'submit'])
-            ->name('submit')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:submit,surat_keputusan');
+            Route::post('/{surat_keputusan}/submit', [SuratKeputusanController::class, 'submit'])
+                ->name('submit')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:submit,surat_keputusan');
 
-        Route::post('/{surat_keputusan}/approve', [SuratKeputusanController::class, 'approve'])
-            ->name('approve')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:approve,surat_keputusan');
+            Route::post('/{surat_keputusan}/approve', [SuratKeputusanController::class, 'approve'])
+                ->name('approve')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:approve,surat_keputusan');
 
-        Route::post('/{surat_keputusan}/reject', [SuratKeputusanController::class, 'reject'])
-            ->name('reject')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:reject,surat_keputusan');
+            Route::post('/{surat_keputusan}/reject', [SuratKeputusanController::class, 'reject'])
+                ->name('reject')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:reject,surat_keputusan');
 
-        Route::post('/{surat_keputusan}/reopen', [SuratKeputusanController::class, 'reopen'])
-            ->name('reopen')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:reopen,surat_keputusan');
+            Route::post('/{surat_keputusan}/reopen', [SuratKeputusanController::class, 'reopen'])
+                ->name('reopen')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:reopen,surat_keputusan');
 
-        Route::post('{surat_keputusan}/terbitkan', [SuratKeputusanController::class, 'terbitkan'])
-            ->name('terbitkan')
-            ->whereNumber('surat_keputusan');
+            Route::post('{surat_keputusan}/terbitkan', [SuratKeputusanController::class, 'terbitkan'])
+                ->name('terbitkan')
+                ->whereNumber('surat_keputusan');
 
-        Route::post('{surat_keputusan}/arsipkan', [SuratKeputusanController::class, 'arsipkan'])
-            ->name('arsipkan')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:archive,surat_keputusan');
+            Route::post('{surat_keputusan}/arsipkan', [SuratKeputusanController::class, 'arsipkan'])
+                ->name('arsipkan')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:archive,surat_keputusan');
 
-        Route::post('{surat_keputusan}/batal-terbitkan', [SuratKeputusanController::class, 'batalTerbitkan'])
-            ->name('batal_terbitkan')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:unpublish,surat_keputusan');
+            Route::post('{surat_keputusan}/batal-terbitkan', [SuratKeputusanController::class, 'batalTerbitkan'])
+                ->name('batal_terbitkan')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:unpublish,surat_keputusan');
 
-        Route::get('/{surat_keputusan}/approve-form', [SuratKeputusanController::class, 'approveForm'])
-            ->name('approveForm')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:approve,surat_keputusan');
+            Route::get('/{surat_keputusan}/approve-form', [SuratKeputusanController::class, 'approveForm'])
+                ->name('approveForm')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:approve,surat_keputusan');
 
-        Route::get('/{surat_keputusan}/approve-preview', [SuratKeputusanController::class, 'approvePreview'])
-            ->name('approvePreview')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:approve,surat_keputusan');
+            Route::get('/{surat_keputusan}/approve-preview', [SuratKeputusanController::class, 'approvePreview'])
+                ->name('approvePreview')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:approve,surat_keputusan');
 
-        Route::get('/{surat_keputusan}/preview', [SuratKeputusanController::class, 'preview'])
-            ->name('preview')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:view,surat_keputusan');
+            Route::get('/{surat_keputusan}/preview', [SuratKeputusanController::class, 'preview'])
+                ->name('preview')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:view,surat_keputusan');
 
-        Route::get('/{surat_keputusan}/download', [SuratKeputusanController::class, 'downloadPdf'])
-            ->name('downloadPdf')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:view,surat_keputusan');
+            Route::get('/{surat_keputusan}/download', [SuratKeputusanController::class, 'downloadPdf'])
+                ->name('downloadPdf')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:view,surat_keputusan');
 
-        Route::get('/{surat_keputusan}', [SuratKeputusanController::class, 'show'])
-            ->name('show')
-            ->whereNumber('surat_keputusan')
-            ->middleware('can:view,surat_keputusan');
+            Route::get('/{surat_keputusan}', [SuratKeputusanController::class, 'show'])
+                ->name('show')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:view,surat_keputusan');
 
-        // ✅ FASE 1.2: Lampiran file routes (NESTED RESOURCE)
-        Route::prefix('{surat_keputusan}')
-            ->whereNumber('surat_keputusan')
-            ->group(function () {
-                // ✅ PERBAIKAN: Hapus middleware dari upload & delete attachment
-                Route::post('/attachments', [SuratKeputusanController::class, 'uploadAttachment'])
-                    ->name('attachments.upload');
-                    // ->middleware('can:update,surat_keputusan');  ← HAPUS
+            // ✅ FASE 1.2: Lampiran file routes (NESTED RESOURCE)
+            Route::prefix('{surat_keputusan}')
+                ->whereNumber('surat_keputusan')
+                ->group(function () {
+                    // ✅ PERBAIKAN: Hapus middleware dari upload & delete attachment
+                    Route::post('/attachments', [SuratKeputusanController::class, 'uploadAttachment'])->name('attachments.upload');
 
-                Route::get('/attachments/{attachment}', [SuratKeputusanController::class, 'downloadAttachment'])
-                    ->name('attachments.download')
-                    ->whereNumber('attachment')
-                    ->middleware('can:view,surat_keputusan');
+                    Route::get('/attachments/{attachment}', [SuratKeputusanController::class, 'downloadAttachment'])
+                        ->name('attachments.download')
+                        ->whereNumber('attachment')
+                        ->middleware('can:view,surat_keputusan');
 
-                Route::delete('/attachments/{attachment}', [SuratKeputusanController::class, 'deleteAttachment'])
-                    ->name('attachments.delete')
-                    ->whereNumber('attachment');
-                    // ->middleware('can:update,surat_keputusan');  ← HAPUS
-            });
-    });
-
+                    Route::delete('/attachments/{attachment}', [SuratKeputusanController::class, 'deleteAttachment'])
+                        ->name('attachments.delete')
+                        ->whereNumber('attachment');
+                });
+        });
 
     Route::get('/surat-keputusan/{any?}', [RedirectController::class, 'legacySk'])->where('any', '.*');
 
-    // 9) Kop Surat & Signature
-    Route::get('/pengaturan/kop-surat', [MasterKopSuratController::class, 'index'])
+    // 9) Kop Surat (LEGACY ENTRYPOINT)
+    // Route lama ini menyebabkan mismatch signature (update/deleteImage tanpa {id}).
+    // Kita jadikan sebagai redirect ke halaman multi-template yang benar.
+    Route::get('/pengaturan/kop-surat', function () {
+        return redirect()->route('master_kop.index');
+    })
         ->name('kop.index')
         ->middleware('can:manage-kop-surat');
-    Route::put('/pengaturan/kop-surat', [MasterKopSuratController::class, 'update'])
-        ->name('kop.update')
-        ->middleware('can:manage-kop-surat');
-    Route::post('/pengaturan/kop-surat/preview', [MasterKopSuratController::class, 'preview'])
-        ->name('kop.preview')
-        ->middleware('can:manage-kop-surat');
-    Route::delete('/pengaturan/kop-surat/delete-image/{type}', [MasterKopSuratController::class, 'deleteImage'])
-        ->name('kop.delete-image')
-        ->middleware('can:manage-kop-surat');
+
+    // NOTE: route kop.update / kop.delete-image lama DIHAPUS agar tidak menabrak signature controller.
 
     Route::get('/kop-surat/ttd-saya', [MySignatureController::class, 'edit'])->name('kop.ttd.edit');
     Route::post('/kop-surat/ttd-saya', [MySignatureController::class, 'update'])->name('kop.ttd.update');
@@ -375,17 +409,14 @@ Route::prefix('surat_keputusan')
 
     // 11) Template Surat Tugas
     Route::resource('surat_templates', \App\Http\Controllers\SuratTemplateController::class);
-    Route::post('/surat_templates/{surat_template}/duplicate', [\App\Http\Controllers\SuratTemplateController::class, 'duplicate'])
-        ->name('surat_templates.duplicate');
+    Route::post('/surat_templates/{surat_template}/duplicate', [\App\Http\Controllers\SuratTemplateController::class, 'duplicate'])->name('surat_templates.duplicate');
     Route::get('/ajax/surat_templates/{id}', [\App\Http\Controllers\SuratTemplateController::class, 'getTemplate'])
         ->name('ajax.template.get')
         ->whereNumber('id');
 
     // 12) Audit Logs (Admin only)
-    Route::get('/pengaturan/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])
-        ->name('audit.index');
-    Route::get('/ajax/audit-logs/entity', [\App\Http\Controllers\AuditLogController::class, 'forEntity'])
-        ->name('ajax.audit.entity');
+    Route::get('/pengaturan/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit.index');
+    Route::get('/ajax/audit-logs/entity', [\App\Http\Controllers\AuditLogController::class, 'forEntity'])->name('ajax.audit.entity');
 
     // ==================== PHASE 2 & 3 ROUTES ====================
 
@@ -400,10 +431,8 @@ Route::prefix('surat_keputusan')
             Route::put('/{menimbangLibrary}', [\App\Http\Controllers\MenimbangLibraryController::class, 'update'])->name('update');
             Route::delete('/{menimbangLibrary}', [\App\Http\Controllers\MenimbangLibraryController::class, 'destroy'])->name('destroy');
         });
-    Route::get('/ajax/menimbang-library/search', [\App\Http\Controllers\MenimbangLibraryController::class, 'search'])
-        ->name('ajax.menimbang.search');
-    Route::post('/ajax/menimbang-library/{menimbangLibrary}/usage', [\App\Http\Controllers\MenimbangLibraryController::class, 'incrementUsage'])
-        ->name('ajax.menimbang.usage');
+    Route::get('/ajax/menimbang-library/search', [\App\Http\Controllers\MenimbangLibraryController::class, 'search'])->name('ajax.menimbang.search');
+    Route::post('/ajax/menimbang-library/{menimbangLibrary}/usage', [\App\Http\Controllers\MenimbangLibraryController::class, 'incrementUsage'])->name('ajax.menimbang.usage');
 
     // 14) Mengingat Library (SK)
     Route::prefix('pengaturan/mengingat-library')
@@ -416,16 +445,12 @@ Route::prefix('surat_keputusan')
             Route::put('/{mengingatLibrary}', [\App\Http\Controllers\MengingatLibraryController::class, 'update'])->name('update');
             Route::delete('/{mengingatLibrary}', [\App\Http\Controllers\MengingatLibraryController::class, 'destroy'])->name('destroy');
         });
-    Route::get('/ajax/mengingat-library/search', [\App\Http\Controllers\MengingatLibraryController::class, 'search'])
-        ->name('ajax.mengingat.search');
-    Route::get('/ajax/mengingat-library/categories', [\App\Http\Controllers\MengingatLibraryController::class, 'categories'])
-        ->name('ajax.mengingat.categories');
-    Route::post('/ajax/mengingat-library/{mengingatLibrary}/usage', [\App\Http\Controllers\MengingatLibraryController::class, 'incrementUsage'])
-        ->name('ajax.mengingat.usage');
+    Route::get('/ajax/mengingat-library/search', [\App\Http\Controllers\MengingatLibraryController::class, 'search'])->name('ajax.mengingat.search');
+    Route::get('/ajax/mengingat-library/categories', [\App\Http\Controllers\MengingatLibraryController::class, 'categories'])->name('ajax.mengingat.categories');
+    Route::post('/ajax/mengingat-library/{mengingatLibrary}/usage', [\App\Http\Controllers\MengingatLibraryController::class, 'incrementUsage'])->name('ajax.mengingat.usage');
 
     // 15) Duplicate SK Feature
-    Route::post('/surat_keputusan/{surat_keputusan}/duplicate', [\App\Http\Controllers\SuratKeputusanController::class, 'duplicate'])
-        ->name('surat_keputusan.duplicate');
+    Route::post('/surat_keputusan/{surat_keputusan}/duplicate', [\App\Http\Controllers\SuratKeputusanController::class, 'duplicate'])->name('surat_keputusan.duplicate');
 
     // 16) Reports Dashboard
     Route::prefix('laporan')
@@ -437,8 +462,7 @@ Route::prefix('surat_keputusan')
         });
 
     // 17) Audit Logs (aliased)
-    Route::get('/pengaturan/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])
-        ->name('audit_logs.index');
+    Route::get('/pengaturan/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit_logs.index');
 
     // 18) Recipient Import (ST)
     Route::prefix('surat-tugas/import-penerima')
@@ -468,21 +492,6 @@ Route::prefix('surat_keputusan')
             Route::put('/', [\App\Http\Controllers\NotificationPreferenceController::class, 'update'])->name('update');
         });
 
-    // 21) Multiple Kop Templates
-    Route::prefix('pengaturan/kop-surat')
-        ->name('kop.')
-        ->group(function () {
-            Route::get('/', [\App\Http\Controllers\MasterKopController::class, 'index'])->name('index');
-            Route::get('/create', [\App\Http\Controllers\MasterKopController::class, 'create'])->name('create');
-            Route::post('/', [\App\Http\Controllers\MasterKopController::class, 'store'])->name('store');
-            Route::get('/{kop}/edit', [\App\Http\Controllers\MasterKopController::class, 'edit'])->name('edit');
-            Route::put('/{kop}', [\App\Http\Controllers\MasterKopController::class, 'update'])->name('update');
-            Route::delete('/{kop}', [\App\Http\Controllers\MasterKopController::class, 'destroy'])->name('destroy');
-            Route::post('/{kop}/set-default', [\App\Http\Controllers\MasterKopController::class, 'setDefault'])->name('setDefault');
-        });
-    Route::get('/ajax/kop-surat/list', [\App\Http\Controllers\MasterKopController::class, 'list'])
-        ->name('ajax.kop.list');
-
     // 22) Archive Export (ST & SK)
     Route::prefix('arsip/export')
         ->name('arsip_export.')
@@ -503,6 +512,17 @@ Route::prefix('surat_keputusan')
             Route::get('/template', [\App\Http\Controllers\RecipientImportController::class, 'downloadTemplate'])->name('template');
         });
 
+    // 24) Kop Surat Settings (Legacy Singleton)
+    Route::middleware(['check.session.role', 'can:manage-kop-surat'])->group(function () {
+        Route::get('/pengaturan/kop-surat', [MasterKopSuratController::class, 'index'])->name('kop.index');
+        Route::put('/pengaturan/kop-surat', [MasterKopSuratController::class, 'update'])->name('kop.update');
+        Route::post('/pengaturan/kop-surat/preview', [MasterKopSuratController::class, 'preview'])->name('kop.preview');
+        Route::delete('/pengaturan/kop-surat/delete-image/{type}', [MasterKopSuratController::class, 'deleteImage'])->name('kop.delete-image');
+        
+        // New features: Presets, Export, Import
+        Route::get('/pengaturan/kop-surat/presets', [MasterKopSuratController::class, 'getPresets'])->name('kop.presets');
+        Route::post('/pengaturan/kop-surat/apply-preset', [MasterKopSuratController::class, 'applyPreset'])->name('kop.apply-preset');
+        Route::get('/pengaturan/kop-surat/export', [MasterKopSuratController::class, 'export'])->name('kop.export');
+        Route::post('/pengaturan/kop-surat/import', [MasterKopSuratController::class, 'import'])->name('kop.import');
+    });
 });
-
-

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 15, 2025 at 05:49 PM
+-- Generation Time: Dec 19, 2025 at 04:27 PM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.12
 
@@ -47,7 +47,15 @@ CREATE TABLE `audit_logs` (
 --
 
 INSERT INTO `audit_logs` (`id`, `user_id`, `user_name`, `action`, `entity_type`, `entity_id`, `entity_name`, `old_values`, `new_values`, `ip_address`, `user_agent`, `created_at`) VALUES
-(1, 1, 'AGUSTINA ALAM ANGGITASARI, SE., MM', 'update', 'SuratTemplate', 5, 'Template Kegiatan Akademik Umum', '{\"updated_at\": \"2025-12-15T07:27:29.000000Z\", \"detail_tugas\": \"<p>Sehubungan dengan {{keperluan_umum}}, dengan ini ditugaskan kepada yang bersangkutan untuk:</p>\\r\\n<ol>\\r\\n<li>{{tugas_1}}</li>\\r\\n<li>{{tugas_2}}</li>\\r\\n<li>{{tugas_3}}</li>\\r\\n</ol>\\r\\n<p>Pelaksanaan tugas pada:</p>\\r\\n<ul>\\r\\n<li>Tanggal: {{tanggal_pelaksanaan}}</li>\\r\\n<li>Waktu: {{waktu}}</li>\\r\\n<li>Tempat: {{tempat}}</li>\\r\\n</ul>\\r\\n<p>Demikian surat tugas ini dibuat untuk dapat dilaksanakan dengan penuh tanggung jawab.</p>\"}', '{\"updated_at\": \"2025-12-15 23:03:32\", \"detail_tugas\": \"<p><strong>Sehubungan dengan</strong> {{keperluan_umum}}, dengan ini ditugaskan kepada yang bersangkutan untuk:</p><ol><li>{{tugas_1}}</li><li>{{tugas_2}}</li><li>{{tugas_3}}</li></ol><p>Pelaksanaan tugas pada:</p><ul><li>Tanggal: {{tanggal_pelaksanaan}}</li><li>Waktu: {{waktu}}</li><li>Tempat: {{tempat}}</li></ul><p>Demikian surat tugas ini dibuat untuk dapat dilaksanakan dengan penuh tanggung jawab.</p>\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-15 16:03:32');
+(1, 1, 'AGUSTINA ALAM ANGGITASARI, SE., MM', 'update', 'SuratTemplate', 5, 'Template Kegiatan Akademik Umum', '{\"updated_at\": \"2025-12-15T07:27:29.000000Z\", \"detail_tugas\": \"<p>Sehubungan dengan {{keperluan_umum}}, dengan ini ditugaskan kepada yang bersangkutan untuk:</p>\\r\\n<ol>\\r\\n<li>{{tugas_1}}</li>\\r\\n<li>{{tugas_2}}</li>\\r\\n<li>{{tugas_3}}</li>\\r\\n</ol>\\r\\n<p>Pelaksanaan tugas pada:</p>\\r\\n<ul>\\r\\n<li>Tanggal: {{tanggal_pelaksanaan}}</li>\\r\\n<li>Waktu: {{waktu}}</li>\\r\\n<li>Tempat: {{tempat}}</li>\\r\\n</ul>\\r\\n<p>Demikian surat tugas ini dibuat untuk dapat dilaksanakan dengan penuh tanggung jawab.</p>\"}', '{\"updated_at\": \"2025-12-15 23:03:32\", \"detail_tugas\": \"<p><strong>Sehubungan dengan</strong> {{keperluan_umum}}, dengan ini ditugaskan kepada yang bersangkutan untuk:</p><ol><li>{{tugas_1}}</li><li>{{tugas_2}}</li><li>{{tugas_3}}</li></ol><p>Pelaksanaan tugas pada:</p><ul><li>Tanggal: {{tanggal_pelaksanaan}}</li><li>Waktu: {{waktu}}</li><li>Tempat: {{tempat}}</li></ul><p>Demikian surat tugas ini dibuat untuk dapat dilaksanakan dengan penuh tanggung jawab.</p>\"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-15 16:03:32'),
+(2, 1, 'AGUSTINA ALAM ANGGITASARI, SE., MM', 'create', 'TugasHeader', 26, '001/B.1.1/ST.IKOM/UNIKA/XII/2025', NULL, '{\"id\": 26, \"bulan\": \"XII\", \"nomor\": \"001/B.1.1/ST.IKOM/UNIKA/XII/2025\", \"tahun\": 2025, \"tugas\": \"Panitia Kegiatan Fakultas/Prodi\", \"suffix\": null, \"tempat\": \"Ruang HC\", \"penutup\": \"Testtinggg\", \"semester\": \"Ganjil\", \"tembusan\": \"Yth. Wakil Rektor I\\nYth. Kepala Program Studi\\nUnit Kepegawaian\\nArsip\", \"nama_umum\": \"Testingggg ke 16\", \"asal_surat\": 10, \"created_at\": \"2025-12-16T04:58:34.000000Z\", \"updated_at\": \"2025-12-16T04:58:34.000000Z\", \"dibuat_oleh\": 1, \"jenis_tugas\": \"Penunjang Almamater\", \"waktu_mulai\": \"2025-12-16T04:57:00.000000Z\", \"nomor_status\": \"reserved\", \"status_surat\": \"draft\", \"submitted_at\": null, \"next_approver\": null, \"penandatangan\": 10, \"tanggal_surat\": \"2025-12-15T17:00:00.000000Z\", \"waktu_selesai\": \"2025-12-16T06:57:00.000000Z\", \"nomor_urut_int\": null, \"detail_tugas_id\": 103, \"parent_tugas_id\": null, \"redaksi_pembuka\": \"Testinggg\", \"status_penerima\": null, \"klasifikasi_surat_id\": 3}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 04:58:34'),
+(3, 1, 'AGUSTINA ALAM ANGGITASARI, SE., MM', 'create', 'TugasHeader', 27, '001/A.1.1/ST.IKOM/UNIKA/XII/2025', NULL, '{\"id\": 27, \"bulan\": \"XII\", \"nomor\": \"001/A.1.1/ST.IKOM/UNIKA/XII/2025\", \"tahun\": 2025, \"tugas\": \"Koordinator kelompok MK/Rumpun/Konsorsium\", \"suffix\": null, \"tempat\": \"dwdwdw\", \"penutup\": \"dwdw\", \"semester\": \"Ganjil\", \"tembusan\": \"Yth. Kepala Program Studi Sistem Informasi\", \"nama_umum\": \"wadawdaw3232\", \"asal_surat\": 10, \"created_at\": \"2025-12-16T15:20:36.000000Z\", \"updated_at\": \"2025-12-16T15:20:36.000000Z\", \"dibuat_oleh\": 1, \"jenis_tugas\": \"Bimbingan\", \"waktu_mulai\": \"2025-12-06T06:58:00.000000Z\", \"nomor_status\": \"reserved\", \"status_surat\": \"pending\", \"submitted_at\": \"2025-12-16T15:20:36.000000Z\", \"next_approver\": 10, \"penandatangan\": 10, \"tanggal_surat\": \"2025-12-15T17:00:00.000000Z\", \"waktu_selesai\": \"2025-12-06T08:58:00.000000Z\", \"nomor_urut_int\": null, \"detail_tugas_id\": 1, \"parent_tugas_id\": null, \"redaksi_pembuka\": \"dwdw\", \"status_penerima\": null, \"klasifikasi_surat_id\": 104}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 15:20:36'),
+(4, 1, 'AGUSTINA ALAM ANGGITASARI, SE., MM', 'create', 'TugasHeader', 28, '001A/B.1.1/TG/UNIKA/XII/2025', NULL, '{\"id\": 28, \"bulan\": \"XII\", \"nomor\": \"001A/B.1.1/TG/UNIKA/XII/2025\", \"tahun\": 2025, \"tugas\": \"Panitia Kegiatan Fakultas/Prodi\", \"suffix\": \"A\", \"tempat\": \"Ruang HC\", \"penutup\": \"Testtinggg\", \"semester\": \"Ganjil\", \"tembusan\": \"Yth. Wakil Rektor Iyth. Kepala Program Studiunit Kepegawaianarsip\", \"nama_umum\": \"Testingggg ke 16\", \"asal_surat\": 10, \"created_at\": \"2025-12-16T15:45:05.000000Z\", \"updated_at\": \"2025-12-16T15:45:05.000000Z\", \"dibuat_oleh\": 1, \"jenis_tugas\": \"Penunjang Almamater\", \"waktu_mulai\": \"2025-12-16T04:57:00.000000Z\", \"nomor_status\": \"reserved\", \"status_surat\": \"pending\", \"submitted_at\": \"2025-12-16T15:45:05.000000Z\", \"next_approver\": 10, \"penandatangan\": 10, \"tanggal_surat\": \"2025-12-15T17:00:00.000000Z\", \"waktu_selesai\": \"2025-12-16T06:57:00.000000Z\", \"nomor_urut_int\": 1, \"detail_tugas_id\": 103, \"parent_tugas_id\": 26, \"redaksi_pembuka\": \"Testinggg\", \"status_penerima\": null, \"klasifikasi_surat_id\": 3}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 15:45:05'),
+(5, NULL, 'System', 'create', 'TugasHeader', 29, 'DRAFT-6941a8acf1309', NULL, '{\"id\": 29, \"bulan\": \"12\", \"nomor\": \"DRAFT-6941a8acf1309\", \"tahun\": 2025, \"tugas\": \"Quidem illum est debitis eum quaerat.\", \"tempat\": \"Tegal\", \"semester\": \"Ganjil\", \"nama_umum\": \"PJ Laksmiwati (Persero) Tbk\", \"signed_at\": null, \"asal_surat\": 1, \"created_at\": \"2025-12-16T18:45:00.000000Z\", \"updated_at\": \"2025-12-16T18:45:00.000000Z\", \"dibuat_oleh\": 1, \"jenis_tugas\": \"Pengabdian\", \"waktu_mulai\": \"2025-12-10T02:00:00.000000Z\", \"status_surat\": \"draft\", \"tanggal_asli\": \"2025-12-09T18:45:00.000000Z\", \"penandatangan\": 20, \"tanggal_surat\": \"2025-12-09T18:45:00.000000Z\", \"waktu_selesai\": \"2025-12-10T05:00:00.000000Z\", \"detail_tugas_id\": 1, \"status_penerima\": \"dosen\", \"klasifikasi_surat_id\": 112}', '127.0.0.1', 'Symfony', '2025-12-16 18:45:01'),
+(6, NULL, 'System', 'create', 'TugasHeader', 30, 'ST-DUMMY-002/FIKOM/2025', NULL, '{\"id\": 30, \"bulan\": \"11\", \"nomor\": \"ST-DUMMY-002/FIKOM/2025\", \"tahun\": 2025, \"tugas\": \"Porro est dolor minima.\", \"tempat\": \"Blitar\", \"semester\": \"Ganjil\", \"nama_umum\": \"UD Yuniar Salahudin\", \"signed_at\": null, \"asal_surat\": 1, \"created_at\": \"2025-12-16T18:45:01.000000Z\", \"updated_at\": \"2025-12-16T18:45:01.000000Z\", \"dibuat_oleh\": 1, \"jenis_tugas\": \"Pengabdian\", \"waktu_mulai\": \"2025-11-20T02:00:00.000000Z\", \"status_surat\": \"pending\", \"tanggal_asli\": \"2025-11-19T18:45:01.000000Z\", \"penandatangan\": 20, \"tanggal_surat\": \"2025-11-19T18:45:01.000000Z\", \"waktu_selesai\": \"2025-11-20T05:00:00.000000Z\", \"detail_tugas_id\": 1, \"status_penerima\": null, \"klasifikasi_surat_id\": 25}', '127.0.0.1', 'Symfony', '2025-12-16 18:45:01'),
+(7, NULL, 'System', 'create', 'TugasHeader', 31, 'ST-DUMMY-003/FIKOM/2025', NULL, '{\"id\": 31, \"bulan\": \"12\", \"nomor\": \"ST-DUMMY-003/FIKOM/2025\", \"tahun\": 2025, \"tugas\": \"Harum aperiam rem quibusdam.\", \"tempat\": \"Denpasar\", \"semester\": \"Ganjil\", \"nama_umum\": \"Fa Prastuti (Persero) Tbk\", \"signed_at\": \"2025-12-08T18:45:01.000000Z\", \"asal_surat\": 1, \"created_at\": \"2025-12-16T18:45:01.000000Z\", \"updated_at\": \"2025-12-16T18:45:01.000000Z\", \"dibuat_oleh\": 1, \"jenis_tugas\": \"Penelitian\", \"waktu_mulai\": \"2025-12-08T02:00:00.000000Z\", \"status_surat\": \"disetujui\", \"tanggal_asli\": \"2025-12-07T18:45:01.000000Z\", \"penandatangan\": 20, \"tanggal_surat\": \"2025-12-07T18:45:01.000000Z\", \"waktu_selesai\": \"2025-12-08T05:00:00.000000Z\", \"detail_tugas_id\": 1, \"status_penerima\": \"dosen\", \"klasifikasi_surat_id\": 68}', '127.0.0.1', 'Symfony', '2025-12-16 18:45:01'),
+(8, NULL, 'System', 'create', 'TugasHeader', 32, 'ST-DUMMY-004/FIKOM/2025', NULL, '{\"id\": 32, \"bulan\": \"11\", \"nomor\": \"ST-DUMMY-004/FIKOM/2025\", \"tahun\": 2025, \"tugas\": \"Totam delectus quia rem expedita.\", \"tempat\": \"Cirebon\", \"semester\": \"Ganjil\", \"nama_umum\": \"Yayasan Salahudin Kusumo\", \"signed_at\": \"2025-11-17T18:45:01.000000Z\", \"asal_surat\": 1, \"created_at\": \"2025-12-16T18:45:01.000000Z\", \"updated_at\": \"2025-12-16T18:45:01.000000Z\", \"dibuat_oleh\": 1, \"jenis_tugas\": \"Penelitian\", \"waktu_mulai\": \"2025-11-17T02:00:00.000000Z\", \"status_surat\": \"disetujui\", \"tanggal_asli\": \"2025-11-16T18:45:01.000000Z\", \"penandatangan\": 20, \"tanggal_surat\": \"2025-11-16T18:45:01.000000Z\", \"waktu_selesai\": \"2025-11-17T05:00:00.000000Z\", \"detail_tugas_id\": 1, \"status_penerima\": null, \"klasifikasi_surat_id\": 121}', '127.0.0.1', 'Symfony', '2025-12-16 18:45:01'),
+(9, NULL, 'System', 'create', 'TugasHeader', 33, 'ST-DUMMY-005/FIKOM/2025', NULL, '{\"id\": 33, \"bulan\": \"11\", \"nomor\": \"ST-DUMMY-005/FIKOM/2025\", \"tahun\": 2025, \"tugas\": \"Quidem fugiat ut in.\", \"tempat\": \"Sungai Penuh\", \"semester\": \"Ganjil\", \"nama_umum\": \"PJ Pudjiastuti Maryati Tbk\", \"signed_at\": \"2025-11-24T18:45:01.000000Z\", \"asal_surat\": 1, \"created_at\": \"2025-12-16T18:45:01.000000Z\", \"updated_at\": \"2025-12-16T18:45:01.000000Z\", \"dibuat_oleh\": 1, \"jenis_tugas\": \"Pengabdian\", \"waktu_mulai\": \"2025-11-24T02:00:00.000000Z\", \"status_surat\": \"disetujui\", \"tanggal_asli\": \"2025-11-23T18:45:01.000000Z\", \"penandatangan\": 20, \"tanggal_surat\": \"2025-11-23T18:45:01.000000Z\", \"waktu_selesai\": \"2025-11-24T05:00:00.000000Z\", \"detail_tugas_id\": 1, \"status_penerima\": \"dosen\", \"klasifikasi_surat_id\": 44}', '127.0.0.1', 'Symfony', '2025-12-16 18:45:01');
 
 -- --------------------------------------------------------
 
@@ -134,7 +142,25 @@ INSERT INTO `jobs` (`id`, `queue`, `payload`, `attempts`, `reserved_at`, `availa
 (26, 'default', '{\"uuid\":\"51495518-b113-4f55-bf10-3fbd7f51c280\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:16;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1760868052, 1760868052),
 (27, 'default', '{\"uuid\":\"c81c1437-ee53-4239-98f2-38e9d872386e\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:18;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1764866038, 1764866038),
 (28, 'default', '{\"uuid\":\"22b59003-8350-455f-8733-11000504897b\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:15;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1765032506, 1765032506),
-(29, 'default', '{\"uuid\":\"39e35331-7305-4407-9930-8f5749775f5e\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:13;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1765032535, 1765032535);
+(29, 'default', '{\"uuid\":\"39e35331-7305-4407-9930-8f5749775f5e\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:13;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1765032535, 1765032535),
+(30, 'default', '{\"uuid\":\"f15ffda4-31ac-4b89-b545-c940c69a0eb6\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:26;s:4:\\\"mode\\\";s:11:\\\"to_approver\\\";}\"}}', 0, NULL, 1765862629, 1765862629),
+(31, 'default', '{\"uuid\":\"e7b8fe19-e07e-43b6-a2ee-b1ab624a843e\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:25;s:4:\\\"mode\\\";s:11:\\\"to_approver\\\";}\"}}', 0, NULL, 1765864720, 1765864720),
+(32, 'mail', '{\"uuid\":\"3f6710d7-9ffc-4764-9dc4-f42e491146d0\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":4:{s:7:\\\"tugasId\\\";i:28;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";s:5:\\\"queue\\\";s:4:\\\"mail\\\";s:5:\\\"delay\\\";O:25:\\\"Illuminate\\\\Support\\\\Carbon\\\":3:{s:4:\\\"date\\\";s:26:\\\"2025-12-16 23:12:41.104432\\\";s:13:\\\"timezone_type\\\";i:3;s:8:\\\"timezone\\\";s:12:\\\"Asia\\/Jakarta\\\";}}\"}}', 0, NULL, 1765901561, 1765901556),
+(33, 'default', '{\"uuid\":\"cd584de1-cdb1-43da-9d0b-e86830d0b996\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:28;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1765901559, 1765901559),
+(34, 'mail', '{\"uuid\":\"6b727ae1-c5e6-47c5-9bf4-eaae74494810\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":4:{s:7:\\\"tugasId\\\";i:27;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";s:5:\\\"queue\\\";s:4:\\\"mail\\\";s:5:\\\"delay\\\";O:25:\\\"Illuminate\\\\Support\\\\Carbon\\\":3:{s:4:\\\"date\\\";s:26:\\\"2025-12-17 00:39:29.118009\\\";s:13:\\\"timezone_type\\\";i:3;s:8:\\\"timezone\\\";s:12:\\\"Asia\\/Jakarta\\\";}}\"}}', 0, NULL, 1765906769, 1765906765),
+(35, 'default', '{\"uuid\":\"6c4a7445-ad24-4284-ad2d-eb1faef9b4a4\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:27;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1765906769, 1765906769),
+(36, 'mail', '{\"uuid\":\"7662059e-973d-4b44-94bf-87cdf721d637\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":4:{s:7:\\\"tugasId\\\";i:26;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";s:5:\\\"queue\\\";s:4:\\\"mail\\\";s:5:\\\"delay\\\";O:25:\\\"Illuminate\\\\Support\\\\Carbon\\\":3:{s:4:\\\"date\\\";s:26:\\\"2025-12-17 00:59:18.125824\\\";s:13:\\\"timezone_type\\\";i:3;s:8:\\\"timezone\\\";s:12:\\\"Asia\\/Jakarta\\\";}}\"}}', 0, NULL, 1765907958, 1765907953),
+(37, 'default', '{\"uuid\":\"6dea8449-aa27-4b4c-b0dd-0bd15f12fbc9\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:26;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1765907954, 1765907954),
+(38, 'mail', '{\"uuid\":\"81dad8bb-f3aa-499d-bbf3-d1faf83f6305\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":4:{s:7:\\\"tugasId\\\";i:25;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";s:5:\\\"queue\\\";s:4:\\\"mail\\\";s:5:\\\"delay\\\";O:25:\\\"Illuminate\\\\Support\\\\Carbon\\\":3:{s:4:\\\"date\\\";s:26:\\\"2025-12-17 01:50:16.366248\\\";s:13:\\\"timezone_type\\\";i:3;s:8:\\\"timezone\\\";s:12:\\\"Asia\\/Jakarta\\\";}}\"}}', 0, NULL, 1765911016, 1765911011),
+(39, 'default', '{\"uuid\":\"29f3c6ba-9297-4064-b637-8b1485c15ac4\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:25;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1765911012, 1765911012),
+(40, 'default', '{\"uuid\":\"7fb65b3a-8451-49e2-a6f3-acbec07b4095\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:4;s:4:\\\"mode\\\";s:11:\\\"to_approver\\\";}\"}}', 0, NULL, 1765911134, 1765911134),
+(41, 'mail', '{\"uuid\":\"13679be6-e209-43c5-baf3-9a31c8f69ad5\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":4:{s:7:\\\"tugasId\\\";i:4;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";s:5:\\\"queue\\\";s:4:\\\"mail\\\";s:5:\\\"delay\\\";O:25:\\\"Illuminate\\\\Support\\\\Carbon\\\":3:{s:4:\\\"date\\\";s:26:\\\"2025-12-17 01:52:45.647558\\\";s:13:\\\"timezone_type\\\";i:3;s:8:\\\"timezone\\\";s:12:\\\"Asia\\/Jakarta\\\";}}\"}}', 0, NULL, 1765911165, 1765911160),
+(42, 'mail', '{\"uuid\":\"84e910ac-15aa-412f-b3bf-5397559f9518\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":4:{s:7:\\\"tugasId\\\";i:4;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";s:5:\\\"queue\\\";s:4:\\\"mail\\\";s:5:\\\"delay\\\";O:25:\\\"Illuminate\\\\Support\\\\Carbon\\\":3:{s:4:\\\"date\\\";s:26:\\\"2025-12-17 01:52:45.659174\\\";s:13:\\\"timezone_type\\\";i:3;s:8:\\\"timezone\\\";s:12:\\\"Asia\\/Jakarta\\\";}}\"}}', 0, NULL, 1765911165, 1765911160),
+(43, 'default', '{\"uuid\":\"22180835-b54c-4204-be2d-e3a2034e7f2c\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:4;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1765911161, 1765911161),
+(44, 'default', '{\"uuid\":\"8865c653-e8ff-44af-96fd-6f8543f48250\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:1;s:4:\\\"mode\\\";s:11:\\\"to_approver\\\";}\"}}', 0, NULL, 1765911566, 1765911566),
+(45, 'mail', '{\"uuid\":\"899d82ee-2b2d-4147-9160-49018a889c55\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":4:{s:7:\\\"tugasId\\\";i:1;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";s:5:\\\"queue\\\";s:4:\\\"mail\\\";s:5:\\\"delay\\\";O:25:\\\"Illuminate\\\\Support\\\\Carbon\\\":3:{s:4:\\\"date\\\";s:26:\\\"2025-12-17 01:59:51.689802\\\";s:13:\\\"timezone_type\\\";i:3;s:8:\\\"timezone\\\";s:12:\\\"Asia\\/Jakarta\\\";}}\"}}', 0, NULL, 1765911591, 1765911586),
+(46, 'mail', '{\"uuid\":\"e74df63b-1971-44ce-9dd7-a846a6876747\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":4:{s:7:\\\"tugasId\\\";i:1;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";s:5:\\\"queue\\\";s:4:\\\"mail\\\";s:5:\\\"delay\\\";O:25:\\\"Illuminate\\\\Support\\\\Carbon\\\":3:{s:4:\\\"date\\\";s:26:\\\"2025-12-17 01:59:51.700838\\\";s:13:\\\"timezone_type\\\";i:3;s:8:\\\"timezone\\\";s:12:\\\"Asia\\/Jakarta\\\";}}\"}}', 0, NULL, 1765911591, 1765911586),
+(47, 'default', '{\"uuid\":\"db20ad99-28cd-4d1e-99f4-0dac7050d90f\",\"displayName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":3,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":\"60\",\"timeout\":120,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SendSuratTugasEmail\",\"command\":\"O:28:\\\"App\\\\Jobs\\\\SendSuratTugasEmail\\\":2:{s:7:\\\"tugasId\\\";i:1;s:4:\\\"mode\\\";s:13:\\\"to_recipients\\\";}\"}}', 0, NULL, 1765911587, 1765911587);
 
 -- --------------------------------------------------------
 
@@ -451,7 +477,6 @@ CREATE TABLE `master_kop_surat` (
   `id` bigint UNSIGNED NOT NULL,
   `unit_code` varchar(50) DEFAULT NULL,
   `nama_kop` varchar(100) DEFAULT NULL,
-  `is_default` tinyint(1) DEFAULT '0',
   `unit` varchar(255) DEFAULT NULL,
   `background_path` varchar(255) DEFAULT NULL,
   `cap_path` varchar(255) DEFAULT NULL,
@@ -475,16 +500,14 @@ CREATE TABLE `master_kop_surat` (
   `text_color` varchar(7) DEFAULT '#000000',
   `header_padding` int DEFAULT '15',
   `background_opacity` int DEFAULT '100',
-  `judul_atas` varchar(255) DEFAULT NULL,
-  `subjudul` varchar(255) DEFAULT NULL,
   `alamat` varchar(255) DEFAULT NULL,
   `telepon` varchar(255) DEFAULT NULL,
   `fax` varchar(255) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `website` varchar(255) DEFAULT NULL,
   `logo_kiri_path` varchar(255) DEFAULT NULL,
-  `logo_kanan_path` varchar(255) DEFAULT NULL,
   `tampilkan_logo_kiri` tinyint(1) NOT NULL DEFAULT '0',
+  `logo_kanan_path` varchar(255) DEFAULT NULL,
   `tampilkan_logo_kanan` tinyint(1) NOT NULL DEFAULT '1',
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -493,8 +516,8 @@ CREATE TABLE `master_kop_surat` (
 -- Dumping data for table `master_kop_surat`
 --
 
-INSERT INTO `master_kop_surat` (`id`, `unit_code`, `nama_kop`, `is_default`, `unit`, `background_path`, `cap_path`, `cap_default_width_mm`, `cap_opacity`, `cap_offset_x_mm`, `cap_offset_y_mm`, `updated_by`, `created_at`, `updated_at`, `mode`, `mode_type`, `nama_fakultas`, `alamat_lengkap`, `telepon_lengkap`, `email_website`, `text_align`, `logo_size`, `font_size_title`, `font_size_text`, `text_color`, `header_padding`, `background_opacity`, `judul_atas`, `subjudul`, `alamat`, `telepon`, `fax`, `email`, `website`, `logo_kiri_path`, `logo_kanan_path`, `tampilkan_logo_kiri`, `tampilkan_logo_kanan`, `deleted_at`) VALUES
-(1, NULL, 'Kop Default FIKOM', 1, NULL, NULL, 'kop/mOKxKWXWoH3XMn44zcgyiUpfCBWnoSnxmOa1rcij.png', 30, 85, 0, 0, 1, '2025-08-26 03:50:41', '2025-10-13 16:05:49', 'composed', 'custom', 'FAKULTAS ILMU KOMPUTER', 'Jl. PawiyatanLuhur IV/ 1,BendanDuwur, Semarang 50234', 'Telp. (024) 8441555, 8505003 (hunting) Fax. (024) 8415429 – 8445265', 'e-mail: unika@unika.ac.id http://www.unika.ac.id/', 'right', 160, 19, 12, '#000000', 5, 100, 'SOEGIJAPRANATA', 'CATHOLIC UNIVERSITY', 'Jl. Pawiyatan Luhur IV/1 Bendan Duwur Semarang 50234', '(024) 8441555, 85050003', '(024) 8415429 – 8454265', 'unika@unika.ac.id', 'https://www.unika.ac.id', NULL, 'kop/zIVT62aXzfG6geqDtwy3istgxgvJgaa6y3juUo5u.jpg', 0, 1, NULL);
+INSERT INTO `master_kop_surat` (`id`, `unit_code`, `nama_kop`, `unit`, `background_path`, `cap_path`, `cap_default_width_mm`, `cap_opacity`, `cap_offset_x_mm`, `cap_offset_y_mm`, `updated_by`, `created_at`, `updated_at`, `mode`, `mode_type`, `nama_fakultas`, `alamat_lengkap`, `telepon_lengkap`, `email_website`, `text_align`, `logo_size`, `font_size_title`, `font_size_text`, `text_color`, `header_padding`, `background_opacity`, `alamat`, `telepon`, `fax`, `email`, `website`, `logo_kiri_path`, `tampilkan_logo_kiri`, `logo_kanan_path`, `tampilkan_logo_kanan`, `deleted_at`) VALUES
+(1, NULL, 'Kop Default FIKOM', NULL, NULL, 'kop/mOKxKWXWoH3XMn44zcgyiUpfCBWnoSnxmOa1rcij.png', 30, 85, 0, 0, 1, '2025-08-26 03:50:41', '2025-10-13 16:05:49', 'composed', 'custom', 'FAKULTAS ILMU KOMPUTER', 'Jl. PawiyatanLuhur IV/ 1,BendanDuwur, Semarang 50234', 'Telp. (024) 8441555, 8505003 (hunting) Fax. (024) 8415429 – 8445265', 'e-mail: unika@unika.ac.id http://www.unika.ac.id/', 'right', 160, 19, 12, '#000000', 5, 100, 'Jl. Pawiyatan Luhur IV/1 Bendan Duwur Semarang 50234', '(024) 8441555, 85050003', '(024) 8415429 – 8454265', 'unika@unika.ac.id', 'https://www.unika.ac.id', NULL, 0, 'kop/zIVT62aXzfG6geqDtwy3istgxgvJgaa6y3juUo5u.jpg', 1, NULL);
 
 -- --------------------------------------------------------
 
@@ -624,7 +647,10 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (45, '2025_12_15_140002_create_mengingat_library_table', 42),
 (46, '2025_12_15_140003_extend_master_kop_surat_multiunit', 42),
 (47, '2025_12_15_140004_create_notification_preferences_table', 42),
-(48, '2025_12_16_000000_add_suffix_columns_to_tugas_header', 43);
+(48, '2025_12_16_000000_add_suffix_columns_to_tugas_header', 43),
+(49, '2025_12_17_132341_add_customization_fields_to_master_kop_surat', 44),
+(50, '2025_12_17_172156_revert_kop_surat_columns', 45),
+(51, '2025_12_19_155931_add_dual_logo_to_master_kop_surat', 46);
 
 -- --------------------------------------------------------
 
@@ -684,7 +710,12 @@ INSERT INTO `nomor_surat_counters` (`id`, `kode_surat`, `unit`, `bulan_romawi`, 
 (10, 'A31', 'STIKOM', 'XII', 2025, 1, '2025-12-06 07:08:53', '2025-12-06 07:08:53', NULL),
 (11, 'A15', 'STIKOM', 'XII', 2025, 1, '2025-12-06 07:09:08', '2025-12-06 07:09:08', NULL),
 (12, 'A.1.3', 'ST.IKOM', 'XII', 2025, 2, '2025-12-06 07:18:02', '2025-12-15 07:24:03', NULL),
-(13, 'A.3.1', 'ST.IKOM', 'XII', 2025, 2, '2025-12-15 07:36:00', '2025-12-15 17:03:43', NULL);
+(13, 'A.3.1', 'ST.IKOM', 'XII', 2025, 2, '2025-12-15 07:36:00', '2025-12-15 17:03:43', NULL),
+(14, 'B.1.1', 'ST.IKOM', 'XII', 2025, 1, '2025-12-16 04:57:41', '2025-12-16 04:57:41', NULL),
+(15, 'B.1.1', 'TG', 'XII', 2025, 1, '2025-12-16 05:23:47', '2025-12-16 05:23:47', NULL),
+(16, 'A.1.1', 'TG', 'XII', 2025, 1, '2025-12-16 05:58:40', '2025-12-16 05:58:40', NULL),
+(17, 'A.1.1', 'ST.IKOM', 'XII', 2025, 1, '2025-12-16 15:20:35', '2025-12-16 15:20:35', NULL),
+(18, 'A.1.3', 'TG', 'I', 2025, 1, '2025-12-16 18:52:14', '2025-12-16 18:52:14', NULL);
 
 -- --------------------------------------------------------
 
@@ -765,7 +796,27 @@ INSERT INTO `notifikasi` (`id`, `pengguna_id`, `tipe`, `referensi_id`, `pesan`, 
 (36, 3, 'surat_keputusan', 17, 'SK 001/B.10.1/TG/UNIKA/X/2025 ditarik ke Draft oleh AGUSTINA ALAM ANGGITASARI, SE., MM.', 0, '2025-10-12 14:33:25', '2025-10-12 14:33:25', '2025-10-12 14:33:25', NULL),
 (37, 5, 'surat_keputusan', 3, 'SK &quot;Disetujui: Penetapan Tata Tertib Laboratorium&quot; telah diterbitkan dan berlaku efektif.', 0, '2025-12-03 04:29:40', '2025-12-03 04:29:40', '2025-12-03 04:29:40', NULL),
 (38, 6, 'surat_keputusan', 3, 'SK &quot;Disetujui: Penetapan Tata Tertib Laboratorium&quot; telah diterbitkan dan berlaku efektif.', 0, '2025-12-03 04:29:40', '2025-12-03 04:29:40', '2025-12-03 04:29:40', NULL),
-(39, 3, 'surat_keputusan', 17, 'SK 001/B.10.1/TG/UNIKA/X/2025 ditarik ke Draft oleh AGUSTINA ALAM ANGGITASARI, SE., MM.', 0, '2025-12-06 13:08:52', '2025-12-06 13:08:52', '2025-12-06 13:08:52', NULL);
+(39, 3, 'surat_keputusan', 17, 'SK 001/B.10.1/TG/UNIKA/X/2025 ditarik ke Draft oleh AGUSTINA ALAM ANGGITASARI, SE., MM.', 0, '2025-12-06 13:08:52', '2025-12-06 13:08:52', '2025-12-06 13:08:52', NULL),
+(40, 10, 'surat_tugas', 26, 'Surat Tugas 001/B.1.1/TG/UNIKA/XII/2025 menunggu persetujuan Anda.', 0, '2025-12-16 05:23:49', '2025-12-16 05:23:49', '2025-12-16 05:23:49', NULL),
+(41, 10, 'surat_tugas', 25, 'Surat Tugas 001/A.1.1/TG/UNIKA/XII/2025 menunggu persetujuan Anda.', 0, '2025-12-16 05:58:40', '2025-12-16 05:58:40', '2025-12-16 05:58:40', NULL),
+(42, 10, 'surat_tugas', 27, 'Surat Tugas 001/A.1.1/ST.IKOM/UNIKA/XII/2025 menunggu persetujuan Anda.', 0, '2025-12-16 15:20:36', '2025-12-16 15:20:36', '2025-12-16 15:20:36', NULL),
+(43, 10, 'surat_tugas', 28, 'Surat Tugas 001A/B.1.1/TG/UNIKA/XII/2025 menunggu persetujuan Anda.', 0, '2025-12-16 15:45:05', '2025-12-16 15:45:05', '2025-12-16 15:45:05', NULL),
+(44, 1, 'surat_tugas', 28, 'Surat Tugas 001A/B.1.1/TG/UNIKA/XII/2025 telah disetujui.', 0, '2025-12-16 16:12:35', '2025-12-16 16:12:35', '2025-12-16 16:12:35', NULL),
+(45, 9, 'surat_tugas', 28, 'Anda menerima Surat Tugas baru: 001A/B.1.1/TG/UNIKA/XII/2025', 0, '2025-12-16 16:12:35', '2025-12-16 16:12:35', '2025-12-16 16:12:35', NULL),
+(46, 1, 'surat_tugas', 27, 'Surat Tugas 001/A.1.1/ST.IKOM/UNIKA/XII/2025 telah disetujui.', 0, '2025-12-16 17:39:23', '2025-12-16 17:39:23', '2025-12-16 17:39:23', NULL),
+(47, 5, 'surat_tugas', 27, 'Anda menerima Surat Tugas baru: 001/A.1.1/ST.IKOM/UNIKA/XII/2025', 0, '2025-12-16 17:39:23', '2025-12-16 17:39:23', '2025-12-16 17:39:23', NULL),
+(48, 1, 'surat_tugas', 26, 'Surat Tugas 001/B.1.1/TG/UNIKA/XII/2025 telah disetujui.', 0, '2025-12-16 17:59:13', '2025-12-16 17:59:13', '2025-12-16 17:59:13', NULL),
+(49, 9, 'surat_tugas', 26, 'Anda menerima Surat Tugas baru: 001/B.1.1/TG/UNIKA/XII/2025', 0, '2025-12-16 17:59:13', '2025-12-16 17:59:13', '2025-12-16 17:59:13', NULL),
+(50, 1, 'surat_tugas', 25, 'Surat Tugas 001/A.1.1/TG/UNIKA/XII/2025 telah disetujui.', 0, '2025-12-16 18:50:11', '2025-12-16 18:50:11', '2025-12-16 18:50:11', NULL),
+(51, 7, 'surat_tugas', 25, 'Anda menerima Surat Tugas baru: 001/A.1.1/TG/UNIKA/XII/2025', 0, '2025-12-16 18:50:11', '2025-12-16 18:50:11', '2025-12-16 18:50:11', NULL),
+(52, 10, 'surat_tugas', 4, 'Surat Tugas 001/A.1.3/TG/UNIKA/I/2025 menunggu persetujuan Anda.', 0, '2025-12-16 18:52:14', '2025-12-16 18:52:14', '2025-12-16 18:52:14', NULL),
+(53, 1, 'surat_tugas', 4, 'Surat Tugas 001/A.1.3/TG/UNIKA/I/2025 telah disetujui.', 0, '2025-12-16 18:52:40', '2025-12-16 18:52:40', '2025-12-16 18:52:40', NULL),
+(54, 19, 'surat_tugas', 4, 'Anda menerima Surat Tugas baru: 001/A.1.3/TG/UNIKA/I/2025', 0, '2025-12-16 18:52:40', '2025-12-16 18:52:40', '2025-12-16 18:52:40', NULL),
+(55, 6, 'surat_tugas', 4, 'Anda menerima Surat Tugas baru: 001/A.1.3/TG/UNIKA/I/2025', 0, '2025-12-16 18:52:40', '2025-12-16 18:52:40', '2025-12-16 18:52:40', NULL),
+(56, 10, 'surat_tugas', 1, 'Surat Tugas ST-001/A.2.3/ST.IKOM/UNIKA/XII/2025 menunggu persetujuan Anda.', 0, '2025-12-16 18:59:26', '2025-12-16 18:59:26', '2025-12-16 18:59:26', NULL),
+(57, 1, 'surat_tugas', 1, 'Surat Tugas ST-001/A.2.3/ST.IKOM/UNIKA/XII/2025 telah disetujui.', 0, '2025-12-16 18:59:46', '2025-12-16 18:59:46', '2025-12-16 18:59:46', NULL),
+(58, 5, 'surat_tugas', 1, 'Anda menerima Surat Tugas baru: ST-001/A.2.3/ST.IKOM/UNIKA/XII/2025', 0, '2025-12-16 18:59:46', '2025-12-16 18:59:46', '2025-12-16 18:59:46', NULL),
+(59, 6, 'surat_tugas', 1, 'Anda menerima Surat Tugas baru: ST-001/A.2.3/ST.IKOM/UNIKA/XII/2025', 0, '2025-12-16 18:59:46', '2025-12-16 18:59:46', '2025-12-16 18:59:46', NULL);
 
 -- --------------------------------------------------------
 
@@ -794,16 +845,16 @@ CREATE TABLE `pengguna` (
 --
 
 INSERT INTO `pengguna` (`id`, `email`, `sandi_hash`, `nama_lengkap`, `npp`, `jabatan`, `peran_id`, `status`, `created_at`, `updated_at`, `last_activity`, `deleted_at`, `remember_token`) VALUES
-(1, 'agustina.anggitasari@unika.ac.id', '$2y$12$0rYDf0RqcBpaABHw3vaOxe3LV6UxLazy9R85vBmmwA8juagm6Xadq', 'AGUSTINA ALAM ANGGITASARI, SE., MM', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-12-15 16:12:41', '2025-12-15 23:12:41', NULL, 'sbEYBG4PeSodZYfUNogTLAbDCDFhIg0Do5vcMY12THlSasb5ILeFE50gH9hi'),
+(1, 'agustina.anggitasari@unika.ac.id', '$2y$12$0rYDf0RqcBpaABHw3vaOxe3LV6UxLazy9R85vBmmwA8juagm6Xadq', 'AGUSTINA ALAM ANGGITASARI, SE., MM', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-12-19 10:23:01', '2025-12-19 17:23:01', NULL, 'YBGXFkXLEi4SGwmPxo68Tp70m8n1f0QDXZKrN5Ro2BPy7jGXLTw4aSLsx5b5'),
 (2, 'kariyani.spd@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'KARIYANI, S.Pd', NULL, 'Ka. TU Fakultas Ilmu Komputer', 1, 'aktif', '2025-04-22 03:15:27', '2025-11-19 12:44:49', '2025-11-19 19:44:49', NULL, NULL),
-(3, 'bernhardinus.harnadi@unika.ac.id', '$2y$12$rr.ntE7OagwdG25kLxSLwOnZwIaq72oImrbM8jXOkn6AEM62QRIY2', 'Prof. BERNARDINUS HARNADI, ST., MT., Ph.D.', NULL, NULL, 3, 'aktif', '2025-04-22 03:15:27', '2025-10-19 15:35:04', '2025-10-19 22:35:04', NULL, NULL),
+(3, 'bernhardinus.harnadi@unika.ac.id', '$2y$12$rr.ntE7OagwdG25kLxSLwOnZwIaq72oImrbM8jXOkn6AEM62QRIY2', 'Prof. BERNARDINUS HARNADI, ST., MT., Ph.D.', NULL, NULL, 3, 'aktif', '2025-04-22 03:15:27', '2025-12-16 18:51:21', '2025-12-17 01:51:21', NULL, NULL),
 (4, 'muh.khudori@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'MUH KHUDORI', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:31', NULL, NULL, NULL),
 (5, 'paulus.sapto@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'PAULUS SAPTO NUGROHO', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:36', NULL, NULL, NULL),
 (6, 'bambang.setiawan@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'BAMBANG SETIAWAN, ST', NULL, NULL, 6, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:39', NULL, NULL, NULL),
 (7, 'erdhi.nugroho@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'ERDHI WIDYARTO NUGROHO, ST., MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:43', NULL, NULL, NULL),
 (8, 'fx.hendra@unika.ac.id', '$2y$12$yzabxjVXeAkmIgQmvCQBuOwjSU1cUnGqowliut934gE1bnbNMZ9M.', 'FX. HENDRA PRASETYA, ST, MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-10-11 17:50:27', '2025-10-12 00:50:27', NULL, NULL),
 (9, 'tecla.chandrawati@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'Dr. TECLA BRENDA CHANDRAWATI, S.T., MT', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:39:51', NULL, NULL, NULL),
-(10, 'ridwan.sanjaya@unika.ac.id', '$2y$12$VRlxXvgiT0gdC3mVx0vp6Oct3Q/VPnmvACYjDz3n.DKotAIkG1QrS', 'Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC', '058.1.2002.255', 'Dekan Fakultas Ilmu Komputer', 2, 'aktif', '2025-04-22 03:15:27', '2025-12-15 16:08:54', '2025-12-15 23:08:54', NULL, NULL),
+(10, 'ridwan.sanjaya@unika.ac.id', '$2y$12$VRlxXvgiT0gdC3mVx0vp6Oct3Q/VPnmvACYjDz3n.DKotAIkG1QrS', 'Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC', '058.1.2002.255', 'Dekan Fakultas Ilmu Komputer', 2, 'aktif', '2025-04-22 03:15:27', '2025-12-16 18:52:23', '2025-12-17 01:52:23', NULL, NULL),
 (11, 'alb.dwiw@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'ALBERTUS DWIYOGA WIDIANTORO, S.Kom., M.Kom', NULL, NULL, 4, 'aktif', '2025-04-22 03:15:27', NULL, NULL, NULL, NULL),
 (12, 'agus.cahyo@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'AGUS CAHYO NUGROHO, S.Kom., M.T', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:40:02', NULL, NULL, NULL),
 (13, 'andre.pamudji@unika.ac.id', '$2b$12$1Ps4Q4F7MLPQgfa86NQIGOuHy7pjiFiLZA.4Bp3qUhPYTfOvwpUfS', 'ANDRE KURNIAWAN PAMUDJI, S.Kom., M.Ling', NULL, NULL, 5, 'aktif', '2025-04-22 03:15:27', '2025-08-02 16:40:10', NULL, NULL, NULL),
@@ -884,7 +935,8 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('0UJcDasOVyZ4Wj45hnMTd11eQjpdcbktt16XV5I2', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', 'YToxMjp7czo2OiJfdG9rZW4iO3M6NDA6InhCNFZrOG9lVjBFM3pDNDZjRWVHTGJ1QWpMTU0zQVo1cGk5SzY3M0YiO3M6NjoiX2ZsYXNoIjthOjI6e3M6MzoibmV3IjthOjA6e31zOjM6Im9sZCI7YTowOnt9fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjQwOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvc3VyYXRfdHVnYXMvY3JlYXRlIjt9czozOiJ1cmwiO2E6MDp7fXM6NTA6ImxvZ2luX3dlYl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjE7czo4OiJwZXJhbl9pZCI7aToxO3M6MTA6InBlcmFuX25hbWEiO3M6ODoiYWRtaW5fdHUiO3M6ODoiaXNfYWRtaW4iO2I6MTtzOjg6ImlzX2Rvc2VuIjtiOjA7czoxMzoibGFzdF9hY3Rpdml0eSI7TzoyNToiSWxsdW1pbmF0ZVxTdXBwb3J0XENhcmJvbiI6Mzp7czo0OiJkYXRlIjtzOjI2OiIyMDI1LTEyLTE2IDAwOjQ5OjA2Ljg4MzM1NiI7czoxMzoidGltZXpvbmVfdHlwZSI7aTozO3M6ODoidGltZXpvbmUiO3M6MTI6IkFzaWEvSmFrYXJ0YSI7fXM6OToidXNlcl9uYW1lIjtzOjM0OiJBR1VTVElOQSBBTEFNIEFOR0dJVEFTQVJJLCBTRS4sIE1NIjtzOjE0OiJsYXN0X2RiX3VwZGF0ZSI7TzoyNToiSWxsdW1pbmF0ZVxTdXBwb3J0XENhcmJvbiI6Mzp7czo0OiJkYXRlIjtzOjI2OiIyMDI1LTEyLTE1IDIzOjEyOjQxLjM0NzYwNSI7czoxMzoidGltZXpvbmVfdHlwZSI7aTozO3M6ODoidGltZXpvbmUiO3M6MTI6IkFzaWEvSmFrYXJ0YSI7fX0=', 1765820946);
+('bQGpyvdFEIcroqiKw4TE3XgudkHhodyULKcMCm8Z', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', 'YToxMjp7czo2OiJfdG9rZW4iO3M6NDA6IkdodFlHZjFlVkh0RjJzZkVPbm53dUNYVkluOHdZalFJdEVuM09NUEIiO3M6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjQyOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvcGVuZ2F0dXJhbi9rb3Atc3VyYXQiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX1zOjM6InVybCI7YTowOnt9czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTtzOjg6InBlcmFuX2lkIjtpOjE7czoxMDoicGVyYW5fbmFtYSI7czo4OiJhZG1pbl90dSI7czo4OiJpc19hZG1pbiI7YjoxO3M6ODoiaXNfZG9zZW4iO2I6MDtzOjEzOiJsYXN0X2FjdGl2aXR5IjtPOjI1OiJJbGx1bWluYXRlXFN1cHBvcnRcQ2FyYm9uIjozOntzOjQ6ImRhdGUiO3M6MjY6IjIwMjUtMTItMTkgMTc6NDQ6MzEuMTM3MjQxIjtzOjEzOiJ0aW1lem9uZV90eXBlIjtpOjM7czo4OiJ0aW1lem9uZSI7czoxMjoiQXNpYS9KYWthcnRhIjt9czo5OiJ1c2VyX25hbWUiO3M6MzQ6IkFHVVNUSU5BIEFMQU0gQU5HR0lUQVNBUkksIFNFLiwgTU0iO3M6MTQ6Imxhc3RfZGJfdXBkYXRlIjtPOjI1OiJJbGx1bWluYXRlXFN1cHBvcnRcQ2FyYm9uIjozOntzOjQ6ImRhdGUiO3M6MjY6IjIwMjUtMTItMTkgMTc6MjM6MDEuNDE0MDgwIjtzOjEzOiJ0aW1lem9uZV90eXBlIjtpOjM7czo4OiJ0aW1lem9uZSI7czoxMjoiQXNpYS9KYWthcnRhIjt9fQ==', 1766141071),
+('oqxohwZBE0L22RWchxjJsg0sXCkQwzjs0qlwRpYR', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoiaGZzRnpQS0FEMHZMVXZmV3B6M1JPNVdUdWNlT1lHcENjVkl2UzAwUCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjc6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9sb2dpbiI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fXM6MzoidXJsIjthOjE6e3M6ODoiaW50ZW5kZWQiO3M6MjY6Imh0dHA6Ly8xMjcuMC4wLjE6ODAwMC9ob21lIjt9fQ==', 1766139077);
 
 -- --------------------------------------------------------
 
@@ -1126,9 +1178,9 @@ CREATE TABLE `tugas_header` (
 --
 
 INSERT INTO `tugas_header` (`id`, `nomor`, `suffix`, `parent_tugas_id`, `nomor_urut_int`, `tanggal_asli`, `status_surat`, `nomor_surat`, `tanggal_surat`, `submitted_at`, `signed_at`, `dibuat_oleh`, `dibuat_pada`, `dikunci_pada`, `file_path`, `signed_pdf_path`, `nomor_status`, `no_bin`, `tahun`, `semester`, `no_surat_manual`, `nama_umum`, `asal_surat`, `status_penerima`, `jenis_tugas`, `tugas`, `detail_tugas`, `detail_tugas_id`, `waktu_mulai`, `waktu_selesai`, `tempat`, `redaksi_pembuka`, `penutup`, `tembusan`, `penandatangan`, `ttd_config`, `cap_config`, `ttd_w_mm`, `cap_w_mm`, `cap_opacity`, `next_approver`, `created_at`, `updated_at`, `kode_surat`, `bulan`, `klasifikasi_surat_id`, `deleted_at`) VALUES
-(1, 'ST-001/UNIKA/2025', NULL, NULL, NULL, '2025-05-01 00:00:00', 'draft', NULL, NULL, NULL, NULL, 1, '2025-06-01 22:53:10', NULL, NULL, NULL, 'reserved', NULL, 2025, 'Genap', NULL, 'Surat Tugas Kegiatan 1', 1, 'dosen', 'Seminar', '', NULL, 16, '2025-05-10 00:00:00', '2025-05-12 00:00:00', 'Aula UNIKA', NULL, 'Demikian, terima kasih.', NULL, 4, NULL, NULL, NULL, NULL, NULL, 3, '2025-06-01 22:53:10', '2025-06-01 22:53:10', NULL, NULL, NULL, NULL),
+(1, 'ST-001/A.2.3/ST.IKOM/UNIKA/XII/2025', NULL, NULL, NULL, '2025-05-01 00:00:00', 'disetujui', NULL, '2025-12-17', '2025-12-17 01:59:26', '2025-12-16 18:59:46', 1, '2025-06-01 22:53:10', '2025-12-16 18:59:46', NULL, 'private/surat_tugas/signed/1_ST-001A23STIKOMUNIKAXII2025_67c01b71de80befcbf4b8efccfd54bc3.pdf', 'locked', NULL, 2025, 'Genap', NULL, 'Surat Tugas Kegiatan 1', 1, 'dosen', 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', NULL, 16, '2025-05-10 00:00:00', '2025-05-12 00:00:00', 'Aula UNIKA', NULL, 'Demikian, terima kasih.', NULL, 10, '{\"x\": \"7\", \"y\": \"13\", \"w_mm\": \"84\"}', '{\"x\": \"-27\", \"y\": \"4\", \"w_mm\": \"35\"}', 84, 35, 0.95, NULL, '2025-06-01 22:53:10', '2025-12-16 18:59:47', NULL, 'XII', 112, NULL),
 (2, 'ST-002/UNIKA/2025', NULL, NULL, NULL, '2025-06-01 00:00:00', 'disetujui', '002/UNIKA/2025', '2025-06-01', '2025-06-02 05:53:10', NULL, 2, '2025-06-01 22:53:10', '2025-06-01 22:53:10', NULL, NULL, 'locked', NULL, 2025, 'Genap', NULL, 'Surat Tugas Kegiatan 2', 2, 'tendik', 'Pelatihan', '', NULL, 16, '2025-06-10 00:00:00', '2025-06-12 00:00:00', 'Ruang Rapat', NULL, 'Harap dilaksanakan sebaik-baiknya.', NULL, 3, NULL, NULL, NULL, NULL, NULL, 4, '2025-06-01 22:53:10', '2025-06-01 22:53:10', NULL, NULL, NULL, NULL),
-(4, '002/A.1.3/TG/UNIKA/2025/2025', NULL, NULL, NULL, '2025-07-31 00:00:00', 'draft', NULL, NULL, NULL, NULL, 1, '2025-07-31 11:08:30', NULL, NULL, NULL, 'reserved', NULL, 2025, 'Genap', NULL, 'awdwdwadw', 10, NULL, 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', NULL, 16, '2025-07-31 00:00:00', '2025-07-31 00:00:00', 'Jogja', 'Test', NULL, '\"\"', 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-07-31 04:08:30', '2025-10-12 06:47:29', NULL, '2025', 106, NULL),
+(4, '001/A.1.3/TG/UNIKA/I/2025', NULL, NULL, NULL, '2025-07-31 00:00:00', 'disetujui', NULL, '2025-12-17', '2025-12-17 01:52:14', '2025-12-16 18:52:40', 1, '2025-07-31 11:08:30', '2025-12-16 18:52:40', NULL, 'private/surat_tugas/signed/4_001A13TGUNIKAI2025_7a33f03f619d6335d66e4f075391b2e9.pdf', 'locked', NULL, 2025, 'Genap', NULL, 'awdwdwadw', 10, NULL, 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', NULL, 16, '2025-07-31 00:00:00', '2025-07-31 00:00:00', 'Jogja', 'Test', NULL, '\"\"', 10, '{\"x\": \"-13\", \"y\": \"14\", \"w_mm\": \"103\"}', '{\"x\": \"-29\", \"y\": \"5\", \"w_mm\": \"35\"}', 0, 0, 1.00, NULL, '2025-07-31 04:08:30', '2025-12-16 18:52:41', NULL, 'I', 106, NULL),
 (5, '003/TG/UNIKA/II/2025', NULL, NULL, NULL, '2025-07-31 00:00:00', 'pending', NULL, NULL, '2025-07-31 14:49:20', NULL, 1, '2025-07-31 11:44:02', NULL, NULL, NULL, 'reserved', 'FIKOM/006', 2025, 'Genap', NULL, 'Surat Tugas Kegiatan 3', 4, 'dosen', 'Seminar', '', NULL, 16, '2025-07-31 00:00:00', '2025-07-31 00:00:00', 'Aula UNIKA', NULL, NULL, NULL, 4, NULL, NULL, NULL, NULL, NULL, 4, '2025-07-31 04:44:02', '2025-07-31 07:49:20', NULL, NULL, NULL, NULL),
 (6, '001/TG/UNIKA/I/2025', NULL, NULL, NULL, '2025-08-01 09:30:10', 'disetujui', NULL, '2025-09-04', '2025-08-01 09:30:10', '2025-09-04 00:20:32', 1, '2025-08-01 09:30:10', NULL, NULL, 'private/surat_tugas/signed/6.pdf', 'reserved', NULL, 2025, 'Ganjil', NULL, NULL, 10, 'dosen', 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', NULL, 16, '2025-08-01 09:29:00', '2025-08-01 11:29:00', NULL, NULL, NULL, NULL, 10, '{\"path\": \"private/ttd/10.png\", \"show\": true, \"offset_x\": -38, \"offset_y\": 72, \"width_mm\": 51, \"height_mm\": 22}', '{\"path\": \"kop/mOKxKWXWoH3XMn44zcgyiUpfCBWnoSnxmOa1rcij.png\", \"show\": true, \"opacity\": 85, \"offset_x\": 2, \"offset_y\": 70, \"width_mm\": 30}', NULL, NULL, NULL, 10, '2025-08-01 02:30:10', '2025-09-04 00:20:35', NULL, NULL, NULL, NULL),
 (7, '006/B.3.5/TG/UNIKA/VIII/2025', NULL, NULL, NULL, '2025-08-02 17:30:55', 'disetujui', NULL, '2025-08-01', '2025-09-14 13:55:01', '2025-09-14 07:08:54', 1, '2025-08-02 17:30:55', NULL, NULL, 'private/surat_tugas/signed/7.pdf', 'reserved', NULL, 2025, 'Ganjil', NULL, 'Bimbingan', 10, 'dosen', 'Bimbingan', 'Bimbingan Mahasiswa/Akademik', '<p><strong>Keren</strong></p>', 16, '2025-08-02 17:29:00', '2025-08-02 19:29:00', 'HC Lt 8', 'Test', NULL, NULL, 10, '{\"path\": \"private/ttd/10.png\", \"show\": true, \"offset_x\": 118, \"offset_y\": 17, \"width_mm\": 35, \"height_mm\": 15, \"base_top_mm\": 20, \"base_left_mm\": 15}', '{\"path\": \"kop/mOKxKWXWoH3XMn44zcgyiUpfCBWnoSnxmOa1rcij.png\", \"show\": true, \"opacity\": 85, \"offset_x\": 102, \"offset_y\": 14, \"width_mm\": 30, \"base_top_mm\": 15, \"base_left_mm\": 35}', NULL, NULL, NULL, 10, '2025-08-02 10:30:55', '2025-09-14 07:08:56', NULL, 'VIII', 30, NULL),
@@ -1147,7 +1199,15 @@ INSERT INTO `tugas_header` (`id`, `nomor`, `suffix`, `parent_tugas_id`, `nomor_u
 (20, '002/A.1.5/TG/UNIKA/X/2025', NULL, NULL, NULL, NULL, 'disetujui', NULL, '2025-10-19', NULL, '2025-10-19 09:51:09', 1, '2025-10-12 05:30:34', '2025-10-19 09:51:09', NULL, 'private/surat_tugas/signed/20_002A15TGUNIKAX2025_f34cfe17cbdc7f739c173394e44905c1.pdf', 'locked', NULL, 2025, 'Ganjil', NULL, 'Bimbingan wadWdawd', 3, NULL, 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', '<p>awdasdwsdwd</p>', 1, '2025-10-12 12:29:00', '2025-10-12 14:29:00', 'Ruang HC', 'Tesad', 'tfawadas', '\"Yth. Rektor\"', 3, NULL, NULL, 42, 35, 0.95, NULL, '2025-10-12 05:30:34', '2025-10-19 09:51:10', NULL, 'X', 108, NULL),
 (21, '004/A.1.5/TG/UNIKA/X/2025', NULL, NULL, NULL, NULL, 'disetujui', NULL, '2025-10-12', '2025-10-13 00:18:39', '2025-10-19 09:50:51', 1, '2025-10-12 06:49:25', '2025-10-19 09:50:51', NULL, NULL, 'locked', NULL, 2025, 'Ganjil', NULL, 'Penugasan Draft Panitia Acara Dies Natalis 26', 3, NULL, 'Penunjang Almamater', 'Panitia Kegiatan Fakultas/Prodi', '<p>Test</p>', 103, '2025-10-12 13:48:00', '2025-10-12 15:48:00', 'Ruang HC', 'Test', 'Test', '\"Yth. Rektor\"', 3, NULL, NULL, 42, 35, 0.95, NULL, '2025-10-12 06:49:25', '2025-10-19 09:50:51', NULL, 'X', 108, NULL),
 (22, '009/A.1.1/TG/UNIKA/X/2025', NULL, NULL, NULL, NULL, 'disetujui', NULL, '2025-10-19', '2025-10-19 16:05:34', '2025-10-19 09:25:04', 1, '2025-10-19 09:05:34', '2025-10-19 09:25:04', NULL, 'private/surat_tugas/signed/22_009A11TGUNIKAX2025_aabc8de149ff61a8c585e5bb9f7675a2.pdf', 'locked', NULL, 2025, 'Ganjil', NULL, 'Surat Tugas Pelatihan Mahasiswa Tahun 2026', 10, NULL, 'Lainnya', 'Tugas Khusus Pimpinan', NULL, 116, '2025-10-19 16:04:00', '2025-10-19 18:04:00', 'Ruang Theater Albertus', 'Test 1', 'Test', 'Yth. Rektor', 10, NULL, NULL, 42, 35, 0.95, NULL, '2025-10-19 09:05:34', '2025-10-19 09:25:08', NULL, 'X', 104, NULL),
-(25, '004/A.1.1/ST.IKOM/UNIKA/XII/2025', NULL, NULL, NULL, NULL, 'draft', NULL, '2025-12-06', NULL, NULL, 1, '2025-12-06 06:58:56', NULL, NULL, NULL, 'reserved', NULL, 2025, 'Ganjil', NULL, 'wadawdaw3232', 10, NULL, 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', 'dwdwd', 1, '2025-12-06 13:58:00', '2025-12-06 15:58:00', 'dwdwdw', 'dwdw', 'dwdw', 'Yth. Kepala Program Studi Sistem Informasi', 10, NULL, NULL, NULL, NULL, NULL, NULL, '2025-12-06 06:58:56', '2025-12-06 07:59:37', NULL, 'XII', 104, NULL);
+(25, '001/A.1.1/TG/UNIKA/XII/2025', NULL, NULL, NULL, NULL, 'disetujui', NULL, '2025-12-06', '2025-12-16 12:58:40', '2025-12-16 18:50:11', 1, '2025-12-06 06:58:56', '2025-12-16 18:50:11', NULL, 'private/surat_tugas/signed/25_001A11TGUNIKAXII2025_5bd1443284d94fab0df9d17525cbedaf.pdf', 'locked', NULL, 2025, 'Ganjil', NULL, 'wadawdaw3232', 10, NULL, 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', 'dwdwd', 1, '2025-12-06 13:58:00', '2025-12-06 15:58:00', 'dwdwdw', 'dwdw', 'dwdw', 'Yth. Kepala Program Studi Sistem Informasi', 10, '{\"x\": \"-29\", \"y\": \"15\", \"w_mm\": \"63\"}', '{\"x\": \"-13\", \"y\": \"5\", \"w_mm\": \"35\"}', 0, 0, 1.00, NULL, '2025-12-06 06:58:56', '2025-12-16 18:50:12', NULL, 'XII', 104, NULL),
+(26, '001/B.1.1/TG/UNIKA/XII/2025', NULL, NULL, NULL, NULL, 'disetujui', NULL, '2025-12-16', '2025-12-16 12:23:47', '2025-12-16 17:59:13', 1, '2025-12-16 04:58:34', '2025-12-16 17:59:13', NULL, 'private/surat_tugas/signed/26_001B11TGUNIKAXII2025_f97d0955b2035e76ce6b36388b47e44f.pdf', 'locked', NULL, 2025, 'Ganjil', NULL, 'Testingggg ke 16', 10, NULL, 'Penunjang Almamater', 'Panitia Kegiatan Fakultas/Prodi', 'Dalam rangka peningkatan kompetensi dosen, dengan ini ditugaskan kepada yang bersangkutan untuk mengikuti:Nama Pelatihan: {{nama_pelatihan}}Penyelenggara: {{penyelenggara}}Tanggal: {{tanggal_mulai}} s.d. {{tanggal_selesai}}Lokasi: {{lokasi_pelatihan}}Yang bersangkutan berkewajiban untuk:Mengikuti seluruh rangkaian kegiatan pelatihanMenyerahkan sertifikat/bukti kehadiranMembuat laporan hasil pelatihan', 103, '2025-12-16 11:57:00', '2025-12-16 13:57:00', 'Ruang HC', 'Testinggg', 'Testtinggg', 'Yth. Wakil Rektor I\nYth. Kepala Program Studi\nUnit Kepegawaian\nArsip', 10, '{\"x\": \"-23\", \"y\": \"17\"}', '{\"x\": \"-12\", \"y\": \"0\"}', 0, 0, 1.00, NULL, '2025-12-16 04:58:34', '2025-12-16 17:59:14', NULL, 'XII', 3, NULL),
+(27, '001/A.1.1/ST.IKOM/UNIKA/XII/2025', NULL, NULL, NULL, NULL, 'disetujui', NULL, '2025-12-16', '2025-12-16 22:20:36', '2025-12-16 17:39:23', 1, '2025-12-16 15:20:36', '2025-12-16 17:39:23', NULL, 'private/surat_tugas/signed/27_001A11STIKOMUNIKAXII2025_a9fb1ab30c8c60b95d5e3e2f7304c20e.pdf', 'locked', NULL, 2025, 'Ganjil', NULL, 'wadawdaw3232', 10, NULL, 'Bimbingan', 'Koordinator kelompok MK/Rumpun/Konsorsium', NULL, 1, '2025-12-06 13:58:00', '2025-12-06 15:58:00', 'dwdwdw', 'dwdw', 'dwdw', 'Yth. Kepala Program Studi Sistem Informasi', 10, '{\"x\": \"5\", \"y\": \"17\"}', '{\"x\": \"-27\", \"y\": \"5\"}', 0, 0, 1.00, NULL, '2025-12-16 15:20:36', '2025-12-16 17:39:29', NULL, 'XII', 104, NULL),
+(28, '001A/B.1.1/TG/UNIKA/XII/2025', 'A', 26, 1, NULL, 'disetujui', NULL, '2025-12-16', '2025-12-16 22:45:05', '2025-12-16 16:12:35', 1, '2025-12-16 15:45:05', '2025-12-16 16:12:35', NULL, 'private/surat_tugas/signed/28_001AB11TGUNIKAXII2025_19a6d23c5eea404fc6085bde47841dc4.pdf', 'locked', NULL, 2025, 'Ganjil', NULL, 'Testingggg ke 16', 10, NULL, 'Penunjang Almamater', 'Panitia Kegiatan Fakultas/Prodi', NULL, 103, '2025-12-16 11:57:00', '2025-12-16 13:57:00', 'Ruang HC', 'Testinggg', 'Testtinggg', 'Yth. Wakil Rektor Iyth. Kepala Program Studiunit Kepegawaianarsip', 10, NULL, NULL, 42, 35, 0.95, NULL, '2025-12-16 15:45:05', '2025-12-16 16:12:39', NULL, 'XII', 3, NULL),
+(29, 'DRAFT-6941a8acf1309', NULL, NULL, NULL, '2025-12-10 01:45:00', 'draft', NULL, '2025-12-10', NULL, NULL, 1, '2025-12-16 18:45:00', NULL, NULL, NULL, 'reserved', NULL, 2025, 'Ganjil', NULL, 'PJ Laksmiwati (Persero) Tbk', 1, 'dosen', 'Pengabdian', 'Quidem illum est debitis eum quaerat.', NULL, 1, '2025-12-10 09:00:00', '2025-12-10 12:00:00', 'Tegal', NULL, NULL, NULL, 20, NULL, NULL, NULL, NULL, NULL, NULL, '2025-12-16 18:45:00', '2025-12-16 18:45:00', NULL, '12', 112, NULL),
+(30, 'ST-DUMMY-002/FIKOM/2025', NULL, NULL, NULL, '2025-11-20 01:45:01', 'pending', NULL, '2025-11-20', NULL, NULL, 1, '2025-12-16 18:45:01', NULL, NULL, NULL, 'reserved', NULL, 2025, 'Ganjil', NULL, 'UD Yuniar Salahudin', 1, NULL, 'Pengabdian', 'Porro est dolor minima.', NULL, 1, '2025-11-20 09:00:00', '2025-11-20 12:00:00', 'Blitar', NULL, NULL, NULL, 20, NULL, NULL, NULL, NULL, NULL, NULL, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL, '11', 25, NULL),
+(31, 'ST-DUMMY-003/FIKOM/2025', NULL, NULL, NULL, '2025-12-08 01:45:01', 'disetujui', NULL, '2025-12-08', NULL, '2025-12-08 18:45:01', 1, '2025-12-16 18:45:01', NULL, NULL, NULL, 'reserved', NULL, 2025, 'Ganjil', NULL, 'Fa Prastuti (Persero) Tbk', 1, 'dosen', 'Penelitian', 'Harum aperiam rem quibusdam.', NULL, 1, '2025-12-08 09:00:00', '2025-12-08 12:00:00', 'Denpasar', NULL, NULL, NULL, 20, NULL, NULL, NULL, NULL, NULL, NULL, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL, '12', 68, NULL),
+(32, 'ST-DUMMY-004/FIKOM/2025', NULL, NULL, NULL, '2025-11-17 01:45:01', 'disetujui', NULL, '2025-11-17', NULL, '2025-11-17 18:45:01', 1, '2025-12-16 18:45:01', NULL, NULL, NULL, 'reserved', NULL, 2025, 'Ganjil', NULL, 'Yayasan Salahudin Kusumo', 1, NULL, 'Penelitian', 'Totam delectus quia rem expedita.', NULL, 1, '2025-11-17 09:00:00', '2025-11-17 12:00:00', 'Cirebon', NULL, NULL, NULL, 20, NULL, NULL, NULL, NULL, NULL, NULL, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL, '11', 121, NULL),
+(33, 'ST-DUMMY-005/FIKOM/2025', NULL, NULL, NULL, '2025-11-24 01:45:01', 'disetujui', NULL, '2025-11-24', NULL, '2025-11-24 18:45:01', 1, '2025-12-16 18:45:01', NULL, NULL, NULL, 'reserved', NULL, 2025, 'Ganjil', NULL, 'PJ Pudjiastuti Maryati Tbk', 1, 'dosen', 'Pengabdian', 'Quidem fugiat ut in.', NULL, 1, '2025-11-24 09:00:00', '2025-11-24 12:00:00', 'Sungai Penuh', NULL, NULL, NULL, 20, NULL, NULL, NULL, NULL, NULL, NULL, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL, '11', 44, NULL);
 
 -- --------------------------------------------------------
 
@@ -1186,7 +1246,20 @@ INSERT INTO `tugas_log` (`id`, `tugas_id`, `status_lama`, `status_baru`, `user_i
 (26, 18, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-04 16:33:57', NULL),
 (27, 25, NULL, 'draft', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-06 06:58:56', NULL),
 (28, 15, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-06 14:48:25', NULL),
-(29, 13, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-06 14:48:54', NULL);
+(29, 13, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-06 14:48:54', NULL),
+(30, 26, NULL, 'draft', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 04:58:34', NULL),
+(31, 26, 'draft', 'pending', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 05:23:49', NULL),
+(32, 25, 'draft', 'pending', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 05:58:40', NULL),
+(33, 27, NULL, 'pending', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 15:20:36', NULL),
+(34, 28, NULL, 'pending', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 15:45:05', NULL),
+(35, 28, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 16:12:36', NULL),
+(36, 27, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 17:39:25', NULL),
+(37, 26, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '2025-12-16 17:59:13', NULL),
+(38, 25, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '2025-12-16 18:50:11', NULL),
+(39, 4, 'draft', 'pending', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 18:52:14', NULL),
+(40, 4, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '2025-12-16 18:52:40', NULL),
+(41, 1, 'draft', 'pending', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/124.0.0.0', '2025-12-16 18:59:26', NULL),
+(42, 1, 'pending', 'disetujui', 10, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', '2025-12-16 18:59:46', NULL);
 
 -- --------------------------------------------------------
 
@@ -1232,8 +1305,8 @@ CREATE TABLE `tugas_penerima` (
 --
 
 INSERT INTO `tugas_penerima` (`id`, `tugas_id`, `pengguna_id`, `nama_penerima`, `jabatan_penerima`, `instansi`, `penerima_key`, `dibaca`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 5, '', NULL, NULL, 'I#5', 0, '2025-12-06 06:53:27', '2025-12-06 06:53:27', NULL),
-(2, 1, 6, '', NULL, NULL, 'I#6', 0, '2025-12-06 06:53:27', '2025-12-06 06:53:27', NULL),
+(1, 1, 5, '', NULL, NULL, 'I#5', 0, '2025-12-06 06:53:27', '2025-12-16 18:59:26', '2025-12-16 18:59:26'),
+(2, 1, 6, '', NULL, NULL, 'I#6', 0, '2025-12-06 06:53:27', '2025-12-16 18:59:26', '2025-12-16 18:59:26'),
 (3, 2, 5, '', NULL, NULL, 'I#5', 1, '2025-12-06 06:53:27', '2025-12-06 06:53:27', NULL),
 (4, 2, 4, '', NULL, NULL, 'I#4', 1, '2025-12-06 06:53:27', '2025-12-06 06:53:27', NULL),
 (9, 5, 6, '', NULL, NULL, 'I#6', 0, '2025-12-06 06:53:27', '2025-12-06 06:53:27', NULL),
@@ -1279,7 +1352,20 @@ INSERT INTO `tugas_penerima` (`id`, `tugas_id`, `pengguna_id`, `nama_penerima`, 
 (123, 16, 7, '', NULL, NULL, 'I#7', 0, '2025-12-06 06:53:27', '2025-12-06 06:53:27', NULL),
 (124, 25, 7, '', NULL, NULL, 'I#7', 0, '2025-12-06 06:58:56', '2025-12-06 07:59:37', '2025-12-06 07:59:37'),
 (125, 25, 7, '', NULL, NULL, 'I#7', 0, '2025-12-06 07:59:37', '2025-12-06 07:59:43', '2025-12-06 07:59:43'),
-(126, 25, 7, '', NULL, NULL, 'I#7', 0, '2025-12-06 07:59:43', '2025-12-06 07:59:43', NULL);
+(126, 25, 7, '', NULL, NULL, 'I#7', 0, '2025-12-06 07:59:43', '2025-12-06 07:59:43', NULL),
+(127, 26, 9, '', NULL, NULL, 'I#9', 0, '2025-12-16 04:58:34', '2025-12-16 04:58:34', NULL),
+(128, 27, 5, '', NULL, NULL, 'I#5', 0, '2025-12-16 15:20:36', '2025-12-16 15:20:36', NULL),
+(129, 28, 9, '', NULL, NULL, 'I#9', 0, '2025-12-16 15:45:05', '2025-12-16 15:45:05', NULL),
+(130, 29, 3, '', NULL, NULL, 'I#3', 0, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL),
+(131, 29, 11, '', NULL, NULL, 'I#11', 0, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL),
+(132, 30, 18, '', NULL, NULL, 'I#18', 0, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL),
+(133, 30, 19, '', NULL, NULL, 'I#19', 0, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL),
+(134, 31, 18, '', NULL, NULL, 'I#18', 1, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL),
+(135, 32, 17, '', NULL, NULL, 'I#17', 0, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL),
+(136, 33, 8, '', NULL, NULL, 'I#8', 0, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL),
+(137, 33, 9, '', NULL, NULL, 'I#9', 1, '2025-12-16 18:45:01', '2025-12-16 18:45:01', NULL),
+(138, 1, 5, '', NULL, NULL, 'I#5', 0, '2025-12-16 18:59:26', '2025-12-16 18:59:26', NULL),
+(139, 1, 6, '', NULL, NULL, 'I#6', 0, '2025-12-16 18:59:26', '2025-12-16 18:59:26', NULL);
 
 --
 -- Triggers `tugas_penerima`
@@ -1347,7 +1433,7 @@ CREATE TABLE `user_signatures` (
 --
 
 INSERT INTO `user_signatures` (`id`, `pengguna_id`, `ttd_path`, `default_width_mm`, `default_height_mm`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 10, 'private/ttd/ttd_10_1765815134.png', 35, 15, '2025-09-03 13:32:08', '2025-12-15 16:12:14', NULL),
+(1, 10, 'private/ttd/ttd_10_1765903838.png', 35, 15, '2025-09-03 13:32:08', '2025-12-16 16:50:38', NULL),
 (2, 3, 'private/ttd/3.png', 35, 15, '2025-09-14 01:26:47', '2025-09-14 01:26:47', NULL);
 
 --
@@ -1655,7 +1741,7 @@ ALTER TABLE `user_signatures`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `jenis_tugas`
@@ -1667,7 +1753,7 @@ ALTER TABLE `jenis_tugas`
 -- AUTO_INCREMENT for table `jobs`
 --
 ALTER TABLE `jobs`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `keputusan_attachments`
@@ -1721,7 +1807,7 @@ ALTER TABLE `menimbang_library`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
 
 --
 -- AUTO_INCREMENT for table `nomor_counters`
@@ -1733,7 +1819,7 @@ ALTER TABLE `nomor_counters`
 -- AUTO_INCREMENT for table `nomor_surat_counters`
 --
 ALTER TABLE `nomor_surat_counters`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `notification_preferences`
@@ -1745,7 +1831,7 @@ ALTER TABLE `notification_preferences`
 -- AUTO_INCREMENT for table `notifikasi`
 --
 ALTER TABLE `notifikasi`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
 -- AUTO_INCREMENT for table `pengguna`
@@ -1793,13 +1879,13 @@ ALTER TABLE `tugas_detail`
 -- AUTO_INCREMENT for table `tugas_header`
 --
 ALTER TABLE `tugas_header`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `tugas_log`
 --
 ALTER TABLE `tugas_log`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
 
 --
 -- AUTO_INCREMENT for table `tugas_logs`
@@ -1811,7 +1897,7 @@ ALTER TABLE `tugas_logs`
 -- AUTO_INCREMENT for table `tugas_penerima`
 --
 ALTER TABLE `tugas_penerima`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=127;
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=140;
 
 --
 -- AUTO_INCREMENT for table `user_signatures`

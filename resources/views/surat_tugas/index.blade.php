@@ -402,7 +402,7 @@
                                 <th>Pembuat</th>
                                 <th>Penerima</th>
                                 <th>Status</th>
-                                <th>Berkas</th>
+
                                 <th style="width:80px">Aksi</th>
                             </tr>
                         </thead>
@@ -416,13 +416,6 @@
                                     @php $tgl = $h->tanggal_surat; @endphp
                                     <td class="text-center" data-sort="{{ $tgl ? $tgl->timestamp : 0 }}">
                                         {{ $tgl ? $tgl->format('d M Y') : '-' }}
-                                        @if ($tgl)
-                                            <br>
-                                            <small class="text-muted">
-                                                <i class="far fa-clock"></i>
-                                                {{ $tgl->diffForHumans() }}
-                                            </small>
-                                        @endif
                                     </td>
 
                                     <td>{{ $h->pembuat?->nama_lengkap ?? 'N/A' }}</td>
@@ -458,18 +451,7 @@
                                         </span>
                                     </td>
 
-                                    <td class="text-center">
-                                        @if ($h->status_surat == 'disetujui' && $h->signed_pdf_path)
-                                            <a href="{{ route('surat_tugas.downloadPdf', $h->id) }}"
-                                               class="btn btn-sm btn-danger"
-                                               title="Download PDF"
-                                               target="_blank">
-                                                <i class="fas fa-file-pdf"></i>
-                                            </a>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
+
 
                                     {{-- ✅ DROPDOWN WITH COLORED ACTIONS --}}
                                     <td class="text-center">
@@ -606,7 +588,7 @@
         'statusHeaderText'  => 'status',
 
         // non-orderable: Berkas & Aksi
-        'nonOrderableHeaders' => ['Berkas', 'Aksi'],
+        'nonOrderableHeaders' => ['Aksi'],
 
         // fitur
         'enableQuickView' => true,

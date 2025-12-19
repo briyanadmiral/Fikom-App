@@ -21,6 +21,11 @@
   'ttdW'        => $ttdW,
   'capW'        => $capW,
   'capOpacity'  => $capOpacity,
+  // Offsets
+  'ttdX' => $ttdX ?? null,
+  'ttdY' => $ttdY ?? null,
+  'capX' => $capX ?? null,
+  'capY' => $capY ?? null,
 
   'ttdImageB64' => $ttdImageB64,
   'capImageB64' => $capImageB64,

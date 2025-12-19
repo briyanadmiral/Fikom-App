@@ -11,6 +11,7 @@ use App\Services\SuratTugasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class TugasController extends Controller
@@ -282,13 +283,15 @@ class TugasController extends Controller
         // ✅ PHASE 1: Load active templates for template selector
         $templates = \App\Models\SuratTemplate::active()->with('jenisTugas')->orderBy('nama')->get();
         
-        // ✅ NOMOR TURUNAN: Load parentable nomors (approved, no suffix, current year)
-        $parentableNomors = TugasHeader::where('status_surat', 'disetujui')
+        // ✅ NOMOR TURUNAN: Load parentable nomors (pending/approved, no suffix, current year)
+        // Surat Pending & Disetujui boleh jadi parent karena sudah punya nomor tetap
+        // Hanya Draft & Ditolak yang tidak boleh (nomor belum fix/gagal)
+        $parentableNomors = TugasHeader::whereIn('status_surat', ['pending', 'disetujui'])
             ->onlyMainNomor()  // scope: whereNull('suffix')->whereNull('parent_tugas_id')
             ->where('tahun', $tahun)
             ->orderByNomor('desc')
             ->limit(100)
-            ->get(['id', 'nomor', 'nama_umum']);
+            ->get(['id', 'nomor', 'nama_umum', 'status_surat']);
         
         return view('surat_tugas.create', compact('admins', 'pejabat', 'users', 'taskMaster', 'autoNomor', 'tahun', 'semester', 'klasifikasi', 'bulanRomawi', 'tanggalHariIni', 'templates', 'parentableNomors'))->with('tugas', null);
     }
@@ -389,14 +392,26 @@ class TugasController extends Controller
         $ttdWMm = filter_var($request->input('ttd_w_mm'), FILTER_VALIDATE_INT);
         $capWMm = filter_var($request->input('cap_w_mm'), FILTER_VALIDATE_INT);
         $capOpacity = filter_var($request->input('cap_opacity'), FILTER_VALIDATE_FLOAT);
+        // Validasi input offset (bisa negatif)
+        $ttdXMm = filter_var($request->input('ttd_x_mm'), FILTER_VALIDATE_INT);
+        $ttdYMm = filter_var($request->input('ttd_y_mm'), FILTER_VALIDATE_INT);
+        $capXMm = filter_var($request->input('cap_x_mm'), FILTER_VALIDATE_INT);
+        $capYMm = filter_var($request->input('cap_y_mm'), FILTER_VALIDATE_INT);
 
         $assets = $this->getSigningAssets($tugas);
+
+        // Prepare preview settings with overrides
         $preview = [
             'ttd_image_b64' => $assets['ttdImageB64'],
             'cap_image_b64' => $assets['capImageB64'],
             'ttd_w_mm' => $ttdWMm !== false ? $ttdWMm : $assets['ttdW'],
             'cap_w_mm' => $capWMm !== false ? $capWMm : $assets['capW'],
             'cap_opacity' => $capOpacity !== false ? $capOpacity : $assets['capOpacity'],
+            // Offsets
+            'ttd_x_mm' => $ttdXMm !== false ? $ttdXMm : 0,
+            'ttd_y_mm' => $ttdYMm !== false ? $ttdYMm : 0,
+            'cap_x_mm' => $capXMm !== false ? $capXMm : 0,
+            'cap_y_mm' => $capYMm !== false ? $capYMm : 0,
         ];
 
         return view('surat_tugas.partials._approve_preview', [
@@ -411,18 +426,44 @@ class TugasController extends Controller
     {
         $this->authorize('approve', $tugas);
         $validated = $request->validate([
-            'ttd_w_mm' => 'required|integer|min:30|max:60',
-            'cap_w_mm' => 'required|integer|min:25|max:45',
-            'cap_opacity' => 'required|numeric|min:0.7|max:1.0',
+            'ttd_w_mm' => 'required|integer|min:10|max:150',
+            'cap_w_mm' => 'required|integer|min:10|max:100',
+            'cap_opacity' => 'required|numeric|min:0.5|max:1.0',
+            'ttd_x_mm' => 'nullable|integer|min:-100|max:100',
+            'ttd_y_mm' => 'nullable|integer|min:-100|max:100',
+            'cap_x_mm' => 'nullable|integer|min:-100|max:100',
+            'cap_y_mm' => 'nullable|integer|min:-100|max:100',
         ]);
 
         try {
-            $tugas = $this->tugasService->approveTugas($tugas, $validated);
+            // Update config JSON
+            $tugas->ttd_config = [
+                'w_mm' => $validated['ttd_w_mm'],
+                'x' => $validated['ttd_x_mm'] ?? 0,
+                'y' => $validated['ttd_y_mm'] ?? 0,
+            ];
+            $tugas->cap_config = [
+                'w_mm' => $validated['cap_w_mm'],
+                'x' => $validated['cap_x_mm'] ?? 0,
+                'y' => $validated['cap_y_mm'] ?? 0,
+            ];
+            
+            $tugas->ttd_w_mm = $validated['ttd_w_mm'];
+            $tugas->cap_w_mm = $validated['cap_w_mm'];
+            $tugas->cap_opacity = $validated['cap_opacity'];
+            $tugas->save(); // Ensure config is saved before generating PDF
+            
+            // Kita panggil service untuk handle status transition
+            $tugas = $this->tugasService->approveTugas($tugas, []);
+
+            // Generate Signed PDF dengan setting terbaru
             $pdfBytes = $this->renderTugasPdfWithSign($tugas);
             $safeNomor = sanitize_alphanumeric($tugas->nomor, '_-') ?? 'NoNomor';
             $pdfPath = sprintf('private/surat_tugas/signed/%d_%s_%s.pdf', $tugas->id, $safeNomor, md5((string) $tugas->nomor));
             Storage::disk('local')->put($pdfPath, $pdfBytes);
+            
             $tugas->update(['signed_pdf_path' => $pdfPath]);
+            
             return redirect()->route('surat_tugas.approveList')->with('success', 'Surat berhasil disetujui dan ditandatangani.');
         } catch (\Throwable $e) {
             \Log::error('Gagal approve surat tugas', [
@@ -430,7 +471,7 @@ class TugasController extends Controller
                 'error' => sanitize_log_message($e->getMessage()),
                 'user_id' => Auth::id(),
             ]);
-            return back()->with('error', 'Terjadi kesalahan saat menyetujui surat.');
+            return back()->with('error', 'Terjadi kesalahan saat menyetujui surat: ' . $e->getMessage());
         }
     }
 
@@ -460,7 +501,7 @@ class TugasController extends Controller
         }
 
         $capImageB64 = null;
-        $kop = MasterKopSurat::query()->first();
+        $kop = MasterKopSurat::getInstance();
         if ($kop && !empty($kop->cap_path)) {
             $capImageB64 = $this->b64FromStorage($kop->cap_path);
         }
@@ -526,7 +567,7 @@ class TugasController extends Controller
     private function renderTugasPdfDraft(TugasHeader $tugas): string
     {
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
-        $kop = MasterKopSurat::query()->first();
+        $kop = MasterKopSurat::getInstance();
 
         $html = view('surat_tugas.surat_pdf', [
             'tugas' => $tugas,
@@ -599,8 +640,8 @@ class TugasController extends Controller
 
         // Authorization check
         if ($peranId == 1) {
-            // Admin TU - boleh edit draft/ditolak yang dia buat
-            if ($tugas->dibuat_oleh != $user->id || !in_array($tugas->status_surat, ['draft', 'ditolak'], true)) {
+            // Admin TU - boleh edit draft/pending/ditolak yang dia buat
+            if ($tugas->dibuat_oleh != $user->id || !in_array($tugas->status_surat, ['draft', 'pending', 'ditolak'], true)) {
                 abort(403, 'Anda tidak berhak mengedit surat ini.');
             }
         } elseif (in_array($peranId, [2, 3], true)) {
@@ -641,7 +682,20 @@ class TugasController extends Controller
             'klasifikasi_surat_id' => $tugas->klasifikasi_surat_id ?? null,
         ];
 
-        return view('surat_tugas.edit', compact('admins', 'pejabat', 'users', 'taskMaster', 'klasifikasi', 'data', 'tugas', 'baseNomor', 'tanggalHariIni'));
+        // ✅ NOMOR TURUNAN: Load parentable nomors untuk edit (kalau user = Admin TU)
+        $parentableNomors = collect();
+        if ($peranId == 1 && $tugas->status_surat === 'pending') {
+            $tahun = $tugas->tahun ?? (int) date('Y');
+            $parentableNomors = TugasHeader::whereIn('status_surat', ['pending', 'disetujui'])
+                ->onlyMainNomor()
+                ->where('tahun', $tahun)
+                ->where('id', '!=', $tugas->id) // Exclude surat ini sendiri
+                ->orderByNomor('desc')
+                ->limit(100)
+                ->get(['id', 'nomor', 'nama_umum', 'status_surat']);
+        }
+
+        return view('surat_tugas.edit', compact('admins', 'pejabat', 'users', 'taskMaster', 'klasifikasi', 'data', 'tugas', 'baseNomor', 'tanggalHariIni', 'parentableNomors'));
     }
 
     public function update(UpdateTugasRequest $request, TugasHeader $tugas)

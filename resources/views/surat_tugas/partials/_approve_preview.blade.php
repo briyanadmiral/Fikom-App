@@ -31,6 +31,11 @@
     'ttdW' => $ttdW,
     'capW' => $capW,
     'capOpacity' => $capOpacity,
+    // Offsets
+    'ttdX' => isset($preview['ttd_x_mm']) ? (int)$preview['ttd_x_mm'] : null,
+    'ttdY' => isset($preview['ttd_y_mm']) ? (int)$preview['ttd_y_mm'] : null,
+    'capX' => isset($preview['cap_x_mm']) ? (int)$preview['cap_x_mm'] : null,
+    'capY' => isset($preview['cap_y_mm']) ? (int)$preview['cap_y_mm'] : null,
 
     // aset gambar
     'ttdImageB64' => $ttdImageB64,

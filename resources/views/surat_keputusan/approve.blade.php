@@ -267,6 +267,7 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // --- Controls & Elements ---
         const controls = {
             ttd_w_mm: {
                 num: document.querySelector('input[name="ttd_w_mm"]'),
@@ -285,14 +286,25 @@
         const defaults = {
             ttd_w_mm: "{{ (int)($ttdW ?? 42) }}",
             cap_w_mm: "{{ (int)($capW ?? 35) }}",
-            cap_opacity: "{{ (float)($capOpacity ?? 0.95) }}"
+            cap_opacity: "{{ (float)($capOpacity ?? 0.95) }}",
+            ttd_x_mm: 0, ttd_y_mm: 0, cap_x_mm: 0, cap_y_mm: 0
         };
 
         const urlBase = "{{ route('surat_keputusan.approvePreview', $sk->id) }}";
-        const content = document.getElementById('pv-content');
+        const content = document.getElementById('pv-content'); // Where html is loaded
         const spinner = document.getElementById('pv-spinner');
+        const container = document.getElementById('preview-pane');
 
-        // Fungsi Debounce untuk mencegah request berlebihan saat slider digeser
+        // --- Drag & Resize Variables ---
+        let activeEl = null;
+        let startX = 0, startY = 0;
+        let initialOffX = 0, initialOffY = 0;
+        
+        let activeResizeEl = null;
+        let startResizeX = 0;
+        let startWidthMm = 0;
+
+        // --- Helpers ---
         function debounce(fn, wait = 250) {
             let timeout;
             return function(...args) {
@@ -301,23 +313,195 @@
             };
         }
 
-        // Fungsi untuk memuat ulang pratinjau via AJAX
+        function getMmRatio() {
+            const sheet = content.querySelector('.sheet');
+            if (!sheet) return 1; 
+            return 210 / sheet.clientWidth;
+        }
+        
+        function getType(el) {
+            return el.classList.contains('cap') ? 'cap' : 'ttd';
+        }
+
+        // --- Init ---
+        function initDragAndResize() {
+            const ttdEl = content.querySelector('.ttd');
+            const capEl = content.querySelector('.cap');
+
+            [ttdEl, capEl].forEach(el => {
+                if (!el) return;
+                
+                // DRAG
+                el.style.cursor = 'move';
+                el.removeEventListener('mousedown', dragStart);
+                el.addEventListener('mousedown', dragStart);
+                
+                // WHEEL
+                el.removeEventListener('wheel', resizeWheel);
+                el.addEventListener('wheel', resizeWheel, {passive: false});
+            });
+            
+            // RESIZE HANDLE
+            const handles = content.querySelectorAll('.resize-handle');
+            handles.forEach(h => {
+                h.removeEventListener('mousedown', resizeStart);
+                h.addEventListener('mousedown', resizeStart);
+            });
+        }
+
+        function dragStart(e) {
+            if (e.target.classList.contains('resize-handle')) return;
+            e.preventDefault();
+            activeEl = e.currentTarget;
+            
+            const type = getType(activeEl);
+            initialOffX = parseInt(document.getElementById(`${type}_x_mm`).value) || 0;
+            initialOffY = parseInt(document.getElementById(`${type}_y_mm`).value) || 0;
+
+            startX = e.clientX;
+            startY = e.clientY;
+
+            document.addEventListener('mousemove', dragMove);
+            document.addEventListener('mouseup', dragEnd);
+        }
+
+        function dragMove(e) {
+            if (!activeEl) return;
+            const mmRatio = getMmRatio();
+            const dxPx = e.clientX - startX;
+            const dyPx = startY - e.clientY;
+
+            const newX = initialOffX + Math.round(dxPx * mmRatio);
+            const newY = initialOffY + Math.round(dyPx * mmRatio);
+
+            const type = getType(activeEl);
+            const wrapper = activeEl.closest('.ttd-area-sign');
+            if (wrapper) {
+                wrapper.style.setProperty(`--${type}-x`, `${newX}mm`);
+                wrapper.style.setProperty(`--${type}-y`, `${newY}mm`);
+            }
+        }
+
+        function dragEnd(e) {
+            if (!activeEl) return;
+            const mmRatio = getMmRatio();
+            const dxPx = e.clientX - startX;
+            const dyPx = startY - e.clientY;
+            
+            const newX = initialOffX + Math.round(dxPx * mmRatio);
+            const newY = initialOffY + Math.round(dyPx * mmRatio);
+
+            const type = getType(activeEl);
+            const inputX = document.getElementById(`${type}_x_mm`);
+            const inputY = document.getElementById(`${type}_y_mm`);
+            if(inputX) inputX.value = newX;
+            if(inputY) inputY.value = newY;
+
+            activeEl = null;
+            document.removeEventListener('mousemove', dragMove);
+            document.removeEventListener('mouseup', dragEnd);
+            debouncedLoad(); // Sync preview
+        }
+
+        // --- Resize Logic ---
+        function resizeStart(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            activeResizeEl = e.target.closest('.ttd, .cap');
+            
+            const type = getType(activeResizeEl);
+            // Controls access
+            const ctrl = controls[`${type}_w_mm`];
+            startWidthMm = parseInt(ctrl.num.value) || (type === 'ttd' ? 42 : 35);
+            startResizeX = e.clientX;
+
+            document.addEventListener('mousemove', resizeMove);
+            document.addEventListener('mouseup', resizeEnd);
+        }
+
+        function resizeMove(e) {
+            if (!activeResizeEl) return;
+            const mmRatio = getMmRatio();
+            const dxPx = e.clientX - startResizeX;
+            const wChange = Math.round(dxPx * mmRatio * 2); 
+            let newW = startWidthMm + wChange;
+            
+            if (newW < 10) newW = 10;
+            if (newW > 150) newW = 150;
+
+            const type = getType(activeResizeEl);
+            const wrapper = activeResizeEl.closest('.ttd-area-sign');
+            wrapper.style.setProperty(`--${type}-w`, `${newW}mm`);
+        }
+
+        function resizeEnd(e) {
+            if (!activeResizeEl) return;
+            const mmRatio = getMmRatio();
+            const dxPx = e.clientX - startResizeX;
+            const wChange = Math.round(dxPx * mmRatio * 2);
+            let newW = startWidthMm + wChange;
+            if (newW < 10) newW = 10;
+            if (newW > 150) newW = 150;
+
+            const type = getType(activeResizeEl);
+            // Update inputs
+            const ctrl = controls[`${type}_w_mm`];
+            if(ctrl) {
+                if (ctrl.num) ctrl.num.value = newW;
+                if (ctrl.slider) ctrl.slider.value = newW;
+            }
+
+            activeResizeEl = null;
+            document.removeEventListener('mousemove', resizeMove);
+            document.removeEventListener('mouseup', resizeEnd);
+            debouncedLoad();
+        }
+        
+        function resizeWheel(e) {
+            e.preventDefault();
+            const el = e.currentTarget;
+            const type = getType(el);
+            const ctrl = controls[`${type}_w_mm`];
+            let currentW = parseInt(ctrl.num.value) || 40;
+            
+            const delta = e.deltaY < 0 ? 2 : -2; 
+            let newW = currentW + delta;
+            
+            if (newW < 10) newW = 10;
+            if (newW > 150) newW = 150;
+            
+            const wrapper = el.closest('.ttd-area-sign');
+            wrapper.style.setProperty(`--${type}-w`, `${newW}mm`);
+            
+            if(ctrl) {
+                if (ctrl.num) ctrl.num.value = newW;
+                if (ctrl.slider) ctrl.slider.value = newW;
+            }
+            
+            debouncedLoad();
+        }
+
+        // --- Core Functions ---
         function loadPreview() {
+            // Collect all params including offsets
             const params = new URLSearchParams({
                 ttd_w_mm: controls.ttd_w_mm.num?.value ?? defaults.ttd_w_mm,
                 cap_w_mm: controls.cap_w_mm.num?.value ?? defaults.cap_w_mm,
                 cap_opacity: controls.cap_opacity.num?.value ?? defaults.cap_opacity,
+                ttd_x_mm: document.getElementById('ttd_x_mm')?.value ?? 0,
+                ttd_y_mm: document.getElementById('ttd_y_mm')?.value ?? 0,
+                cap_x_mm: document.getElementById('cap_x_mm')?.value ?? 0,
+                cap_y_mm: document.getElementById('cap_y_mm')?.value ?? 0,
             });
 
             spinner.style.display = 'block';
             fetch(`${urlBase}?${params.toString()}`, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 })
                 .then(response => response.text())
                 .then(html => {
                     content.innerHTML = html;
+                    initDragAndResize(); 
                 })
                 .catch(error => {
                     console.error('Error loading preview:', error);
@@ -330,7 +514,7 @@
 
         const debouncedLoad = debounce(loadPreview);
 
-        // Menghubungkan event listener untuk slider dan input angka
+        // --- Bind Events ---
         Object.values(controls).forEach(({ num, slider }) => {
             if (slider && num) {
                 slider.addEventListener('input', () => {
@@ -344,17 +528,23 @@
             }
         });
 
-        // Event listener untuk tombol reset
         document.getElementById('btn-reset')?.addEventListener('click', () => {
+             // Reset sliders/inputs to server defaults
             Object.entries(defaults).forEach(([key, value]) => {
-                const { num, slider } = controls[key];
-                if (num) num.value = value;
-                if (slider) slider.value = value;
+                if (controls[key]) {
+                    controls[key].num.value = value;
+                    controls[key].slider.value = value;
+                }
             });
+            // Reset offsets to 0
+            ['ttd_x_mm', 'ttd_y_mm', 'cap_x_mm', 'cap_y_mm'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.value = 0;
+            });
+            
             loadPreview();
         });
 
-        // Menonaktifkan tombol "Setujui" setelah diklik untuk mencegah double-submit
         document.getElementById('form-approve')?.addEventListener('submit', function(e) {
             const approveButton = document.getElementById('btn-approve');
             if (approveButton) {
@@ -362,6 +552,9 @@
                 approveButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
             }
         });
+
+        // Initialize on load
+        initDragAndResize();
     });
 </script>
 @endpush

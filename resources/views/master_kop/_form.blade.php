@@ -87,13 +87,13 @@
                 <div class="form-group">
                     <label>Logo Kop</label>
                     <div class="custom-file">
-                        <input type="file" class="custom-file-input" id="logoFile" name="logo_path" accept="image/*">
+                        <input type="file" class="custom-file-input" id="logoFile" name="logo_kanan" accept="image/*">
                         <label class="custom-file-label" for="logoFile">Pilih gambar...</label>
                     </div>
                     <small class="text-muted">Format: PNG, JPG. Max 2MB.</small>
-                    @if($kop && $kop->logo_path)
+                    @if($kop && $kop->logo_kanan_path)
                         <div class="mt-2">
-                            <img src="{{ Storage::url($kop->logo_path) }}" alt="Logo" style="max-height: 60px;">
+                            <img src="{{ Storage::url($kop->logo_kanan_path) }}" alt="Logo" style="max-height: 60px;">
                         </div>
                     @endif
                 </div>
