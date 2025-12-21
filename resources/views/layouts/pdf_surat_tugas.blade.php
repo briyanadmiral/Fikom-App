@@ -1,14 +1,45 @@
+@php
+  $kop = $kop ?? \App\Models\MasterKopSurat::first();
+  
+  // Hitung margin top dinamis berdasarkan padding header
+  // Default values
+  $defaultMarginMm = 38; 
+  $defaultHeaderH  = 33;
+  
+  // Extra padding dari user (px -> mm)
+  $userPaddingPx = $kop->header_padding ?? 15;
+  $userPaddingMm = round($userPaddingPx * 0.264583, 2);
+  
+  // Base padding in design was approx 4mm (15px). Calculate delta.
+  $basePaddingMm = round(15 * 0.264583, 2); // ~3.97mm
+  $extraMm = max(0, $userPaddingMm - $basePaddingMm);
+  
+  // Apply logic:
+  // Jika Logo Size besar, mungkin butuh lebih banyak space juga?
+  // Sederhananya: Tambahkan extra padding ke margin & header height
+  
+  $newMarginTop   = $defaultMarginMm + $extraMm;
+  $newHeaderHeight= $defaultHeaderH + $extraMm;
+  
+  // Posisi top header (negative margin)
+  // Biasanya DOMPDF/WKHTML butuh top = -MarginTop.
+  // User request: Full, tanpa celah. Jadi kita set persis -MarginTop.
+  $newHeaderTop   = -1 * $newMarginTop; 
+@endphp
 <!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
   <style>
-    @page { margin: 38mm 15mm 22mm 15mm; size: A4 portrait; }
+    @page { margin: {{ $newMarginTop }}mm 15mm 22mm 15mm; size: A4 portrait; }
     body { font-family: "Times New Roman", serif; font-size: 11pt; margin: 0; }
 
     .pdf-header {
-      position: fixed; top: -33mm; left: 0; right: 0; height: 33mm;
-      z-index: 1000; padding: 0 15mm;
+      position: fixed; 
+      top: -{{ $newMarginTop }}mm; /* Full mentok atas */
+      left: -15mm; right: -15mm; width: auto;
+      height: {{ $newHeaderHeight }}mm;
+      z-index: 1000; padding: 0;
     }
     .pdf-footer {
       position: fixed; bottom: -17mm; left: 0; right: 0; height: 17mm;

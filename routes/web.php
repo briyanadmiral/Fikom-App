@@ -514,15 +514,16 @@ Route::middleware('check.session.role')->group(function () {
 
     // 24) Kop Surat Settings (Legacy Singleton)
     Route::middleware(['check.session.role', 'can:manage-kop-surat'])->group(function () {
-        Route::get('/pengaturan/kop-surat', [MasterKopSuratController::class, 'index'])->name('kop.index');
-        Route::put('/pengaturan/kop-surat', [MasterKopSuratController::class, 'update'])->name('kop.update');
+        // Specific routes FIRST (before generic routes)
         Route::post('/pengaturan/kop-surat/preview', [MasterKopSuratController::class, 'preview'])->name('kop.preview');
         Route::delete('/pengaturan/kop-surat/delete-image/{type}', [MasterKopSuratController::class, 'deleteImage'])->name('kop.delete-image');
-        
-        // New features: Presets, Export, Import
         Route::get('/pengaturan/kop-surat/presets', [MasterKopSuratController::class, 'getPresets'])->name('kop.presets');
         Route::post('/pengaturan/kop-surat/apply-preset', [MasterKopSuratController::class, 'applyPreset'])->name('kop.apply-preset');
         Route::get('/pengaturan/kop-surat/export', [MasterKopSuratController::class, 'export'])->name('kop.export');
         Route::post('/pengaturan/kop-surat/import', [MasterKopSuratController::class, 'import'])->name('kop.import');
+        
+        // Generic routes LAST
+        Route::get('/pengaturan/kop-surat', [MasterKopSuratController::class, 'index'])->name('kop.index');
+        Route::put('/pengaturan/kop-surat', [MasterKopSuratController::class, 'update'])->name('kop.update');
     });
 });

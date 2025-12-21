@@ -412,7 +412,7 @@
                                     </label>
                                     <input type="range" name="logo_size" id="logo_size"
                                            class="custom-range range-slider"
-                                           min="30" max="200" step="5"
+                                           min="30" max="300" step="5"
                                            value="{{ old('logo_size', $kop->logo_size ?? 100) }}"
                                            data-target="#logo_size_value">
                                 </div>
@@ -469,7 +469,7 @@
                                     </label>
                                     <input type="range" name="header_padding" id="header_padding"
                                            class="custom-range range-slider"
-                                           min="0" max="50" step="5"
+                                           min="0" max="250" step="5"
                                            value="{{ old('header_padding', $kop->header_padding ?? 15) }}"
                                            data-target="#padding_value"
                                            data-unit="px">
@@ -632,6 +632,42 @@
                             </div>
                         </div>
 
+                        {{-- BACKGROUND IMAGE WATERMARK (Always Visible for Custom Mode) --}}
+                        <div class="mt-4 p-3" style="background: #fff4e6; border-radius: 10px; border: 1px solid #ffe0b2;">
+                            <h6 class="mb-3" style="color: #f57c00; font-weight: 600;">
+                                <i class="fas fa-image mr-2"></i>Background Watermark (Untuk Mode Custom)
+                            </h6>
+                            
+                            <div class="alert alert-warning mb-3" style="border-radius: 8px; font-size: 12px;">
+                                <i class="fas fa-lightbulb mr-2"></i>
+                                <strong>Tips:</strong> Upload gambar background yang akan ditampilkan di belakang teks kop (sebagai watermark). Atur opacity di "Transparansi Background".
+                            </div>
+
+                            <div class="form-group">
+                                <label class="font-weight-bold" style="color: #2d3748;">
+                                    <i class="fas fa-file-image mr-2"></i>File Background Image
+                               </label>
+                                <div class="custom-file">
+                                    <input type="file" name="background_custom" class="custom-file-input" id="background_custom" accept="image/*">
+                                    <label class="custom-file-label" for="background_custom">Pilih gambar background...</label>
+                                </div>
+
+                                @if($kop?->background_path && ($kop->mode_type ?? 'custom') === 'custom')
+                                    <div class="mt-3 text-center position-relative" style="display: inline-block;">
+                                        <img src="{{ asset('storage/' . $kop->background_path) }}"
+                                             alt="Background Preview"
+                                             class="img-thumbnail"
+                                             style="max-height: 150px;">
+                                        <button type="button" class="btn btn-danger btn-sm delete-image-btn"
+                                                data-type="background"
+                                                style="position: absolute; top: -8px; right: -8px; padding: 4px 8px; border-radius: 50%;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
                         {{-- SECTION: UPLOAD FULL MODE --}}
                         <div id="section_upload" class="section-box">
                             <h5 class="mb-4" style="color: #667eea; font-weight: 600;">
@@ -643,8 +679,8 @@
                                     <i class="fas fa-file-image mr-2"></i>File Gambar Kop Lengkap
                                 </label>
                                 <div class="custom-file">
-                                    <input type="file" name="background" class="custom-file-input" id="background_full" accept="image/*">
-                                    <label class="custom-file-label" for="background_full">Pilih gambar kop yang sudah jadi...</label>
+                                    <input type="file" name="background_upload" class="custom-file-input" id="background_upload" accept="image/*">
+                                    <label class="custom-file-label" for="background_upload">Pilih gambar kop yang sudah jadi...</label>
                                 </div>
 
                                 <div class="alert alert-info mt-3" style="border-radius: 10px; background: #e8f4fd; border: none;">
@@ -713,10 +749,12 @@
                         </div>
 
                         <div class="a4-preview" id="a4-preview-container">
-                            @include('shared._kop_surat', ['context' => 'web', 'showDivider' => true])
+                            <div class="kop-preview-wrapper">
+                                @include('shared._kop_surat', ['context' => 'web', 'showDivider' => true])
+                            </div>
 
                             {{-- Sample content --}}
-                            <div style="padding: 20px; font-size: 11pt; line-height: 1.6;">
+                            <div class="sample-letter-body" style="padding: 20px; font-size: 11pt; line-height: 1.6;">
                                 <p style="text-align: center; margin-bottom: 20px;">
                                     <strong>CONTOH ISI SURAT</strong>
                                 </p>
@@ -936,11 +974,11 @@
                 // BUT, 'shared._kop_surat' might be the whole thing inside preview container?
                 // Let's check view structure:
                 // <div class="a4-preview" id="a4-preview-container">
-                //    @include('shared._kop_surat', ...)
+                //    @@include('shared._kop_surat', ...)
                 //    <div sample-content>...</div>
                 // </div>
                 // If we replace innerHTML, we lose sample content.
-                // Solution: Wrap @include in a div or target it specifically.
+                // Solution: Wrap @@include in a div or target it specifically.
                 // Or easier: Just prepend the new header and keep the existing sample content div.
                 
                 // Let's find the sample content div first.
@@ -1120,7 +1158,116 @@
         });
     }
 
-    // ===== Live Preview with Debounce =====
+    // ===== Preview Refresh Button Handler =====
+    function setupPreviewRefresh() {
+        const btn = document.getElementById('btnRefreshPreview');
+        if (btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                triggerPreview();
+            });
+        }
+    }
+
+    // ===== Trigger Preview (Shared Function) =====
+    function triggerPreview() {
+        const form = document.getElementById('formKopSurat');
+        const previewContainer = document.getElementById('a4-preview-container');
+        const loader = document.getElementById('previewLoader');
+        
+        if (!form || !previewContainer) {
+            console.error('Form or preview container not found');
+            return;
+        }
+
+        if (loader) loader.style.display = 'inline-block';
+
+        // Create FormData but EXCLUDE _method field (form uses PUT for update but preview needs POST)
+        const formData = new FormData(form);
+        formData.delete('_method'); // Remove the _method=PUT field
+        
+        const previewUrl = '{{ route("kop.preview") }}';
+        
+        console.log('Preview URL:', previewUrl);
+        console.log('FormData has _method?', formData.has('_method'));
+
+        fetch(previewUrl, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+            body: formData
+        })
+        .then(res => {
+            console.log('Response status:', res.status);
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.text();
+        })
+        .then(html => {
+            console.log('=== PREVIEW DEBUG ===');
+            console.log('HTML Length:', html.length);
+            console.log('HTML Preview (Start):', html.substring(0, 100));
+
+            // Find existing header container or create wrapper
+            let headerContainer = previewContainer.querySelector('.kop-preview-wrapper');
+            let sampleContent = previewContainer.querySelector('.sample-letter-body');
+
+            console.log('Header Container Found?', !!headerContainer);
+            console.log('Sample Content Found?', !!sampleContent);
+
+            // If structure is already correct (Header + Body)
+            if (headerContainer && sampleContent) {
+                console.log('Updating existing header container...');
+                headerContainer.innerHTML = html;
+            } else {
+                console.log('Rebuilding preview structure...');
+                // ... (existing logic)
+                // If structure is broken or first load, rebuild it properly
+                // We need to preserve the sample content text if it exists, roughly
+                const sampleText = sampleContent ? sampleContent.outerHTML : `
+                    <div class="sample-letter-body" style="padding: 20px 40px; color: #333; font-family: 'Times New Roman', serif; line-height: 1.6;">
+                        <div style="text-align: center; font-weight: bold; margin-bottom: 20px; text-decoration: underline;">
+                            CONTOH ISI SURAT
+                        </div>
+                        <p>Yang bertanda tangan di bawah ini:</p>
+                        <table style="width: 100%; margin-left: 20px; margin-bottom: 20px;">
+                            <tr><td style="width: 100px;">Nama</td><td>: ____________________</td></tr>
+                            <tr><td>Jabatan</td><td>: ____________________</td></tr>
+                        </table>
+                        <p>Dengan ini menyatakan bahwa...</p>
+                        <br><br><br>
+                        <div style="text-align: right; margin-top: 50px;">
+                            <p>Hormat kami,</p>
+                            <br><br><br>
+                            <p>(____________________)</p>
+                        </div>
+                    </div>
+                `;
+
+                previewContainer.innerHTML = `<div class="kop-preview-wrapper">${html}</div>${sampleText}`;
+            }
+
+            if (loader) loader.style.display = 'none';
+        })
+        .catch(err => {
+            console.error('Live preview error:', err);
+            if (loader) loader.style.display = 'none';
+            
+            // Show error in preview
+            if (previewContainer) {
+                previewContainer.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #dc3545;">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <h4>Preview Gagal</h4>
+                        <p>${err.message}</p>
+                        <small>Silakan refresh halaman dan coba lagi</small>
+                    </div>
+                `;
+            }
+        });
+    }
+
+    // ===== Live Preview with Debounce (NOW ENABLED) =====
     function setupLivePreview() {
         const form = document.getElementById('formKopSurat');
         const previewContainer = document.getElementById('a4-preview-container');
@@ -1128,8 +1275,9 @@
         if (!form || !previewContainer) return;
 
         let debounceTimer;
-        const DEBOUNCE_MS = 500;
+        const DEBOUNCE_MS = 800; // 800ms delay untuk mengurangi request
 
+        // Semua field yang trigger live preview
         const livePreviewFields = [
             'mode_type', 'text_align', 'nama_fakultas', 'alamat_lengkap', 
             'telepon_lengkap', 'email_website', 'logo_size', 'font_size_title',
@@ -1147,29 +1295,6 @@
                 });
             });
         });
-
-        function triggerPreview() {
-            if (loader) loader.style.display = 'inline-block';
-
-            const formData = new FormData(form);
-
-            fetch('{{ route("kop.preview") }}', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                body: formData
-            })
-            .then(res => res.text())
-            .then(html => {
-                const sampleContent = previewContainer.querySelector('div[style*="padding: 20px"]');
-                previewContainer.innerHTML = html;
-                if (sampleContent) previewContainer.appendChild(sampleContent);
-                if (loader) loader.style.display = 'none';
-            })
-            .catch(err => {
-                console.error('Live preview error:', err);
-                if (loader) loader.style.display = 'none';
-            });
-        }
     }
 
     document.addEventListener('DOMContentLoaded', function(){

@@ -72,6 +72,10 @@ class MasterKopSuratController extends Controller
     {
         $this->ensureAdmin();
         
+        \Log::info('=== KOP UPDATE START ===');
+        \Log::info('Has background file: ' . ($r->hasFile('background') ? 'YES' : 'NO'));
+        \Log::info('Mode type: ' . $r->input('mode_type'));
+        
         $kop = MasterKopSurat::firstOrNew([]);
 
         $data = $r->validate([
@@ -79,11 +83,11 @@ class MasterKopSuratController extends Controller
             'text_align' => ['nullable', 'in:left,right,center'],
             
             // Styling controls
-            'logo_size' => ['nullable', 'integer', 'min:30', 'max:200'],
+            'logo_size' => ['nullable', 'integer', 'min:30', 'max:300'],
             'font_size_title' => ['nullable', 'integer', 'min:10', 'max:30'],
             'font_size_text' => ['nullable', 'integer', 'min:8', 'max:20'],
             'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6})$/'],
-            'header_padding' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'header_padding' => ['nullable', 'integer', 'min:0', 'max:250'],
             'background_opacity' => ['nullable', 'integer', 'min:0', 'max:100'],
 
             // Text content
@@ -92,16 +96,27 @@ class MasterKopSuratController extends Controller
             'telepon_lengkap' => ['nullable', 'string', 'max:255'],
             'email_website' => ['nullable', 'string', 'max:255'],
 
-            // Files
+            // Files - now with separate names
             'logo_kanan' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
             'logo_kiri' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
-            'background' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
+            'background_custom' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
+            'background_upload' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
             'cap' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
 
             // Toggles
             'tampilkan_logo_kanan' => ['sometimes', 'boolean'],
             'tampilkan_logo_kiri' => ['sometimes', 'boolean'],
         ]);
+
+        // Merge background inputs - use whichever is provided
+        if ($r->hasFile('background_custom')) {
+            \Log::info('Has background_custom file: YES');
+            // Merge into 'background' key for processing
+            $r->files->set('background', $r->file('background_custom'));
+        } elseif ($r->hasFile('background_upload')) {
+            \Log::info('Has background_upload file: YES');
+            $r->files->set('background', $r->file('background_upload'));
+        }
 
         // Normalize boolean values
         $data['tampilkan_logo_kanan'] = isset($data['tampilkan_logo_kanan']) ? (bool)$data['tampilkan_logo_kanan'] : false;
@@ -111,7 +126,6 @@ class MasterKopSuratController extends Controller
         $fileTargets = [
             'logo_kanan' => ['column' => 'logo_kanan_path', 'method' => 'optimizeLogo'],
             'logo_kiri' => ['column' => 'logo_kiri_path', 'method' => 'optimizeLogo'],
-            'background' => ['column' => 'background_path', 'method' => 'optimizeBackground'],
             'cap' => ['column' => 'cap_path', 'method' => 'optimizeStamp'],
         ];
 
@@ -120,29 +134,73 @@ class MasterKopSuratController extends Controller
                 $columnName = $config['column'];
                 $optimizeMethod = $config['method'];
 
+                \Log::info("Processing file upload: {$inputName}");
+                \Log::info("  - Column: {$columnName}");
+                \Log::info("  - Method: {$optimizeMethod}");
+
                 // Delete old file
                 if (!empty($kop->$columnName)) {
                     $oldPath = $kop->$columnName;
+                    \Log::info("  - Old path exists: {$oldPath}");
                     if ($oldPath && Storage::disk('public')->exists($oldPath)) {
                         Storage::disk('public')->delete($oldPath);
+                        \Log::info("  - Old file deleted");
                     }
                 }
 
                 // Optimize and store new file
                 $path = $this->imageOptimizer->$optimizeMethod($r->file($inputName));
                 $data[$columnName] = $path;
+                
+                \Log::info("  - New path saved: {$path}");
             }
         }
 
+        // Handle background separately - check both background_custom and background_upload
+        $backgroundFile = null;
+        if ($r->hasFile('background_custom')) {
+            $backgroundFile = $r->file('background_custom');
+            \Log::info("Using background_custom file");
+        } elseif ($r->hasFile('background_upload')) {
+            $backgroundFile = $r->file('background_upload');
+            \Log::info("Using background_upload file");
+        }
+
+        if ($backgroundFile) {
+            \Log::info("Processing background file upload");
+            
+            // Delete old file
+            if (!empty($kop->background_path)) {
+                $oldPath = $kop->background_path;
+                \Log::info("  - Old background path exists: {$oldPath}");
+                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                    \Log::info("  - Old background file deleted");
+                }
+            }
+
+            // Optimize and store new file
+            $path = $this->imageOptimizer->optimizeBackground($backgroundFile);
+            $data['background_path'] = $path;
+            
+            \Log::info("  - New background path saved: {$path}");
+        }
+
         // Cleanup file inputs from data
-        unset($data['logo_kanan'], $data['logo_kiri'], $data['background'], $data['cap']);
+        unset($data['logo_kanan'], $data['logo_kiri'], $data['background_custom'], $data['background_upload'], $data['cap']);
 
         if (Schema::hasColumn('master_kop_surat', 'updated_by')) {
             $data['updated_by'] = auth()->id();
         }
 
+        \Log::info('Data to be saved:', $data);
+
         $kop->fill($data);
         $kop->save();
+
+        \Log::info('Kop saved with ID: ' . $kop->id);
+        \Log::info('Background path in DB: ' . ($kop->background_path ?? 'NULL'));
+        \Log::info('=== KOP UPDATE SUCCESS ===');
 
         MasterKopSurat::clearCache();
 
@@ -185,18 +243,39 @@ class MasterKopSuratController extends Controller
      */
     public function preview(Request $r)
     {
-        $this->ensureAdmin();
+        \Log::info('=== KOP PREVIEW START ===');
+        \Log::info('Request Method: ' . $r->method());
+        \Log::info('Request URL: ' . $r->fullUrl());
+        \Log::info('Request Headers:', $r->headers->all());
+        \Log::info('Has CSRF Token: ' . ($r->header('X-CSRF-TOKEN') ? 'YES' : 'NO'));
         
-        $kop = MasterKopSurat::first() ?? new MasterKopSurat();
-        
-        // Fill with request data for preview
-        $kop->fill($r->except(['logo_kanan', 'logo_kiri', 'background', 'cap']));
-        
-        return view('shared._kop_surat', [
-            'kop' => $kop,
-            'context' => 'web',
-            'showDivider' => true,
-        ])->render();
+        try {
+            $this->ensureAdmin();
+            \Log::info('Admin check passed');
+            
+            $kop = MasterKopSurat::first() ?? new MasterKopSurat();
+            \Log::info('Kop loaded, ID: ' . ($kop->id ?? 'NEW'));
+            
+            // Fill with request data for preview (exclude file uploads and CSRF token)
+            $kop->fill($r->except(['_token', 'logo_kanan', 'logo_kiri', 'background', 'cap']));
+            \Log::info('Kop filled with request data');
+            
+            $html = view('shared._kop_surat', [
+                'kop' => $kop,
+                'context' => 'web',
+                'showDivider' => true,
+            ])->render();
+            
+            \Log::info('View rendered successfully, length: ' . strlen($html));
+            \Log::info('=== KOP PREVIEW SUCCESS ===');
+            
+            return $html;
+        } catch (\Exception $e) {
+            \Log::error('=== KOP PREVIEW ERROR ===');
+            \Log::error('Error Message: ' . $e->getMessage());
+            \Log::error('Stack Trace: ' . $e->getTraceAsString());
+            throw $e;
+        }
     }
 
     /**

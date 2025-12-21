@@ -30,10 +30,10 @@
   // Header fixed layout: tinggi pasti 33mm (Legacy standard)
   $H_MM = 33.0;
 
-  // Untuk PDF: kita gunakan padding vertikal yang dikonversi dan di-clamp agar konten muat
-  $vPadMm = $isPdf ? $clamp($pxToMm($headerPadPx), 2.0, 6.0) : null; 
-  // Logo maximum height
-  $logoMaxMm = $isPdf ? $clamp($pxToMm($logoSizePx), 6.0, max(6.0, $H_MM - 2*$vPadMm)) : null;
+  // Untuk PDF: kita gunakan padding vertikal yang dikonversi (max 20mm agar tidak hilang)
+  $vPadMm = $isPdf ? $clamp($pxToMm($headerPadPx), 0, 60.0) : null; 
+  // Logo maximum height (adjust based on padding)
+  $logoMaxMm = $isPdf ? $clamp($pxToMm($logoSizePx), 6.0, max(6.0, $H_MM - $vPadMm - 2)) : null;
 
   // Sumber gambar (local → base64 utk PDF)
   $toSrc = function (?string $path) use ($context) {
@@ -61,7 +61,7 @@
   $teleponLengkap = $kop->telepon_lengkap ?? 'Telp. (024) 8441555, 8505003 (hunting) Fax. (024) 8415429 – 8445265';
   $emailWebsite   = $kop->email_website ?? 'e-mail: unika@unika.ac.id  http://www.unika.ac.id/';
 @endphp
-
+      
 {{-- ===================== MODE UPLOAD (gambar utuh) ===================== --}}
 @if($modeType === 'upload' && $backgroundImg)
   @if($isPdf)
@@ -79,97 +79,24 @@
   @endif
 
 {{-- ===================== MODE CUSTOM (Legacy) ===================== --}}
-@else
-  @if($isPdf)
-    {{-- PDF: tinggi fixed 33mm --}}
-    <div style="position:relative; width:100%; height: {{ $H_MM }}mm; overflow:hidden;">
-      {{-- Background --}}
-      @if($backgroundImg)
-        <div style="position:absolute; inset:0; z-index:0;">
-          <img src="{{ $backgroundImg }}"
-               alt="Background Header"
-               style="width:100%; height:100%; object-fit:cover; display:block; opacity: {{ $bgOpacity }};">
-        </div>
-      @endif
-
-      {{-- Konten: tata letak berdasarkan textAlign --}}
-      @if($textAlign === 'center')
-        <div style="position:absolute; left:0; right:0; top: {{ $vPadMm }}mm; bottom: {{ $vPadMm }}mm; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-          @if($logoRight)
-            <div style="margin-bottom:1.5mm;">
-              <img src="{{ $logoRight }}" alt="Logo"
-                   style="max-height: {{ $logoMaxMm }}mm; height:auto; width:auto; display:inline-block;">
-            </div>
-          @endif
-          <div style="font-family: {{ $fontFamily }}; line-height:1.25;">
-            <div style="font-weight:700; font-size: {{ $fontTitlePx }}px; color: {{ $textColor }};">{{ $namaFakultas }}</div>
-            <div style="font-size: {{ $fontTextPx }}px; color: {{ $textColor }};">{{ $alamatLengkap }}</div>
-            <div style="font-size: {{ $fontTextPx }}px; color: {{ $textColor }};">{{ $teleponLengkap }}</div>
-            <div style="font-size: {{ $fontTextPx }}px; color: {{ $textColor }};">{{ $emailWebsite }}</div>
-          </div>
-        </div>
-
-      @elseif($textAlign === 'left')
-        <table style="position:absolute; left:0; right:0; top: {{ $vPadMm }}mm; bottom: {{ $vPadMm }}mm; z-index:1; width:100%; border-collapse:collapse;">
-          <tr>
-            @if($logoRight)
-              <td style="width: {{ max(10, $logoMaxMm) }}mm; vertical-align:middle; padding-right: 4mm;">
-                <img src="{{ $logoRight }}" alt="Logo"
-                     style="max-height: {{ $logoMaxMm }}mm; height:auto; width:auto; display:block;">
-              </td>
-            @endif
-            <td style="vertical-align:middle;">
-              <div style="font-family: {{ $fontFamily }}; line-height:1.25; color: {{ $textColor }};">
-                <div style="font-weight:700; font-size: {{ $fontTitlePx }}px;">{{ $namaFakultas }}</div>
-                <div style="font-size: {{ $fontTextPx }}px;">{{ $alamatLengkap }}</div>
-                <div style="font-size: {{ $fontTextPx }}px;">{{ $teleponLengkap }}</div>
-                <div style="font-size: {{ $fontTextPx }}px;">{{ $emailWebsite }}</div>
-              </div>
-            </td>
-          </tr>
-        </table>
-
-      @else
-        {{-- RIGHT (default) --}}
-        <table style="position:absolute; left:0; right:0; top: {{ $vPadMm }}mm; bottom: {{ $vPadMm }}mm; z-index:1; width:100%; border-collapse:collapse;">
-          <tr>
-            <td style="text-align:right; vertical-align:middle; padding-right: 4mm;">
-              <div style="font-family: {{ $fontFamily }}; line-height:1.25; color: {{ $textColor }}; text-align:right;">
-                <div style="font-weight:700; font-size: {{ $fontTitlePx }}px;">{{ $namaFakultas }}</div>
-                <div style="font-size: {{ $fontTextPx }}px;">{{ $alamatLengkap }}</div>
-                <div style="font-size: {{ $fontTextPx }}px;">{{ $teleponLengkap }}</div>
-                <div style="font-size: {{ $fontTextPx }}px;">{{ $emailWebsite }}</div>
-              </div>
-            </td>
-            <td style="width: {{ max(12, $logoMaxMm + 3) }}mm; text-align:right; vertical-align:middle; border-left: 2px solid #000; padding-left: 4mm;">
-              @if($logoRight)
-                <img src="{{ $logoRight }}" alt="Logo"
-                     style="max-height: {{ $logoMaxMm }}mm; height:auto; width:auto; display:block; margin-left:auto;">
-              @endif
-            </td>
-          </tr>
-        </table>
-      @endif
-      
-      {{-- No Divider in Legacy --}}
-    </div>
 
   @else
     {{-- ===================== WEB PREVIEW ===================== --}}
-    <div class="kop-wrap-custom" style="position: relative; min-height: 120px; overflow: hidden;">
+    <div class="kop-wrap-custom" style="position: relative; min-height: 120px; overflow: hidden; background-color: transparent;">
       {{-- Background --}}
       @if($backgroundImg)
-        <div style="position: absolute; inset: 0; z-index: 0;">
+        <div style="position: absolute; top: 0; left: 0; width: 100%; z-index: 0;">
           <img src="{{ $backgroundImg }}"
-               style="width: 100%; height: 100%; object-fit: cover; display: block; opacity: {{ $bgOpacity }};"
+               style="width: 100%; height: auto; display: block; opacity: {{ $bgOpacity }};"
                alt="Background Header">
         </div>
       @endif
 
       {{-- Konten --}}
-      <div style="position: relative; z-index: 1; padding: {{ $headerPadPx }}px;">
+      {{-- Fix: Padding hanya untuk TOP agar background tidak molor ke bawah/samping --}}
+      <div style="position: relative; z-index: 1; padding-top: {{ $headerPadPx }}px; padding-bottom: 15px; padding-left: {{ $isPdf ? '15mm' : '20px' }}; padding-right: {{ $isPdf ? '15mm' : '20px' }}; background-color: transparent;">
         @if($textAlign === 'center')
-          <table style="width:100%; border-collapse:collapse;">
+          <table style="width:100%; border-collapse:collapse; background-color: transparent;">
             <tr>
               @if($logoLeft)
                 <td style="width:{{ $logoSizePx + 20 }}px; text-align:left; vertical-align:middle;">
@@ -195,7 +122,7 @@
           </table>
 
         @elseif($textAlign === 'left')
-          <table style="width:100%; border-collapse:collapse;">
+          <table style="width:100%; border-collapse:collapse; background-color: transparent;">
             <tr>
               @if($logoLeft)
                 <td style="width:{{ $logoSizePx + 20 }}px; text-align:left; vertical-align:middle; padding-right:10px;">
@@ -222,7 +149,7 @@
 
         @else
           {{-- RIGHT (default for web) --}}
-          <table style="width:100%; border-collapse:collapse;">
+          <table style="width:100%; border-collapse:collapse; background-color: transparent;">
             <tr>
               @if($logoLeft)
                 <td style="width:{{ $logoSizePx + 20 }}px; text-align:left; vertical-align:middle; padding-right:10px;">
@@ -238,7 +165,7 @@
                   <div style="font-size:{{ $fontTextPx }}px;">{{ $emailWebsite }}</div>
                 </div>
               </td>
-              <td style="width:{{ $logoSizePx + 20 }}px; text-align:right; vertical-align:middle; border-left:2px solid #000; padding-left:15px;">
+              <td style="width:{{ $logoSizePx + 20 }}px; text-align:right; vertical-align:middle; border-left:2px solid {{ $textColor }}; padding-left:15px;">
                 @if($logoRight)
                   <img src="{{ $logoRight }}" alt="Logo Kanan"
                        style="max-width:{{ $logoSizePx }}px; max-height:{{ (int)($logoSizePx * 0.8) }}px; width:auto; height:auto; margin-left:auto; display:block;">
@@ -251,5 +178,5 @@
         {{-- No Divider --}}
       </div>
     </div>
-  @endif
+  </div>
 @endif
