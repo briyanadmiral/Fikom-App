@@ -220,6 +220,13 @@
             window.hideLoading = function() {
                 $('#globalLoadingOverlay').removeClass('active');
             };
+
+            // Fix Back-Forward Cache (BFCache) issue where overlay stays active
+            window.addEventListener('pageshow', function(event) {
+                if (event.persisted || performance.getEntriesByType("navigation")[0].type === "back_forward") {
+                    hideLoading();
+                }
+            });
             
             // ===== Form Submission Loading =====
             $('form[data-loading="true"]').on('submit', function() {

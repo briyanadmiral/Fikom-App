@@ -41,7 +41,12 @@ class UpdateKeputusanRequest extends FormRequest
             'judul_penetapan' => ['nullable', 'string', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
 
             // === Penandatangan ===
-            'penandatangan' => ['nullable', 'integer', 'exists:pengguna,id'],
+            'penandatangan' => [
+                'nullable', 
+                'integer', 
+                'exists:pengguna,id',
+                'required_if:mode,pending,terkirim'
+            ],
             'npp_penandatangan' => ['nullable', 'string', 'max:50', 'regex:/^[0-9A-Z\-\.\/]+$/'],
 
             // === Konsideran: Menimbang ===
@@ -71,6 +76,24 @@ class UpdateKeputusanRequest extends FormRequest
             // === Mode/Status ===
             'mode' => ['nullable', 'string', 'in:draft,pending,terkirim'],
         ];
+    }
+
+    /**
+     * ✅ Validate logic cross-fields (Penerima required if pending)
+     */
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $mode = $this->input('mode');
+            if (in_array($mode, ['pending', 'terkirim'])) {
+                $hasInternal = count($this->input('penerima_internal', [])) > 0;
+                $hasEksternal = count($this->input('penerima_eksternal', [])) > 0;
+
+                if (!$hasInternal && !$hasEksternal) {
+                    $validator->errors()->add('penerima_internal', 'Minimal satu penerima (internal atau eksternal) wajib diisi saat pengajuan.');
+                }
+            }
+        });
     }
 
     /**

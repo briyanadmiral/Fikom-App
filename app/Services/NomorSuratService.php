@@ -427,5 +427,65 @@ class NomorSuratService
             'nomor_urut_int' => $nomorUrutInt,
         ];
     }
+
+    // =========================================================
+    // HELPER METHODS
+    // =========================================================
+
+    /**
+     * Convert integer ke Romawi (1-3999)
+     */
+    public function toRoman(int $number): string
+    {
+        if ($number <= 0 || $number > 3999) {
+            return '';
+        }
+
+        $map = [
+            'M' => 1000, 'CM' => 900, 'D' => 500, 'CD' => 400,
+            'C' => 100, 'XC' => 90, 'L' => 50, 'XL' => 40,
+            'X' => 10, 'IX' => 9, 'V' => 5, 'IV' => 4, 'I' => 1,
+        ];
+
+        $ret = '';
+        while ($number > 0) {
+            foreach ($map as $roman => $int) {
+                if ($number >= $int) {
+                    $number -= $int;
+                    $ret .= $roman;
+                    break;
+                }
+            }
+        }
+
+        return $ret;
+    }
+
+    /**
+     * Konversi nilai kolom `bulan` (bisa romawi / angka) jadi label yang enak dibaca.
+     * Contoh: "I" -> "Januari (I)", "03" -> "Maret (03)"
+     */
+    public function getBulanLabel(string $bulan): string
+    {
+        $romanMap = [
+            'I' => 'Januari', 'II' => 'Februari', 'III' => 'Maret', 'IV' => 'April',
+            'V' => 'Mei', 'VI' => 'Juni', 'VII' => 'Juli', 'VIII' => 'Agustus',
+            'IX' => 'September', 'X' => 'Oktober', 'XI' => 'November', 'XII' => 'Desember',
+        ];
+
+        $upper = strtoupper(trim($bulan));
+        if (isset($romanMap[$upper])) {
+            return $romanMap[$upper] . ' (' . $upper . ')';
+        }
+
+        // Kalau angka
+        $int = (int) $bulan;
+        if ($int >= 1 && $int <= 12) {
+            $nama = array_values($romanMap)[$int - 1] ?? $bulan;
+            return $nama . ' (' . $bulan . ')';
+        }
+
+        return $bulan;
+    }
 }
 

@@ -55,9 +55,20 @@
         <span class="icon">
             <i class="fas fa-history text-white"></i>
         </span>
-        <div>
+        <div class="flex-grow-1">
             <div class="surat-header-title">Audit Log Activity</div>
             <div class="surat-header-desc">Pantau <b>aktivitas pengguna</b> dan perubahan data di sistem.</div>
+        </div>
+        <div class="text-right">
+            <a href="{{ route('audit_logs.export', request()->all()) }}" class="btn btn-success btn-sm shadow-sm">
+                <i class="fas fa-file-excel mr-1"></i> Export Excel
+            </a>
+            
+            @if(auth()->user()->peran_id === 1)
+                <button type="button" class="btn btn-danger btn-sm shadow-sm ml-2" data-toggle="modal" data-target="#modalPrune">
+                    <i class="fas fa-trash-alt mr-1"></i> Bersihkan Log
+                </button>
+            @endif
         </div>
     </div>
 @endsection
@@ -173,52 +184,52 @@
             <table class="table table-hover table-striped text-nowrap">
                 <thead>
                     <tr>
+                        <th width="5%">Detail</th>
                         <th>Waktu</th>
                         <th>User</th>
                         <th>Aksi</th>
                         <th>Tipe</th>
                         <th>Objek</th>
-                        <th>IP Address</th>
+                        <th>Browser/OS</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($logs as $log)
                         <tr>
                             <td>
-                                {{ $log->created_at->format('d/m/Y') }}<br>
+                                <button type="button" class="btn btn-xs btn-info btn-block btn-detail" data-id="{{ $log->id }}" title="Lihat Pdetail perubahan">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                            <td>
+                                {{ $log->formatted_date }}<br>
                                 <small class="text-muted">{{ $log->created_at->format('H:i:s') }}</small>
                             </td>
                             <td>
                                 {{ $log->user_name ?? 'System' }}
                             </td>
                             <td>
-                                @php
-                                    $badgeClass = match ($log->action) {
-                                        'create' => 'badge-success',
-                                        'update' => 'badge-warning',
-                                        'delete' => 'badge-danger',
-                                        'approve' => 'badge-primary',
-                                        'reject' => 'badge-danger',
-                                        'login' => 'badge-info',
-                                        'logout' => 'badge-secondary',
-                                        default => 'badge-light'
-                                    };
-                                @endphp
-                                <span class="badge {{ $badgeClass }}">{{ $log->action_label }}</span>
+                                <span class="badge {{ $log->action_badge_class }}">{{ $log->action_label }}</span>
                             </td>
                             <td>{{ $log->entity_type_label }}</td>
                             <td>
-                                <span title="{{ $log->entity_name }}">
-                                    {{ Str::limit($log->entity_name ?? '-', 30) }}
-                                </span>
+                                @if($log->entity_route)
+                                    <a href="{{ $log->entity_route }}" class="text-primary font-weight-bold" target="_blank" title="Buka Detail">
+                                        {{ Str::limit($log->entity_name ?? '-', 30) }} <i class="fas fa-external-link-alt fa-xs ml-1"></i>
+                                    </a>
+                                @else
+                                    <span title="{{ $log->entity_name }}">
+                                        {{ Str::limit($log->entity_name ?? '-', 30) }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="text-muted text-sm">
-                                {{ $log->ip_address ?? '-' }}
+                                <span title="{{ $log->user_agent }}">{{ $log->browser_info }}</span>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="fas fa-search fa-2x mb-2"></i><br>
                                 Tidak ada log aktivitas yang ditemukan.
                             </td>
@@ -232,6 +243,57 @@
         </div>
     </div>
 </div>
+
+{{-- Detail Modal --}}
+<div class="modal fade" id="modalDetail" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Prune Modal --}}
+@if(auth()->user()->peran_id === 1)
+<div class="modal fade" id="modalPrune" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="{{ route('audit_logs.prune') }}" method="POST">
+                @csrf
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Bersihkan Log Lama</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Tindakan ini akan <strong>menghapus permanen</strong> log aktivitas yang sudah lama untuk menghemat ruang penyimpanan.</p>
+                    <div class="form-group">
+                        <label>Hapus log yang lebih tua dari:</label>
+                        <select name="retention_period" class="form-control">
+                            <option value="1">1 Tahun</option>
+                            <option value="2">2 Tahun</option>
+                            <option value="3">3 Tahun</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-info-circle"></i> Log yang dihapus tidak dapat dikembalikan.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Ya, Hapus Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
 @endsection
 
 @push('scripts')
@@ -248,6 +310,20 @@
                 width: '100%'
             });
         }
+
+        // Detail Modal Handler
+        $('.btn-detail').on('click', function() {
+            var id = $(this).data('id');
+            var url = "{{ route('audit_logs.show', ':id') }}".replace(':id', id);
+            
+            $('#modalDetail').modal('show');
+            $('#modalDetail .modal-content').load(url, function(response, status, xhr) {
+                if (status == "error") {
+                    var msg = "Sorry but there was an error: ";
+                    $('#modalDetail .modal-body').html(msg + xhr.status + " " + xhr.statusText);
+                }
+            });
+        });
     });
 </script>
 @endpush

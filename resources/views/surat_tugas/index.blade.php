@@ -320,6 +320,8 @@
             <div class="surat-header-desc">
                 @if ($mode === 'approve-list')
                     Hanya menampilkan surat dengan status <b>pending</b> yang menunggu persetujuan Anda.
+                @elseif ($mode === 'arsip-list')
+                    Arsip surat tugas yang telah selesai dan disimpan.
                 @else
                     Semua surat tugas <b>sekolah</b> — kelola, filter, cetak PDF, dan lacak statusnya di sini.
                 @endif
@@ -333,21 +335,37 @@
         {{-- Statistik --}}
         <div class="d-flex justify-content-center w-100 mb-3">
             <div class="stat-wrapper py-1" style="width:100%;max-width:650px;">
-                @foreach ([
-                    'draft'     => ['icon' => 'fa-file-alt',        'label' => 'Draft',      'count' => $stats['draft'] ?? 0,     'color' => 'secondary'],
-                    'pending'   => ['icon' => 'fa-hourglass-half', 'label' => 'Pending',    'count' => $stats['pending'] ?? 0,   'color' => 'warning'],
-                    'disetujui' => ['icon' => 'fa-check-circle',   'label' => 'Disetujui',  'count' => $stats['disetujui'] ?? 0, 'color' => 'success'],
-                ] as $status => $info)
-                    <div class="stat-card card shadow-sm mx-2">
-                        <div class="card-body">
-                            <div class="icon text-{{ $info['color'] }}" data-toggle="tooltip" title="{{ $info['label'] }}">
-                                <i class="fas {{ $info['icon'] }}"></i>
+                @if($mode === 'arsip-list')
+                    {{-- Mode ARSIP: Hanya tampilkan kartu Arsip --}}
+                    @if(isset($stats['arsip']))
+                        <div class="stat-card card shadow-sm mx-2">
+                            <div class="card-body">
+                                <div class="icon text-dark" data-toggle="tooltip" title="Arsip">
+                                    <i class="fas fa-archive"></i>
+                                </div>
+                                <div class="label">Total Arsip</div>
+                                <div class="value text-dark">{{ $stats['arsip'] }}</div>
                             </div>
-                            <div class="label">{{ $info['label'] }}</div>
-                            <div class="value text-{{ $info['color'] }}">{{ $info['count'] }}</div>
                         </div>
-                    </div>
-                @endforeach
+                    @endif
+                @else
+                    {{-- Mode STANDARD: Tampilkan status aktif --}}
+                    @foreach ([
+                        'draft'     => ['icon' => 'fa-file-alt',        'label' => 'Draft',      'count' => $stats['draft'] ?? 0,     'color' => 'secondary'],
+                        'pending'   => ['icon' => 'fa-hourglass-half', 'label' => 'Pending',    'count' => $stats['pending'] ?? 0,   'color' => 'warning'],
+                        'disetujui' => ['icon' => 'fa-check-circle',   'label' => 'Disetujui',  'count' => $stats['disetujui'] ?? 0, 'color' => 'success'],
+                    ] as $status => $info)
+                        <div class="stat-card card shadow-sm mx-2">
+                            <div class="card-body">
+                                <div class="icon text-{{ $info['color'] }}" data-toggle="tooltip" title="{{ $info['label'] }}">
+                                    <i class="fas {{ $info['icon'] }}"></i>
+                                </div>
+                                <div class="label">{{ $info['label'] }}</div>
+                                <div class="value text-{{ $info['color'] }}">{{ $info['count'] }}</div>
+                            </div>
+                        </div>
+                    @endforeach
+                @endif
             </div>
         </div>
 
@@ -367,17 +385,31 @@
                         <i class="fas fa-briefcase"></i>
                         @if ($mode === 'approve-list')
                             Surat Tugas Menunggu Persetujuan Saya
+                        @elseif ($mode === 'arsip-list')
+                            Arsip Surat Tugas
                         @else
                             Ruang Kerja Surat Tugas
                         @endif
                     </span>
                 </div>
 
-                @if ($mode !== 'approve-list')
+                @if ($mode === 'arsip-list')
+                     <div class="data-card-header-right d-flex flex-wrap justify-content-end">
+                        <a href="{{ route('surat_tugas.all') }}" class="btn btn-outline-primary mb-2">
+                            <i class="fas fa-arrow-left mr-2"></i>Kembali ke Daftar Aktif
+                        </a>
+                    </div>
+                @elseif ($mode !== 'approve-list')
                     <div class="data-card-header-right d-flex flex-wrap justify-content-end">
                         <a href="{{ route('surat_tugas.create') }}" class="btn btn-primary mb-2">
                             <i class="fas fa-plus mr-2"></i>Tambah Surat Tugas
                         </a>
+
+                        @if(Auth::user()->peran_id === 1)
+                            <a href="{{ route('surat_tugas.arsipList') }}" class="btn btn-outline-dark mb-2">
+                                <i class="fas fa-archive mr-2"></i>Arsip Surat
+                            </a>
+                        @endif
 
                         <a href="{{ route('jenis_surat_tugas.index') }}" class="btn btn-outline-secondary mb-2">
                             <i class="fas fa-folder mr-2"></i>Jenis Surat Tugas
@@ -443,6 +475,7 @@
                                                 'pending'   => 'warning',
                                                 'disetujui' => 'success',
                                                 'ditolak'   => 'danger',
+                                                'arsip'     => 'dark',
                                             ];
                                             $badge = $badgeMap[$h->status_surat] ?? 'secondary';
                                         @endphp
@@ -517,12 +550,45 @@
                                                 @endif
 
                                                 {{-- 6. Download PDF dari menu (kalau sudah disetujui) --}}
-                                                @if ($h->status_surat == 'disetujui' && $h->signed_pdf_path)
+                                                {{-- 6. Download PDF dari menu (kalau sudah disetujui atau arsip) --}}
+                                                @if (($h->status_surat == 'disetujui' || $h->status_surat == 'arsip') && $h->signed_pdf_path)
                                                     <a class="dropdown-item text-danger"
                                                        href="{{ route('surat_tugas.downloadPdf', $h->id) }}"
                                                        target="_blank">
                                                         <i class="fas fa-file-pdf"></i> Download PDF
                                                     </a>
+                                                    <div class="dropdown-divider"></div>
+                                                @endif
+
+                                                {{-- 8. Buka Arsip / Restore (Hanya Admin & Status Arsip) --}}
+                                                @if (auth()->user()->peran_id === 1 && $h->status_surat === 'arsip')
+                                                    <form action="{{ route('surat_tugas.buka-arsip', $h->id) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item text-primary w-100 text-left"
+                                                                data-confirm-message="Apakah Anda yakin ingin mengembalikan surat ini ke menu aktif? Status akan kembali menjadi DISETUJUI."
+                                                                data-confirm-title="Batalkan Arsip"
+                                                                data-confirm-text="Ya, Kembalikan!"
+                                                                data-confirm-icon="warning"
+                                                                style="border:none;background:transparent;cursor:pointer">
+                                                            <i class="fas fa-box-open"></i> Batalkan Arsip
+                                                        </button>
+                                                    </form>
+                                                    <div class="dropdown-divider"></div>
+                                                @endif
+
+                                                {{-- 7. Arsipkan (Hanya Admin & Status Disetujui) --}}
+                                                @if (auth()->user()->peran_id === 1 && $h->status_surat === 'disetujui')
+                                                    <form action="{{ route('surat_tugas.arsipkan', $h->id) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item text-dark w-100 text-left"
+                                                                data-confirm-message="Apakah Anda yakin ingin mengarsipkan surat ini?"
+                                                                data-confirm-title="Arsip Surat"
+                                                                data-confirm-text="Ya, Arsipkan!"
+                                                                data-confirm-icon="info"
+                                                                style="border:none;background:transparent;cursor:pointer">
+                                                            <i class="fas fa-archive"></i> Arsipkan
+                                                        </button>
+                                                    </form>
                                                     <div class="dropdown-divider"></div>
                                                 @endif
 

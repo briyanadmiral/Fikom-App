@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Log; // Added Log facade
 
 class TugasHeader extends Model
 {
@@ -59,6 +60,9 @@ class TugasHeader extends Model
         'suffix',
         'parent_tugas_id',
         'nomor_urut_int',
+        // Archive
+        'tanggal_arsip',
+        'arsipkan_oleh',
     ];
 
     /**
@@ -78,7 +82,9 @@ class TugasHeader extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'signed_at' => 'datetime',
+
         'dikunci_pada' => 'datetime',
+        'tanggal_arsip' => 'datetime',
         'deleted_at' => 'datetime',
 
         'dibuat_oleh' => 'integer',
@@ -208,6 +214,18 @@ class TugasHeader extends Model
     {
         return $this->klasifikasiSurat();
     }
+
+
+
+    /**
+     * Relasi ke user yang mengarsipkan
+     */
+    public function pengarsip(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'arsipkan_oleh');
+    }
+
+
 
     // =========================================================
     // NOMOR TURUNAN (SUFFIX LETTER) RELATIONS
@@ -567,7 +585,7 @@ class TugasHeader extends Model
      */
     public function changeStatus(string $newStatus, ?int $nextApprover = null): bool
     {
-        $newStatus = validate_status($newStatus, ['draft', 'pending', 'disetujui', 'ditolak']);
+        $newStatus = validate_status($newStatus, ['draft', 'pending', 'disetujui', 'ditolak', 'arsip']);
 
         if ($newStatus === null) {
             throw new \InvalidArgumentException('Invalid status');
@@ -576,8 +594,9 @@ class TugasHeader extends Model
         $validTransitions = [
             'draft' => ['pending'],
             'pending' => ['disetujui', 'ditolak', 'draft'],
-            'disetujui' => [],
+            'disetujui' => ['arsip'], // Updated for workflow
             'ditolak' => ['draft'],
+            'arsip' => [],
         ];
 
         $currentStatus = $this->status_surat;
@@ -645,6 +664,22 @@ class TugasHeader extends Model
         ]);
     }
 
+    /**
+     * Cek apakah sudah diarsipkan
+     */
+    public function isArsip(): bool
+    {
+        return $this->status_surat === 'arsip';
+    }
+
+    /**
+     * Cek apakah bisa diarsipkan
+     */
+    public function canBeArsipkan(): bool
+    {
+        return $this->status_surat === 'disetujui';
+    }
+
     public function getNomorForDisplay(): string
     {
         return sanitize_output($this->nomor ?? '[Belum Ada Nomor]');
@@ -684,6 +719,7 @@ class TugasHeader extends Model
             'draft' => 'secondary',
             'pending' => 'warning',
             'disetujui' => 'success',
+            'arsip' => 'dark',
             'ditolak' => 'danger',
             default => 'secondary',
         };

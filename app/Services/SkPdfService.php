@@ -15,9 +15,10 @@ class SkPdfService
 {
     /**
      * Get signing assets (TTD & Cap) dengan validation
+     * ✅ PUBLIC: Dapat digunakan oleh controller
      * ✅ IMPROVED: Added error handling & validation
      */
-    private function getSigningAssets(KeputusanHeader $sk): array
+    public function getSigningAssets(KeputusanHeader $sk): array
     {
         try {
             $ttdImageB64 = null;
@@ -243,7 +244,7 @@ class SkPdfService
 
             // ✅ IMPROVED: Sanitize filename components
             $skId = validate_integer_id($sk->id);
-            $nomor = sanitize_filename($sk->nomor ?? 'unnamed');
+            $nomor = sanitize_alphanumeric($sk->nomor ?? 'unnamed', '_-');
             $hash = substr(md5($nomor), 0, 8);
 
             // ✅ IMPROVED: Secure path construction
@@ -253,7 +254,7 @@ class SkPdfService
             // ✅ ADDED: Ensure directory exists
             $directory = dirname($path);
             if (!Storage::disk('local')->exists($directory)) {
-                Storage::disk('local')->makeDirectory($directory, 0755, true);
+                Storage::disk('local')->makeDirectory($directory);
             }
 
             // Store PDF

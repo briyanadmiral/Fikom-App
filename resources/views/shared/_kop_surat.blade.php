@@ -178,5 +178,4 @@
         {{-- No Divider --}}
       </div>
     </div>
-  </div>
 @endif

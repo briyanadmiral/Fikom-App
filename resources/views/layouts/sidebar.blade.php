@@ -129,6 +129,7 @@
                             'surat_tugas.edit',
                             'surat_tugas.update',
                             'surat_tugas.create',
+                            'surat_tugas.arsipList',
                         ];
                         $stAdminOpen = $isRoute(...$stAdminRoutes);
                     @endphp
@@ -153,6 +154,13 @@
                                     class="nav-link {{ $isRoute('surat_tugas.mine') ? 'active' : '' }}">
                                     <i class="far fa-circle nav-icon text-info"></i>
                                     <p>Surat Tugas Saya</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('surat_tugas.arsipList') }}"
+                                    class="nav-link {{ $isRoute('surat_tugas.arsipList') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon text-secondary"></i>
+                                    <p>Arsip Surat Tugas</p>
                                 </a>
                             </li>
                         </ul>
@@ -416,13 +424,7 @@
                 {{-- =============== LAPORAN & MONITORING (Admin Only) =============== --}}
                 @if ($peranId === 1)
                     <li class="nav-header" style="color: #a78bfa !important;">LAPORAN</li>
-                    <li class="nav-item">
-                        <a href="{{ route('laporan.dashboard') }}"
-                            class="nav-link {{ $isRoute('laporan.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-chart-pie"></i>
-                            <p>Dashboard Laporan</p>
-                        </a>
-                    </li>
+
                     <li class="nav-item">
                         <a href="{{ route('audit_logs.index') }}"
                             class="nav-link {{ $isRoute('audit_logs.*') ? 'active' : '' }}">

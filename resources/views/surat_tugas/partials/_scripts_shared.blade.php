@@ -160,7 +160,7 @@
         if (enableDelete) {
             $(document).on('click', deleteCfg.selector, function(e) {
                 e.preventDefault();
-                const url = $(this).data('url');
+                const url = $(this).data('url') || $(this).attr('href');
                 const nomor = $(this).data('nomor') || '—';
 
                 Swal.fire({
@@ -195,5 +195,37 @@
                 });
             });
         }
+
+        // =========================
+        // === GENERIC CONFIRM  ====
+        // =========================
+        $(document).on('click', '[data-confirm-message]', function(e) {
+            e.preventDefault();
+            const $btn = $(this);
+            const $form = $btn.closest('form');
+            
+            Swal.fire({
+                title: $btn.data('confirm-title') || 'Konfirmasi',
+                html: $btn.data('confirm-message'),
+                icon: $btn.data('confirm-icon') || 'question',
+                showCancelButton: true,
+                confirmButtonColor: $btn.hasClass('text-danger') ? '#dc3545' : '#007bff',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: $btn.data('confirm-text') || 'Ya, Lanjutkan',
+                cancelButtonText: 'Batal'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    if ($form.length) {
+                        $form.trigger('submit');
+                    } else {
+                        // Jika bukan dalam form, mungkin link?
+                        const url = $btn.attr('href');
+                        if (url && url !== '#') {
+                            window.location.href = url;
+                        }
+                    }
+                }
+            });
+        });
     });
 </script>

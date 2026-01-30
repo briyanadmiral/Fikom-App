@@ -664,3 +664,67 @@ if (!function_exists('logStatusChange')) {
         }
     }
 }
+
+/**
+ * ====================================================================
+ * SECTION 11: SECURITY LOGGING HELPERS
+ * ====================================================================
+ */
+
+if (!function_exists('log_security_event')) {
+    /**
+     * Log security-related events ke dedicated security channel
+     * Digunakan untuk: login failures, unauthorized access, suspicious activity
+     *
+     * @param string $event Event type (login_failed, unauthorized_access, etc)
+     * @param array $context Additional context data
+     * @param string $level Log level (info, warning, critical)
+     * @return void
+     */
+    function log_security_event(string $event, array $context = [], string $level = 'info'): void
+    {
+        try {
+            // Tambahkan context default
+            $context = array_merge([
+                'event' => $event,
+                'user_id' => Auth::id(),
+                'ip' => request()->ip(),
+                'user_agent' => substr((string) request()->userAgent(), 0, 255),
+                'url' => request()->fullUrl(),
+                'timestamp' => now()->toISOString(),
+            ], $context);
+
+            // Log ke security channel
+            \Log::channel('security')->{$level}("Security Event: {$event}", $context);
+        } catch (\Exception $e) {
+            // Fallback ke default log jika security channel gagal
+            \Log::warning('Failed to log security event', [
+                'event' => $event,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+}
+
+if (!function_exists('log_login_attempt')) {
+    /**
+     * Log login attempt (success atau failure)
+     *
+     * @param string $email Email yang digunakan
+     * @param bool $success Berhasil atau gagal
+     * @param string|null $reason Alasan gagal (optional)
+     * @return void
+     */
+    function log_login_attempt(string $email, bool $success, ?string $reason = null): void
+    {
+        $event = $success ? 'login_success' : 'login_failed';
+        $level = $success ? 'info' : 'warning';
+
+        log_security_event($event, [
+            'email' => sanitize_email($email),
+            'success' => $success,
+            'reason' => $reason ? sanitize_log_message($reason) : null,
+        ], $level);
+    }
+}
+

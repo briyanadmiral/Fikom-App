@@ -28,6 +28,8 @@ class Notifikasi extends Model
         'referensi_id' => 'integer',
         'dibaca' => 'boolean',
         'dibuat_pada' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
         'deleted_at' => 'datetime', // ✅ ADDED
     ];
 
@@ -205,9 +207,6 @@ class Notifikasi extends Model
         return $this->dibaca ? 'badge-secondary' : 'badge-primary';
     }
 
-    /**
-     * ✅ ADDED: Get icon based on tipe
-     */
     public function getIcon(): string
     {
         return match ($this->tipe) {
@@ -217,6 +216,24 @@ class Notifikasi extends Model
             'rejection' => 'bi-x-circle',
             'info' => 'bi-info-circle',
             default => 'bi-bell',
+        };
+    }
+
+    /**
+     * ✅ ADDED: Dynamic Link Accessor
+     */
+    public function getLinkAttribute(): ?string
+    {
+        if (!$this->referensi_id) {
+            return null;
+        }
+
+        return match ($this->tipe) {
+            'surat_tugas', 'st' => route('surat_tugas.show', $this->referensi_id),
+            'surat_keputusan', 'sk' => route('surat_keputusan.show', $this->referensi_id),
+            'approval_st' => route('surat_tugas.approve.form', $this->referensi_id),
+            'approval_sk' => route('surat_keputusan.approveForm', $this->referensi_id),
+            default => null,
         };
     }
 

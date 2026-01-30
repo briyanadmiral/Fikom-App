@@ -26,6 +26,9 @@
     'context' => $context,
     'tugas' => $tugas,
     'kop' => $kop ?? null,
+    
+    // allow resize in approval
+    'allowResize' => true,
 
     // preferensi ukuran/opacity
     'ttdW' => $ttdW,

@@ -12,108 +12,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class TugasController extends Controller
 {
     /** 🔧 injeksi service */
     protected SuratTugasService $tugasService;
+    protected \App\Services\NomorSuratService $nomorService;
 
-    public function __construct(SuratTugasService $tugasService)
+    public function __construct(SuratTugasService $tugasService, \App\Services\NomorSuratService $nomorService)
     {
         $this->tugasService = $tugasService;
+        $this->nomorService = $nomorService;
     }
 
     // ------------------ Helpers ------------------
 
-    private function toRoman(int $number): string
-    {
-        if ($number <= 0 || $number > 3999) {
-            return '';
-        }
-        $map = [
-            'M' => 1000,
-            'CM' => 900,
-            'D' => 500,
-            'CD' => 400,
-            'C' => 100,
-            'XC' => 90,
-            'L' => 50,
-            'XL' => 40,
-            'X' => 10,
-            'IX' => 9,
-            'V' => 5,
-            'IV' => 4,
-            'I' => 1,
-        ];
-        $ret = '';
-        while ($number > 0) {
-            foreach ($map as $roman => $int) {
-                if ($number >= $int) {
-                    $number -= $int;
-                    $ret .= $roman;
-                    break;
-                }
-            }
-        }
-        return $ret;
-    }
 
-    /**
-     * Konversi nilai kolom `bulan` (bisa romawi / angka) jadi label yang enak dibaca.
-     * Contoh:
-     *  - "I"   -> "Januari (I)"
-     *  - "03"  -> "Maret (03)"
-     *  - "XI"  -> "November (XI)"
-     */
-    private function getBulanLabel(string $bulan): string
-    {
-        $romanMap = [
-            'I' => 'Januari',
-            'II' => 'Februari',
-            'III' => 'Maret',
-            'IV' => 'April',
-            'V' => 'Mei',
-            'VI' => 'Juni',
-            'VII' => 'Juli',
-            'VIII' => 'Agustus',
-            'IX' => 'September',
-            'X' => 'Oktober',
-            'XI' => 'November',
-            'XII' => 'Desember',
-        ];
-
-        $upper = strtoupper(trim($bulan));
-
-        // Kalau cocok romawi
-        if (isset($romanMap[$upper])) {
-            return $romanMap[$upper] . ' (' . $upper . ')';
-        }
-
-        // Kalau angka, coba mapping ke nama bulan
-        $int = (int) $bulan;
-        if ($int >= 1 && $int <= 12) {
-            $nama = [
-                1 => 'Januari',
-                2 => 'Februari',
-                3 => 'Maret',
-                4 => 'April',
-                5 => 'Mei',
-                6 => 'Juni',
-                7 => 'Juli',
-                8 => 'Agustus',
-                9 => 'September',
-                10 => 'Oktober',
-                11 => 'November',
-                12 => 'Desember',
-            ][$int];
-
-            return $nama . ' (' . $bulan . ')';
-        }
-
-        // fallback: kembalikan apa adanya
-        return $bulan;
-    }
 
     /**
      * Data dropdown untuk Advance Filter Surat Tugas:
@@ -132,7 +48,7 @@ class TugasController extends Controller
 
         $bulanList = [];
         foreach ($bulanValues as $bulan) {
-            $bulanList[$bulan] = $this->getBulanLabel($bulan);
+            $bulanList[$bulan] = $this->nomorService->getBulanLabel($bulan);
         }
 
         // Penandatangan: Dekan & WD (peran_id 2 & 3)
@@ -180,7 +96,7 @@ class TugasController extends Controller
 
     private function shouldShowSignatures(TugasHeader $tugas): bool
     {
-        return $tugas->status_surat === 'disetujui' && !empty($tugas->signed_at);
+        return in_array($tugas->status_surat, ['disetujui', 'arsip'], true) && !empty($tugas->signed_at);
     }
 
     // ------------------ CRUD / Business ------------------
@@ -227,7 +143,8 @@ class TugasController extends Controller
         // ✅ STEP 1: Validasi input filter
         $validated = $request->validate([
             'search' => 'nullable|string|max:100',
-            'status' => 'nullable|in:draft,pending,disetujui,ditolak',
+
+            'status' => 'nullable|in:draft,pending,disetujui,ditolak,arsip', // Updated for workflow
             'tahun' => 'nullable|integer|min:2020|max:2100',
             'bulan' => 'nullable|string|max:10',
             'penandatangan' => 'nullable|integer|exists:pengguna,id',
@@ -258,6 +175,7 @@ class TugasController extends Controller
             'pending' => $list->where('status_surat', 'pending')->count(),
             'disetujui' => $list->where('status_surat', 'disetujui')->count(),
             'ditolak' => $list->where('status_surat', 'ditolak')->count(),
+            'arsip' => $list->where('status_surat', 'arsip')->count(),
         ];
 
         // ✅ STEP 7: Data dropdown filter
@@ -276,7 +194,7 @@ class TugasController extends Controller
         $tahun = (int) date('Y');
         $bulanInt = (int) date('n');
         $semester = $bulanInt >= 8 || $bulanInt <= 1 ? 'Ganjil' : 'Genap';
-        $bulanRomawi = $this->toRoman($bulanInt);
+        $bulanRomawi = $this->nomorService->toRoman($bulanInt);
         $autoNomor = sprintf('/TG/UNIKA/%s/%s', $bulanRomawi, $tahun);
         $tanggalHariIni = now()->format('Y-m-d');
         
@@ -596,7 +514,7 @@ class TugasController extends Controller
     public function show(TugasHeader $tugas)
     {
         // Load relasi yang dibutuhkan
-        $tugas->load(['pembuat:id,nama_lengkap,email', 'penandatanganUser:id,nama_lengkap,email,peran_id,jabatan', 'penandatanganUser.peran:id,nama', 'klasifikasi:id,kode,deskripsi', 'penerima.pengguna:id,nama_lengkap']);
+        $tugas->load(['pembuat:id,nama_lengkap,email', 'penandatanganUser:id,nama_lengkap,email,peran_id,jabatan,npp', 'penandatanganUser.peran:id,nama', 'klasifikasi:id,kode,deskripsi', 'penerima.pengguna:id,nama_lengkap']);
 
         // Get signing assets (TTD & Cap)
         $assets = $this->getSigningAssets($tugas);
@@ -733,8 +651,34 @@ class TugasController extends Controller
         }
 
         // 2. Validasi kelengkapan data minimal
+        // Cek Penandatangan
         if (!$tugas->penandatangan && !$tugas->penandatangan_id) {
-            return back()->with('error', 'Penandatangan belum dipilih. Silakan edit surat terlebih dahulu.');
+            return redirect()->route('surat_tugas.edit', $tugas->id)
+                ->with('error', 'Penandatangan belum dipilih. Silakan lengkapi data surat.');
+        }
+
+        // Cek Judul / Perihal
+        if (empty($tugas->nama_umum)) {
+             return redirect()->route('surat_tugas.edit', $tugas->id)
+                ->with('error', 'Judul/Perihal surat masih kosong. Silakan lengkapi data surat.');
+        }
+        
+        // Cek Tanggal Surat
+        if (empty($tugas->tanggal_surat)) {
+             return redirect()->route('surat_tugas.edit', $tugas->id)
+                ->with('error', 'Tanggal surat belum diisi. Silakan lengkapi data surat.');
+        }
+
+        // Cek Klasifikasi
+        if (empty($tugas->klasifikasi_surat_id)) {
+             return redirect()->route('surat_tugas.edit', $tugas->id)
+                ->with('error', 'Klasifikasi surat belum dipilih. Silakan lengkapi data surat.');
+        }
+
+        // Cek Penerima (Minimal 1)
+        if ($tugas->penerima()->count() === 0) {
+            return redirect()->route('surat_tugas.edit', $tugas->id)
+                ->with('error', 'Belum ada penerima tugas yang dipilih. Silakan tambahkan penerima.');
         }
 
         try {
@@ -793,6 +737,108 @@ class TugasController extends Controller
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
             return back()->with('error', 'Gagal mengunduh PDF surat tugas.');
+        }
+    }
+
+    /**
+     * Tampilkan daftar arsip Surat Tugas
+     */
+    public function arsipList(Request $request)
+    {
+        $this->authorize('viewAny', TugasHeader::class); // Sama seperti 'all' permissions
+
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:100',
+            'tahun' => 'nullable|integer|min:2020|max:2100',
+            'bulan' => 'nullable|string|max:10',
+            'penandatangan' => 'nullable|integer',
+            'pembuat' => 'nullable|integer',
+            'order' => 'nullable|in:asc,desc',
+            'sort' => 'nullable|in:created_at,tanggal_arsip,nomor',
+        ]);
+
+        $query = TugasHeader::withFullRelations()
+            ->where('status_surat', 'arsip')
+            ->applyFilters($validated)
+            ->orderBy($validated['sort'] ?? 'tanggal_arsip', $validated['order'] ?? 'desc');
+        
+        $list = $query->get();
+
+        $stats = [
+            'arsip' => $list->count(),
+        ];
+
+        $filterData = $this->getFilterDropdownData();
+        $mode = 'arsip-list';
+
+        return view('surat_tugas.index', compact('list', 'stats', 'filterData', 'mode'));
+    }
+
+    /**
+     * Arsipkan Surat Tugas
+     */
+    public function arsipkan(TugasHeader $tugas)
+    {
+        // Permission check: Bisa via policy 'archive' atau logic di controller
+        // Asumsi admin TU (role 1)
+        if (Auth::user()->peran_id !== 1) {
+            abort(403, 'Hanya Admin yang dapat mengarsipkan surat.');
+        }
+
+        if (!$tugas->canBeArsipkan()) {
+            return back()->with('error', 'Surat ini tidak dapat diarsipkan (Status harus Disetujui).');
+        }
+
+        try {
+            \DB::transaction(function () use ($tugas) {
+                $tugas->update([
+                    'status_surat' => 'arsip',
+                    'tanggal_arsip' => now(),
+                    'arsipkan_oleh' => Auth::id(),
+                ]);
+            });
+
+            return redirect()->route('surat_tugas.index')->with('success', 'Surat tugas berhasil diarsipkan.');
+        } catch (\Exception $e) {
+            \Log::error('Gagal arsipkan surat tugas', [
+                'tugas_id' => $tugas->id,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Gagal mengarsipkan surat tugas: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * UNARCHIVE Action
+     * Mengembalikan status dari 'arsip' ke 'disetujui'
+     */
+    public function bukaArsip(TugasHeader $tugas)
+    {
+        // Hanya Admin TU (role 1) yang boleh buka arsip
+        if (Auth::user()->peran_id !== 1) {
+            abort(403, 'Akses ditolak. Hanya Admin TU yang dapat membuka arsip.');
+        }
+
+        if ($tugas->status_surat !== 'arsip') {
+            return back()->with('error', 'Surat tugas ini tidak sedang diarsipkan.');
+        }
+
+        try {
+            \DB::transaction(function () use ($tugas) {
+                $tugas->update([
+                    'status_surat' => 'disetujui', // Kembali ke status sebelum arsip
+                    'tanggal_arsip' => null, // Reset tanggal arsip
+                    'arsipkan_oleh' => null,  // Reset pengarsip
+                ]);
+            });
+
+            return redirect()->route('surat_tugas.arsipList')->with('success', 'Surat tugas berhasil dikeluarkan dari arsip.');
+        } catch (\Exception $e) {
+            \Log::error('Gagal membuka arsip surat tugas', [
+                'tugas_id' => $tugas->id,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Gagal membuka arsip surat tugas: ' . $e->getMessage());
         }
     }
 

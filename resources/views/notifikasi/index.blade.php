@@ -300,82 +300,106 @@
         </div>
 
         {{-- Daftar Notifikasi --}}
-        <div class="card notif-list-card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="card-title mb-0">
-                    <i class="fas fa-list mr-2"></i>Daftar Notifikasi
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h3 class="card-title font-weight-bold">
+                    <i class="fas fa-bell text-primary mr-2"></i>Daftar Notifikasi
                 </h3>
-                <div class="card-tools">
-                    @if ($unreadNotifs > 0)
-                        <form action="{{ route('notifikasi.markAllRead') }}" method="POST" style="display:inline">
-                            @csrf
-                            @method('PATCH')
-                            <button type="submit" class="btn btn-sm btn-primary">
-                                <i class="fas fa-check-double mr-1"></i> Tandai Semua Dibaca
-                            </button>
-                        </form>
-                    @endif
+                <div class="card-tools d-flex">
+                    <form action="{{ route('notifikasi.markAllRead') }}" method="POST" class="mr-2">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" class="btn btn-sm btn-outline-primary shadow-sm" {{ $stats['unread'] == 0 ? 'disabled' : '' }}>
+                            <i class="fas fa-check-double mr-1"></i> Tandai Semua Dibaca
+                        </button>
+                    </form>
+
+                    <form action="{{ route('notifikasi.prune') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus notifikasi lama (>30 hari) yang sudah dibaca?');">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm">
+                            <i class="fas fa-trash-alt mr-1"></i> Bersihkan
+                        </button>
+                    </form>
                 </div>
             </div>
 
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
+            <div class="card-body p-0">
+                {{-- TABS NAVIGATION --}}
+                <ul class="nav nav-tabs px-3 border-bottom-0">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request('filter') != 'unread' ? 'active font-weight-bold' : '' }}" href="{{ route('notifikasi.index') }}">
+                            Semua <span class="badge badge-pill badge-light ml-1 border">{{ $stats['total'] }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request('filter') == 'unread' ? 'active font-weight-bold' : '' }}" href="{{ route('notifikasi.index', ['filter' => 'unread']) }}">
+                            Belum Dibaca <span class="badge badge-pill badge-warning text-white ml-1 shadow-sm">{{ $stats['unread'] }}</span>
+                        </a>
+                    </li>
+                </ul>
+
+                {{-- NOTIFICATION LIST --}}
+                <ul class="list-group list-group-flush border-top">
                     @forelse($notifs as $n)
-                        <li class="list-group-item {{ !$n->dibaca ? 'unread' : '' }}">
+                        <li class="list-group-item {{ !$n->dibaca ? 'unread' : '' }} py-3">
                             <div class="d-flex align-items-start">
-                                <div class="mr-3">
-                                    @if (!$n->dibaca)
-                                        <span class="notif-icon-badge bg-warning text-white">
-                                            <i class="fas fa-envelope"></i>
-                                        </span>
-                                    @else
-                                        <span class="notif-icon-badge bg-success text-white">
-                                            <i class="fas fa-envelope-open"></i>
-                                        </span>
-                                    @endif
+                                {{-- Icon based on Type --}}
+                                <div class="mr-3 mt-1">
+                                    <span class="notif-icon-badge {{ $n->getBadgeClass() }} text-white shadow-sm" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                        <i class="bi {{ $n->getIcon() }}"></i>
+                                    </span>
                                 </div>
 
                                 <div class="flex-grow-1">
-                                    <p class="mb-1 {{ !$n->dibaca ? 'font-weight-bold' : '' }}">
-                                        {{ $n->pesan }}
-                                    </p>
-                                    <small class="text-muted">
-                                        <i class="far fa-clock"></i> {{ $n->dibuat_pada->diffForHumans() }}
-                                        <span class="mx-2">•</span>
-                                        {{ $n->dibuat_pada->format('d M Y, H:i') }}
-                                    </small>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <p class="mb-0 {{ !$n->dibaca ? 'font-weight-bold text-dark' : 'text-secondary' }}" style="font-size: 1rem; line-height: 1.4;">
+                                            {{ $n->pesan }}
+                                        </p>
+                                        <small class="text-muted ml-2 text-nowrap" title="{{ $n->dibuat_pada->isoFormat('D MMMM Y HH:mm') }}">
+                                            {{ $n->dibuat_pada->diffForHumans() }}
+                                        </small>
+                                    </div>
+                                    
+                                    <div class="d-flex align-items-center mt-1">
+                                        <span class="badge badge-light border mr-2 text-uppercase" style="font-size: 0.7rem;">{{ str_replace('_', ' ', $n->tipe) }}</span>
+                                        @if($n->link)
+                                            <a href="{{ url($n->link) }}" class="text-sm font-weight-bold text-primary mr-3">
+                                                Lihat Detail <i class="fas fa-arrow-right ml-1"></i>
+                                            </a>
+                                        @endif
+                                    </div>
                                 </div>
 
-                                <div class="ml-3">
+                                <div class="ml-3 d-flex flex-column align-items-end">
                                     @if (!$n->dibaca)
                                         <form action="{{ route('notifikasi.read', $n->id) }}" method="POST">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit" class="btn btn-sm btn-outline-primary"
-                                                title="Tandai Dibaca">
+                                            <button type="submit" class="btn btn-sm btn-light text-primary rounded-circle shadow-sm" data-toggle="tooltip" title="Tandai Dibaca" style="width: 32px; height: 32px; padding: 0;">
                                                 <i class="fas fa-check"></i>
                                             </button>
                                         </form>
                                     @else
-                                        <span class="badge badge-success">
-                                            <i class="fas fa-check"></i> Dibaca
-                                        </span>
+                                        <i class="fas fa-check-double text-success small" title="Sudah Dibaca"></i>
                                     @endif
                                 </div>
                             </div>
                         </li>
                     @empty
                         <li class="list-group-item text-center py-5">
-                            <div class="text-muted">
-                                <i class="far fa-bell-slash fa-3x mb-3 d-block"></i>
-                                <h5>Belum Ada Notifikasi</h5>
-                                <p>Notifikasi baru akan muncul di sini ketika ada pembaruan.</p>
+                            <div class="text-muted opacity-50">
+                                <i class="bi bi-bell-slash display-4 mb-3 d-block" style="color: #cbd5e0;"></i>
+                                <h5 class="font-weight-bold">Tidak ada notifikasi</h5>
+                                <p class="mb-0">Belum ada notifikasi baru untuk Anda saat ini.</p>
                             </div>
                         </li>
                     @endforelse
                 </ul>
+
+                {{-- PAGINATION --}}
+                <div class="p-3 d-flex justify-content-center">
+                    {{ $notifs->onEachSide(1)->links('pagination::bootstrap-4') }}
+                </div>
             </div>
-        </div>
     </div>
 @endsection
 

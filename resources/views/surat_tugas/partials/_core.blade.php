@@ -63,6 +63,9 @@
         $ttdImageB64 = null;
         $capImageB64 = null;
     }
+
+    // Flag: apakah boleh resize/drag? Default false.
+    $allowResize = $allowResize ?? false;
 @endphp
 
 {{-- ====================== STYLING & WRAPPER ====================== --}}
@@ -187,7 +190,10 @@
         }
         
         .ttd-area-sign .ttd img, .ttd-area-sign .cap img {
-            width: 100%; height: auto; display: block;
+            width: 100%; 
+            height: auto !important; 
+            display: block;
+            object-fit: contain; /* Prevents distortion */
         }
 
         .ttd-area-sign .cap {
@@ -329,7 +335,10 @@
         }
         
         .ttd-area-sign .ttd img, .ttd-area-sign .cap img {
-            width: 100%; height: auto; display: block;
+            width: 100%; 
+            height: auto !important; 
+            display: block;
+            object-fit: contain;
         }
         .resize-handle {
             width: 12px; height: 12px;
@@ -504,7 +513,7 @@
                 @if (!empty($ttdImageB64))
                     <div class="ttd-draggable ttd">
                         <img src="{{ $ttdImageB64 }}" alt="TTD">
-                        @if ($context === 'web')
+                        @if ($context === 'web' && $allowResize)
                             <div class="resize-handle ttd-handle"></div>
                         @endif
                     </div>
@@ -512,7 +521,7 @@
                 @if (!empty($capImageB64))
                     <div class="cap-draggable cap">
                         <img src="{{ $capImageB64 }}" alt="Cap">
-                        @if ($context === 'web')
+                        @if ($context === 'web' && $allowResize)
                             <div class="resize-handle cap-handle"></div>
                         @endif
                     </div>

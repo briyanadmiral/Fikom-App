@@ -28,8 +28,8 @@ class KeputusanHeaderObserver
         }
 
         // Auto-set status
-        if (!$sk->status) {
-            $sk->status = 'draft';
+        if (!$sk->status_surat) {
+            $sk->status_surat = 'draft';
         }
     }
 
@@ -56,9 +56,9 @@ class KeputusanHeaderObserver
         $original = $sk->getOriginal();
         
         // Log status changes
-        if ($sk->wasChanged('status')) {
-            $oldStatus = $original['status'] ?? 'unknown';
-            $newStatus = $sk->status;
+        if ($sk->wasChanged('status_surat')) {
+            $oldStatus = $original['status_surat'] ?? 'unknown';
+            $newStatus = $sk->status_surat;
 
             Log::info('Status surat keputusan changed', [
                 'sk_id' => $sk->id,
@@ -101,10 +101,10 @@ class KeputusanHeaderObserver
     public function deleting(KeputusanHeader $sk): bool
     {
         // Only allow delete if draft
-        if ($sk->status !== 'draft') {
+        if ($sk->status_surat !== 'draft') {
             Log::warning('Attempted to delete non-draft surat keputusan', [
                 'sk_id' => $sk->id,
-                'status' => $sk->status,
+                'status' => $sk->status_surat,
                 'user_id' => auth()->id(),
             ]);
             

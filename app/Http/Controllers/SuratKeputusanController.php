@@ -12,6 +12,7 @@ use App\Models\User; // ✅ Tambahkan kalau belum ada
 use App\Services\NomorSuratService;
 use App\Services\SuratKeputusanService;
 use App\Services\SuratKeputusanNotificationService;
+use App\Services\SkPdfService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,44 +26,17 @@ use App\Models\Notifikasi;
 class SuratKeputusanController extends Controller
 {
     protected SuratKeputusanService $skService;
+    protected SkPdfService $pdfService;
 
-    public function __construct(SuratKeputusanService $skService)
+    public function __construct(SuratKeputusanService $skService, SkPdfService $pdfService)
     {
         $this->skService = $skService;
+        $this->pdfService = $pdfService;
     }
 
     /* ==================== Helpers umum ==================== */
 
-    private function normalizeTembusan($input): ?string
-    {
-        if ($input === null || $input === '') {
-            return null;
-        }
 
-        if (is_array($input)) {
-            $arr = $input;
-        } else {
-            $s = trim((string) $input);
-            if (strlen($s) >= 2 && $s[0] === '"' && substr($s, -1) === '"') {
-                $s = substr($s, 1, -1);
-            }
-            $arr = json_decode($s, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                $pieces = preg_split('/[,\n;]+/', $s);
-                $arr = array_map(fn($x) => ['value' => trim($x)], $pieces);
-            }
-        }
-
-        $names = [];
-        foreach ($arr as $it) {
-            // ✅ FIXED: Sanitize each value
-            $value = trim(is_array($it) ? $it['value'] ?? ($it['text'] ?? ($it['name'] ?? (string) reset($it))) : (string) $it);
-            $names[] = sanitize_input($value, 255);
-        }
-        $names = array_values(array_unique(array_filter($names)));
-
-        return $names ? implode("\n", $names) : null;
-    }
 
     /** Dependency untuk form (hanya yang relevan) */
     private function getFormDependencies(): array
@@ -87,7 +61,7 @@ class SuratKeputusanController extends Controller
     /** Apakah PDF harus menampilkan TTD/Cap */
     private function shouldShowSignatures(KeputusanHeader $sk): bool
     {
-        return $sk->status_surat === 'disetujui' && !empty($sk->signed_at);
+        return in_array($sk->status_surat, ['disetujui', 'terbit', 'arsip'], true) && !empty($sk->signed_at);
     }
 
     /* ==================== Daftar / List ==================== */
@@ -304,20 +278,9 @@ class SuratKeputusanController extends Controller
 
         $validatedData = $request->validated();
         $mode = $request->input('mode');
-        $status = $mode === 'pending' || $mode === 'terkirim' ? 'pending' : 'draft';
+        $status = ($mode === 'pending' || $mode === 'terkirim') ? 'pending' : 'draft';
 
-        if ($status === 'pending') {
-            if (empty($validatedData['penandatangan'])) {
-                return back()
-                    ->withErrors(['penandatangan' => 'Penandatangan wajib diisi saat pengajuan.'])
-                    ->withInput();
-            }
-            if (empty($validatedData['penerima_internal']) && empty($validatedData['penerima_eksternal'])) {
-                return back()
-                    ->withErrors(['penerima_internal' => 'Minimal satu penerima (internal/eksternal) saat pengajuan.'])
-                    ->withInput();
-            }
-        }
+        // Validasi conditional penandatangan/penerima sudah dihandle oleh StoreKeputusanRequest
 
         try {
             $sk = $this->skService->createKeputusan($validatedData, $status);
@@ -415,59 +378,29 @@ class SuratKeputusanController extends Controller
         $validatedData = $request->validated();
         $mode          = $request->input('mode');
 
+
         // ✅ Logika status yang benar
         if ($mode === 'pending' || $mode === 'terkirim') {
             // Hanya draft atau ditolak yang bisa diajukan
             if (!in_array($surat_keputusan->status_surat, ['draft', 'ditolak'], true)) {
-                \Log::warning('Update SK gagal: Status tidak valid untuk pengajuan', [
+                 \Log::warning('Update SK gagal: Status tidak valid untuk pengajuan', [
                     'sk_id'          => $surat_keputusan->id,
                     'current_status' => $surat_keputusan->status_surat,
                     'mode'           => $mode,
                 ]);
 
                 return back()
-                    ->withErrors([
-                        'mode' => "SK dengan status {$surat_keputusan->status_surat} tidak bisa diajukan.",
-                    ])
+                    ->withErrors(['mode' => "SK dengan status {$surat_keputusan->status_surat} tidak bisa diajukan."])
                     ->withInput();
             }
-
             $newStatus = 'pending';
         } elseif ($mode === 'draft') {
-            // Mode "Simpan Draft"
             $newStatus = 'draft';
-
-            \Log::info('Update SK: Mode draft dipilih', [
-                'sk_id'      => $surat_keputusan->id,
-                'old_status' => $surat_keputusan->status_surat,
-                'new_status' => 'draft',
-            ]);
         } else {
-            // Mode kosong / tidak dikenali → pertahankan status lama
             $newStatus = $surat_keputusan->status_surat;
-
-            \Log::info('Update SK: Mode tidak dikenali, status dipertahankan', [
-                'sk_id'  => $surat_keputusan->id,
-                'mode'   => $mode,
-                'status' => $newStatus,
-            ]);
         }
 
-        // ✅ Validasi penandatangan untuk pengajuan
-        if ($newStatus === 'pending') {
-            if (empty($validatedData['penandatangan']) && empty($surat_keputusan->penandatangan)) {
-                \Log::warning('Update SK gagal: Penandatangan kosong saat pengajuan', [
-                    'sk_id' => $surat_keputusan->id,
-                    'mode'  => $mode,
-                ]);
-
-                return back()
-                    ->withErrors([
-                        'penandatangan' => 'Penandatangan wajib diisi saat pengajuan.',
-                    ])
-                    ->withInput();
-            }
-        }
+        // Validasi penandatangan sudah dihandle oleh UpdateKeputusanRequest
 
         try {
             // ✅ Update SK melalui service
@@ -482,7 +415,7 @@ class SuratKeputusanController extends Controller
             ]);
 
             $message = $newStatus === 'pending'
-                ? 'Perubahan disimpan & SK diajukan kembali.'
+                ? 'Perubahan disimpan dan SK diajukan kembali.'
                 : 'SK berhasil diperbarui.';
 
             return redirect()
@@ -551,7 +484,7 @@ class SuratKeputusanController extends Controller
     {
         $this->authorize('approve', $surat_keputusan);
 
-        $assets = $this->getSigningAssets($surat_keputusan);
+        $assets = $this->pdfService->getSigningAssets($surat_keputusan);
         $preview = [
             'ttd_image_b64' => $assets['ttdImageB64'],
             'cap_image_b64' => $assets['capImageB64'],
@@ -588,7 +521,7 @@ class SuratKeputusanController extends Controller
     {
         $this->authorize('approve', $surat_keputusan);
 
-        $assets = $this->getSigningAssets($surat_keputusan);
+        $assets = $this->pdfService->getSigningAssets($surat_keputusan);
         $ttdW = (int) $request->input('ttd_w_mm', $surat_keputusan->ttd_w_mm ?? $assets['ttdW']);
         $capW = (int) $request->input('cap_w_mm', $surat_keputusan->cap_w_mm ?? $assets['capW']);
         $capOpacity = (float) $request->input('cap_opacity', $surat_keputusan->cap_opacity ?? $assets['capOpacity']);
@@ -688,7 +621,7 @@ class SuratKeputusanController extends Controller
         $surat_keputusan->load(['pembuat', 'penandatanganUser', 'attachments.uploader']);
 
         // ✅ TAMBAHKAN INI: Get signing assets (TTD & Cap)
-        $assets = $this->getSigningAssets($surat_keputusan);
+        $assets = $this->pdfService->getSigningAssets($surat_keputusan);
 
         // ✅ TAMBAHKAN INI: Tentukan apakah harus show TTD/Cap
         $showSigns = $this->shouldShowSignatures($surat_keputusan) || in_array($surat_keputusan->status_surat, ['terbit', 'arsip'], true);
@@ -852,6 +785,39 @@ class SuratKeputusanController extends Controller
             return back()->withErrors([
                 'error' => 'Terjadi kesalahan saat mengarsipkan SK. Silakan coba lagi.',
             ]);
+        }
+    }
+
+    /**
+     * Action: Buka Arsip (Restore)
+     */
+    public function bukaArsip(KeputusanHeader $surat_keputusan)
+    {
+        if (Auth::user()->peran_id !== 1) {
+            abort(403, 'Akses ditolak. Hanya Admin TU yang dapat membuka arsip.');
+        }
+
+        if ($surat_keputusan->status_surat !== 'arsip') {
+            return back()->with('error', 'Surat keputusan ini tidak sedang diarsipkan.');
+        }
+
+        try {
+            DB::transaction(function () use ($surat_keputusan) {
+                // Return to 'terbit' status as that's the pre-archive state
+                $surat_keputusan->update([
+                    'status_surat' => 'terbit',
+                    'tanggal_arsip' => null,
+                    'arsipkan_oleh' => null,
+                ]);
+            });
+
+            return redirect()->route('surat_keputusan.arsipList')->with('success', 'Surat Keputusan berhasil dikeluarkan dari arsip.');
+        } catch (\Exception $e) {
+            Log::error('Gagal membuka arsip SK', [
+                'sk_id' => $surat_keputusan->id,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Gagal membuka arsip SK: ' . $e->getMessage());
         }
     }
 
@@ -1040,7 +1006,7 @@ class SuratKeputusanController extends Controller
     public function preview(KeputusanHeader $surat_keputusan, Request $request)
     {
         $surat_keputusan->load(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap']);
-        $assets = $this->getSigningAssets($surat_keputusan);
+        $assets = $this->pdfService->getSigningAssets($surat_keputusan);
         $showSigns = $this->shouldShowSignatures($surat_keputusan);
 
         return response()
@@ -1048,62 +1014,17 @@ class SuratKeputusanController extends Controller
             ->header('X-Frame-Options', 'SAMEORIGIN');
     }
 
-    /* ==================== Private: assets & render ==================== */
-
-    private function getSigningAssets(KeputusanHeader $sk): array
-    {
-        $ttdImageB64 = null;
-        $pen = $sk->penandatanganUser;
-        if ($pen && $pen->signature && !empty($pen->signature->ttd_path)) {
-            $ttdImageB64 = $this->b64FromStorage($pen->signature->ttd_path);
-        }
-
-        $capImageB64 = null;
-        $kop = MasterKopSurat::getInstance();
-        if ($kop && !empty($kop->cap_path)) {
-            $capImageB64 = $this->b64FromStorage($kop->cap_path);
-        }
-
-        $ttdW = $sk->ttd_w_mm ?? ($pen?->signature?->default_width_mm ?? 42);
-        $capW = $sk->cap_w_mm ?? 35;
-        $capOpacity = $sk->cap_opacity ?? 0.95;
-
-        return compact('ttdImageB64', 'capImageB64', 'ttdW', 'capW', 'capOpacity', 'kop');
-    }
-
-    private function b64FromStorage($pathPublicOrLocal)
-    {
-        if (!$pathPublicOrLocal) {
-            return null;
-        }
-
-        // ✅ FIXED: Validate file path
-        $validPath = validate_file_path($pathPublicOrLocal);
-        if ($validPath === null) {
-            return null;
-        }
-
-        if (Storage::disk('local')->exists($validPath)) {
-            $raw = Storage::disk('local')->get($validPath);
-            return 'data:image/png;base64,' . base64_encode($raw);
-        }
-
-        $pub = ltrim(preg_replace('#^public/#', '', $validPath), '/');
-        if (Storage::exists('public/' . $pub)) {
-            $raw = Storage::get('public/' . $pub);
-            return 'data:image/png;base64,' . base64_encode($raw);
-        }
-
-        return null;
-    }
+    /* ==================== Private: PDF render helpers ==================== */
+    // NOTE: getSigningAssets() dan b64FromStorage() sudah dipindahkan ke SkPdfService
+    // Controller menggunakan $this->pdfService->getSigningAssets() sekarang
 
     private function renderSkPdfWithSign(KeputusanHeader $sk): string
     {
-        $assets = $this->getSigningAssets($sk);
+        $assets = $this->pdfService->getSigningAssets($sk);
 
         $html = view('surat_keputusan.surat_pdf', array_merge(['sk' => $sk, 'showSigns' => true, 'isDraft' => false], $assets))->render();
 
-        return \PDF::loadHTML($html)
+        return Pdf::loadHTML($html)
             ->setPaper('A4', 'portrait')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
@@ -1130,7 +1051,7 @@ class SuratKeputusanController extends Controller
             'capOpacity' => null,
         ])->render();
 
-        return \PDF::loadHTML($html)
+        return Pdf::loadHTML($html)
             ->setPaper('A4', 'portrait')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
@@ -1141,7 +1062,11 @@ class SuratKeputusanController extends Controller
             ->output();
     }
 
-    /** Map nilai tombol UI ke status_surat di DB */
+
+
+    /**
+     * Map nilai tombol UI ke status_surat di DB
+     */
     private function mapModeToStatus(?string $mode): ?string
     {
         return match ($mode) {
@@ -1150,6 +1075,8 @@ class SuratKeputusanController extends Controller
             default => null,
         };
     }
+
+
 
     /* ==================== FASE 1.2: Lampiran File ==================== */
 

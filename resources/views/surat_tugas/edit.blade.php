@@ -16,7 +16,7 @@
             <div>
                 <div class="header-title">Edit Surat Tugas</div>
                 <div class="header-desc mt-2">
-                    Ubah detail & ajukan ulang. Nomor:
+                    {{ ($tugas->status_surat ?? '') === 'draft' ? 'Lengkapi detail & ajukan surat.' : 'Ubah detail & ajukan ulang.' }} Nomor:
                     <span class="nomor-surat-highlight">{{ $tugas->nomor }}</span>
                 </div>
             </div>

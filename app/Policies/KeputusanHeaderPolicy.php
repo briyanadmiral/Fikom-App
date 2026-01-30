@@ -81,27 +81,39 @@ public function update(User $user, KeputusanHeader $sk): bool
     $userId      = (int) $user->id;
     $pembuatId   = (int) $sk->dibuat_oleh;
 
-    // 1) Admin TU boleh update apa saja
-    if ($userPeranId === 1) {
-        \Log::info('Policy update() DIIZINKAN: Admin TU (bypass status)');
+    // ✅ ALLOW: Jika sedang proses Duplikat (route: surat_keputusan.duplicate)
+    // Duplikasi membutuhkan akses ke SK lama, dan sistem (entah kenapa) memicu update check.
+    // Karena duplicate tidak mengubah SK lama, kita izinkan check ini.
+    if (request()->routeIs('surat_keputusan.duplicate')) {
+        \Log::info('Policy update() DIIZINKAN: Route Duplicate detected');
         return true;
     }
 
-    // 2) Normalisasi status (null => draft)
+    // 1) Normalisasi status (null => draft)
     $rawStatus     = $sk->status_surat ?? 'draft';
     $currentStatus = trim(strtolower($rawStatus));
     $allowedStatuses = ['draft', 'ditolak'];
 
+    // STRICT: Status harus Draft/Ditolak. 
+    // Pending/Disetujui/Terbit/Arsip TIDAK BOLEH diedit langsung (harus via Reopen/Revision flow).
     if (! in_array($currentStatus, $allowedStatuses, true)) {
-        \Log::warning('Policy update() DITOLAK: Status tidak valid untuk non-admin', [
+        \Log::warning('Policy update() DITOLAK: Status tidak valid untuk edit', [
             'current_status'   => $sk->status_surat,
             'normalized'       => $currentStatus,
             'allowed_statuses' => $allowedStatuses,
+            'user_role'        => $userPeranId
         ]);
         return false;
     }
 
-    // 3) Pembuat sendiri boleh update draft/ditolak
+    // 2) Jika Status OK:
+    // Admin TU boleh edit draft punya siapa saja
+    if ($userPeranId === 1) {
+        \Log::info('Policy update() DIIZINKAN: Admin TU (Draft/Ditolak)');
+        return true;
+    }
+
+    // 3) Pembuat sendiri boleh update draft punya sendiri
     if ($userId > 0 && $pembuatId > 0 && $userId === $pembuatId) {
         \Log::info('Policy update() DIIZINKAN: User adalah pembuat SK');
         return true;

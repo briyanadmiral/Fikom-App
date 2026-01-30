@@ -97,6 +97,11 @@ Route::middleware('check.session.role')->group(function () {
             Route::post('/', [TugasController::class, 'store'])->name('store');
             Route::get('tugas_saya', [TugasController::class, 'mine'])->name('mine');
             Route::get('semua', [TugasController::class, 'all'])->name('all');
+            
+            // Arsip: khusus Admin TU (peran_id 1)
+            Route::get('arsip', [TugasController::class, 'arsipList'])
+                ->name('arsipList')
+                ->middleware('can:viewAny,App\Models\TugasHeader');
 
             Route::get('approve-list', [TugasController::class, 'approveList'])
                 ->name('approveList')
@@ -134,10 +139,19 @@ Route::middleware('check.session.role')->group(function () {
                 ->whereNumber('tugas')
                 ->middleware('can:view,tugas');
 
+            // ✅ UNARCHIVE ACTION
+            Route::post('{tugas}/buka-arsip', [TugasController::class, 'bukaArsip'])
+                ->name('buka-arsip')
+                ->whereNumber('tugas');
+
             Route::get('{tugas}/download-pdf', [TugasController::class, 'downloadPdf'])
                 ->name('downloadPdf')
                 ->whereNumber('tugas')
                 ->middleware('can:view,tugas');
+
+            Route::post('{tugas}/arsipkan', [TugasController::class, 'arsipkan'])
+                ->name('arsipkan')
+                ->whereNumber('tugas');
 
             Route::get('{tugas}/preview', [TugasController::class, 'preview'])
                 ->name('preview')
@@ -155,7 +169,7 @@ Route::middleware('check.session.role')->group(function () {
                 ->whereNumber('tugas')
                 ->middleware('can:update,tugas');
             // 🔹 akhir detail
-
+    
             Route::post('{tugas}/penerima', [TugasController::class, 'addRecipient'])
                 ->name('recipient.add')
                 ->middleware('can:addRecipient,tugas')
@@ -253,6 +267,7 @@ Route::middleware('check.session.role')->group(function () {
     Route::patch('notifikasi/{id}/read', [NotifikasiController::class, 'markAsRead'])
         ->name('notifikasi.read')
         ->whereNumber('id');
+    Route::post('notifikasi/prune', [NotifikasiController::class, 'prune'])->name('notifikasi.prune');
     Route::patch('notifikasi/mark-all-read', [NotifikasiController::class, 'markAllAsRead'])->name('notifikasi.markAllRead');
 
     // 8) Surat Keputusan (SK)
@@ -362,37 +377,33 @@ Route::middleware('check.session.role')->group(function () {
                 ->name('show')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:view,surat_keputusan');
+            
+            // ✅ UNARCHIVE ACTION
+            Route::post('{surat_keputusan}/buka-arsip', [SuratKeputusanController::class, 'bukaArsip'])
+                ->name('buka-arsip')
+                ->whereNumber('surat_keputusan');
 
             // ✅ FASE 1.2: Lampiran file routes (NESTED RESOURCE)
             Route::prefix('{surat_keputusan}')
                 ->whereNumber('surat_keputusan')
                 ->group(function () {
-                    // ✅ PERBAIKAN: Hapus middleware dari upload & delete attachment
-                    Route::post('/attachments', [SuratKeputusanController::class, 'uploadAttachment'])->name('attachments.upload');
+                // ✅ PERBAIKAN: Hapus middleware dari upload & delete attachment
+                Route::post('/attachments', [SuratKeputusanController::class, 'uploadAttachment'])->name('attachments.upload');
 
-                    Route::get('/attachments/{attachment}', [SuratKeputusanController::class, 'downloadAttachment'])
-                        ->name('attachments.download')
-                        ->whereNumber('attachment')
-                        ->middleware('can:view,surat_keputusan');
+                Route::get('/attachments/{attachment}', [SuratKeputusanController::class, 'downloadAttachment'])
+                    ->name('attachments.download')
+                    ->whereNumber('attachment')
+                    ->middleware('can:view,surat_keputusan');
 
-                    Route::delete('/attachments/{attachment}', [SuratKeputusanController::class, 'deleteAttachment'])
-                        ->name('attachments.delete')
-                        ->whereNumber('attachment');
-                });
+                Route::delete('/attachments/{attachment}', [SuratKeputusanController::class, 'deleteAttachment'])
+                    ->name('attachments.delete')
+                    ->whereNumber('attachment');
+            });
         });
 
     Route::get('/surat-keputusan/{any?}', [RedirectController::class, 'legacySk'])->where('any', '.*');
 
-    // 9) Kop Surat (LEGACY ENTRYPOINT)
-    // Route lama ini menyebabkan mismatch signature (update/deleteImage tanpa {id}).
-    // Kita jadikan sebagai redirect ke halaman multi-template yang benar.
-    Route::get('/pengaturan/kop-surat', function () {
-        return redirect()->route('master_kop.index');
-    })
-        ->name('kop.index')
-        ->middleware('can:manage-kop-surat');
-
-    // NOTE: route kop.update / kop.delete-image lama DIHAPUS agar tidak menabrak signature controller.
+    // NOTE: Kop Surat routes dipindahkan ke section 24 (Kop Surat Settings)
 
     Route::get('/kop-surat/ttd-saya', [MySignatureController::class, 'edit'])->name('kop.ttd.edit');
     Route::post('/kop-surat/ttd-saya', [MySignatureController::class, 'update'])->name('kop.ttd.update');
@@ -415,7 +426,10 @@ Route::middleware('check.session.role')->group(function () {
         ->whereNumber('id');
 
     // 12) Audit Logs (Admin only)
-    Route::get('/pengaturan/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit.index');
+    Route::get('/pengaturan/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit_logs.index');
+    Route::get('/pengaturan/audit-logs/export', [\App\Http\Controllers\AuditLogController::class, 'export'])->name('audit_logs.export');
+    Route::post('/pengaturan/audit-logs/prune', [\App\Http\Controllers\AuditLogController::class, 'prune'])->name('audit_logs.prune');
+    Route::get('/pengaturan/audit-logs/{audit_log}', [\App\Http\Controllers\AuditLogController::class, 'show'])->name('audit_logs.show');
     Route::get('/ajax/audit-logs/entity', [\App\Http\Controllers\AuditLogController::class, 'forEntity'])->name('ajax.audit.entity');
 
     // ==================== PHASE 2 & 3 ROUTES ====================
@@ -461,18 +475,9 @@ Route::middleware('check.session.role')->group(function () {
             Route::get('/export/pdf', [\App\Http\Controllers\ReportController::class, 'exportPdf'])->name('export.pdf');
         });
 
-    // 17) Audit Logs (aliased)
-    Route::get('/pengaturan/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit_logs.index');
+    // NOTE: Audit Logs sudah didefinisikan di section 12 dengan nama 'audit_logs.index'
 
-    // 18) Recipient Import (ST)
-    Route::prefix('surat-tugas/import-penerima')
-        ->name('recipient_import.')
-        ->group(function () {
-            Route::get('/', [\App\Http\Controllers\RecipientImportController::class, 'index'])->name('index');
-            Route::post('/preview', [\App\Http\Controllers\RecipientImportController::class, 'preview'])->name('preview');
-            Route::post('/confirm', [\App\Http\Controllers\RecipientImportController::class, 'confirm'])->name('confirm');
-            Route::get('/template', [\App\Http\Controllers\RecipientImportController::class, 'downloadTemplate'])->name('template');
-        });
+    // 18) Recipient Import (ST) - dipindahkan ke section 23 sebagai 'import.penerima.*'
 
     // 19) Signature Capture
     Route::prefix('signature')
@@ -521,7 +526,7 @@ Route::middleware('check.session.role')->group(function () {
         Route::post('/pengaturan/kop-surat/apply-preset', [MasterKopSuratController::class, 'applyPreset'])->name('kop.apply-preset');
         Route::get('/pengaturan/kop-surat/export', [MasterKopSuratController::class, 'export'])->name('kop.export');
         Route::post('/pengaturan/kop-surat/import', [MasterKopSuratController::class, 'import'])->name('kop.import');
-        
+
         // Generic routes LAST
         Route::get('/pengaturan/kop-surat', [MasterKopSuratController::class, 'index'])->name('kop.index');
         Route::put('/pengaturan/kop-surat', [MasterKopSuratController::class, 'update'])->name('kop.update');

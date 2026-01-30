@@ -37,6 +37,8 @@ class ReportController extends Controller
                 ->whereMonth('created_at', $bulanIni)->count(),
             'pending_st' => TugasHeader::where('status_surat', 'pending')->count(),
             'pending_sk' => KeputusanHeader::where('status_surat', 'pending')->count(),
+            'pending_review' => TugasHeader::where('status_surat', 'pending')->count() +
+                                KeputusanHeader::where('status_surat', 'pending')->count(),
             'disetujui_st' => TugasHeader::whereYear('created_at', $tahun)
                 ->where('status_surat', 'disetujui')->count(),
             'disetujui_sk' => KeputusanHeader::whereYear('created_at', $tahun)

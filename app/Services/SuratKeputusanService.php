@@ -39,6 +39,7 @@ class SuratKeputusanService
             return DB::transaction(function () use ($validatedData, $status) {
                 $data = $this->prepareDataForSave($validatedData);
                 $data['status_surat'] = $status;
+                if (isset($data['status'])) unset($data['status']); // ✅ FIX: Prevent unknown column error
 
                 // ✅ ADDED: Validate auth user
                 $userId = validate_integer_id(Auth::id());

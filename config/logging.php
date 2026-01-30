@@ -127,6 +127,15 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        // ✅ ADDED: Security log channel untuk security events
+        'security' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/security.log'),
+            'level' => 'info',
+            'days' => 90, // Simpan lebih lama untuk audit
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

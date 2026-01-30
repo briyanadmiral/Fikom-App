@@ -182,7 +182,7 @@
   .sheet {
     width: 210mm; min-height: auto; height: auto; margin: 8mm auto;
     background: #fff; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,.08);
-    padding: 38mm 16mm 24mm 16mm; /* ruang kop & footer web preview */
+    padding: 55mm 16mm 24mm 16mm; /* ruang kop & footer web preview */
     font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.35;
   }
 
@@ -257,7 +257,7 @@
 <div class="sheet">
   {{-- Kop selalu tampil di web preview --}}
   @if($kop)
-    <div class="kop-wrap" style="position: absolute; top: 10mm; left: 15mm; right: 15mm;">
+    <div class="kop-wrap" style="position: absolute; top: 0; left: 0; right: 0;">
       @include('shared._kop_surat', ['context' => 'web', 'kop' => $kop, 'showDivider' => true])
     </div>
   @endif

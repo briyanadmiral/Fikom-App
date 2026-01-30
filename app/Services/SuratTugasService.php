@@ -389,21 +389,24 @@ class SuratTugasService
     /**
      * Pastikan bulan romawi valid dari input angka/romawi
      */
+    /**
+     * Pastikan bulan romawi valid dari input angka/romawi
+     */
     private function ensureBulanRomawi($value): string
     {
+        $value = strtoupper(trim((string) $value));
         $romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-        $upper = strtoupper(trim((string) $value));
 
-        if (in_array($upper, $romans, true)) {
-            return $upper;
+        if (in_array($value, $romans, true)) {
+            return $value;
         }
 
         $n = validate_integer_id($value);
         if ($n && $n >= 1 && $n <= 12) {
-            return $romans[$n - 1];
+            return $this->nomorService->toRoman($n);
         }
 
-        return 'I';
+        return 'I'; // Default fallback
     }
 
     /**

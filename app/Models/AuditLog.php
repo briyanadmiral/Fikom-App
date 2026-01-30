@@ -245,6 +245,69 @@ class AuditLog extends Model
         ];
     }
 
+    /**
+     * Get browser and OS info from user_agent
+     */
+    public function getBrowserInfoAttribute(): string
+    {
+        if (empty($this->user_agent)) {
+            return '-';
+        }
+
+        $agent = $this->user_agent;
+        $browser = 'Unknown Browser';
+        $os = 'Unknown OS';
+
+        // Simple detection to avoid heavy dependencies
+        if (preg_match('/Firefox\/([0-9.]+)/', $agent, $matches)) {
+            $browser = 'Firefox ' . intval($matches[1]);
+        } elseif (preg_match('/Chrome\/([0-9.]+)/', $agent, $matches)) {
+            $browser = 'Chrome ' . intval($matches[1]);
+        } elseif (preg_match('/Safari\/([0-9.]+)/', $agent, $matches)) {
+            $browser = 'Safari ' . intval($matches[1]);
+        } elseif (preg_match('/Edge\/([0-9.]+)/', $agent, $matches)) {
+            $browser = 'Edge ' . intval($matches[1]);
+        } elseif (strpos($agent, 'MSIE') !== false || strpos($agent, 'Trident') !== false) {
+            $browser = 'Internet Explorer';
+        }
+
+        if (strpos($agent, 'Windows') !== false) {
+            $os = 'Windows';
+        } elseif (strpos($agent, 'Macintosh') !== false) {
+            $os = 'macOS';
+        } elseif (strpos($agent, 'Linux') !== false) {
+            $os = 'Linux';
+        } elseif (strpos($agent, 'Android') !== false) {
+            $os = 'Android';
+        } elseif (strpos($agent, 'iPhone') !== false || strpos($agent, 'iPad') !== false) {
+            $os = 'iOS';
+        }
+
+        return "{$browser} on {$os}";
+    }
+
+    /**
+     * Get route to entity details
+     */
+    public function getEntityRouteAttribute(): ?string
+    {
+        if (empty($this->entity_id) || empty($this->entity_type)) {
+            return null;
+        }
+
+        try {
+            return match ($this->entity_type) {
+                'TugasHeader' => route('surat_tugas.show', $this->entity_id),
+                'KeputusanHeader' => route('surat_keputusan.show', $this->entity_id),
+                'User' => route('users.show', $this->entity_id),
+                'SuratTemplate' => route('surat_templates.edit', $this->entity_id), // Templates usually edited
+                default => null,
+            };
+        } catch (\Exception $e) {
+            return null; // Route might not exist
+        }
+    }
+
     // ==================== MODEL EVENTS ====================
 
     protected static function boot()

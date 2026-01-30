@@ -724,6 +724,21 @@
                                                     @endcan
                                                 @endif
 
+                                                {{-- 6b. Batalkan Arsip (Restore) --}}
+                                                @if ($h->status_surat === 'arsip' && auth()->user()->peran_id === 1)
+                                                    <form
+                                                        action="{{ route('surat_keputusan.buka-arsip', ['surat_keputusan' => $h->id]) }}"
+                                                        method="POST" style="display: inline;">
+                                                        @csrf
+                                                        <button type="button"
+                                                                class="dropdown-item text-primary w-100 text-left btn-batalkan-arsip-sk"
+                                                                data-nomor="{{ $h->nomor ?? '' }}">
+                                                            <i class="fas fa-box-open"></i> Batalkan Arsip
+                                                        </button>
+                                                    </form>
+                                                    <div class="dropdown-divider"></div>
+                                                @endif
+
                                                 {{-- 7. Hapus Draft --}}
                                                 @if ($h->status_surat === 'draft')
                                                     @can('delete', $h)
@@ -972,6 +987,25 @@
                     icon: 'warning',
                     confirmButtonColor: '#ffc107',
                     confirmButtonText: '<i class="fas fa-undo"></i> Ya, Batalkan Penerbitan'
+                });
+
+                if (ok) {
+                    $form.trigger('submit');
+                }
+            });
+
+            // ✅ EVENT HANDLER BATALKAN ARSIP (RESTORE) SK
+            $(document).on('click', '.btn-batalkan-arsip-sk', async function (e) {
+                e.preventDefault();
+                const $form = $(this).closest('form');
+                const nomor = $(this).data('nomor') || '—';
+
+                const ok = await confirmAction({
+                    title: 'Batalkan Arsip SK?',
+                    html: `SK <b>${nomor}</b> akan dikembalikan ke status <b>Terbit/Disetujui</b>.`,
+                    icon: 'warning',
+                    confirmButtonColor: '#007bff',
+                    confirmButtonText: '<i class="fas fa-box-open"></i> Ya, Batalkan Arsip'
                 });
 
                 if (ok) {
