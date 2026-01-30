@@ -1,10 +1,11 @@
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
+<aside class="main-sidebar sidebar-dark-primary elevation-4" style="display: flex; flex-direction: column; height: 100vh; position: fixed;">
     <a href="{{ url('/') }}" class="brand-link"
         style="background-color: #4b0082 !important; /* Ungu gelap solid */
                border-bottom: 4px solid #8B5CF6 !important;
                text-align: center;
                padding: 1.5rem 1rem 2rem 1rem;
-               box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);">
+               box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+               flex-shrink: 0;">
         <span
             style="color: transparent;
                      font-weight: 700;
@@ -37,7 +38,7 @@
         </span>
     </a>
 
-    <div class="sidebar">
+    <div class="sidebar" style="flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%;">
         @auth
             <div class="user-panel mt-3 pb-3 mb-3 d-flex"
                 style="background: rgba(139, 92, 246, 0.08); 
