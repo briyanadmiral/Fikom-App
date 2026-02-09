@@ -1,11 +1,13 @@
 <?php
+
 // database/migrations/2025_06_02_053924_create_tugas_versi_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('tugas_versi', function (Blueprint $table) {

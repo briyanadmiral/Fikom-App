@@ -3,14 +3,15 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * ✅ IMPROVED: Enhanced sanitization & validation for Update Surat Tugas
  *
  * @version 2.0.0
+ *
  * @date 2025-12-06
  */
 class UpdateTugasRequest extends FormRequest
@@ -47,7 +48,7 @@ class UpdateTugasRequest extends FormRequest
 
             'jenis_tugas' => ['required', 'string', 'max:100', 'regex:/^[\p{L}\p{N}\s\-\.,()]+$/u'],
 
-            'tugas' => ['required', 'string', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'tugas' => ['nullable', 'string', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
 
             // === Optional Rich Text ===
             'detail_tugas' => ['nullable', 'string', 'max:65000'],
@@ -68,7 +69,7 @@ class UpdateTugasRequest extends FormRequest
             'status_penerima' => ['sometimes', 'nullable', 'string', 'in:dosen,tendik,mahasiswa'],
             'tahun' => ['required', 'integer', 'digits:4', 'min:2000', 'max:2100'],
             'semester' => ['required', 'string', 'in:Ganjil,Genap'],
-            'bulan' => ['required', 'string', 'regex:/^(I{1,3}|IV|V|VI{0,3}|IX|X|XI{0,2})$/i'],
+            'bulan' => ['required', 'string', 'regex:/^(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)$/i'],
 
             // === Nomor Surat (with unique ignore) ===
             'nomor' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->ignore($tugasId)->whereNull('deleted_at')],
@@ -162,7 +163,7 @@ class UpdateTugasRequest extends FormRequest
         // ====================================================================
         // STEP 4: Sanitize RICH TEXT fields (allow limited HTML)
         // ====================================================================
-        if ($this->has('detail_tugas') && !empty($this->input('detail_tugas'))) {
+        if ($this->has('detail_tugas') && ! empty($this->input('detail_tugas'))) {
             $value = $this->input('detail_tugas');
 
             // ✅ Use helper for HTML sanitization
@@ -181,7 +182,7 @@ class UpdateTugasRequest extends FormRequest
             $sanitized = [];
 
             foreach ($this->input('penerima_eksternal') as $penerima) {
-                if (!is_array($penerima)) {
+                if (! is_array($penerima)) {
                     continue;
                 }
 
@@ -194,7 +195,7 @@ class UpdateTugasRequest extends FormRequest
 
             $this->merge([
                 'penerima_eksternal' => array_filter($sanitized, function ($p) {
-                    return !empty($p['nama']) && !empty($p['jabatan']);
+                    return ! empty($p['nama']) && ! empty($p['jabatan']);
                 }),
             ]);
         }
@@ -204,7 +205,7 @@ class UpdateTugasRequest extends FormRequest
         // ====================================================================
         if ($this->has('nomor_urut')) {
             $value = $this->input('nomor_urut');
-            
+
             // Convert empty string to null
             if ($value === '' || $value === null) {
                 $this->merge(['nomor_urut' => null]);
@@ -214,9 +215,9 @@ class UpdateTugasRequest extends FormRequest
             } else {
                 // ✅ FIX: Strip non-numeric prefix (e.g., 'ST-001' -> '001')
                 $cleaned = preg_replace('/^[^0-9]+/', '', (string) $value);
-                
+
                 // If result is still not purely numeric, set to null
-                if ($cleaned === '' || !preg_match('/^[0-9]+$/', $cleaned)) {
+                if ($cleaned === '' || ! preg_match('/^[0-9]+$/', $cleaned)) {
                     $this->merge(['nomor_urut' => null]);
                     Log::warning('UpdateTugasRequest: nomor_urut invalid format, set to null', [
                         'original_value' => $value,
@@ -238,7 +239,7 @@ class UpdateTugasRequest extends FormRequest
         if ($this->filled('status_penerima')) {
             $status = mb_strtolower(trim((string) $this->input('status_penerima')));
 
-            if (!in_array($status, ['dosen', 'tendik', 'mahasiswa'], true)) {
+            if (! in_array($status, ['dosen', 'tendik', 'mahasiswa'], true)) {
                 $status = null;
             }
 
@@ -313,7 +314,7 @@ class UpdateTugasRequest extends FormRequest
         // STEP 10: Validate PENERIMA INTERNAL array
         // ====================================================================
         if (is_array($this->input('penerima_internal'))) {
-            $validated = collect($this->input('penerima_internal'))->map(fn($v) => validate_integer_id($v))->filter(fn($v) => $v !== null)->unique()->values()->all();
+            $validated = collect($this->input('penerima_internal'))->map(fn ($v) => validate_integer_id($v))->filter(fn ($v) => $v !== null)->unique()->values()->all();
 
             $this->merge(['penerima_internal' => $validated]);
         }
@@ -400,7 +401,7 @@ class UpdateTugasRequest extends FormRequest
         }
 
         // Clean and deduplicate
-        $normalized = collect($items)->map(fn($s) => trim((string) $s))->filter()->unique(fn($s) => mb_strtolower($s))->values()->all();
+        $normalized = collect($items)->map(fn ($s) => trim((string) $s))->filter()->unique(fn ($s) => mb_strtolower($s))->values()->all();
 
         return implode("\n", $normalized);
     }
@@ -414,7 +415,7 @@ class UpdateTugasRequest extends FormRequest
 
         $hasEksternal = is_array($this->input('penerima_eksternal')) && count($this->input('penerima_eksternal')) > 0;
 
-        if (!$hasInternal && !$hasEksternal) {
+        if (! $hasInternal && ! $hasEksternal) {
             Log::warning('UpdateTugasRequest: No penerima provided', [
                 'tugas_id' => $this->route('tugas')->id ?? null,
                 'user_id' => auth()->id(),

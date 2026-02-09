@@ -4,28 +4,26 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreKeputusanRequest;
 use App\Http\Requests\UpdateKeputusanRequest;
-use App\Http\Requests\AttachmentRequest; // ✅ (optional, kalau mau pakai)
-use App\Models\KeputusanHeader;
-use App\Models\KeputusanAttachment; // ✅ FASE 1.2 - TAMBAHKAN INI
+// ✅ (optional, kalau mau pakai)
+use App\Models\KeputusanAttachment;
+use App\Models\KeputusanHeader; // ✅ FASE 1.2 - TAMBAHKAN INI
 use App\Models\MasterKopSurat;
-use App\Models\User; // ✅ Tambahkan kalau belum ada
-use App\Services\NomorSuratService;
-use App\Services\SuratKeputusanService;
-use App\Services\SuratKeputusanNotificationService;
+use App\Models\Notifikasi; // ✅ Tambahkan kalau belum ada
+use App\Models\User;
 use App\Services\SkPdfService;
+use App\Services\SuratKeputusanService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-use Mews\Purifier\Facades\Purifier;
-use App\Models\Notifikasi;
 
 class SuratKeputusanController extends Controller
 {
     protected SuratKeputusanService $skService;
+
     protected SkPdfService $pdfService;
 
     public function __construct(SuratKeputusanService $skService, SkPdfService $pdfService)
@@ -35,8 +33,6 @@ class SuratKeputusanController extends Controller
     }
 
     /* ==================== Helpers umum ==================== */
-
-
 
     /** Dependency untuk form (hanya yang relevan) */
     private function getFormDependencies(): array
@@ -61,7 +57,7 @@ class SuratKeputusanController extends Controller
     /** Apakah PDF harus menampilkan TTD/Cap */
     private function shouldShowSignatures(KeputusanHeader $sk): bool
     {
-        return in_array($sk->status_surat, ['disetujui', 'terbit', 'arsip'], true) && !empty($sk->signed_at);
+        return in_array($sk->status_surat, ['disetujui', 'terbit', 'arsip'], true) && ! empty($sk->signed_at);
     }
 
     /* ==================== Daftar / List ==================== */
@@ -229,12 +225,15 @@ class SuratKeputusanController extends Controller
         return view('surat_keputusan.index', compact('list', 'stats', 'mode'));
     }
 
-    /** Keputusan saya = SK yang mencantumkan saya sebagai penerima */
+    /** Keputusan saya = SK yang saya buat atau yang mencantumkan saya sebagai penerima */
     public function mine()
     {
         $userId = Auth::id();
         $list = KeputusanHeader::with(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap'])
-            ->whereHas('penerima', fn($q) => $q->whereKey($userId))
+            ->where(function ($query) use ($userId) {
+                $query->whereHas('penerima', fn ($q) => $q->whereKey($userId))
+                    ->orWhere('dibuat_oleh', $userId);
+            })
             ->orderByDesc('created_at')
             ->get();
 
@@ -285,7 +284,7 @@ class SuratKeputusanController extends Controller
         try {
             $sk = $this->skService->createKeputusan($validatedData, $status);
 
-            $message = $status === 'draft' ? 'Draft SK berhasil disimpan.' : 'SK berhasil diajukan ke penandatangan.';
+            $message = $status === 'draft' ? 'Surat Keputusan berhasil disimpan.' : 'SK berhasil diajukan ke penandatangan.';
 
             return redirect()->route('surat_keputusan.index')->with('success', $message);
         } catch (\Illuminate\Database\QueryException $e) {
@@ -336,23 +335,21 @@ class SuratKeputusanController extends Controller
         );
     }
 
-        /**
+    /**
      * ✅ Update SK dengan validasi status dan mode yang benar
      *
-     * @param  \App\Http\Requests\UpdateKeputusanRequest  $request
-     * @param  \App\Models\KeputusanHeader  $surat_keputusan
      * @return \Illuminate\Http\RedirectResponse
      */
     public function update(UpdateKeputusanRequest $request, KeputusanHeader $surat_keputusan)
     {
         // ✅ DEBUG: Log request untuk tracking
         \Log::info('SuratKeputusanController update() dipanggil', [
-            'user_id'        => auth()->id(),
-            'user_peran_id'  => auth()->user()->peran_id,
-            'sk_id'          => $surat_keputusan->id,
-            'sk_status'      => $surat_keputusan->status_surat,
+            'user_id' => auth()->id(),
+            'user_peran_id' => auth()->user()->peran_id,
+            'sk_id' => $surat_keputusan->id,
+            'sk_status' => $surat_keputusan->status_surat,
             'sk_dibuat_oleh' => $surat_keputusan->dibuat_oleh,
-            'mode'           => $request->input('mode'),
+            'mode' => $request->input('mode'),
         ]);
 
         // ✅ Authorization check dengan error handling
@@ -360,33 +357,32 @@ class SuratKeputusanController extends Controller
             $this->authorize('update', $surat_keputusan);
         } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
             \Log::warning('Update SK unauthorized', [
-                'user_id'        => auth()->id(),
-                'user_peran_id'  => auth()->user()->peran_id,
-                'sk_id'          => $surat_keputusan->id,
-                'sk_status'      => $surat_keputusan->status_surat,
+                'user_id' => auth()->id(),
+                'user_peran_id' => auth()->user()->peran_id,
+                'sk_id' => $surat_keputusan->id,
+                'sk_status' => $surat_keputusan->status_surat,
                 'sk_dibuat_oleh' => $surat_keputusan->dibuat_oleh,
-                'error'          => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
             return back()
                 ->withErrors([
-                    'authorization' => 'Anda tidak memiliki akses untuk mengubah SK ini. Status: ' . $surat_keputusan->status_surat,
+                    'authorization' => 'Anda tidak memiliki akses untuk mengubah SK ini. Status: '.$surat_keputusan->status_surat,
                 ])
                 ->withInput();
         }
 
         $validatedData = $request->validated();
-        $mode          = $request->input('mode');
-
+        $mode = $request->input('mode');
 
         // ✅ Logika status yang benar
         if ($mode === 'pending' || $mode === 'terkirim') {
             // Hanya draft atau ditolak yang bisa diajukan
-            if (!in_array($surat_keputusan->status_surat, ['draft', 'ditolak'], true)) {
-                 \Log::warning('Update SK gagal: Status tidak valid untuk pengajuan', [
-                    'sk_id'          => $surat_keputusan->id,
+            if (! in_array($surat_keputusan->status_surat, ['draft', 'ditolak'], true)) {
+                \Log::warning('Update SK gagal: Status tidak valid untuk pengajuan', [
+                    'sk_id' => $surat_keputusan->id,
                     'current_status' => $surat_keputusan->status_surat,
-                    'mode'           => $mode,
+                    'mode' => $mode,
                 ]);
 
                 return back()
@@ -407,11 +403,11 @@ class SuratKeputusanController extends Controller
             $sk = $this->skService->updateKeputusan($surat_keputusan, $validatedData, $newStatus);
 
             \Log::info('Update SK berhasil', [
-                'sk_id'      => $sk->id,
+                'sk_id' => $sk->id,
                 'old_status' => $surat_keputusan->status_surat,
                 'new_status' => $sk->status_surat,
-                'mode'       => $mode,
-                'nomor'      => $sk->nomor,
+                'mode' => $mode,
+                'nomor' => $sk->nomor,
             ]);
 
             $message = $newStatus === 'pending'
@@ -441,7 +437,7 @@ class SuratKeputusanController extends Controller
             \Log::error('Update SK gagal: Database error', [
                 'sk_id' => $surat_keputusan->id,
                 'error' => $e->getMessage(),
-                'code'  => $e->getCode(),
+                'code' => $e->getCode(),
             ]);
 
             return back()
@@ -471,7 +467,7 @@ class SuratKeputusanController extends Controller
     {
         $this->authorize('submit', $surat_keputusan);
 
-        if (!$surat_keputusan->penandatangan) {
+        if (! $surat_keputusan->penandatangan) {
             return back()->withErrors(['penandatangan' => 'Penandatangan wajib diisi sebelum pengajuan.']);
         }
 
@@ -505,7 +501,7 @@ class SuratKeputusanController extends Controller
             'ttdW' => $preview['ttd_w_mm'],
             'capW' => $preview['cap_w_mm'],
             'capOpacity' => $preview['cap_opacity'],
-            
+
             'ttdX' => $preview['ttd_x_mm'],
             'ttdY' => $preview['ttd_y_mm'],
             'capX' => $preview['cap_x_mm'],
@@ -525,7 +521,7 @@ class SuratKeputusanController extends Controller
         $ttdW = (int) $request->input('ttd_w_mm', $surat_keputusan->ttd_w_mm ?? $assets['ttdW']);
         $capW = (int) $request->input('cap_w_mm', $surat_keputusan->cap_w_mm ?? $assets['capW']);
         $capOpacity = (float) $request->input('cap_opacity', $surat_keputusan->cap_opacity ?? $assets['capOpacity']);
-        
+
         // Offsets
         $ttdX = (int) $request->input('ttd_x_mm', $surat_keputusan->ttd_config['x'] ?? 0);
         $ttdY = (int) $request->input('ttd_y_mm', $surat_keputusan->ttd_config['y'] ?? 0);
@@ -577,13 +573,13 @@ class SuratKeputusanController extends Controller
                 'x' => $validated['cap_x_mm'] ?? 0,
                 'y' => $validated['cap_y_mm'] ?? 0,
             ];
-            
+
             // Simpan legacy columns juga jika perlu
             $surat_keputusan->ttd_w_mm = $validated['ttd_w_mm'];
             $surat_keputusan->cap_w_mm = $validated['cap_w_mm'];
             $surat_keputusan->cap_opacity = $validated['cap_opacity'];
             $surat_keputusan->save(); // Ensure config is saved
-            
+
             // Simpan perubahan config ke DB dulu agar persistent?
             // Service 'approveAndGenerateNumber' mungkin melakukan save() sendiri.
             // Kita update instance model di memori, lalu service melakukan update status & nomor.
@@ -595,20 +591,21 @@ class SuratKeputusanController extends Controller
             $sk = $this->skService->approveAndGenerateNumber($surat_keputusan, $validated);
 
             $pdfBytes = $this->renderSkPdfWithSign($sk);
-            $pdfPath = "private/surat_keputusan/signed/{$sk->id}_" . md5((string) ($sk->nomor ?? '')) . '.pdf';
+            $pdfPath = "private/surat_keputusan/signed/{$sk->id}_".md5((string) ($sk->nomor ?? '')).'.pdf';
             Storage::disk('local')->put($pdfPath, $pdfBytes);
             $sk->update(['signed_pdf_path' => $pdfPath]);
 
             return redirect()
                 ->route('surat_keputusan.approveList')
-                ->with('success', 'SK ' . $sk->nomor . ' berhasil disetujui.');
+                ->with('success', 'SK '.$sk->nomor.' berhasil disetujui.');
         } catch (\Throwable $e) {
             DB::rollBack();
             // ✅ FIXED: Sanitize log message
-            Log::error('Gagal approve SK #' . $surat_keputusan->id, [
+            Log::error('Gagal approve SK #'.$surat_keputusan->id, [
                 'error' => sanitize_log_message($e->getMessage()),
                 'user_id' => auth()->id(),
             ]);
+
             return back()->with('error', 'Terjadi kesalahan saat menyetujui SK.');
         }
     }
@@ -646,7 +643,7 @@ class SuratKeputusanController extends Controller
 
         $this->skService->rejectKeputusan($surat_keputusan, $note);
 
-        return back()->with('success', 'SK ditolak dan dikembalikan ke pembuat' . ($note ? ' (catatan dikirim).' : '.'));
+        return back()->with('success', 'SK ditolak dan dikembalikan ke pembuat'.($note ? ' (catatan dikirim).' : '.'));
     }
 
     public function reopen(KeputusanHeader $surat_keputusan)
@@ -670,7 +667,7 @@ class SuratKeputusanController extends Controller
                     'pengguna_id' => (int) $surat_keputusan->penandatangan,
                     'tipe' => 'surat_keputusan',
                     'referensi_id' => (int) $surat_keputusan->id,
-                    'pesan' => 'SK ' . ($surat_keputusan->nomor ?? '(tanpa nomor)') . ' ditarik ke Draft oleh ' . auth()->user()->nama_lengkap . '.',
+                    'pesan' => 'SK '.($surat_keputusan->nomor ?? '(tanpa nomor)').' ditarik ke Draft oleh '.auth()->user()->nama_lengkap.'.',
                     'dibaca' => false,
                     'dibuat_pada' => now(),
                 ]);
@@ -708,14 +705,14 @@ class SuratKeputusanController extends Controller
                         'pengguna_id' => $penerima->id,
                         'tipe' => 'surat_keputusan',
                         'referensi_id' => $surat_keputusan->id,
-                        'pesan' => 'SK "' . $surat_keputusan->tentang . '" telah diterbitkan dan berlaku efektif.',
+                        'pesan' => 'SK "'.$surat_keputusan->tentang.'" telah diterbitkan dan berlaku efektif.',
                         'dibaca' => false,
                         'dibuat_pada' => now(),
                     ]);
                 }
 
                 // ✅ Kirim email ke penerima eksternal (alamat email di luar sistem)
-                if (!empty($surat_keputusan->penerima_eksternal)) {
+                if (! empty($surat_keputusan->penerima_eksternal)) {
                     foreach ($surat_keputusan->penerima_eksternal as $emailEksternal) {
                         \App\Jobs\SendSkEmail::dispatch($surat_keputusan->id, $emailEksternal)->delay(now()->addSeconds(5));
                     }
@@ -724,9 +721,9 @@ class SuratKeputusanController extends Controller
 
             return redirect()
                 ->route('surat_keputusan.terbitList')
-                ->with('success', 'SK berhasil diterbitkan pada ' . now()->format('d M Y H:i') . ' WIB.');
+                ->with('success', 'SK berhasil diterbitkan pada '.now()->format('d M Y H:i').' WIB.');
         } catch (\Exception $e) {
-            \Log::error('Gagal menerbitkan SK: ' . $e->getMessage(), [
+            \Log::error('Gagal menerbitkan SK: '.$e->getMessage(), [
                 'keputusan_id' => $surat_keputusan->id,
                 'user_id' => auth()->id(),
             ]);
@@ -767,7 +764,7 @@ class SuratKeputusanController extends Controller
                         'status_dari' => 'terbit',
                         'status_ke' => 'arsip',
                         'diubah_oleh' => auth()->id(),
-                        'catatan' => 'SK diarsipkan oleh ' . auth()->user()->nama_lengkap,
+                        'catatan' => 'SK diarsipkan oleh '.auth()->user()->nama_lengkap,
                         'created_at' => now(),
                     ]);
                 }
@@ -775,9 +772,9 @@ class SuratKeputusanController extends Controller
 
             return redirect()
                 ->route('surat_keputusan.arsipList')
-                ->with('success', 'SK berhasil diarsipkan pada ' . now()->format('d M Y H:i') . '.');
+                ->with('success', 'SK berhasil diarsipkan pada '.now()->format('d M Y H:i').'.');
         } catch (\Exception $e) {
-            Log::error('Gagal mengarsipkan SK: ' . $e->getMessage(), [
+            Log::error('Gagal mengarsipkan SK: '.$e->getMessage(), [
                 'keputusan_id' => $suratKeputusan->id,
                 'user_id' => auth()->id(),
             ]);
@@ -817,7 +814,8 @@ class SuratKeputusanController extends Controller
                 'sk_id' => $surat_keputusan->id,
                 'error' => $e->getMessage(),
             ]);
-            return back()->with('error', 'Gagal membuka arsip SK: ' . $e->getMessage());
+
+            return back()->with('error', 'Gagal membuka arsip SK: '.$e->getMessage());
         }
     }
 
@@ -852,7 +850,7 @@ class SuratKeputusanController extends Controller
                         'status_dari' => 'terbit',
                         'status_ke' => 'disetujui',
                         'diubah_oleh' => auth()->id(),
-                        'catatan' => 'Penerbitan SK dibatalkan oleh ' . auth()->user()->nama_lengkap,
+                        'catatan' => 'Penerbitan SK dibatalkan oleh '.auth()->user()->nama_lengkap,
                         'created_at' => now(),
                     ]);
                 }
@@ -862,7 +860,7 @@ class SuratKeputusanController extends Controller
                     'pengguna_id' => $suratKeputusan->penandatangan,
                     'tipe' => 'surat_keputusan',
                     'referensi_id' => $suratKeputusan->id,
-                    'pesan' => 'Penerbitan SK "' . $suratKeputusan->tentang . '" telah dibatalkan.',
+                    'pesan' => 'Penerbitan SK "'.$suratKeputusan->tentang.'" telah dibatalkan.',
                     'dibaca' => false,
                     'dibuat_pada' => now(),
                 ]);
@@ -870,7 +868,7 @@ class SuratKeputusanController extends Controller
 
             return redirect()->route('surat_keputusan.index')->with('success', 'Status penerbitan SK berhasil dibatalkan. SK kembali ke status Disetujui.');
         } catch (\Exception $e) {
-            Log::error('Gagal membatalkan penerbitan SK: ' . $e->getMessage(), [
+            Log::error('Gagal membatalkan penerbitan SK: '.$e->getMessage(), [
                 'keputusan_id' => $suratKeputusan->id,
                 'user_id' => auth()->id(),
             ]);
@@ -911,7 +909,7 @@ class SuratKeputusanController extends Controller
             return redirect()->route('surat_keputusan.index')->with('success', 'SK berhasil dihapus.');
         } catch (\Exception $e) {
             // ✅ FIXED: Sanitize log message
-            Log::error('Gagal menghapus SK #' . $surat_keputusan->id, [
+            Log::error('Gagal menghapus SK #'.$surat_keputusan->id, [
                 'error' => sanitize_log_message($e->getMessage()),
                 'user_id' => auth()->id(),
             ]);
@@ -968,7 +966,7 @@ class SuratKeputusanController extends Controller
                 ->route('surat_keputusan.edit', $newSk->id)
                 ->with('success', 'SK berhasil diduplikasi sebagai draft baru. Silakan sesuaikan dan tambahkan nomor.');
         } catch (\Exception $e) {
-            Log::error('Gagal menduplikat SK #' . $surat_keputusan->id, [
+            Log::error('Gagal menduplikat SK #'.$surat_keputusan->id, [
                 'error' => sanitize_log_message($e->getMessage()),
                 'user_id' => auth()->id(),
             ]);
@@ -988,17 +986,19 @@ class SuratKeputusanController extends Controller
 
         if ($this->shouldShowSignatures($surat_keputusan)) {
             $bytes = $this->renderSkPdfWithSign($surat_keputusan);
+
             return response($bytes, 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="SuratKeputusan_' . $safeNomor . '.pdf"',
+                'Content-Disposition' => 'inline; filename="SuratKeputusan_'.$safeNomor.'.pdf"',
                 'X-Content-Type-Options' => 'nosniff',
             ]);
         }
 
         $bytes = $this->renderSkPdfDraft($surat_keputusan);
+
         return response($bytes, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="SuratKeputusan_DRAFT_' . $safeNomor . '.pdf"',
+            'Content-Disposition' => 'inline; filename="SuratKeputusan_DRAFT_'.$safeNomor.'.pdf"',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }
@@ -1062,8 +1062,6 @@ class SuratKeputusanController extends Controller
             ->output();
     }
 
-
-
     /**
      * Map nilai tombol UI ke status_surat di DB
      */
@@ -1075,8 +1073,6 @@ class SuratKeputusanController extends Controller
             default => null,
         };
     }
-
-
 
     /* ==================== FASE 1.2: Lampiran File ==================== */
 
@@ -1117,10 +1113,10 @@ class SuratKeputusanController extends Controller
             $extension = $file->getClientOriginalExtension();
 
             // Generate unique filename
-            $filename = time() . '_' . uniqid() . '.' . $extension;
+            $filename = time().'_'.uniqid().'.'.$extension;
 
             // Store ke folder: storage/app/public/lampiran_sk/{keputusan_id}/
-            $path = $file->storeAs('lampiran_sk/' . $surat_keputusan->id, $filename, 'public');
+            $path = $file->storeAs('lampiran_sk/'.$surat_keputusan->id, $filename, 'public');
 
             // Sanitize deskripsi
             $deskripsi = $validated['deskripsi'] ?? null;
@@ -1145,7 +1141,7 @@ class SuratKeputusanController extends Controller
 
             return redirect()
                 ->route('surat_keputusan.edit', $surat_keputusan->id)
-                ->with('success', 'Lampiran berhasil diunggah: ' . $originalName);
+                ->with('success', 'Lampiran berhasil diunggah: '.$originalName);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->route('surat_keputusan.edit', $surat_keputusan->id)->withErrors($e->validator)->withInput();
         } catch (\Exception $e) {
@@ -1157,7 +1153,7 @@ class SuratKeputusanController extends Controller
 
             return redirect()
                 ->route('surat_keputusan.edit', $surat_keputusan->id)
-                ->with('error', 'Gagal mengunggah lampiran: ' . $e->getMessage());
+                ->with('error', 'Gagal mengunggah lampiran: '.$e->getMessage());
         }
     }
 
@@ -1176,7 +1172,7 @@ class SuratKeputusanController extends Controller
         }
 
         // Check file exists
-        if (!Storage::disk('public')->exists($attachment->file_path)) {
+        if (! Storage::disk('public')->exists($attachment->file_path)) {
             return back()->with('error', 'File tidak ditemukan di server.');
         }
 
@@ -1214,7 +1210,7 @@ class SuratKeputusanController extends Controller
         }
 
         // Validasi: hanya draft/ditolak yang bisa hapus lampiran
-        if (!in_array($surat_keputusan->status_surat, ['draft', 'ditolak'], true)) {
+        if (! in_array($surat_keputusan->status_surat, ['draft', 'ditolak'], true)) {
             return back()->with('error', 'Lampiran hanya bisa dihapus pada SK dengan status draft atau ditolak.');
         }
 

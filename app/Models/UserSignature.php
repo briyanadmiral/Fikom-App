@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -55,7 +55,7 @@ class UserSignature extends Model
      */
     protected function ttdPath(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => $value, set: fn(?string $value) => validate_file_path($value));
+        return Attribute::make(get: fn (?string $value) => $value, set: fn (?string $value) => validate_file_path($value));
     }
 
     // ==================== SCOPES =========================
@@ -95,7 +95,7 @@ class UserSignature extends Model
             return false;
         }
 
-        return Storage::disk('local')->exists($path) || Storage::exists('public/' . ltrim($path, '/'));
+        return Storage::disk('local')->exists($path) || Storage::exists('public/'.ltrim($path, '/'));
     }
 
     /**
@@ -105,20 +105,22 @@ class UserSignature extends Model
     {
         $path = $this->getValidatedTtdPath();
 
-        if ($path === null || !$this->hasTtdFile()) {
+        if ($path === null || ! $this->hasTtdFile()) {
             return null;
         }
 
         try {
             if (Storage::disk('local')->exists($path)) {
                 $content = Storage::disk('local')->get($path);
-                return 'data:image/png;base64,' . base64_encode($content);
+
+                return 'data:image/png;base64,'.base64_encode($content);
             }
 
-            $publicPath = 'public/' . ltrim($path, '/');
+            $publicPath = 'public/'.ltrim($path, '/');
             if (Storage::exists($publicPath)) {
                 $content = Storage::get($publicPath);
-                return 'data:image/png;base64,' . base64_encode($content);
+
+                return 'data:image/png;base64,'.base64_encode($content);
             }
         } catch (\Exception $e) {
             \Log::error('Failed to get TTD base64', [
@@ -171,7 +173,7 @@ class UserSignature extends Model
                 return Storage::disk('local')->delete($path);
             }
 
-            $publicPath = 'public/' . ltrim($path, '/');
+            $publicPath = 'public/'.ltrim($path, '/');
             if (Storage::exists($publicPath)) {
                 return Storage::delete($publicPath);
             }
@@ -183,6 +185,7 @@ class UserSignature extends Model
                 'path' => sanitize_log_message($path),
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
+
             return false;
         }
     }
@@ -199,7 +202,7 @@ class UserSignature extends Model
         }
 
         // Try public storage first
-        $publicPath = 'public/' . ltrim($path, '/');
+        $publicPath = 'public/'.ltrim($path, '/');
         if (Storage::exists($publicPath)) {
             return Storage::url($publicPath);
         }
@@ -230,7 +233,7 @@ class UserSignature extends Model
                 $width = $model->default_width_mm ?? 42;
                 $height = $model->default_height_mm ?? 20;
 
-                if (!$model->validateDimensions($width, $height)) {
+                if (! $model->validateDimensions($width, $height)) {
                     throw new \InvalidArgumentException('Dimensi signature tidak valid');
                 }
             }

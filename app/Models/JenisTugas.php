@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -20,6 +20,7 @@ class JenisTugas extends Model
     protected $table = 'jenis_tugas';
 
     protected $fillable = ['nama', 'kode', 'deskripsi', 'is_active'];
+
     protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at']; // ✅ ADDED deleted_at
 
     protected $casts = [
@@ -30,7 +31,9 @@ class JenisTugas extends Model
     ];
 
     const CACHE_KEY_ALL = 'jenis_tugas_all';
+
     const CACHE_KEY_ACTIVE = 'jenis_tugas_active';
+
     const CACHE_TTL = 3600;
 
     // ==================== RELASI =========================
@@ -73,6 +76,7 @@ class JenisTugas extends Model
     public function scopeOrderByNama($query, string $direction = 'asc')
     {
         $direction = validate_sort_direction($direction);
+
         return $query->orderBy('nama', $direction);
     }
 
@@ -83,7 +87,7 @@ class JenisTugas extends Model
      */
     protected function nama(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 255));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
     }
 
     /**
@@ -91,7 +95,7 @@ class JenisTugas extends Model
      */
     protected function kode(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_kode($value, 50));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_kode($value, 50));
     }
 
     /**
@@ -99,7 +103,7 @@ class JenisTugas extends Model
      */
     protected function deskripsi(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 1000));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 1000));
     }
 
     // ==================== STATIC METHODS =========================
@@ -148,7 +152,7 @@ class JenisTugas extends Model
     public function toggleActive(): bool
     {
         return $this->update([
-            'is_active' => !$this->is_active,
+            'is_active' => ! $this->is_active,
         ]);
     }
 
@@ -169,7 +173,7 @@ class JenisTugas extends Model
             throw new \InvalidArgumentException('Kode jenis tugas wajib diisi');
         }
 
-        if (!preg_match('/^[A-Z0-9_-]+$/', $this->kode)) {
+        if (! preg_match('/^[A-Z0-9_-]+$/', $this->kode)) {
             throw new \InvalidArgumentException('Kode harus terdiri dari huruf kapital, angka, dash, atau underscore');
         }
 

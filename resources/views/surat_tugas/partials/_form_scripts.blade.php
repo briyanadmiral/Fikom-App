@@ -749,26 +749,81 @@
             @endif
 
 
-            // ====== TEMPLATE SELECTOR LOGIC ======
+            // ====== TEMPLATE SELECTOR LOGIC (ENHANCED) ======
             @if(isset($templates) && count($templates) > 0)
                 const availableTemplates = @json($templates);
+                const $tplSelector = $('#template_selector');
+                const $previewCard = $('#template-preview-card');
+                const $previewEmpty = $('#template-preview-empty');
 
+                // Update preview card when template is selected
+                $tplSelector.on('change', function() {
+                    const tplId = $(this).val();
+                    if (!tplId) {
+                        $previewCard.addClass('d-none');
+                        $previewEmpty.removeClass('d-none');
+                        return;
+                    }
+
+                    const tpl = availableTemplates.find(t => t.id == tplId);
+                    if (!tpl) return;
+
+                    // Show preview card
+                    $previewEmpty.addClass('d-none');
+                    $previewCard.removeClass('d-none');
+
+                    // Update preview info
+                    $('#tpl-preview-name').text(tpl.nama || '-');
+                    $('#tpl-preview-desc').text(tpl.deskripsi || 'Tidak ada deskripsi');
+
+                    // Show Jenis Tugas badge
+                    if (tpl.jenis_tugas && tpl.jenis_tugas.nama) {
+                        $('#tpl-preview-jenis').show().find('span').text(tpl.jenis_tugas.nama);
+                    } else {
+                        $('#tpl-preview-jenis').hide();
+                    }
+
+                    // Show Sub Tugas badge
+                    if (tpl.sub_tugas && tpl.sub_tugas.nama) {
+                        $('#tpl-preview-subtugas').show().find('span').text(tpl.sub_tugas.nama);
+                    } else {
+                        $('#tpl-preview-subtugas').hide();
+                    }
+                });
+
+                // Apply template button
                 $('#btn-apply-template').on('click', function() {
-                    const tplId = $('#template_selector').val();
-                    if(!tplId) return;
+                    const tplId = $tplSelector.val();
+                    if(!tplId) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Pilih Template',
+                            text: 'Silakan pilih template terlebih dahulu dari dropdown.',
+                        });
+                        return;
+                    }
 
                     const tpl = availableTemplates.find(t => t.id == tplId);
                     if(!tpl) return;
 
                     Swal.fire({
                         title: 'Terapkan Template?',
-                        html: `Isi <strong>Detail Tugas</strong> dan <strong>Tembusan</strong> akan diganti dengan template:<br>
-                               "<em>${tpl.nama}</em>"`,
+                        html: `<div class="text-left">
+                            <p class="mb-2">Template: <strong>${tpl.nama}</strong></p>
+                            <p class="small text-muted mb-0">Field berikut akan diganti:</p>
+                            <ul class="small mb-0">
+                                ${tpl.detail_tugas ? '<li>Detail Tugas</li>' : ''}
+                                ${tpl.tembusan ? '<li>Tembusan</li>' : ''}
+                                ${tpl.jenis_tugas ? '<li>Jenis Tugas</li>' : ''}
+                                ${tpl.sub_tugas ? '<li>Sub Tugas (Tugas)</li>' : ''}
+                            </ul>
+                        </div>`,
                         icon: 'question',
                         showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Ya, Terapkan!'
+                        confirmButtonColor: '#fd7e14',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fas fa-magic mr-1"></i> Ya, Terapkan!',
+                        cancelButtonText: 'Batal'
                     }).then((result) => {
                         if (result.isConfirmed) {
                             // 1. Set Detail Tugas (CKEditor)
@@ -783,31 +838,42 @@
                             if(window.tagifyTembusan) {
                                 window.tagifyTembusan.removeAllTags();
                                 if(tembusanCsv) {
-                                    window.tagifyTembusan.addTags(tembusanCsv.split(','));
+                                    window.tagifyTembusan.addTags(tembusanCsv.split(',').map(t => t.trim()).filter(t => t));
                                 }
                             } else {
                                 $('#tembusan-input').val(tembusanCsv);
                             }
 
-                            // 3. Set Jenis Tugas (jika ada match nama)
-                            if(tpl.jenis_tugas_id && tpl.jenis_tugas) {
+                            // 3. Set Jenis Tugas (if exists)
+                            if(tpl.jenis_tugas && tpl.jenis_tugas.nama) {
                                 const jtName = tpl.jenis_tugas.nama;
                                 const $jtSelect = $('#jenis_tugas');
-                                // Cari option yang text-nya match atau value-nya match
-                                // Di sini value option == nama
                                 if($jtSelect.find(`option[value="${jtName}"]`).length) {
                                     $jtSelect.val(jtName).trigger('change');
+                                    
+                                    // 4. Set Sub Tugas / Tugas (after Jenis is set) - NEW!
+                                    if(tpl.sub_tugas && tpl.sub_tugas.nama) {
+                                        // Wait for tugas dropdown to populate
+                                        setTimeout(() => {
+                                            const stName = tpl.sub_tugas.nama;
+                                            const $tugasSelect = $('#tugas');
+                                            if($tugasSelect.find(`option[value="${stName}"]`).length) {
+                                                $tugasSelect.val(stName).trigger('change');
+                                            }
+                                        }, 300);
+                                    }
                                 }
                             }
                             
                             Swal.fire({
                                 icon: 'success',
-                                title: 'Template Diterapkan',
+                                title: 'Template Diterapkan!',
+                                text: 'Formulir telah diisi dengan data dari template.',
                                 showConfirmButton: false,
-                                timer: 1000
+                                timer: 1500
                             });
                         }
-                    })
+                    });
                 });
             @endif
 

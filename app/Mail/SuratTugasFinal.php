@@ -12,14 +12,16 @@ class SuratTugasFinal extends Mailable
     use Queueable, SerializesModels;
 
     public string $subjectLine;
+
     /** @var object */
     public $tugas;
+
     public ?string $attachmentPath;
 
     public function __construct(string $subjectLine, object $tugas, ?string $attachmentPath = null)
     {
-        $this->subjectLine   = $subjectLine;
-        $this->tugas         = $tugas;
+        $this->subjectLine = $subjectLine;
+        $this->tugas = $tugas;
         $this->attachmentPath = $attachmentPath;
     }
 
@@ -34,8 +36,8 @@ class SuratTugasFinal extends Mailable
             // Coba ambil dari disk local (storage/app/...)
             if (Storage::disk('local')->exists($this->attachmentPath)) {
                 $mail->attach(
-                    storage_path('app/' . ltrim($this->attachmentPath, '/')),
-                    ['as' => 'Surat_Tugas_' . ($this->tugas->nomor ?: 'lampiran') . '.pdf', 'mime' => 'application/pdf']
+                    storage_path('app/'.ltrim($this->attachmentPath, '/')),
+                    ['as' => 'Surat_Tugas_'.($this->tugas->nomor ?: 'lampiran').'.pdf', 'mime' => 'application/pdf']
                 );
             }
         }

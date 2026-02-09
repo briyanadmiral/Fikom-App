@@ -24,6 +24,7 @@ class RoleController extends Controller
         if ($request->ajax()) {
             return response()->json(Peran::orderBy('nama')->get());
         }
+
         // Jika akses biasa, return view (opsional)
         return view('roles.index', ['roles' => Peran::orderBy('nama')->get()]);
     }
@@ -36,6 +37,7 @@ class RoleController extends Controller
             'deskripsi' => 'nullable|string|max:255',
         ]);
         $role = Peran::create($validated);
+
         return response()->json([
             'status' => 'ok',
             'message' => 'Peran berhasil ditambahkan.',
@@ -59,10 +61,11 @@ class RoleController extends Controller
 
         $role = Peran::findOrFail($roleId);
         $validated = $request->validate([
-            'nama' => 'required|string|max:255|unique:peran,nama,' . $role->id,
+            'nama' => 'required|string|max:255|unique:peran,nama,'.$role->id,
             'deskripsi' => 'nullable|string|max:255',
         ]);
         $role->update($validated);
+
         return response()->json([
             'status' => 'ok',
             'message' => 'Peran berhasil diperbarui.',
@@ -98,6 +101,7 @@ class RoleController extends Controller
         }
 
         $role->delete();
+
         return response()->json(['status' => 'ok', 'message' => 'Peran berhasil dihapus.']);
     }
 }

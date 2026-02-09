@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use App\Models\KeputusanHeader;
 use App\Models\Notifikasi;
 use App\Models\TugasHeader;
-use App\Models\KeputusanHeader;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
@@ -25,11 +24,11 @@ class HomeController extends Controller
         $periodType = $request->input('period_type', 'month'); // month or year
 
         // FILTER DATE RANGE
-        $startDate = $periodType == 'month' 
-            ? Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth() 
+        $startDate = $periodType == 'month'
+            ? Carbon::createFromDate($tahun, $bulan, 1)->startOfMonth()
             : Carbon::createFromDate($tahun, 1, 1)->startOfYear();
-        $endDate = $periodType == 'month' 
-            ? Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth() 
+        $endDate = $periodType == 'month'
+            ? Carbon::createFromDate($tahun, $bulan, 1)->endOfMonth()
             : Carbon::createFromDate($tahun, 12, 31)->endOfYear();
 
         // --- 1. KPI CARDS DATA (Filtered by Period) ---
@@ -44,25 +43,55 @@ class HomeController extends Controller
 
         // --- 2. WORK QUEUE (Operational - User Centric) ---
         // A. Perlu Action (Review/Approve) -> ONLY FOR APPROVERS (Dekan/Wakil)
-        $perluAction = collect([]); 
-        if ($user->canApproveSurat()) { 
-             $stAction = TugasHeader::where('next_approver', $user->id)->orWhere('status_surat', 'pending')->latest()->take(5)->get();
-             $skAction = KeputusanHeader::where('next_approver', $user->id)->orWhere('status_surat', 'pending')->latest()->take(5)->get();
-             $perluAction = $stAction->map(function($i){ $i->jenis='ST'; $i->display_title = $i->nama_umum ?? $i->tugas ?? '-'; return $i; })
-                ->merge($skAction->map(function($i){ $i->jenis='SK'; $i->display_title = $i->tentang ?? 'Tanpa Judul'; return $i; }))
+        $perluAction = collect([]);
+        if ($user->canApproveSurat()) {
+            $stAction = TugasHeader::where('next_approver', $user->id)->orWhere('status_surat', 'pending')->latest()->take(5)->get();
+            $skAction = KeputusanHeader::where('next_approver', $user->id)->orWhere('status_surat', 'pending')->latest()->take(5)->get();
+            $perluAction = $stAction->map(function ($i) {
+                $i->jenis = 'ST';
+                $i->display_title = $i->nama_umum ?? $i->tugas ?? '-';
+
+                return $i;
+            })
+                ->merge($skAction->map(function ($i) {
+                    $i->jenis = 'SK';
+                    $i->display_title = $i->tentang ?? 'Tanpa Judul';
+
+                    return $i;
+                }))
                 ->sortByDesc('updated_at')->take(10);
         }
 
         // B. Draft Saya (For Everyone)
         $myDrafts = TugasHeader::where('dibuat_oleh', $user->id)->whereIn('status_surat', ['draft'])->latest()->take(5)->get()
-            ->map(function($i){ $i->jenis='ST'; $i->display_title = $i->nama_umum ?? $i->tugas ?? '-'; return $i; })
-            ->merge(KeputusanHeader::where('dibuat_oleh', $user->id)->whereIn('status_surat', ['draft'])->latest()->take(5)->get()->map(function($i){ $i->jenis='SK'; $i->display_title = $i->tentang ?? 'Tanpa Judul'; return $i; }))
+            ->map(function ($i) {
+                $i->jenis = 'ST';
+                $i->display_title = $i->nama_umum ?? $i->tugas ?? '-';
+
+                return $i;
+            })
+            ->merge(KeputusanHeader::where('dibuat_oleh', $user->id)->whereIn('status_surat', ['draft'])->latest()->take(5)->get()->map(function ($i) {
+                $i->jenis = 'SK';
+                $i->display_title = $i->tentang ?? 'Tanpa Judul';
+
+                return $i;
+            }))
             ->sortByDesc('updated_at')->take(10);
 
         // C. Dikembalikan / Revisi (For Everyone)
         $myRevisions = TugasHeader::where('dibuat_oleh', $user->id)->whereIn('status_surat', ['ditolak', 'revisi'])->latest()->take(5)->get()
-            ->map(function($i){ $i->jenis='ST'; $i->display_title = $i->nama_umum ?? $i->tugas ?? '-'; return $i; })
-            ->merge(KeputusanHeader::where('dibuat_oleh', $user->id)->whereIn('status_surat', ['ditolak', 'revisi'])->latest()->take(5)->get()->map(function($i){ $i->jenis='SK'; $i->display_title = $i->tentang ?? 'Tanpa Judul'; return $i; }))
+            ->map(function ($i) {
+                $i->jenis = 'ST';
+                $i->display_title = $i->nama_umum ?? $i->tugas ?? '-';
+
+                return $i;
+            })
+            ->merge(KeputusanHeader::where('dibuat_oleh', $user->id)->whereIn('status_surat', ['ditolak', 'revisi'])->latest()->take(5)->get()->map(function ($i) {
+                $i->jenis = 'SK';
+                $i->display_title = $i->tentang ?? 'Tanpa Judul';
+
+                return $i;
+            }))
             ->sortByDesc('updated_at')->take(10);
 
         // Notifikasi
@@ -72,16 +101,16 @@ class HomeController extends Controller
         // Count users active in last 5 minutes
         $activeUsersCount = \App\Models\User::where('last_activity', '>=', now()->subMinutes(5))->count();
         $onlineUsers = \App\Models\User::where('last_activity', '>=', now()->subMinutes(5))
-                        ->orderBy('last_activity', 'desc')
-                        ->with('peran') // Eager load role
-                        ->take(20)->get();
+            ->orderBy('last_activity', 'desc')
+            ->with('peran') // Eager load role
+            ->take(20)->get();
 
         // --- 4. CHARTS & GRAPHS ---
         // Trend 12 Months (ST vs SK)
         $months = [];
         $trendST = [];
         $trendSK = [];
-        for ($i=1; $i<=12; $i++) {
+        for ($i = 1; $i <= 12; $i++) {
             $date = Carbon::createFromDate($tahun, $i, 1);
             $months[] = $date->format('M');
             $trendST[] = TugasHeader::whereYear('created_at', $tahun)->whereMonth('created_at', $i)->count();
@@ -91,7 +120,7 @@ class HomeController extends Controller
         // Status Breakdown (Donut)
         $statuses = ['draft', 'pending', 'disetujui', 'ditolak'];
         $statusBreakdown = [];
-        foreach($statuses as $s) {
+        foreach ($statuses as $s) {
             $count = TugasHeader::whereYear('created_at', $tahun)->where('status_surat', $s)->count() +
                      KeputusanHeader::whereYear('created_at', $tahun)->where('status_surat', $s)->count();
             $statusBreakdown[] = $count;
@@ -102,8 +131,18 @@ class HomeController extends Controller
         $lastSK = KeputusanHeader::whereNotNull('nomor')->latest('created_at')->first();
 
         $recentFinal = TugasHeader::whereNotNull('nomor')->latest('updated_at')->take(5)->get()
-            ->map(function($i){ $i->jenis='ST'; $i->display_title = $i->nama_umum ?? $i->tugas ?? '-'; return $i; })
-            ->merge(KeputusanHeader::whereNotNull('nomor')->latest('updated_at')->take(5)->get()->map(function($i){ $i->jenis='SK'; $i->display_title = $i->tentang ?? 'Tanpa Judul'; return $i; }))
+            ->map(function ($i) {
+                $i->jenis = 'ST';
+                $i->display_title = $i->nama_umum ?? $i->tugas ?? '-';
+
+                return $i;
+            })
+            ->merge(KeputusanHeader::whereNotNull('nomor')->latest('updated_at')->take(5)->get()->map(function ($i) {
+                $i->jenis = 'SK';
+                $i->display_title = $i->tentang ?? 'Tanpa Judul';
+
+                return $i;
+            }))
             ->sortByDesc('updated_at')->take(6);
 
         // VIEW
@@ -116,15 +155,17 @@ class HomeController extends Controller
         ));
     }
 
-    private function countSurat($start, $end) {
+    private function countSurat($start, $end)
+    {
         return TugasHeader::whereBetween('created_at', [$start, $end])->count() +
                KeputusanHeader::whereBetween('created_at', [$start, $end])->count();
     }
 
-    private function countStatus($statuses, $start, $end, $nullNomor = false) {
+    private function countStatus($statuses, $start, $end, $nullNomor = false)
+    {
         $q1 = TugasHeader::whereBetween('created_at', [$start, $end])->whereIn('status_surat', $statuses);
         $q2 = KeputusanHeader::whereBetween('created_at', [$start, $end])->whereIn('status_surat', $statuses);
-        
+
         if ($nullNomor) {
             $q1->whereNull('nomor');
             $q2->whereNull('nomor');
@@ -141,7 +182,7 @@ class HomeController extends Controller
         $tahun = $request->input('tahun', now()->year);
         $type = $request->input('type', 'all'); // 'st', 'sk', or 'all'
 
-        $filename = "laporan_surat_{$tahun}_" . date('Ymd_His') . ".csv";
+        $filename = "laporan_surat_{$tahun}_".date('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=utf-8',
@@ -150,9 +191,9 @@ class HomeController extends Controller
 
         $callback = function () use ($tahun, $type) {
             $file = fopen('php://output', 'w');
-            
+
             // BOM for Excel UTF-8
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // Export Surat Tugas
             if ($type === 'all' || $type === 'st') {

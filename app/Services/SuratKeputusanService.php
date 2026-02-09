@@ -15,6 +15,7 @@ use Mews\Purifier\Facades\Purifier;
 class SuratKeputusanService
 {
     protected SuratKeputusanNotificationService $notificationService;
+
     protected NomorSuratService $nomorSuratService;
 
     public function __construct(SuratKeputusanNotificationService $notificationService, NomorSuratService $nomorSuratService)
@@ -39,7 +40,9 @@ class SuratKeputusanService
             return DB::transaction(function () use ($validatedData, $status) {
                 $data = $this->prepareDataForSave($validatedData);
                 $data['status_surat'] = $status;
-                if (isset($data['status'])) unset($data['status']); // ✅ FIX: Prevent unknown column error
+                if (isset($data['status'])) {
+                    unset($data['status']);
+                } // ✅ FIX: Prevent unknown column error
 
                 // ✅ ADDED: Validate auth user
                 $userId = validate_integer_id(Auth::id());
@@ -57,7 +60,7 @@ class SuratKeputusanService
 
                 $sk = KeputusanHeader::create($data);
 
-                if (method_exists($sk, 'penerima') && !empty($validatedIds)) {
+                if (method_exists($sk, 'penerima') && ! empty($validatedIds)) {
                     $sk->penerima()->sync($validatedIds);
                 }
 
@@ -232,7 +235,7 @@ class SuratKeputusanService
     private function prepareDataForSave(array $data): array
     {
         // Build HTML memutuskan dari menetapkan
-        if (!empty($data['menetapkan']) && is_array($data['menetapkan'])) {
+        if (! empty($data['menetapkan']) && is_array($data['menetapkan'])) {
             foreach ($data['menetapkan'] as &$d) {
                 $d['isi'] = Purifier::clean($d['isi'] ?? '');
             }
@@ -255,7 +258,7 @@ class SuratKeputusanService
         }
 
         // Return data yang sudah bersih
-        return [
+        $result = [
             'nomor' => $data['nomor'] ?? null,
             'tentang' => $data['tentang'],
             'judul_penetapan' => $data['judul_penetapan'] ?? null, // ✅ BARU
@@ -264,14 +267,23 @@ class SuratKeputusanService
             'tahun' => $data['tahun'] ?? null, // ✅ BARU (auto-fill by model event)
             'penandatangan' => $data['penandatangan'] ?? null,
             'npp_penandatangan' => $data['npp_penandatangan'] ?? null, // ✅ BARU
-            'menimbang' => $data['menimbang'] ?? [],
-            'mengingat' => $data['mengingat'] ?? [],
-            'menetapkan' => $data['menetapkan'] ?? [],
-            'memutuskan' => $data['memutuskan'] ?? null,
             'tembusan' => $data['tembusan'] ?? null,
-            'penerima_internal' => $data['penerima_internal'] ?? [],
-            'penerima_eksternal' => $data['penerima_eksternal'] ?? [],
         ];
+
+        // ✅ FIXED: Only include array fields if they are present to avoid overwriting with empty arrays
+        $arrayFields = ['menimbang', 'mengingat', 'menetapkan', 'penerima_internal', 'penerima_eksternal'];
+        foreach ($arrayFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $result[$field] = $data[$field];
+            }
+        }
+
+        // Handle memutuskan (derived from menetapkan)
+        if (array_key_exists('memutuskan', $data)) {
+             $result['memutuskan'] = $data['memutuskan'];
+        }
+
+        return $result;
     }
 
     /**
@@ -294,7 +306,7 @@ class SuratKeputusanService
                 continue;
             }
 
-            $parts[] = '<p><strong>' . e($judul) . ':</strong> ' . $isi . '</p>';
+            $parts[] = '<p><strong>'.e($judul).':</strong> '.$isi.'</p>';
         }
 
         return implode("\n", $parts);

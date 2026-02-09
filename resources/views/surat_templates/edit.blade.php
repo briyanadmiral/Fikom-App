@@ -4,98 +4,187 @@
 
 @push('styles')
 <style>
-    .custom-header-box {
-        background: linear-gradient(90deg, #e8590c 0%, #fd7e14 100%);
+    body { background: #f4f7fb; }
+    
+    /* === MODERN HEADER === */
+    .page-header {
+        background: linear-gradient(135deg, #e8590c 0%, #fd7e14 100%);
         color: #fff;
-        border-radius: 1rem;
-        box-shadow: 0 4px 20px rgba(253,126,20,.13);
-        padding: 1.5rem 2rem 1.25rem 1.5rem;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 10px 40px rgba(253,126,20,0.2);
         position: relative;
         overflow: hidden;
-        border-left: 6px solid #dc6502;
-        margin-top: .5rem;
     }
-    .header-icon {
-        width: 54px;
-        height: 54px;
-        background: rgba(255,255,255,.15);
-        color: #fff;
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+    }
+    .page-header .icon-box {
+        width: 70px;
+        height: 70px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: 2rem;
-        box-shadow: 0 2px 12px 0 rgba(253,126,20,.13);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
-    .header-title {
-        font-size: 1.6rem;
+    .page-header h1 {
+        font-size: 1.75rem;
         font-weight: 700;
-        letter-spacing: 1px;
-        margin-bottom: 2px;
+        margin-bottom: 0.25rem;
     }
-    .header-desc {
-        font-size: 1.07rem;
-        color: #fef9e7;
-        font-weight: 400;
-        margin-left: .1rem;
+    .page-header p {
+        opacity: 0.9;
+        margin-bottom: 0;
     }
-    .card { border-radius: 1rem; }
-    @media (max-width: 575.98px) {
-        .custom-header-box { padding: 1.1rem; }
-        .header-icon { width: 44px; height: 44px; font-size: 1.2rem; }
-        .header-title { font-size: 1.2rem; }
-        .header-desc { margin-left: 0; font-size: .98rem; }
+    .template-name-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 0.4rem 1rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        display: inline-block;
+        margin-top: 0.5rem;
+    }
+    
+    /* === FORM CARD === */
+    .form-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 4px 25px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.03);
+        overflow: hidden;
+    }
+    .form-card-header {
+        background: linear-gradient(135deg, #f8f9fc 0%, #fff 100%);
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .form-card-header h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+        color: #2d3436;
+    }
+    .form-card-body {
+        padding: 2rem;
+    }
+    .form-card-footer {
+        background: #f8f9fc;
+        padding: 1.25rem 2rem;
+        border-top: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    /* === BUTTONS === */
+    .btn-save {
+        border-radius: 12px;
+        padding: 0.8rem 2rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, #fd7e14 0%, #e8590c 100%);
+        border: none;
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(253,126,20,0.3);
+    }
+    .btn-save:hover {
+        background: linear-gradient(135deg, #e8590c 0%, #d54400 100%);
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(253,126,20,0.4);
+    }
+    .btn-back {
+        border-radius: 12px;
+        padding: 0.8rem 1.5rem;
+        font-weight: 600;
+        background: #fff;
+        border: 2px solid #e9ecef;
+        color: #6c757d;
+    }
+    .btn-back:hover {
+        background: #f8f9fc;
+        border-color: #ced4da;
+        color: #495057;
+    }
+    
+    /* === RESPONSIVE === */
+    @media (max-width: 767.98px) {
+        .page-header { padding: 1.5rem; }
+        .page-header h1 { font-size: 1.35rem; }
+        .form-card-body { padding: 1.25rem; }
+        .form-card-footer { 
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .form-card-footer .btn { width: 100%; }
     }
 </style>
 @endpush
 
 @section('content_header')
-    <div class="custom-header-box mb-4">
+    <div class="page-header mt-2">
         <div class="d-flex align-items-center">
-            <div class="header-icon rounded-circle d-flex justify-content-center align-items-center mr-3">
-                <i class="fas fa-edit fa-lg"></i>
+            <div class="icon-box mr-3">
+                <i class="fas fa-edit text-white"></i>
             </div>
             <div>
-                <div class="header-title">Edit Template</div>
-                <div class="header-desc mt-2">
-                    Ubah <b>template Surat Tugas</b> yang sudah ada.
-                </div>
+                <h1>Edit Template</h1>
+                <p>Ubah template Surat Tugas yang sudah ada</p>
+                <span class="template-name-badge">
+                    <i class="fas fa-file-alt mr-1"></i> {{ Str::limit($surat_template->nama, 40) }}
+                </span>
             </div>
         </div>
     </div>
 @endsection
 
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid px-2">
     <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="card card-warning card-outline">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-edit mr-1"></i> Form Edit Template
+        <div class="col-xl-10">
+            <div class="form-card">
+                <div class="form-card-header">
+                    <h3>
+                        <i class="fas fa-edit text-warning mr-2"></i> Form Edit Template
                     </h3>
-                    <div class="card-tools">
-                        <a href="{{ route('surat_templates.index') }}" class="btn btn-tool" title="Kembali">
-                            <i class="fas fa-times"></i>
-                        </a>
-                    </div>
+                    <a href="{{ route('surat_templates.index') }}" class="btn btn-sm btn-light" title="Kembali ke Daftar">
+                        <i class="fas fa-times"></i>
+                    </a>
                 </div>
                 
                 <form method="POST" action="{{ route('surat_templates.update', $surat_template) }}">
                     @csrf
                     @method('PUT')
                     
-                    <div class="card-body">
+                    <div class="form-card-body">
                         @include('surat_templates.partials._form', [
                             'surat_template' => $surat_template,
                             'jenisTugasList' => $jenisTugasList,
+                            'subTugasList' => $subTugasList,
                             'placeholders' => $placeholders,
                         ])
                     </div>
                     
-                    <div class="card-footer">
-                        <button type="submit" class="btn btn-primary">
+                    <div class="form-card-footer">
+                        <a href="{{ route('surat_templates.index') }}" class="btn btn-back">
+                            <i class="fas fa-arrow-left mr-1"></i> Batal
+                        </a>
+                        <button type="submit" class="btn btn-save">
                             <i class="fas fa-save mr-1"></i> Simpan Perubahan
                         </button>
-                        <a href="{{ route('surat_templates.index') }}" class="btn btn-default float-right">
-                            Batal
-                        </a>
                     </div>
                 </form>
             </div>

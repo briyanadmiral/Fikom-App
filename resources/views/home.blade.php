@@ -292,9 +292,20 @@
                         <i class="fas fa-file-excel text-success mr-2"></i> Surat Keputusan
                     </a>
                     <div class="dropdown-divider"></div>
-                     <a class="dropdown-item" href="{{ route('laporan.export.excel', ['tahun' => $tahun, 'type' => 'all']) }}">
+                     <a class="dropdown-item" href="#exportAllFormats" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="exportAllFormats">
                         <i class="fas fa-file-archive text-primary mr-2"></i> Semua Data
                     </a>
+                    <div class="collapse mt-1" id="exportAllFormats">
+                        <a class="dropdown-item pl-4" href="{{ route('laporan.export.excel', ['tahun' => $tahun, 'type' => 'all']) }}">
+                            <i class="fas fa-file-excel text-success mr-2"></i> Excel
+                        </a>
+                        <a class="dropdown-item pl-4" href="{{ route('laporan.export.excel', ['tahun' => $tahun, 'type' => 'all']) }}">
+                            <i class="fas fa-file-csv text-success mr-2"></i> CSV
+                        </a>
+                        <a class="dropdown-item pl-4" href="{{ route('laporan.export.pdf', ['tahun' => $tahun]) }}">
+                            <i class="fas fa-file-pdf text-danger mr-2"></i> PDF
+                        </a>
+                    </div>
                 </div>
             </div>
 

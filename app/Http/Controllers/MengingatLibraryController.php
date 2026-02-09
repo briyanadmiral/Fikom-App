@@ -37,7 +37,7 @@ class MengingatLibraryController extends Controller
         // Order by
         $orderBy = $request->input('order_by', 'usage_count');
         $orderDir = $request->input('order_dir', 'desc');
-        
+
         if ($orderBy === 'usage_count') {
             $query->popular();
         } else {
@@ -56,6 +56,7 @@ class MengingatLibraryController extends Controller
     public function create()
     {
         $categories = MengingatLibrary::getCategories();
+
         return view('mengingat_library.create', compact('categories'));
     }
 
@@ -88,6 +89,7 @@ class MengingatLibraryController extends Controller
     public function edit(MengingatLibrary $mengingatLibrary)
     {
         $categories = MengingatLibrary::getCategories();
+
         return view('mengingat_library.edit', [
             'item' => $mengingatLibrary,
             'categories' => $categories,
@@ -141,13 +143,13 @@ class MengingatLibraryController extends Controller
             ->popular()
             ->limit($limit);
 
-        if (!empty($kategori)) {
+        if (! empty($kategori)) {
             $query->byKategori($kategori);
         }
 
         $items = $query->get([
-            'id', 'judul', 'isi', 'kategori', 
-            'nomor_referensi', 'tanggal_referensi', 'usage_count'
+            'id', 'judul', 'isi', 'kategori',
+            'nomor_referensi', 'tanggal_referensi', 'usage_count',
         ]);
 
         return response()->json(['data' => $items]);

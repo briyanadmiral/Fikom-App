@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * ✅ AuditLog - Model untuk tracking aktivitas user
- * 
+ *
  * Menyimpan log untuk:
  * - Create/Update/Delete Surat Tugas
  * - Create/Update/Delete Surat Keputusan
@@ -47,15 +47,25 @@ class AuditLog extends Model
      * Action types yang didukung
      */
     public const ACTION_CREATE = 'create';
+
     public const ACTION_UPDATE = 'update';
+
     public const ACTION_DELETE = 'delete';
+
     public const ACTION_APPROVE = 'approve';
+
     public const ACTION_REJECT = 'reject';
+
     public const ACTION_SUBMIT = 'submit';
+
     public const ACTION_PUBLISH = 'publish';
+
     public const ACTION_UNPUBLISH = 'unpublish';
+
     public const ACTION_ARCHIVE = 'archive';
+
     public const ACTION_LOGIN = 'login';
+
     public const ACTION_LOGOUT = 'logout';
 
     /**
@@ -95,6 +105,7 @@ class AuditLog extends Model
         if ($userId) {
             return $query->where('user_id', $userId);
         }
+
         return $query;
     }
 
@@ -106,6 +117,7 @@ class AuditLog extends Model
         if ($type) {
             return $query->where('entity_type', $type);
         }
+
         return $query;
     }
 
@@ -115,7 +127,7 @@ class AuditLog extends Model
     public function scopeByEntity($query, $type, $id)
     {
         return $query->where('entity_type', $type)
-                     ->where('entity_id', $id);
+            ->where('entity_id', $id);
     }
 
     /**
@@ -126,6 +138,7 @@ class AuditLog extends Model
         if ($action) {
             return $query->where('action', $action);
         }
+
         return $query;
     }
 
@@ -146,8 +159,9 @@ class AuditLog extends Model
             $query->where('created_at', '>=', $from);
         }
         if ($to) {
-            $query->where('created_at', '<=', $to . ' 23:59:59');
+            $query->where('created_at', '<=', $to.' 23:59:59');
         }
+
         return $query;
     }
 
@@ -164,7 +178,7 @@ class AuditLog extends Model
 
         return $query->where(function ($q) use ($escaped) {
             $q->where('entity_name', 'LIKE', "%{$escaped}%")
-              ->orWhere('user_name', 'LIKE', "%{$escaped}%");
+                ->orWhere('user_name', 'LIKE', "%{$escaped}%");
         });
     }
 
@@ -260,13 +274,13 @@ class AuditLog extends Model
 
         // Simple detection to avoid heavy dependencies
         if (preg_match('/Firefox\/([0-9.]+)/', $agent, $matches)) {
-            $browser = 'Firefox ' . intval($matches[1]);
+            $browser = 'Firefox '.intval($matches[1]);
         } elseif (preg_match('/Chrome\/([0-9.]+)/', $agent, $matches)) {
-            $browser = 'Chrome ' . intval($matches[1]);
+            $browser = 'Chrome '.intval($matches[1]);
         } elseif (preg_match('/Safari\/([0-9.]+)/', $agent, $matches)) {
-            $browser = 'Safari ' . intval($matches[1]);
+            $browser = 'Safari '.intval($matches[1]);
         } elseif (preg_match('/Edge\/([0-9.]+)/', $agent, $matches)) {
-            $browser = 'Edge ' . intval($matches[1]);
+            $browser = 'Edge '.intval($matches[1]);
         } elseif (strpos($agent, 'MSIE') !== false || strpos($agent, 'Trident') !== false) {
             $browser = 'Internet Explorer';
         }

@@ -1,0 +1,527 @@
+[
+  {
+    "id": "TC001",
+    "title": "User Login with Valid Credentials",
+    "description": "Verify that a user can successfully log in with valid username and password.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid username and password"
+      },
+      {
+        "type": "action",
+        "description": "Click login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is redirected to the dashboard with notifications and quick stats visible"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "User Login with Invalid Credentials",
+    "description": "Verify that login fails with incorrect username or password and appropriate error is shown.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid username and/or password"
+      },
+      {
+        "type": "action",
+        "description": "Click login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login attempt fails and error message is displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Create Surat Tugas with Multiple Recipients and Auto Numbering",
+    "description": "Verify that a Surat Tugas can be created with multiple recipients, automatic letter numbering including suffix for derivative letters.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Surat Tugas create page"
+      },
+      {
+        "type": "action",
+        "description": "Fill in all mandatory fields including letter details and recipients"
+      },
+      {
+        "type": "action",
+        "description": "Submit the Surat Tugas"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify Surat Tugas is saved with correct letter number assigned and all recipients linked"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Edit Surat Tugas and Save Changes",
+    "description": "Verify editing an existing Surat Tugas updates data correctly and preserves letter numbering rules.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Surat Tugas list and select an existing record"
+      },
+      {
+        "type": "action",
+        "description": "Modify letter details and recipients"
+      },
+      {
+        "type": "action",
+        "description": "Save changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the Surat Tugas details are updated successfully and letter number remains consistent"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Submit Surat Tugas for Approval and Approver Notification",
+    "description": "Verify Surat Tugas submission triggers notification to designated approvers and locks editing.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Submit a completed Surat Tugas for approval"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify approvers receive notifications based on their preferences (in-app and email queued)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify Surat Tugas becomes locked for editing during approval workflow"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Approve Surat Tugas with Digital Signature and Stamp",
+    "description": "Verify an approver can approve a Surat Tugas and apply configured digital signatures and stamps.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as approver and access pending Surat Tugas approval"
+      },
+      {
+        "type": "action",
+        "description": "Review letter details and click approve"
+      },
+      {
+        "type": "action",
+        "description": "Apply digital signature and configurable stamp on approval"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the letter status is updated to approved and signatures/stamps are embedded"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Reject Surat Tugas and Comment Recording",
+    "description": "Verify that an approver can reject a Surat Tugas with comments and system records rejection details.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as approver and select a Surat Tugas pending approval"
+      },
+      {
+        "type": "action",
+        "description": "Reject the letter with a comment specifying reason"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify letter status updates to rejected and rejection comments are stored"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Preview and Download Surat Tugas PDF",
+    "description": "Verify that users can preview Surat Tugas in PDF format with accurate content and layout and download finalized letters.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open a finalized Surat Tugas for preview"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the PDF rendering shows correct data with proper formatting and watermarks"
+      },
+      {
+        "type": "action",
+        "description": "Download the Surat Tugas PDF"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the downloaded PDF file is complete and opens without errors"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Create and Manage Surat Keputusan including Attachments",
+    "description": "Verify that users can create and manage Surat Keputusan with legal considerations and attachments through full workflow.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to Surat Keputusan create page"
+      },
+      {
+        "type": "action",
+        "description": "Fill required fields including legal texts and upload attachments securely"
+      },
+      {
+        "type": "action",
+        "description": "Submit Surat Keputusan for approval"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify Surat Keputusan is saved with attachments linked and notifications sent to approvers"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Edit Surat Keputusan and Maintain Attachment Integrity",
+    "description": "Verify editing Surat Keputusan maintains attachment data and updates legal considerations properly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Select existing Surat Keputusan to edit"
+      },
+      {
+        "type": "action",
+        "description": "Change letter details and add/remove attachments"
+      },
+      {
+        "type": "action",
+        "description": "Save changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify data saved correctly and attachments are correctly linked or removed"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Surat Keputusan Approval Workflow with Notifications",
+    "description": "Verify Surat Keputusan approval process including notifications, status changes and audit recording.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Submit Surat Keputusan for approval"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify approvers receive notifications (queue email and in-app) based on preferences"
+      },
+      {
+        "type": "action",
+        "description": "Approvers approve or reject with comments"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify letter status updates appropriately and all actions are logged in audit trail"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Manage Users and Role-Based Access Control",
+    "description": "Verify CRUD operations for users and roles, role-based permission enforcement and soft delete functionality.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a new user and assign roles"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user permissions reflect assigned roles accurately"
+      },
+      {
+        "type": "action",
+        "description": "Edit user details and assign/remove roles"
+      },
+      {
+        "type": "action",
+        "description": "Soft delete a user"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user access is revoked and user remains in data for retention"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to perform forbidden actions with a restricted role"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is denied accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Master Data Management for Classifications and Task Types",
+    "description": "Verify CRUD functionality for classifications, task types, and letterhead templates.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create new classification, task type, and letterhead template"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify entries appear correctly in lists and are usable for letter creation"
+      },
+      {
+        "type": "action",
+        "description": "Edit and delete entries"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updates reflect in the system and deletes handle dependencies safely"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Letter Template CRUD and Usage",
+    "description": "Verify creation, editing, and deletion of letter templates; verify templates apply correctly during surat creation.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create new letter template with placeholders"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify template is saved and visible in template list"
+      },
+      {
+        "type": "action",
+        "description": "Use template during Surat creation and verify auto-filled fields"
+      },
+      {
+        "type": "action",
+        "description": "Edit template content and save"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updates propagate to new letters created from template"
+      },
+      {
+        "type": "action",
+        "description": "Delete a template"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify template is removed and letters using it remain unaffected"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Notification Preferences and Delivery",
+    "description": "Verify users can configure notification preferences and receive timely in-app and queued email notifications for workflow events.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access notification preferences and update settings"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify preferences are saved correctly"
+      },
+      {
+        "type": "action",
+        "description": "Trigger workflow events (e.g., letter submission for approval)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify notifications are delivered per user preferences and notification states are recorded"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Audit Log Recording for Key User Actions",
+    "description": "Verify audit logs record all significant user actions with complete details for transparency and accountability.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform actions such as creating, editing, approving letters, and managing users"
+      },
+      {
+        "type": "action",
+        "description": "Access audit log interface"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify audit entries capture correct user, action, timestamp, and affected data details"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Generate and Manage Nomor Surat Counters and Formatting",
+    "description": "Verify system generates and manages letter number counters correctly for all letter types and derivative suffixes.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create multiple Surat Tugas and Surat Keputusan consecutively"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify each letter is assigned a unique number in correct format and sequence"
+      },
+      {
+        "type": "action",
+        "description": "Create derivative Surat Tugas and verify suffix numbering"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify derivative letters have proper suffix appended to the base number"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Export Reports to Excel, CSV, and PDF",
+    "description": "Verify report exports produce accurate and complete files in all supported formats with correct letter and user data.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to reporting dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Select data filters and generate reports"
+      },
+      {
+        "type": "action",
+        "description": "Export reports in Excel, CSV, and PDF formats"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify exported files are generated correctly and open without errors with accurate data"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Input Validation and Sanitization for All User Inputs",
+    "description": "Verify that all user inputs are validated for format, length, and required fields, and properly sanitized to prevent injection and XSS attacks.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to submit forms with missing required fields, invalid data, and malicious scripts"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify form shows validation errors and rejects unsafe input"
+      },
+      {
+        "type": "action",
+        "description": "Inspect stored data to confirm input sanitization is applied"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Session-Based Authentication and CSRF Protection",
+    "description": "Verify that authentication uses session management securely and that CSRF tokens are required and validated on all sensitive requests.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login to the system and perform operations requiring authentication"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify session is maintained securely and expiry works as expected"
+      },
+      {
+        "type": "action",
+        "description": "Attempt CSRF attack by submitting requests without valid token"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify requests without valid CSRF tokens are rejected"
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Responsive UI Layout Consistency",
+    "description": "Verify the user interface is responsive and renders properly across different screen sizes and browsers, consistent with Blade templates and frontend components.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access all main pages including dashboard, letter creation, approval, and management using desktop, tablet, and mobile screen sizes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify layout components such as navbar, sidebar, buttons, form fields, and tables display and behave correctly without overlap or clipping"
+      }
+    ]
+  }
+]

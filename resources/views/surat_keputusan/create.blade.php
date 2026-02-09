@@ -411,6 +411,12 @@
                 'currentRomawi' => $currentRomawi ?? null,
                 'autoNomor' => $autoNomor ?? '',
             ])
+
+            {{-- ✅ Section Lampiran (Init null) --}}
+            @include('surat_keputusan.partials.attachments_section', [
+                'isEdit' => false,
+                'keputusan' => null,
+            ])
         @else
             {{-- Guard akses --}}
             <div class="card card-danger">

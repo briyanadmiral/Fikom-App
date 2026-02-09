@@ -21,8 +21,8 @@ class SkFinal extends Mailable
 
     public function build()
     {
-        $nomor   = $this->sk->nomor ?: '(tanpa nomor)';
-        $subject = 'Surat Keputusan Disetujui: ' . $nomor;
+        $nomor = $this->sk->nomor ?: '(tanpa nomor)';
+        $subject = 'Surat Keputusan Disetujui: '.$nomor;
 
         $mail = $this->subject($subject)
             ->markdown('emails.surat_keputusan.final', [
@@ -32,9 +32,9 @@ class SkFinal extends Mailable
         // Lampirkan PDF bila ada
         if ($this->sk->signed_pdf_path && Storage::disk('local')->exists($this->sk->signed_pdf_path)) {
             $safeNomor = preg_replace('/[\/\\\\]+/', '-', (string) $this->sk->nomor ?: 'TanpaNomor');
-            $absolute  = Storage::disk('local')->path($this->sk->signed_pdf_path);
+            $absolute = Storage::disk('local')->path($this->sk->signed_pdf_path);
             $mail->attach($absolute, [
-                'as'   => "Surat_Keputusan_{$safeNomor}.pdf",
+                'as' => "Surat_Keputusan_{$safeNomor}.pdf",
                 'mime' => 'application/pdf',
             ]);
         }

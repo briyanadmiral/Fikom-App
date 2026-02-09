@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
  * ✅ IMPROVED: Enhanced sanitization & validation for Update Surat Keputusan
  *
  * @version 2.0.0
+ *
  * @date 2025-12-06
  */
 class UpdateKeputusanRequest extends FormRequest
@@ -42,10 +43,10 @@ class UpdateKeputusanRequest extends FormRequest
 
             // === Penandatangan ===
             'penandatangan' => [
-                'nullable', 
-                'integer', 
+                'nullable',
+                'integer',
                 'exists:pengguna,id',
-                'required_if:mode,pending,terkirim'
+                'required_if:mode,pending,terkirim',
             ],
             'npp_penandatangan' => ['nullable', 'string', 'max:50', 'regex:/^[0-9A-Z\-\.\/]+$/'],
 
@@ -89,7 +90,7 @@ class UpdateKeputusanRequest extends FormRequest
                 $hasInternal = count($this->input('penerima_internal', [])) > 0;
                 $hasEksternal = count($this->input('penerima_eksternal', [])) > 0;
 
-                if (!$hasInternal && !$hasEksternal) {
+                if (! $hasInternal && ! $hasEksternal) {
                     $validator->errors()->add('penerima_internal', 'Minimal satu penerima (internal atau eksternal) wajib diisi saat pengajuan.');
                 }
             }
@@ -137,10 +138,10 @@ class UpdateKeputusanRequest extends FormRequest
                 $date = \Carbon\Carbon::parse($this->input('tanggal_surat'))->format('Y-m-d');
             } catch (\Exception $e) {
                 Log::warning('Invalid tanggal_surat in UpdateKeputusanRequest', [
-    'value'        => $this->input('tanggal_surat'),
-    'keputusan_id' => $this->getKeputusanIdForLog(),
-    'user_id'      => auth()->id(),
-]);
+                    'value' => $this->input('tanggal_surat'),
+                    'keputusan_id' => $this->getKeputusanIdForLog(),
+                    'user_id' => auth()->id(),
+                ]);
                 $date = now()->format('Y-m-d');
             }
 
@@ -163,38 +164,14 @@ class UpdateKeputusanRequest extends FormRequest
         }
 
         // ====================================================================
-// STEP 4: Normalisasi + sanitasi TEMBUSAN (Tagify JSON → list baris)
-// ====================================================================
-$rawTembusan = $this->input('tembusan');
-$tembusanList = [];
+        // STEP 4: Normalisasi + sanitasi TEMBUSAN (Tagify JSON → list baris)
+        // ====================================================================
+        $rawTembusan = $this->input('tembusan');
+        $tembusanList = [];
 
-// 4.1 Jika sudah array (jarang, tapi amanin)
-if (is_array($rawTembusan)) {
-    foreach ($rawTembusan as $item) {
-        $val = is_array($item)
-            ? ($item['value'] ?? ($item['text'] ?? ($item['name'] ?? reset($item))))
-            : $item;
-
-        $val = strip_tags(trim((string) $val));
-        $val = sanitize_input($val, 255);
-
-        if ($val !== '') {
-            $tembusanList[] = $val;
-        }
-    }
-}
-
-// 4.2 Jika string (UMUM: Tagify simpan sebagai JSON string)
-elseif (is_string($rawTembusan)) {
-    // Decode entity & trim
-    $s = trim(html_entity_decode($rawTembusan, ENT_QUOTES, 'UTF-8'));
-
-    if ($s !== '') {
-        // Coba decode JSON Tagify: [{"value":"..."}, ...]
-        $decoded = json_decode($s, true);
-
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            foreach ($decoded as $item) {
+        // 4.1 Jika sudah array (jarang, tapi amanin)
+        if (is_array($rawTembusan)) {
+            foreach ($rawTembusan as $item) {
                 $val = is_array($item)
                     ? ($item['value'] ?? ($item['text'] ?? ($item['name'] ?? reset($item))))
                     : $item;
@@ -206,26 +183,49 @@ elseif (is_string($rawTembusan)) {
                     $tembusanList[] = $val;
                 }
             }
-        } else {
-            // Fallback: anggap dipisah koma / newline / titik koma
-            $parts = preg_split('/[,\n;]+/', $s);
-            foreach ($parts as $part) {
-                $val = strip_tags(trim((string) $part));
-                $val = sanitize_input($val, 255);
-                if ($val !== '') {
-                    $tembusanList[] = $val;
+        }
+
+        // 4.2 Jika string (UMUM: Tagify simpan sebagai JSON string)
+        elseif (is_string($rawTembusan)) {
+            // Decode entity & trim
+            $s = trim(html_entity_decode($rawTembusan, ENT_QUOTES, 'UTF-8'));
+
+            if ($s !== '') {
+                // Coba decode JSON Tagify: [{"value":"..."}, ...]
+                $decoded = json_decode($s, true);
+
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    foreach ($decoded as $item) {
+                        $val = is_array($item)
+                            ? ($item['value'] ?? ($item['text'] ?? ($item['name'] ?? reset($item))))
+                            : $item;
+
+                        $val = strip_tags(trim((string) $val));
+                        $val = sanitize_input($val, 255);
+
+                        if ($val !== '') {
+                            $tembusanList[] = $val;
+                        }
+                    }
+                } else {
+                    // Fallback: anggap dipisah koma / newline / titik koma
+                    $parts = preg_split('/[,\n;]+/', $s);
+                    foreach ($parts as $part) {
+                        $val = strip_tags(trim((string) $part));
+                        $val = sanitize_input($val, 255);
+                        if ($val !== '') {
+                            $tembusanList[] = $val;
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-// 4.3 Unik & join pakai newline (format simpan di DB)
-$tembusanList = array_values(array_unique($tembusanList));
-$tembusan = $tembusanList ? implode("\n", $tembusanList) : '';
+        // 4.3 Unik & join pakai newline (format simpan di DB)
+        $tembusanList = array_values(array_unique($tembusanList));
+        $tembusan = $tembusanList ? implode("\n", $tembusanList) : '';
 
-$this->merge(['tembusan' => $tembusan]);
-
+        $this->merge(['tembusan' => $tembusan]);
 
         // ====================================================================
         // STEP 5: Sanitize MENIMBANG array
@@ -234,9 +234,10 @@ $this->merge(['tembusan' => $tembusan]);
             array_filter(
                 array_map(function ($item) {
                     $cleaned = strip_tags(sanitize_input(trim((string) $item), 1000));
+
                     return $cleaned !== '' ? $cleaned : null;
                 }, (array) $this->input('menimbang', [])),
-                fn($v) => $v !== null,
+                fn ($v) => $v !== null,
             ),
         );
 
@@ -253,9 +254,10 @@ $this->merge(['tembusan' => $tembusan]);
             array_filter(
                 array_map(function ($item) {
                     $cleaned = strip_tags(sanitize_input(trim((string) $item), 1000));
+
                     return $cleaned !== '' ? $cleaned : null;
                 }, (array) $this->input('mengingat', [])),
-                fn($v) => $v !== null,
+                fn ($v) => $v !== null,
             ),
         );
 
@@ -266,49 +268,48 @@ $this->merge(['tembusan' => $tembusan]);
         $this->merge(['mengingat' => $mengingat]);
 
         // ====================================================================
-// STEP 7: Sanitize MENETAPKAN array (Diktum)
-// ====================================================================
-$menetapkan = array_values(
-    array_filter(
-        array_map(function ($d) {
-            if (!is_array($d)) {
-                return null;
-            }
+        // STEP 7: Sanitize MENETAPKAN array (Diktum)
+        // ====================================================================
+        $menetapkan = array_values(
+            array_filter(
+                array_map(function ($d) {
+                    if (! is_array($d)) {
+                        return null;
+                    }
 
-            $judul = strip_tags(trim((string) ($d['judul'] ?? '')));
-            $isi = $d['isi'] ?? ($d['konten'] ?? '');
+                    $judul = strip_tags(trim((string) ($d['judul'] ?? '')));
+                    $isi = $d['isi'] ?? ($d['konten'] ?? '');
 
-            // ✅ PENTING: Handle null value dari CKEditor yang kosong
-            if ($isi === null || $isi === 'null') {
-                $isi = '';
-            }
+                    // ✅ PENTING: Handle null value dari CKEditor yang kosong
+                    if ($isi === null || $isi === 'null') {
+                        $isi = '';
+                    }
 
-            // ✅ Sanitize HTML content dengan helper
-            $isi = sanitize_html_limited($isi);
+                    // ✅ Sanitize HTML content dengan helper
+                    $isi = sanitize_html_limited($isi);
 
-            // ✅ Additional XSS protection (sekarang sudah handle null)
-            $isi = $this->stripDangerousHtml($isi);
+                    // ✅ Additional XSS protection (sekarang sudah handle null)
+                    $isi = $this->stripDangerousHtml($isi);
 
-            // Skip empty diktum (judul kosong DAN isi kosong)
-            if ($judul === '' && trim(strip_tags($isi)) === '') {
-                return null;
-            }
+                    // Skip empty diktum (judul kosong DAN isi kosong)
+                    if ($judul === '' && trim(strip_tags($isi)) === '') {
+                        return null;
+                    }
 
-            return [
-                'judul' => sanitize_input($judul, 200),
-                'isi' => $isi,
-            ];
-        }, (array) $this->input('menetapkan', [])),
-    ),
-);
+                    return [
+                        'judul' => sanitize_input($judul, 200),
+                        'isi' => $isi,
+                    ];
+                }, (array) $this->input('menetapkan', [])),
+            ),
+        );
 
-// ✅ Pastikan minimal ada 1 diktum (meskipun kosong)
-if (empty($menetapkan)) {
-    $menetapkan = [['judul' => '', 'isi' => '']];
-}
+        // ✅ Pastikan minimal ada 1 diktum (meskipun kosong)
+        if (empty($menetapkan)) {
+            $menetapkan = [['judul' => '', 'isi' => '']];
+        }
 
-$this->merge(['menetapkan' => $menetapkan]);
-
+        $this->merge(['menetapkan' => $menetapkan]);
 
         // ====================================================================
         // STEP 8: Sanitize PENERIMA EKSTERNAL
@@ -362,80 +363,73 @@ $this->merge(['menetapkan' => $menetapkan]);
     }
 
     /**
- * ✅ Remove dangerous characters (SQL/XSS patterns)
- * @param string|null $value
- * @return string
- */
-private function removeDangerousChars(?string $value): string
-{
-    // ✅ Handle null value
-    if ($value === null || $value === '') {
-        return '';
+     * ✅ Remove dangerous characters (SQL/XSS patterns)
+     */
+    private function removeDangerousChars(?string $value): string
+    {
+        // ✅ Handle null value
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        // Remove null bytes
+        $value = str_replace("\0", '', $value);
+
+        // Remove control characters (except newline, tab, carriage return)
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value);
+
+        return $value;
     }
-    
-    // Remove null bytes
-    $value = str_replace("\0", '', $value);
 
-    // Remove control characters (except newline, tab, carriage return)
-    $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value);
+    /**
+     * ✅ Strip dangerous HTML patterns
+     */
+    private function stripDangerousHtml(?string $value): string
+    {
+        // ✅ Handle null value
+        if ($value === null || $value === '') {
+            return '';
+        }
 
-    return $value;
-}
+        // Remove script tags
+        $value = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $value);
 
+        // Remove iframe tags
+        $value = preg_replace('/<iframe\b[^>]*>[\s\S]*?<\/iframe>/i', '', $value);
 
-   /**
- * ✅ Strip dangerous HTML patterns
- * @param string|null $value
- * @return string
- */
-private function stripDangerousHtml(?string $value): string
-{
-    // ✅ Handle null value
-    if ($value === null || $value === '') {
-        return '';
+        // Remove on* event handlers
+        $value = preg_replace('/<[^>]+\s+on\w+\s*=\s*["\'][^"\']*["\']/i', '', $value);
+
+        // Remove javascript: protocol
+        $value = preg_replace('/javascript:/i', '', $value);
+
+        return $value;
     }
-    
-    // Remove script tags
-    $value = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $value);
-
-    // Remove iframe tags
-    $value = preg_replace('/<iframe\b[^>]*>[\s\S]*?<\/iframe>/i', '', $value);
-
-    // Remove on* event handlers
-    $value = preg_replace('/<[^>]+\s+on\w+\s*=\s*["\'][^"\']*["\']/i', '', $value);
-
-    // Remove javascript: protocol
-    $value = preg_replace('/javascript:/i', '', $value);
-
-    return $value;
-}
-
 
     /**
      * ✅ Ensure at least one penerima exists
      */
     private function validatePenerimaExists(): void
-{
-    $mode = $this->input('mode'); // draft / pending / terkirim / null
+    {
+        $mode = $this->input('mode'); // draft / pending / terkirim / null
 
-    // Hanya warning kalau mau kirim/pending
-    if (!in_array($mode, ['pending', 'terkirim'], true)) {
-        return;
+        // Hanya warning kalau mau kirim/pending
+        if (! in_array($mode, ['pending', 'terkirim'], true)) {
+            return;
+        }
+
+        $hasInternal = is_array($this->input('penerima_internal')) && count($this->input('penerima_internal')) > 0;
+        $hasEksternal = is_array($this->input('penerima_eksternal')) && count($this->input('penerima_eksternal')) > 0;
+
+        if (! $hasInternal && ! $hasEksternal) {
+            Log::warning('UpdateKeputusanRequest: No penerima provided', [
+                'keputusan_id' => $this->getKeputusanIdForLog(),
+                'user_id' => auth()->id(),
+                'ip' => request()->ip(),
+                'tentang' => substr($this->input('tentang', ''), 0, 50),
+            ]);
+        }
     }
-
-    $hasInternal  = is_array($this->input('penerima_internal')) && count($this->input('penerima_internal')) > 0;
-    $hasEksternal = is_array($this->input('penerima_eksternal')) && count($this->input('penerima_eksternal')) > 0;
-
-    if (!$hasInternal && !$hasEksternal) {
-        Log::warning('UpdateKeputusanRequest: No penerima provided', [
-            'keputusan_id' => $this->getKeputusanIdForLog(),
-            'user_id'      => auth()->id(),
-            'ip'           => request()->ip(),
-            'tentang'      => substr($this->input('tentang', ''), 0, 50),
-        ]);
-    }
-}
-
 
     /**
      * Custom validation messages
@@ -551,21 +545,20 @@ private function stripDangerousHtml(?string $value): string
     }
 
     /**
- * Helper untuk ambil ID keputusan dari route (untuk logging)
- */
-private function getKeputusanIdForLog(): ?int
-{
-    $param = $this->route('surat_keputusan');
+     * Helper untuk ambil ID keputusan dari route (untuk logging)
+     */
+    private function getKeputusanIdForLog(): ?int
+    {
+        $param = $this->route('surat_keputusan');
 
-    if ($param instanceof \App\Models\KeputusanHeader) {
-        return $param->id;
+        if ($param instanceof \App\Models\KeputusanHeader) {
+            return $param->id;
+        }
+
+        if (is_scalar($param)) {
+            return (int) $param;
+        }
+
+        return null;
     }
-
-    if (is_scalar($param)) {
-        return (int) $param;
-    }
-
-    return null;
-}
-
 }

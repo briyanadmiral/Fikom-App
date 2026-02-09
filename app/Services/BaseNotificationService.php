@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Notifikasi;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -31,9 +30,6 @@ abstract class BaseNotificationService
      * Create database notification dengan error handling
      * ✅ IMPROVED: Added input validation
      *
-     * @param int $userId
-     * @param int $referenceId
-     * @param string $message
      * @return bool Success status
      */
     protected function createNotification(int $userId, int $referenceId, string $message): bool
@@ -48,6 +44,7 @@ abstract class BaseNotificationService
                     'user_id' => $userId,
                     'reference_id' => $referenceId,
                 ]);
+
                 return false;
             }
 
@@ -59,15 +56,17 @@ abstract class BaseNotificationService
                     'user_id' => $validUserId,
                     'reference_id' => $validReferenceId,
                 ]);
+
                 return false;
             }
 
             // ✅ ADDED: Check if user exists and is active
             $user = $this->getActiveUser($validUserId);
-            if (!$user) {
+            if (! $user) {
                 Log::warning('User not found or inactive', [
                     'user_id' => $validUserId,
                 ]);
+
                 return false;
             }
 
@@ -95,6 +94,7 @@ abstract class BaseNotificationService
                 'reference_id' => $referenceId,
                 'error' => sanitize_log_message($e->getMessage()), // ✅ ADDED sanitization
             ]);
+
             return false;
         }
     }
@@ -102,9 +102,6 @@ abstract class BaseNotificationService
     /**
      * Get active user by ID dengan validation
      * ✅ IMPROVED: Enhanced validation
-     *
-     * @param int|null $userId
-     * @return User|null
      */
     protected function getActiveUser(?int $userId): ?User
     {
@@ -121,9 +118,6 @@ abstract class BaseNotificationService
     /**
      * Validate email address
      * ✅ IMPROVED: Enhanced email validation
-     *
-     * @param string|null $email
-     * @return bool
      */
     protected function isValidEmail(?string $email): bool
     {
@@ -134,27 +128,24 @@ abstract class BaseNotificationService
         // ✅ ADDED: Sanitize email first
         $sanitizedEmail = sanitize_email($email);
 
-        return !empty($sanitizedEmail) && filter_var($sanitizedEmail, FILTER_VALIDATE_EMAIL);
+        return ! empty($sanitizedEmail) && filter_var($sanitizedEmail, FILTER_VALIDATE_EMAIL);
     }
 
     /**
      * Queue email dengan error handling
      * ✅ IMPROVED: Added email validation
      *
-     * @param object $mailable
-     * @param string $email
-     * @param string $queue
-     * @param int $delaySeconds
      * @return bool Success status
      */
     protected function queueEmail(object $mailable, string $email, string $queue = 'mail', int $delaySeconds = 5): bool
     {
         try {
             // ✅ ADDED: Validate email
-            if (!$this->isValidEmail($email)) {
+            if (! $this->isValidEmail($email)) {
                 Log::warning('Invalid email address for queueing', [
                     'email' => sanitize_log_message($email),
                 ]);
+
                 return false;
             }
 
@@ -181,6 +172,7 @@ abstract class BaseNotificationService
                 'email' => sanitize_log_message($email), // ✅ ADDED sanitization
                 'error' => sanitize_log_message($e->getMessage()), // ✅ ADDED sanitization
             ]);
+
             return false;
         }
     }
@@ -189,9 +181,6 @@ abstract class BaseNotificationService
      * Dispatch queue job dengan error handling
      * ✅ IMPROVED: Enhanced validation
      *
-     * @param object $job
-     * @param string $queue
-     * @param int $delaySeconds
      * @return bool Success status
      */
     protected function dispatchJob(object $job, string $queue = 'mail', int $delaySeconds = 5): bool
@@ -219,6 +208,7 @@ abstract class BaseNotificationService
                 'job' => sanitize_log_message(get_class($job)), // ✅ ADDED sanitization
                 'error' => sanitize_log_message($e->getMessage()), // ✅ ADDED sanitization
             ]);
+
             return false;
         }
     }
@@ -226,11 +216,6 @@ abstract class BaseNotificationService
     /**
      * Log notification activity
      * ✅ IMPROVED: Enhanced sanitization
-     *
-     * @param string $action
-     * @param int $documentId
-     * @param array $context
-     * @return void
      */
     protected function logNotificationActivity(string $action, int $documentId, array $context = []): void
     {
@@ -241,6 +226,7 @@ abstract class BaseNotificationService
             Log::warning('Invalid document ID for logging', [
                 'document_id' => $documentId,
             ]);
+
             return;
         }
 
@@ -264,7 +250,7 @@ abstract class BaseNotificationService
         }
 
         Log::info(
-            'Notification: ' . sanitize_log_message($action),
+            'Notification: '.sanitize_log_message($action),
             array_merge(
                 [
                     'type' => sanitize_log_message($this->getNotificationType()),
@@ -278,9 +264,6 @@ abstract class BaseNotificationService
     /**
      * ✅ ADDED: Batch create notifications
      *
-     * @param array $userIds
-     * @param int $referenceId
-     * @param string $message
      * @return array [success_count, failed_count]
      */
     protected function createBatchNotifications(array $userIds, int $referenceId, string $message): array
@@ -320,9 +303,6 @@ abstract class BaseNotificationService
 
     /**
      * ✅ ADDED: Get notification statistics
-     *
-     * @param int $userId
-     * @return array
      */
     protected function getNotificationStats(int $userId): array
     {

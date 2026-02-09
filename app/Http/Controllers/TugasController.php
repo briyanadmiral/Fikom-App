@@ -4,21 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTugasRequest;
 use App\Http\Requests\UpdateTugasRequest;
-use App\Models\TugasHeader;
 use App\Models\JenisTugas;
 use App\Models\MasterKopSurat;
+use App\Models\TugasHeader;
 use App\Services\SuratTugasService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 class TugasController extends Controller
 {
     /** 🔧 injeksi service */
     protected SuratTugasService $tugasService;
+
     protected \App\Services\NomorSuratService $nomorService;
 
     public function __construct(SuratTugasService $tugasService, \App\Services\NomorSuratService $nomorService)
@@ -28,8 +28,6 @@ class TugasController extends Controller
     }
 
     // ------------------ Helpers ------------------
-
-
 
     /**
      * Data dropdown untuk Advance Filter Surat Tugas:
@@ -76,8 +74,9 @@ class TugasController extends Controller
             ->get();
         $users = \App\Models\User::with('peran')->where('peran_id', '!=', 1)->get();
 
-        $taskMaster = JenisTugas::with('subtugas.detail')->orderBy('nama')->get();
+        $taskMaster = JenisTugas::with('subtugas')->orderBy('nama')->get();
         $klasifikasi = \App\Models\KlasifikasiSurat::orderBy('kode')->get();
+
         return compact('admins', 'pejabat', 'users', 'taskMaster', 'klasifikasi');
     }
 
@@ -91,6 +90,7 @@ class TugasController extends Controller
             $raw = 'submit';
         }
         $mode = is_array($raw) ? end($raw) : $raw ?? 'draft';
+
         return validate_status($mode, ['draft', 'submit']) ?? 'draft';
     }
 
@@ -130,6 +130,7 @@ class TugasController extends Controller
             'disetujui' => $list->where('status_surat', 'disetujui')->count(),
             'ditolak' => $list->where('status_surat', 'ditolak')->count(),
         ];
+
         return view('surat_tugas.tugas_saya', compact('list', 'stats'));
     }
 
@@ -197,10 +198,10 @@ class TugasController extends Controller
         $bulanRomawi = $this->nomorService->toRoman($bulanInt);
         $autoNomor = sprintf('/TG/UNIKA/%s/%s', $bulanRomawi, $tahun);
         $tanggalHariIni = now()->format('Y-m-d');
-        
+
         // ✅ PHASE 1: Load active templates for template selector
-        $templates = \App\Models\SuratTemplate::active()->with('jenisTugas')->orderBy('nama')->get();
-        
+        $templates = \App\Models\SuratTemplate::active()->with(['jenisTugas', 'subTugas'])->orderBy('nama')->get();
+
         // ✅ NOMOR TURUNAN: Load parentable nomors (pending/approved, no suffix, current year)
         // Surat Pending & Disetujui boleh jadi parent karena sudah punya nomor tetap
         // Hanya Draft & Ditolak yang tidak boleh (nomor belum fix/gagal)
@@ -210,7 +211,7 @@ class TugasController extends Controller
             ->orderByNomor('desc')
             ->limit(100)
             ->get(['id', 'nomor', 'nama_umum', 'status_surat']);
-        
+
         return view('surat_tugas.create', compact('admins', 'pejabat', 'users', 'taskMaster', 'autoNomor', 'tahun', 'semester', 'klasifikasi', 'bulanRomawi', 'tanggalHariIni', 'templates', 'parentableNomors'))->with('tugas', null);
     }
 
@@ -365,12 +366,12 @@ class TugasController extends Controller
                 'x' => $validated['cap_x_mm'] ?? 0,
                 'y' => $validated['cap_y_mm'] ?? 0,
             ];
-            
+
             $tugas->ttd_w_mm = $validated['ttd_w_mm'];
             $tugas->cap_w_mm = $validated['cap_w_mm'];
             $tugas->cap_opacity = $validated['cap_opacity'];
             $tugas->save(); // Ensure config is saved before generating PDF
-            
+
             // Kita panggil service untuk handle status transition
             $tugas = $this->tugasService->approveTugas($tugas, []);
 
@@ -379,9 +380,9 @@ class TugasController extends Controller
             $safeNomor = sanitize_alphanumeric($tugas->nomor, '_-') ?? 'NoNomor';
             $pdfPath = sprintf('private/surat_tugas/signed/%d_%s_%s.pdf', $tugas->id, $safeNomor, md5((string) $tugas->nomor));
             Storage::disk('local')->put($pdfPath, $pdfBytes);
-            
+
             $tugas->update(['signed_pdf_path' => $pdfPath]);
-            
+
             return redirect()->route('surat_tugas.approveList')->with('success', 'Surat berhasil disetujui dan ditandatangani.');
         } catch (\Throwable $e) {
             \Log::error('Gagal approve surat tugas', [
@@ -389,7 +390,31 @@ class TugasController extends Controller
                 'error' => sanitize_log_message($e->getMessage()),
                 'user_id' => Auth::id(),
             ]);
+
             return back()->with('error', 'Terjadi kesalahan saat menyetujui surat: ' . $e->getMessage());
+        }
+    }
+
+    public function reject(Request $request, TugasHeader $tugas)
+    {
+        $this->authorize('reject', $tugas);
+
+        $validated = $request->validate([
+            'alasan_penolakan' => 'required|string|min:5|max:500',
+        ]);
+
+        try {
+            $this->tugasService->rejectTugas($tugas, $validated['alasan_penolakan']);
+
+            return redirect()->route('surat_tugas.approveList')->with('success', 'Surat tugas telah ditolak.');
+        } catch (\Throwable $e) {
+            \Log::error('Gagal menolak surat tugas', [
+                'tugas_id' => $tugas->id,
+                'error' => sanitize_log_message($e->getMessage()),
+                'user_id' => Auth::id(),
+            ]);
+
+            return back()->with('error', 'Terjadi kesalahan saat menolak surat: ' . $e->getMessage());
         }
     }
 
@@ -398,12 +423,14 @@ class TugasController extends Controller
         $this->authorize('delete', $tugas);
         try {
             $tugas->delete();
+
             return redirect()->route('surat_tugas.mine')->with('success', 'Draft surat tugas berhasil dihapus.');
         } catch (\Exception $e) {
             \Log::error('Gagal menghapus surat tugas', [
                 'tugas_id' => $tugas->id,
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
+
             return back()->with('error', 'Gagal menghapus surat tugas.');
         }
     }
@@ -443,13 +470,16 @@ class TugasController extends Controller
 
         if (Storage::disk('local')->exists($pathPublicOrLocal)) {
             $raw = Storage::disk('local')->get($pathPublicOrLocal);
+
             return 'data:image/png;base64,' . base64_encode($raw);
         }
         $pub = ltrim(preg_replace('#^public/#', '', $pathPublicOrLocal), '/');
         if (Storage::exists('public/' . $pub)) {
             $raw = Storage::get('public/' . $pub);
+
             return 'data:image/png;base64,' . base64_encode($raw);
         }
+
         return null;
     }
 
@@ -632,6 +662,7 @@ class TugasController extends Controller
             }
 
             $message = $mode === 'submit' ? 'Surat tugas berhasil diajukan ulang!' : 'Perubahan surat tugas disimpan sebagai draft!';
+
             return redirect()->route('surat_tugas.index')->with('success', $message);
         } catch (\Exception $e) {
             \Log::error('Gagal memperbarui Surat Tugas', [
@@ -639,6 +670,7 @@ class TugasController extends Controller
                 'error' => sanitize_log_message($e->getMessage()),
                 'user_id' => Auth::id(),
             ]);
+
             return back()->withInput()->with('error', 'Terjadi kesalahan saat memperbarui surat tugas.');
         }
     }
@@ -659,19 +691,19 @@ class TugasController extends Controller
 
         // Cek Judul / Perihal
         if (empty($tugas->nama_umum)) {
-             return redirect()->route('surat_tugas.edit', $tugas->id)
+            return redirect()->route('surat_tugas.edit', $tugas->id)
                 ->with('error', 'Judul/Perihal surat masih kosong. Silakan lengkapi data surat.');
         }
-        
+
         // Cek Tanggal Surat
         if (empty($tugas->tanggal_surat)) {
-             return redirect()->route('surat_tugas.edit', $tugas->id)
+            return redirect()->route('surat_tugas.edit', $tugas->id)
                 ->with('error', 'Tanggal surat belum diisi. Silakan lengkapi data surat.');
         }
 
         // Cek Klasifikasi
         if (empty($tugas->klasifikasi_surat_id)) {
-             return redirect()->route('surat_tugas.edit', $tugas->id)
+            return redirect()->route('surat_tugas.edit', $tugas->id)
                 ->with('error', 'Klasifikasi surat belum dipilih. Silakan lengkapi data surat.');
         }
 
@@ -700,6 +732,7 @@ class TugasController extends Controller
                 'error' => sanitize_log_message($e->getMessage()),
                 'user_id' => Auth::id(),
             ]);
+
             return back()->with('error', 'Terjadi kesalahan saat mengajukan surat.');
         }
     }
@@ -709,16 +742,18 @@ class TugasController extends Controller
         $tugas->load(['pembuat', 'penandatanganUser', 'asalSurat', 'penerima.pengguna']);
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->all();
         $showSigns = $this->shouldShowSignatures($tugas);
+
         return response()->view('surat_tugas.highlight', compact('tugas', 'penerimaList', 'showSigns'))->header('X-Frame-Options', 'SAMEORIGIN');
     }
 
     public function downloadPdf(TugasHeader $tugas)
     {
-        $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran', 'tugasDetail.subTugas']);
+        $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran']);
         $safeNomor = sanitize_alphanumeric($tugas->nomor, '_-') ?? 'TanpaNomor';
         try {
             if ($this->shouldShowSignatures($tugas)) {
                 $bytes = $this->renderTugasPdfWithSign($tugas);
+
                 return response($bytes, 200, [
                     'Content-Type' => 'application/pdf',
                     'Content-Disposition' => sprintf('inline; filename="SuratTugas_%s.pdf"', $safeNomor),
@@ -726,6 +761,7 @@ class TugasController extends Controller
                 ]);
             }
             $bytes = $this->renderTugasPdfDraft($tugas);
+
             return response($bytes, 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => sprintf('inline; filename="SuratTugas_DRAFT_%s.pdf"', $safeNomor),
@@ -736,6 +772,7 @@ class TugasController extends Controller
                 'tugas_id' => $tugas->id,
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
+
             return back()->with('error', 'Gagal mengunduh PDF surat tugas.');
         }
     }
@@ -761,7 +798,7 @@ class TugasController extends Controller
             ->where('status_surat', 'arsip')
             ->applyFilters($validated)
             ->orderBy($validated['sort'] ?? 'tanggal_arsip', $validated['order'] ?? 'desc');
-        
+
         $list = $query->get();
 
         $stats = [
@@ -804,6 +841,7 @@ class TugasController extends Controller
                 'tugas_id' => $tugas->id,
                 'error' => $e->getMessage(),
             ]);
+
             return back()->with('error', 'Gagal mengarsipkan surat tugas: ' . $e->getMessage());
         }
     }
@@ -838,6 +876,7 @@ class TugasController extends Controller
                 'tugas_id' => $tugas->id,
                 'error' => $e->getMessage(),
             ]);
+
             return back()->with('error', 'Gagal membuka arsip surat tugas: ' . $e->getMessage());
         }
     }
@@ -845,7 +884,7 @@ class TugasController extends Controller
     /** ✅ FIXED: Show approve form dengan semua data yang dibutuhkan */
     public function showApproveForm(TugasHeader $tugas)
     {
-        $tugas->load(['penerima.pengguna.peran', 'klasifikasiSurat', 'penandatanganUser.peran', 'pembuat', 'creator', 'tugasDetail.subTugas.jenisTugas']);
+        $tugas->load(['penerima.pengguna.peran', 'klasifikasiSurat', 'penandatanganUser.peran', 'pembuat', 'creator']);
         $signAssets = $this->getSigningAssets($tugas);
         $preview = [
             'ttd_image_b64' => $signAssets['ttdImageB64'],
@@ -869,7 +908,7 @@ class TugasController extends Controller
 
     public function preview(TugasHeader $tugas, Request $request)
     {
-        $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran', 'tugasDetail.subTugas']);
+        $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran']);
         $signAssets = $this->getSigningAssets($tugas);
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
         $showSigns = $this->shouldShowSignatures($tugas);
@@ -913,13 +952,8 @@ class TugasController extends Controller
             abort(403, 'Anda tidak berhak mengakses halaman ini.');
         }
 
-        // load relasi apa pun nama yang dipakai di model (tugasDetail / detailMaster)
-        $tugas->loadMissing('penerima.pengguna', 'tugasDetail.subTugas.detail', 'detailMaster.subTugas.detail');
-
-        // ambil "master detail" melalui salah satu relasi yang tersedia
-        $detailSource = $tugas->tugasDetail ?: $tugas->detailMaster;
-        // field-field yang harus diisi untuk sub_tugas tsb
-        $detailFields = optional(optional($detailSource)->subTugas)->detail ?? collect();
+        $tugas->loadMissing('penerima.pengguna');
+        $detailFields = collect();
 
         // nilai yang sudah tersimpan (JSON: [tugas_detail_id => value])
         $values = [];

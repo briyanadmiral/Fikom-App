@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo; // ✅ ADDED
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -22,7 +23,7 @@ class User extends Authenticatable
     /**
      * Atribut yang dapat diisi mass-assignment.
      */
-    protected $fillable = ['email', 'sandi_hash', 'nama_lengkap', 'npp', 'jabatan', 'peran_id', 'status', 'last_activity'];
+    protected $fillable = ['email', 'sandi_hash', 'nama_lengkap', 'npp', 'jabatan', 'peran_id', 'status', 'last_activity', 'foto_path'];
 
     /**
      * ✅ ADDED: Guarded protection
@@ -182,23 +183,22 @@ class User extends Authenticatable
     */
 
     /**
- * ✅ TEMPORARY FIX: Accessor untuk backward compatibility
- * Jika ada code lama yang akses $user->nama, redirect ke nama_lengkap
- */
-public function getNamaAttribute(): ?string
-{
-    return $this->nama_lengkap;
-}
+     * ✅ TEMPORARY FIX: Accessor untuk backward compatibility
+     * Jika ada code lama yang akses $user->nama, redirect ke nama_lengkap
+     */
+    public function getNamaAttribute(): ?string
+    {
+        return $this->nama_lengkap;
+    }
 
-/**
- * ✅ AdminLTE COMPATIBILITY: Accessor for 'name' attribute
- * AdminLTE expects $user->name, but we use nama_lengkap
- */
-public function getNameAttribute(): ?string
-{
-    return $this->nama_lengkap;
-}
-
+    /**
+     * ✅ AdminLTE COMPATIBILITY: Accessor for 'name' attribute
+     * AdminLTE expects $user->name, but we use nama_lengkap
+     */
+    public function getNameAttribute(): ?string
+    {
+        return $this->nama_lengkap;
+    }
 
     /**
      * ✅ IMPROVED: Nama peran dari relasi jika tersedia
@@ -218,9 +218,9 @@ public function getNameAttribute(): ?string
     }
 
     public function isActive(): bool
-{
-    return mb_strtolower((string) $this->status) === 'aktif';
-}
+    {
+        return mb_strtolower((string) $this->status) === 'aktif';
+    }
 
     public function updateLastActivity(): void
     {
@@ -256,6 +256,7 @@ public function getNameAttribute(): ?string
         foreach (array_slice($parts, 0, 2) as $p) {
             $init .= strtoupper(substr($p, 0, 1));
         }
+
         return $init ?: 'U';
     }
 
@@ -271,6 +272,24 @@ public function getNameAttribute(): ?string
         }
 
         return '#cccccc';
+    }
+
+    /**
+     * ✅ PROFILE PHOTO: Accessor untuk mendapatkan URL foto profile
+     * Fallback ke UI Avatars jika tidak ada foto
+     */
+    public function getFotoUrlAttribute(): string
+    {
+        // Jika ada foto_path dan file exists
+        if ($this->foto_path && Storage::disk('public')->exists($this->foto_path)) {
+            return asset('storage/'.$this->foto_path);
+        }
+
+        // Fallback ke UI Avatars dengan warna dari avatar_color
+        $color = ltrim($this->avatar_color, '#');
+
+        return 'https://ui-avatars.com/api/?name='.urlencode($this->nama_lengkap ?? 'U')
+             .'&background='.$color.'&color=fff&size=128';
     }
 
     /**
@@ -304,6 +323,7 @@ public function getNameAttribute(): ?string
         if (is_array($roleId)) {
             // ✅ IMPROVED: Validate each ID
             $validIds = array_filter(array_map('validate_integer_id', $roleId));
+
             return $query->whereIn('peran_id', $validIds);
         }
 
@@ -321,15 +341,16 @@ public function getNameAttribute(): ?string
     }
 
     public function scopeActive($query)
-{
-    return $query->where('status', 'aktif');
-}
+    {
+        return $query->where('status', 'aktif');
+    }
+
     /**
      * ✅ GOOD: Scope pencarian aman dengan LIKE escape
      */
     public function scopeSearch($query, ?string $term)
     {
-        if (!$term) {
+        if (! $term) {
             return $query;
         }
 
@@ -343,9 +364,9 @@ public function getNameAttribute(): ?string
         $escaped = str_replace(['%', '_'], ['\%', '\_'], mb_strtolower($needle));
 
         return $query->where(function ($q) use ($escaped) {
-            $q->whereRaw('LOWER(nama_lengkap) LIKE ? ESCAPE "\\"', ['%' . $escaped . '%'])
-                ->orWhereRaw('LOWER(email) LIKE ? ESCAPE "\\"', ['%' . $escaped . '%'])
-                ->orWhereRaw('LOWER(npp) LIKE ? ESCAPE "\\"', ['%' . $escaped . '%']);
+            $q->whereRaw('LOWER(nama_lengkap) LIKE ? ESCAPE "\\"', ['%'.$escaped.'%'])
+                ->orWhereRaw('LOWER(email) LIKE ? ESCAPE "\\"', ['%'.$escaped.'%'])
+                ->orWhereRaw('LOWER(npp) LIKE ? ESCAPE "\\"', ['%'.$escaped.'%']);
         });
     }
 
@@ -355,6 +376,7 @@ public function getNameAttribute(): ?string
     public function scopeByStatus($query, string $status)
     {
         $status = sanitize_input($status, 20);
+
         return $query->where('status', $status);
     }
 
@@ -382,6 +404,7 @@ public function getNameAttribute(): ?string
     {
         if (function_exists('sanitize_input')) {
             $this->attributes['nama_lengkap'] = sanitize_input((string) $value, 255) ?? '';
+
             return;
         }
 
@@ -394,6 +417,7 @@ public function getNameAttribute(): ?string
     {
         if (function_exists('sanitize_input')) {
             $this->attributes['jabatan'] = sanitize_input((string) $value, 255) ?? null;
+
             return;
         }
 
@@ -406,6 +430,7 @@ public function getNameAttribute(): ?string
     {
         if (function_exists('sanitize_alphanumeric')) {
             $this->attributes['npp'] = sanitize_alphanumeric((string) $value, '/\-\.') ?? null;
+
             return;
         }
 
@@ -417,32 +442,31 @@ public function getNameAttribute(): ?string
      * ✅ GOOD: Status normalization
      */
     public function setStatusAttribute($value): void
-{
-    $v = mb_strtolower(trim((string) $value));
+    {
+        $v = mb_strtolower(trim((string) $value));
 
-    // Mapping ke value ENUM di database
-    $map = [
-        // ON → aktif
-        'aktif'        => 'aktif',
-        'active'       => 'aktif',
-        'ya'           => 'aktif',
-        'y'            => 'aktif',
-        '1'            => 'aktif',
+        // Mapping ke value ENUM di database
+        $map = [
+            // ON → aktif
+            'aktif' => 'aktif',
+            'active' => 'aktif',
+            'ya' => 'aktif',
+            'y' => 'aktif',
+            '1' => 'aktif',
 
-        // OFF → tidak_aktif
-        'tidak_aktif'  => 'tidak_aktif',
-        'nonaktif'     => 'tidak_aktif',
-        'non-aktif'    => 'tidak_aktif',
-        'inactive'     => 'tidak_aktif',
-        'no'           => 'tidak_aktif',
-        'n'            => 'tidak_aktif',
-        '0'            => 'tidak_aktif',
-    ];
+            // OFF → tidak_aktif
+            'tidak_aktif' => 'tidak_aktif',
+            'nonaktif' => 'tidak_aktif',
+            'non-aktif' => 'tidak_aktif',
+            'inactive' => 'tidak_aktif',
+            'no' => 'tidak_aktif',
+            'n' => 'tidak_aktif',
+            '0' => 'tidak_aktif',
+        ];
 
-    // Default: aktif (biar nggak nabrak ENUM)
-    $this->attributes['status'] = $map[$v] ?? 'aktif';
-}
-
+        // Default: aktif (biar nggak nabrak ENUM)
+        $this->attributes['status'] = $map[$v] ?? 'aktif';
+    }
 
     public function setPeranIdAttribute($value): void
     {
@@ -475,7 +499,7 @@ public function getNameAttribute(): ?string
             }
 
             // Validate email format
-            if (!filter_var($model->email, FILTER_VALIDATE_EMAIL)) {
+            if (! filter_var($model->email, FILTER_VALIDATE_EMAIL)) {
                 throw new \InvalidArgumentException('Format email tidak valid');
             }
         });

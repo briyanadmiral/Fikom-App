@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\NotificationPreference;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\NotificationPreference;
 
 class NotificationPreferenceController extends Controller
 {
@@ -27,7 +27,7 @@ class NotificationPreferenceController extends Controller
         $user = Auth::user();
 
         $preferences = NotificationPreference::getForUser($user->id);
-        
+
         $preferences->update([
             'email_on_approval_needed' => $request->boolean('email_on_approval_needed'),
             'email_on_approved' => $request->boolean('email_on_approved'),
@@ -35,6 +35,6 @@ class NotificationPreferenceController extends Controller
             'email_digest_weekly' => $request->boolean('email_digest_weekly'),
         ]);
 
-        return redirect()->back()->with('success', 'Preferensi notifikasi berhasil disimpan.');
+        return redirect()->back()->with('success', 'Preferensi berhasil disimpan');
     }
 }

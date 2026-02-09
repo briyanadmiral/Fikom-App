@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TugasHeader;
 use App\Models\KeputusanHeader;
+use App\Models\TugasHeader;
 use Illuminate\Http\Request;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
  * Controller untuk export arsip ST/SK
@@ -37,7 +36,7 @@ class ArchiveExportController extends Controller
 
         $data = $query->orderBy('created_at', 'desc')->get();
 
-        $filename = 'arsip_surat_tugas_' . date('Ymd_His') . '.csv';
+        $filename = 'arsip_surat_tugas_'.date('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=utf-8',
@@ -46,18 +45,18 @@ class ArchiveExportController extends Controller
 
         $callback = function () use ($data) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             fputcsv($file, [
-                'No', 'Nomor Surat', 'Perihal', 'Jenis Tugas', 
+                'No', 'Nomor Surat', 'Perihal', 'Jenis Tugas',
                 'Tanggal Mulai', 'Tanggal Selesai', 'Status',
-                'Pembuat', 'Tanggal Dibuat', 'Penerima'
+                'Pembuat', 'Tanggal Dibuat', 'Penerima',
             ]);
 
             $no = 1;
             foreach ($data as $st) {
                 $penerima = $st->penerima->pluck('nama_pegawai')->implode(', ');
-                
+
                 fputcsv($file, [
                     $no++,
                     $st->nomor_surat ?? '-',
@@ -98,7 +97,7 @@ class ArchiveExportController extends Controller
 
         $data = $query->orderBy('created_at', 'desc')->get();
 
-        $filename = 'arsip_surat_keputusan_' . date('Ymd_His') . '.csv';
+        $filename = 'arsip_surat_keputusan_'.date('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=utf-8',
@@ -107,11 +106,11 @@ class ArchiveExportController extends Controller
 
         $callback = function () use ($data) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             fputcsv($file, [
                 'No', 'Nomor Surat', 'Perihal', 'Klasifikasi',
-                'Tanggal SK', 'Status', 'Pembuat', 'Tanggal Dibuat'
+                'Tanggal SK', 'Status', 'Pembuat', 'Tanggal Dibuat',
             ]);
 
             $no = 1;

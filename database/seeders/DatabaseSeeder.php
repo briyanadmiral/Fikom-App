@@ -1,4 +1,5 @@
 <?php
+
 // database/seeders/DatabaseSeeder.php
 
 namespace Database\Seeders;
@@ -16,13 +17,13 @@ class DatabaseSeeder extends Seeder
             ['nama' => 'admin_tu', 'deskripsi' => 'Admin Tata Usaha'],
             ['nama' => 'dekan', 'deskripsi' => 'Dekan'],
             ['nama' => 'wakil_dekan', 'deskripsi' => 'Wakil Dekan'],
-            ['nama' => 'user', 'deskripsi' => 'User Biasa']
+            ['nama' => 'user', 'deskripsi' => 'User Biasa'],
         ];
         foreach ($peran as $row) {
             DB::table('peran')->insert([
                 'nama' => $row['nama'],
                 'deskripsi' => $row['deskripsi'],
-                'dibuat_pada' => now()
+                'dibuat_pada' => now(),
             ]);
         }
 
@@ -35,37 +36,37 @@ class DatabaseSeeder extends Seeder
                 'email' => 'agustina.anggitasari@unika.ac.id',
                 'sandi_hash' => $defaultPassword,
                 'nama_lengkap' => 'AGUSTINA ALAM ANGGITASARI, SE., MM',
-                'peran_id' => 1
+                'peran_id' => 1,
             ],
             [
                 'email' => 'kariyani.spd@unika.ac.id',
                 'sandi_hash' => $defaultPassword,
                 'nama_lengkap' => 'KARIYANI, S.Pd',
-                'peran_id' => 1
+                'peran_id' => 1,
             ],
             [
                 'email' => 'bernhardinus.harnadi@unika.ac.id',
                 'sandi_hash' => $defaultPassword,
                 'nama_lengkap' => 'Prof. BERNARDINUS HARNADI, ST., MT., Ph.D.',
-                'peran_id' => 3
+                'peran_id' => 3,
             ],
             [
                 'email' => 'ridwan.sanjaya@unika.ac.id',
                 'sandi_hash' => $defaultPassword,
                 'nama_lengkap' => 'Prof. Dr. F. RIDWAN SANJAYA, SE.,S.KOM., MS.IEC',
-                'peran_id' => 2
+                'peran_id' => 2,
             ],
             [
                 'email' => 'muh.khudori@unika.ac.id',
                 'sandi_hash' => $defaultPassword,
                 'nama_lengkap' => 'MUH KHUDORI',
-                'peran_id' => 4
+                'peran_id' => 4,
             ],
             [
                 'email' => 'bambang.setiawan@unika.ac.id',
                 'sandi_hash' => $defaultPassword,
                 'nama_lengkap' => 'BAMBANG SETIAWAN, ST',
-                'peran_id' => 4
+                'peran_id' => 4,
             ],
         ];
         foreach ($users as $row) {
@@ -74,7 +75,7 @@ class DatabaseSeeder extends Seeder
                 'sandi_hash' => $row['sandi_hash'],
                 'nama_lengkap' => $row['nama_lengkap'],
                 'peran_id' => $row['peran_id'],
-                'dibuat_pada' => now()
+                'dibuat_pada' => now(),
             ]);
         }
 
@@ -110,7 +111,7 @@ class DatabaseSeeder extends Seeder
                 'penandatangan' => 4,
                 'next_approver' => 3,
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             [
                 'nomor' => 'ST-002/UNIKA/2025',
@@ -142,8 +143,8 @@ class DatabaseSeeder extends Seeder
                 'penandatangan' => 3,
                 'next_approver' => 4,
                 'created_at' => now(),
-                'updated_at' => now()
-            ]
+                'updated_at' => now(),
+            ],
         ]);
 
         // Tugas Penerima (minimal 2 per surat)
@@ -151,23 +152,23 @@ class DatabaseSeeder extends Seeder
             [
                 'tugas_id' => 1,
                 'pengguna_id' => 5,
-                'dibaca' => false
+                'dibaca' => false,
             ],
             [
                 'tugas_id' => 1,
                 'pengguna_id' => 6,
-                'dibaca' => false
+                'dibaca' => false,
             ],
             [
                 'tugas_id' => 2,
                 'pengguna_id' => 5,
-                'dibaca' => false
+                'dibaca' => false,
             ],
             [
                 'tugas_id' => 2,
                 'pengguna_id' => 4,
-                'dibaca' => true
-            ]
+                'dibaca' => true,
+            ],
         ]);
     }
 }

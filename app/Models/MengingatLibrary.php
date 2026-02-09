@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * MengingatLibrary - Library dasar hukum "Mengingat" untuk SK
- * 
+ *
  * Menyimpan referensi dasar hukum yang sering digunakan
  * seperti UU, PP, Permen, SK Rektor, dll.
  */
@@ -67,32 +67,32 @@ class MengingatLibrary extends Model
     protected function judul(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => sanitize_output($value),
-            set: fn(?string $value) => sanitize_input($value, 200)
+            get: fn (?string $value) => sanitize_output($value),
+            set: fn (?string $value) => sanitize_input($value, 200)
         );
     }
 
     protected function isi(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => sanitize_output($value),
-            set: fn(?string $value) => sanitize_input($value, 10000)
+            get: fn (?string $value) => sanitize_output($value),
+            set: fn (?string $value) => sanitize_input($value, 10000)
         );
     }
 
     protected function kategori(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => sanitize_output($value),
-            set: fn(?string $value) => sanitize_input($value, 50)
+            get: fn (?string $value) => sanitize_output($value),
+            set: fn (?string $value) => sanitize_input($value, 50)
         );
     }
 
     protected function nomorReferensi(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => sanitize_output($value),
-            set: fn(?string $value) => sanitize_input($value, 100)
+            get: fn (?string $value) => sanitize_output($value),
+            set: fn (?string $value) => sanitize_input($value, 100)
         );
     }
 
@@ -114,6 +114,7 @@ class MengingatLibrary extends Model
         if (empty($kategori)) {
             return $query;
         }
+
         return $query->where('kategori', $kategori);
     }
 
@@ -131,8 +132,8 @@ class MengingatLibrary extends Model
 
         return $query->where(function ($q) use ($escaped) {
             $q->where('judul', 'LIKE', "%{$escaped}%")
-              ->orWhere('isi', 'LIKE', "%{$escaped}%")
-              ->orWhere('nomor_referensi', 'LIKE', "%{$escaped}%");
+                ->orWhere('isi', 'LIKE', "%{$escaped}%")
+                ->orWhere('nomor_referensi', 'LIKE', "%{$escaped}%");
         });
     }
 
@@ -146,8 +147,9 @@ class MengingatLibrary extends Model
         }
 
         $keyword = sanitize_input($keyword, 100);
+
         return $query->whereRaw(
-            "MATCH(judul, isi, nomor_referensi) AGAINST(? IN NATURAL LANGUAGE MODE)",
+            'MATCH(judul, isi, nomor_referensi) AGAINST(? IN NATURAL LANGUAGE MODE)',
             [$keyword]
         );
     }
@@ -219,9 +221,10 @@ class MengingatLibrary extends Model
     public function getDisplayLabel(): string
     {
         $label = $this->judul;
-        if (!empty($this->nomor_referensi)) {
-            $label .= ' (' . $this->nomor_referensi . ')';
+        if (! empty($this->nomor_referensi)) {
+            $label .= ' ('.$this->nomor_referensi.')';
         }
+
         return $label;
     }
 

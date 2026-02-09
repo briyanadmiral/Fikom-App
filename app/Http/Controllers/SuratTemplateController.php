@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SuratTemplate;
 use App\Models\JenisTugas;
+use App\Models\SubTugas;
+use App\Models\SuratTemplate;
 use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class SuratTemplateController extends Controller
      */
     public function index(Request $request)
     {
-        $query = SuratTemplate::with(['jenisTugas', 'creator'])
+        $query = SuratTemplate::with(['jenisTugas', 'subTugas', 'creator'])
             ->active()
             ->orderBy('nama');
 
@@ -51,9 +52,10 @@ class SuratTemplateController extends Controller
     public function create()
     {
         $jenisTugasList = JenisTugas::orderBy('nama')->get();
+        $subTugasList = SubTugas::with('jenisTugas')->orderBy('nama')->get();
         $placeholders = SuratTemplate::getPlaceholders();
 
-        return view('surat_templates.create', compact('jenisTugasList', 'placeholders'));
+        return view('surat_templates.create', compact('jenisTugasList', 'subTugasList', 'placeholders'));
     }
 
     /**
@@ -65,6 +67,7 @@ class SuratTemplateController extends Controller
             'nama' => 'required|string|max:100',
             'deskripsi' => 'nullable|string|max:500',
             'jenis_tugas_id' => 'nullable|exists:jenis_tugas,id',
+            'sub_tugas_id' => 'nullable|exists:sub_tugas,id',
             'detail_tugas' => 'required|string',
             'tembusan' => 'nullable|string',
         ]);
@@ -98,9 +101,10 @@ class SuratTemplateController extends Controller
     public function edit(SuratTemplate $surat_template)
     {
         $jenisTugasList = JenisTugas::orderBy('nama')->get();
+        $subTugasList = SubTugas::with('jenisTugas')->orderBy('nama')->get();
         $placeholders = SuratTemplate::getPlaceholders();
 
-        return view('surat_templates.edit', compact('surat_template', 'jenisTugasList', 'placeholders'));
+        return view('surat_templates.edit', compact('surat_template', 'jenisTugasList', 'subTugasList', 'placeholders'));
     }
 
     /**
@@ -112,6 +116,7 @@ class SuratTemplateController extends Controller
             'nama' => 'required|string|max:100',
             'deskripsi' => 'nullable|string|max:500',
             'jenis_tugas_id' => 'nullable|exists:jenis_tugas,id',
+            'sub_tugas_id' => 'nullable|exists:sub_tugas,id',
             'detail_tugas' => 'required|string',
             'tembusan' => 'nullable|string',
         ]);
@@ -132,7 +137,7 @@ class SuratTemplateController extends Controller
     public function destroy(SuratTemplate $surat_template)
     {
         $this->auditService->logDelete($surat_template);
-        
+
         $surat_template->delete();
 
         return redirect()

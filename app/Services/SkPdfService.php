@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\KeputusanHeader;
 use App\Models\MasterKopSurat;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * ✅ REFACTORED: Enhanced security dengan file path validation & error handling
@@ -38,7 +38,7 @@ class SkPdfService
             $capImageB64 = null;
             $kop = MasterKopSurat::query()->first();
 
-            if ($kop && !empty($kop->cap_path)) {
+            if ($kop && ! empty($kop->cap_path)) {
                 // ✅ ADDED: Validate file path
                 $validCapPath = validate_file_path($kop->cap_path);
 
@@ -92,14 +92,16 @@ class SkPdfService
                 Log::warning('Invalid file path for storage', [
                     'path' => sanitize_log_message($path),
                 ]);
+
                 return null;
             }
 
             // ✅ ADDED: Check if file exists
-            if (!Storage::disk('local')->exists($validPath)) {
+            if (! Storage::disk('local')->exists($validPath)) {
                 Log::warning('File not found in storage', [
                     'path' => sanitize_log_message($validPath),
                 ]);
+
                 return null;
             }
 
@@ -110,16 +112,18 @@ class SkPdfService
                     'path' => sanitize_log_message($validPath),
                     'size' => $fileSize,
                 ]);
+
                 return null;
             }
 
             // ✅ ADDED: Validate mime type
             $mimeType = Storage::disk('local')->mimeType($validPath);
-            if (!in_array($mimeType, ['image/png', 'image/jpeg', 'image/jpg'], true)) {
+            if (! in_array($mimeType, ['image/png', 'image/jpeg', 'image/jpg'], true)) {
                 Log::warning('Invalid mime type for image', [
                     'path' => sanitize_log_message($validPath),
                     'mime' => $mimeType,
                 ]);
+
                 return null;
             }
 
@@ -127,12 +131,14 @@ class SkPdfService
 
             // ✅ IMPROVED: Dynamic mime type in base64
             $mime = $mimeType === 'image/jpeg' || $mimeType === 'image/jpg' ? 'jpeg' : 'png';
-            return "data:image/{$mime};base64," . base64_encode($raw);
+
+            return "data:image/{$mime};base64,".base64_encode($raw);
         } catch (\Exception $e) {
             Log::error('Failed to get base64 from storage', [
                 'path' => sanitize_log_message($path),
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
+
             return null;
         }
     }
@@ -155,11 +161,12 @@ class SkPdfService
                 Log::warning('Invalid file path for public/storage', [
                     'path' => sanitize_log_message($path),
                 ]);
+
                 return null;
             }
 
             // Try public storage first
-            $publicPath = 'public/' . ltrim($validPath, '/');
+            $publicPath = 'public/'.ltrim($validPath, '/');
 
             if (Storage::exists($publicPath)) {
                 // ✅ ADDED: Check file size
@@ -169,18 +176,20 @@ class SkPdfService
                         'path' => sanitize_log_message($publicPath),
                         'size' => $fileSize,
                     ]);
+
                     return null;
                 }
 
                 // ✅ ADDED: Validate mime type
                 $mimeType = Storage::mimeType($publicPath);
-                if (!in_array($mimeType, ['image/png', 'image/jpeg', 'image/jpg'], true)) {
+                if (! in_array($mimeType, ['image/png', 'image/jpeg', 'image/jpg'], true)) {
                     return null;
                 }
 
                 $raw = Storage::get($publicPath);
                 $mime = $mimeType === 'image/jpeg' || $mimeType === 'image/jpg' ? 'jpeg' : 'png';
-                return "data:image/{$mime};base64," . base64_encode($raw);
+
+                return "data:image/{$mime};base64,".base64_encode($raw);
             }
 
             // Fallback to private storage
@@ -190,6 +199,7 @@ class SkPdfService
                 'path' => sanitize_log_message($path),
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
+
             return null;
         }
     }
@@ -210,7 +220,7 @@ class SkPdfService
             $assets = $this->getSigningAssets($sk);
 
             // ✅ ADDED: Validate view exists
-            if (!view()->exists('surat_keputusan.surat_pdf')) {
+            if (! view()->exists('surat_keputusan.surat_pdf')) {
                 throw new \RuntimeException('PDF template view not found');
             }
 
@@ -253,7 +263,7 @@ class SkPdfService
 
             // ✅ ADDED: Ensure directory exists
             $directory = dirname($path);
-            if (!Storage::disk('local')->exists($directory)) {
+            if (! Storage::disk('local')->exists($directory)) {
                 Storage::disk('local')->makeDirectory($directory);
             }
 
@@ -261,7 +271,7 @@ class SkPdfService
             Storage::disk('local')->put($path, $bytes);
 
             // ✅ ADDED: Verify file was saved
-            if (!Storage::disk('local')->exists($path)) {
+            if (! Storage::disk('local')->exists($path)) {
                 throw new \RuntimeException('Failed to save PDF to storage');
             }
 
@@ -282,7 +292,7 @@ class SkPdfService
                 'trace' => sanitize_log_message($e->getTraceAsString()),
             ]);
 
-            throw new \RuntimeException('Gagal membuat PDF: ' . $e->getMessage(), 0, $e);
+            throw new \RuntimeException('Gagal membuat PDF: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -326,7 +336,7 @@ class SkPdfService
                 return false;
             }
 
-            if (!Storage::disk('local')->exists($validPath)) {
+            if (! Storage::disk('local')->exists($validPath)) {
                 return true; // Already deleted
             }
 
@@ -343,6 +353,7 @@ class SkPdfService
                 'path' => sanitize_log_message($path),
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
+
             return false;
         }
     }

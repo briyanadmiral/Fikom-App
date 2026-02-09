@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * ✅ REFACTORED: Security enhanced dengan sanitasi pesan
@@ -50,7 +50,7 @@ class Notifikasi extends Model
      */
     protected function tipe(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 50));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 50));
     }
 
     /**
@@ -58,7 +58,7 @@ class Notifikasi extends Model
      */
     protected function pesan(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_notification($value, 500));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_notification($value, 500));
     }
 
     // ==================== SCOPES =========================
@@ -107,6 +107,7 @@ class Notifikasi extends Model
     public function scopeRecent($query, int $days = 7)
     {
         $days = max(1, min(365, $days)); // ✅ ADDED: Bounds check
+
         return $query->where('dibuat_pada', '>=', now()->subDays($days));
     }
 
@@ -151,7 +152,7 @@ class Notifikasi extends Model
      */
     public function markAsUnread(): bool
     {
-        if (!$this->dibaca) {
+        if (! $this->dibaca) {
             return true; // Already unread
         }
 
@@ -188,6 +189,7 @@ class Notifikasi extends Model
         }
 
         $days = max(1, $days); // ✅ ADDED: Bounds check
+
         return $this->dibuat_pada->lt(now()->subDays($days));
     }
 
@@ -196,7 +198,7 @@ class Notifikasi extends Model
      */
     public function isUnread(): bool
     {
-        return !$this->dibaca;
+        return ! $this->dibaca;
     }
 
     /**
@@ -224,7 +226,7 @@ class Notifikasi extends Model
      */
     public function getLinkAttribute(): ?string
     {
-        if (!$this->referensi_id) {
+        if (! $this->referensi_id) {
             return null;
         }
 

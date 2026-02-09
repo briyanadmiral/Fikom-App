@@ -1,11 +1,11 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /** Helper: cek apakah index dengan nama tertentu sudah ada */
     private function indexExists(string $table, string $index): bool
     {
@@ -15,6 +15,7 @@ return new class extends Migration {
              WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1',
             [$db, $table, $index]
         );
+
         return (bool) $row;
     }
 

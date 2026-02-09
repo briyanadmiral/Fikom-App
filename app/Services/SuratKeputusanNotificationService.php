@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Jobs\SendSkEmail;
 use App\Mail\SuratKeputusanMail;
 use App\Models\KeputusanHeader;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -26,9 +25,6 @@ class SuratKeputusanNotificationService extends BaseNotificationService
     /**
      * Notifikasi saat SK diajukan untuk approval
      * ✅ IMPROVED: Added validation & error handling
-     *
-     * @param KeputusanHeader $sk
-     * @return void
      */
     public function notifyApprovalRequest(KeputusanHeader $sk): void
     {
@@ -37,6 +33,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 Log::warning('Invalid SK ID for approval request', ['sk' => $sk->id]);
+
                 return;
             }
 
@@ -49,16 +46,18 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                     'next_approver' => $sk->next_approver,
                     'penandatangan' => $sk->penandatangan,
                 ]);
+
                 return;
             }
 
             $approver = $this->getActiveUser($approverId);
 
-            if (!$approver) {
+            if (! $approver) {
                 Log::warning('Approver not found or inactive', [
                     'sk_id' => $skId,
                     'approver_id' => $approverId,
                 ]);
+
                 return;
             }
 
@@ -82,9 +81,6 @@ class SuratKeputusanNotificationService extends BaseNotificationService
     /**
      * Notifikasi saat SK disetujui
      * ✅ IMPROVED: Added validation & error handling
-     *
-     * @param KeputusanHeader $sk
-     * @return void
      */
     public function notifyApproved(KeputusanHeader $sk): void
     {
@@ -93,6 +89,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 Log::warning('Invalid SK ID for approval notification', ['sk' => $sk->id]);
+
                 return;
             }
 
@@ -104,16 +101,18 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                     'sk_id' => $skId,
                     'dibuat_oleh' => $sk->dibuat_oleh,
                 ]);
+
                 return;
             }
 
             $pembuat = $this->getActiveUser($pembuatId);
 
-            if (!$pembuat) {
+            if (! $pembuat) {
                 Log::warning('Pembuat not found or inactive', [
                     'sk_id' => $skId,
                     'pembuat_id' => $pembuatId,
                 ]);
+
                 return;
             }
 
@@ -142,9 +141,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
      * Notifikasi saat SK ditolak
      * ✅ IMPROVED: Added validation & error handling
      *
-     * @param KeputusanHeader $sk
-     * @param string|null $note Catatan penolakan
-     * @return void
+     * @param  string|null  $note  Catatan penolakan
      */
     public function notifyRejected(KeputusanHeader $sk, ?string $note = null): void
     {
@@ -153,6 +150,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 Log::warning('Invalid SK ID for rejection notification', ['sk' => $sk->id]);
+
                 return;
             }
 
@@ -164,16 +162,18 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                     'sk_id' => $skId,
                     'dibuat_oleh' => $sk->dibuat_oleh,
                 ]);
+
                 return;
             }
 
             $pembuat = $this->getActiveUser($pembuatId);
 
-            if (!$pembuat) {
+            if (! $pembuat) {
                 Log::warning('Pembuat not found or inactive for rejection', [
                     'sk_id' => $skId,
                     'pembuat_id' => $pembuatId,
                 ]);
+
                 return;
             }
 
@@ -192,7 +192,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
             // 2. Email notification
             if ($this->isValidEmail($pembuat->email)) {
                 $ctaUrl = route('surat_keputusan.edit', $skId);
-                $line = 'SK Anda ditolak.' . ($sanitizedNote ? " Catatan: {$sanitizedNote}" : '');
+                $line = 'SK Anda ditolak.'.($sanitizedNote ? " Catatan: {$sanitizedNote}" : '');
 
                 $this->queueEmail(new SuratKeputusanMail(sk: $sk, subject: "SK {$nomor} ditolak", heading: 'Surat Keputusan Ditolak', messageLine: $line, ctaUrl: $ctaUrl, ctaText: 'Perbaiki SK', attachSignedPdf: false), $pembuat->email);
             }
@@ -213,9 +213,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
      * Notifikasi saat SK direvisi oleh pembuat
      * ✅ IMPROVED: Added validation & error handling
      *
-     * @param KeputusanHeader $sk
-     * @param mixed $byUser User yang melakukan revisi
-     * @return void
+     * @param  mixed  $byUser  User yang melakukan revisi
      */
     public function notifyRevised(KeputusanHeader $sk, $byUser): void
     {
@@ -224,6 +222,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 Log::warning('Invalid SK ID for revision notification', ['sk' => $sk->id]);
+
                 return;
             }
 
@@ -236,16 +235,18 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                     'next_approver' => $sk->next_approver,
                     'penandatangan' => $sk->penandatangan,
                 ]);
+
                 return;
             }
 
             $approver = $this->getActiveUser($approverId);
 
-            if (!$approver) {
+            if (! $approver) {
                 Log::warning('Approver not found or inactive for revision', [
                     'sk_id' => $skId,
                     'approver_id' => $approverId,
                 ]);
+
                 return;
             }
 
@@ -278,9 +279,6 @@ class SuratKeputusanNotificationService extends BaseNotificationService
 
     /**
      * ✅ ADDED: Notify penerima saat SK terbit
-     *
-     * @param KeputusanHeader $sk
-     * @return void
      */
     public function notifyRecipients(KeputusanHeader $sk): void
     {
@@ -293,8 +291,9 @@ class SuratKeputusanNotificationService extends BaseNotificationService
             $nomor = sanitize_output($sk->nomor) ?: '(tanpa nomor)';
 
             $penerima = $sk->penerima;
-            if (!$penerima || $penerima->isEmpty()) {
+            if (! $penerima || $penerima->isEmpty()) {
                 Log::info('No recipients for SK', ['sk_id' => $skId]);
+
                 return;
             }
 
@@ -306,6 +305,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
 
                 if ($userId === null) {
                     $failedCount++;
+
                     continue;
                 }
 

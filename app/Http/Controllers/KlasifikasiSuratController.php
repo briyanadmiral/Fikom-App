@@ -33,7 +33,7 @@ class KlasifikasiSuratController extends Controller
             $query->byPrefix($request->prefix);
         }
 
-        $list = $query->orderBy('kode')->get();
+        $list = $query->withCount('tugasHeaders')->orderBy('kode')->get();
 
         // Get available prefixes for filter tabs
         $prefixes = KlasifikasiSurat::getAvailablePrefixes();
@@ -72,7 +72,7 @@ class KlasifikasiSuratController extends Controller
     {
         $prefix = $request->input('prefix');
 
-        if (!$prefix || !preg_match('/^[A-Z]$/', $prefix)) {
+        if (! $prefix || ! preg_match('/^[A-Z]$/', $prefix)) {
             return response()->json(['golongan' => []]);
         }
 
@@ -109,7 +109,7 @@ class KlasifikasiSuratController extends Controller
 
         return redirect()
             ->route('klasifikasi_surat.index', ['prefix' => $validated['prefix']])
-            ->with('success', 'Klasifikasi Surat berhasil ditambahkan dengan kode: ' . $kode);
+            ->with('success', 'Klasifikasi Surat berhasil ditambahkan dengan kode: '.$kode);
     }
 
     /**

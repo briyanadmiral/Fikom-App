@@ -42,9 +42,7 @@
         ? implode(', ', $roleNames)
         : sanitize_output(\Illuminate\Support\Str::headline($tugas->status_penerima ?? '') ?: '-');
 
-    // ✅ Tugas spesifik dengan sanitasi
-    $subNama = data_get($tugas, 'tugasDetail.subTugas.nama');
-    $tugasSpesifik = sanitize_output($subNama ?: ($tugas->tugas ?: ($tugas->nama_umum ?: '-')));
+    $tugasSpesifik = sanitize_output($tugas->tugas ?: ($tugas->nama_umum ?: '-'));
 
     // Preferensi TTD & Cap dengan validasi
     $ttdW_final = filter_var($ttdW ?? 42, FILTER_VALIDATE_INT) ?: 42;

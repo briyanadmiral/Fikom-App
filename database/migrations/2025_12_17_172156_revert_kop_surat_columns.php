@@ -23,9 +23,9 @@ return new class extends Migration
                 'tampilkan_logo_kiri',
                 'background_header_path',
                 'is_default',
-                'nama_template'
+                'nama_template',
             ];
-            
+
             // Only drop if they exist to prevent errors
             $columnsToDrop = [];
             foreach ($columns as $column) {
@@ -33,8 +33,8 @@ return new class extends Migration
                     $columnsToDrop[] = $column;
                 }
             }
-            
-            if (!empty($columnsToDrop)) {
+
+            if (! empty($columnsToDrop)) {
                 $table->dropColumn($columnsToDrop);
             }
         });

@@ -4,8 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
-    public function up(): void {
+return new class extends Migration
+{
+    public function up(): void
+    {
         // Surat Tugas
         Schema::table('tugas_header', function (Blueprint $t) {
             $t->json('ttd_config')->nullable()->after('penandatangan');
@@ -25,14 +27,15 @@ return new class extends Migration {
         }
     }
 
-    public function down(): void {
+    public function down(): void
+    {
         Schema::table('tugas_header', function (Blueprint $t) {
-            $t->dropColumn(['ttd_config','cap_config','signed_at','signed_pdf_path']);
+            $t->dropColumn(['ttd_config', 'cap_config', 'signed_at', 'signed_pdf_path']);
         });
 
         if (Schema::hasTable('keputusan_header')) {
             Schema::table('keputusan_header', function (Blueprint $t) {
-                $t->dropColumn(['ttd_config','cap_config','signed_at','signed_pdf_path']);
+                $t->dropColumn(['ttd_config', 'cap_config', 'signed_at', 'signed_pdf_path']);
             });
         }
     }

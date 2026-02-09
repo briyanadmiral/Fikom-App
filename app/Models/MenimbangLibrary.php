@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * MenimbangLibrary - Library poin "Menimbang" untuk SK
- * 
+ *
  * Menyimpan poin-poin menimbang yang sering digunakan
  * agar dapat dengan mudah di-insert ke SK baru.
  */
@@ -53,24 +53,24 @@ class MenimbangLibrary extends Model
     protected function judul(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => sanitize_output($value),
-            set: fn(?string $value) => sanitize_input($value, 200)
+            get: fn (?string $value) => sanitize_output($value),
+            set: fn (?string $value) => sanitize_input($value, 200)
         );
     }
 
     protected function isi(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => sanitize_output($value),
-            set: fn(?string $value) => sanitize_input($value, 10000)
+            get: fn (?string $value) => sanitize_output($value),
+            set: fn (?string $value) => sanitize_input($value, 10000)
         );
     }
 
     protected function kategori(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => sanitize_output($value),
-            set: fn(?string $value) => sanitize_input($value, 50)
+            get: fn (?string $value) => sanitize_output($value),
+            set: fn (?string $value) => sanitize_input($value, 50)
         );
     }
 
@@ -92,6 +92,7 @@ class MenimbangLibrary extends Model
         if (empty($kategori)) {
             return $query;
         }
+
         return $query->where('kategori', $kategori);
     }
 
@@ -109,7 +110,7 @@ class MenimbangLibrary extends Model
 
         return $query->where(function ($q) use ($escaped) {
             $q->where('judul', 'LIKE', "%{$escaped}%")
-              ->orWhere('isi', 'LIKE', "%{$escaped}%");
+                ->orWhere('isi', 'LIKE', "%{$escaped}%");
         });
     }
 
@@ -123,8 +124,9 @@ class MenimbangLibrary extends Model
         }
 
         $keyword = sanitize_input($keyword, 100);
+
         return $query->whereRaw(
-            "MATCH(judul, isi) AGAINST(? IN NATURAL LANGUAGE MODE)",
+            'MATCH(judul, isi) AGAINST(? IN NATURAL LANGUAGE MODE)',
             [$keyword]
         );
     }
@@ -164,12 +166,12 @@ class MenimbangLibrary extends Model
     public function getFormattedIsi(): string
     {
         $isi = $this->isi;
-        
+
         // Pastikan diawali huruf kecil jika akan digabung
-        if (!empty($isi) && ctype_upper($isi[0])) {
-            $isi = mb_strtolower(mb_substr($isi, 0, 1)) . mb_substr($isi, 1);
+        if (! empty($isi) && ctype_upper($isi[0])) {
+            $isi = mb_strtolower(mb_substr($isi, 0, 1)).mb_substr($isi, 1);
         }
-        
+
         return $isi;
     }
 

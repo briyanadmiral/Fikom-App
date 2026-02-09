@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Log; // Added Log facade
 
 class TugasHeader extends Model
@@ -27,6 +27,7 @@ class TugasHeader extends Model
         'tanggal_surat',
         'tanggal_asli',
         'status_surat',
+        'alasan_penolakan',
         'next_approver',
         'submitted_at',
         'signed_at',
@@ -41,7 +42,7 @@ class TugasHeader extends Model
         'jenis_tugas',
         'tugas',
         'detail_tugas',
-        'detail_tugas_id',
+
         'status_penerima',
         'redaksi_pembuka',
         'penutup',
@@ -93,7 +94,7 @@ class TugasHeader extends Model
         'penandatangan' => 'integer',
         'next_approver' => 'integer',
         'klasifikasi_surat_id' => 'integer',
-        'detail_tugas_id' => 'integer',
+
         'tahun' => 'integer',
         'ttd_w_mm' => 'integer',
         'cap_w_mm' => 'integer',
@@ -189,19 +190,6 @@ class TugasHeader extends Model
         return $this->log();
     }
 
-    public function tugasDetail(): BelongsTo
-    {
-        return $this->belongsTo(TugasDetail::class, 'detail_tugas_id');
-    }
-
-    /**
-     * Alias dipakai sebagai detailMaster di controller/view
-     */
-    public function detailMaster(): BelongsTo
-    {
-        return $this->tugasDetail();
-    }
-
     public function klasifikasiSurat(): BelongsTo
     {
         return $this->belongsTo(KlasifikasiSurat::class, 'klasifikasi_surat_id');
@@ -215,8 +203,6 @@ class TugasHeader extends Model
         return $this->klasifikasiSurat();
     }
 
-
-
     /**
      * Relasi ke user yang mengarsipkan
      */
@@ -224,8 +210,6 @@ class TugasHeader extends Model
     {
         return $this->belongsTo(User::class, 'arsipkan_oleh');
     }
-
-
 
     // =========================================================
     // NOMOR TURUNAN (SUFFIX LETTER) RELATIONS
@@ -254,7 +238,7 @@ class TugasHeader extends Model
      */
     public function isTurunan(): bool
     {
-        return !empty($this->suffix) || !empty($this->parent_tugas_id);
+        return ! empty($this->suffix) || ! empty($this->parent_tugas_id);
     }
 
     // =========================================================
@@ -283,12 +267,12 @@ class TugasHeader extends Model
     public function scopeOrderByNomor($query, string $direction = 'asc')
     {
         $dir = strtolower($direction) === 'desc' ? 'DESC' : 'ASC';
-        
+
         return $query->orderBy('tahun', $dir)
-                     ->orderBy('bulan', $dir)
-                     ->orderBy('kode_surat', $dir)
-                     ->orderBy('nomor_urut_int', $dir)
-                     ->orderByRaw("COALESCE(suffix, '') {$dir}");
+            ->orderBy('bulan', $dir)
+            ->orderBy('kode_surat', $dir)
+            ->orderBy('nomor_urut_int', $dir)
+            ->orderByRaw("COALESCE(suffix, '') {$dir}");
     }
 
     /**
@@ -298,7 +282,7 @@ class TugasHeader extends Model
     public function scopeOnlyMainNomor($query)
     {
         return $query->whereNull('suffix')
-                     ->whereNull('parent_tugas_id');
+            ->whereNull('parent_tugas_id');
     }
 
     /**
@@ -343,7 +327,7 @@ class TugasHeader extends Model
             'penandatanganUser',
             'nextApprover',
             // hirarki tugas
-            'tugasDetail.subTugas.jenisTugas',
+
             // klasifikasi
             'klasifikasiSurat',
         ]);
@@ -357,6 +341,7 @@ class TugasHeader extends Model
     public function scopeByBulan($query, string $bulan)
     {
         $bulan = sanitize_input($bulan, 10);
+
         return $query->where('bulan', $bulan);
     }
 
@@ -376,7 +361,7 @@ class TugasHeader extends Model
         });
     }
 
-        /**
+    /**
      * =========================================================
      * ADVANCE FILTER SCOPE
      * =========================================================
@@ -396,12 +381,12 @@ class TugasHeader extends Model
     public function scopeApplyFilters($query, array $filters)
     {
         // 🔎 1. Search (pakai scopeSearch yang sudah ada)
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $query->search($filters['search']);
         }
 
         // 📊 2. Status surat (validasi dengan helper kalau ada)
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             // Kalau kamu mau lebih strict, boleh pakai validate_status
             // $status = validate_status($filters['status'], ['draft', 'pending', 'disetujui', 'ditolak']);
             // if ($status !== null) {
@@ -412,7 +397,7 @@ class TugasHeader extends Model
         }
 
         // 📅 3. Tahun (pakai scopeByTahun)
-        if (!empty($filters['tahun'])) {
+        if (! empty($filters['tahun'])) {
             $tahun = (int) $filters['tahun'];
             if ($tahun > 0) {
                 $query->byTahun($tahun);
@@ -420,13 +405,13 @@ class TugasHeader extends Model
         }
 
         // 📆 4. Bulan (pakai scopeByBulan, DB kamu simpan sebagai string)
-        if (!empty($filters['bulan'])) {
+        if (! empty($filters['bulan'])) {
             $bulan = (string) $filters['bulan'];
             $query->byBulan($bulan);
         }
 
         // ✒️ 5. Penandatangan (FK ke pengguna.id)
-        if (!empty($filters['penandatangan'])) {
+        if (! empty($filters['penandatangan'])) {
             $penandatanganId = validate_integer_id($filters['penandatangan']);
 
             if ($penandatanganId !== null) {
@@ -438,7 +423,7 @@ class TugasHeader extends Model
         }
 
         // ✍️ 6. Pembuat (dibuat_oleh) → pakai scopeByUser
-        if (!empty($filters['pembuat'])) {
+        if (! empty($filters['pembuat'])) {
             $pembuatId = validate_integer_id($filters['pembuat']);
 
             if ($pembuatId !== null) {
@@ -449,18 +434,17 @@ class TugasHeader extends Model
         }
 
         // 🗓️ 7. Tanggal Dari (tanggal_surat >= X)
-        if (!empty($filters['tanggal_dari'])) {
+        if (! empty($filters['tanggal_dari'])) {
             $query->whereDate('tanggal_surat', '>=', $filters['tanggal_dari']);
         }
 
         // 🗓️ 8. Tanggal Sampai (tanggal_surat <= Y)
-        if (!empty($filters['tanggal_sampai'])) {
+        if (! empty($filters['tanggal_sampai'])) {
             $query->whereDate('tanggal_surat', '<=', $filters['tanggal_sampai']);
         }
 
         return $query;
     }
-
 
     // =========================================================
     // ACCESSORS
@@ -490,17 +474,17 @@ class TugasHeader extends Model
 
     protected function tanggalUtama(): Attribute
     {
-        return Attribute::make(get: fn() => $this->tanggal_surat ?: $this->tanggal_asli);
+        return Attribute::make(get: fn () => $this->tanggal_surat ?: $this->tanggal_asli);
     }
 
     protected function isSigned(): Attribute
     {
-        return Attribute::make(get: fn() => $this->status_surat === 'disetujui' && !is_null($this->signed_at));
+        return Attribute::make(get: fn () => $this->status_surat === 'disetujui' && ! is_null($this->signed_at));
     }
 
     protected function nomorSafe(): Attribute
     {
-        return Attribute::make(get: fn() => sanitize_output($this->nomor));
+        return Attribute::make(get: fn () => sanitize_output($this->nomor));
     }
 
     // =========================================================
@@ -509,7 +493,7 @@ class TugasHeader extends Model
 
     protected function nomor(): Attribute
     {
-        return Attribute::make(set: fn($value) => sanitize_input($value, 100));
+        return Attribute::make(set: fn ($value) => sanitize_input($value, 100));
     }
 
     protected function tembusan(): Attribute
@@ -531,6 +515,7 @@ class TugasHeader extends Model
                 }, $lines);
 
                 $cleaned = array_filter($cleaned);
+
                 return implode("\n", $cleaned);
             },
         );
@@ -538,37 +523,37 @@ class TugasHeader extends Model
 
     protected function namaUmum(): Attribute
     {
-        return Attribute::make(get: fn($value) => sanitize_output($value), set: fn($value) => sanitize_input($value, 255));
+        return Attribute::make(get: fn ($value) => sanitize_output($value), set: fn ($value) => sanitize_input($value, 255));
     }
 
     protected function tempat(): Attribute
     {
-        return Attribute::make(get: fn($value) => sanitize_output($value), set: fn($value) => sanitize_input($value, 255));
+        return Attribute::make(get: fn ($value) => sanitize_output($value), set: fn ($value) => sanitize_input($value, 255));
     }
 
     protected function redaksiPembuka(): Attribute
     {
-        return Attribute::make(get: fn($value) => $value, set: fn($value) => sanitize_html_limited($value));
+        return Attribute::make(get: fn ($value) => $value, set: fn ($value) => sanitize_html_limited($value));
     }
 
     protected function penutup(): Attribute
     {
-        return Attribute::make(get: fn($value) => $value, set: fn($value) => sanitize_html_limited($value));
+        return Attribute::make(get: fn ($value) => $value, set: fn ($value) => sanitize_html_limited($value));
     }
 
     protected function tugas(): Attribute
     {
-        return Attribute::make(get: fn($value) => sanitize_output($value), set: fn($value) => sanitize_input($value, 500));
+        return Attribute::make(get: fn ($value) => sanitize_output($value), set: fn ($value) => sanitize_input($value, 500));
     }
 
     protected function jenisTugas(): Attribute
     {
-        return Attribute::make(get: fn($value) => sanitize_output($value), set: fn($value) => sanitize_input($value, 100));
+        return Attribute::make(get: fn ($value) => sanitize_output($value), set: fn ($value) => sanitize_input($value, 100));
     }
 
     protected function detailTugas(): Attribute
     {
-        return Attribute::make(get: fn($value) => $value, set: fn($value) => sanitize_html_limited($value));
+        return Attribute::make(get: fn ($value) => $value, set: fn ($value) => sanitize_html_limited($value));
     }
 
     // =========================================================
@@ -601,7 +586,7 @@ class TugasHeader extends Model
 
         $currentStatus = $this->status_surat;
 
-        if (!isset($validTransitions[$currentStatus]) || !in_array($newStatus, $validTransitions[$currentStatus], true)) {
+        if (! isset($validTransitions[$currentStatus]) || ! in_array($newStatus, $validTransitions[$currentStatus], true)) {
             throw new \InvalidArgumentException("Invalid status transition from {$currentStatus} to {$newStatus}");
         }
 
@@ -695,7 +680,7 @@ class TugasHeader extends Model
 
         $formatted = '<ol>';
         foreach ($items as $item) {
-            $formatted .= '<li>' . $item . '</li>';
+            $formatted .= '<li>'.$item.'</li>';
         }
         $formatted .= '</ol>';
 
@@ -705,7 +690,7 @@ class TugasHeader extends Model
     public function validateBeforeSave(): void
     {
         if (in_array($this->status_surat, ['pending', 'disetujui'], true) && empty($this->nomor)) {
-            throw new \InvalidArgumentException('Nomor surat wajib diisi untuk status ' . $this->status_surat);
+            throw new \InvalidArgumentException('Nomor surat wajib diisi untuk status '.$this->status_surat);
         }
 
         if ($this->status_surat === 'pending' && empty($this->penandatangan)) {
@@ -729,7 +714,7 @@ class TugasHeader extends Model
     {
         $tanggal = $this->tanggal_utama;
 
-        if (!$tanggal) {
+        if (! $tanggal) {
             return '-';
         }
 

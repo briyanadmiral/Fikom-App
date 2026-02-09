@@ -18,17 +18,17 @@ class KeputusanHeaderObserver
     public function creating(KeputusanHeader $sk): void
     {
         // Auto-set pembuat
-        if (!$sk->dibuat_oleh && auth()->check()) {
+        if (! $sk->dibuat_oleh && auth()->check()) {
             $sk->dibuat_oleh = auth()->id();
         }
 
         // Auto-set tahun
-        if (!$sk->tahun) {
+        if (! $sk->tahun) {
             $sk->tahun = now()->year;
         }
 
         // Auto-set status
-        if (!$sk->status_surat) {
+        if (! $sk->status_surat) {
             $sk->status_surat = 'draft';
         }
     }
@@ -54,7 +54,7 @@ class KeputusanHeaderObserver
     public function updated(KeputusanHeader $sk): void
     {
         $original = $sk->getOriginal();
-        
+
         // Log status changes
         if ($sk->wasChanged('status_surat')) {
             $oldStatus = $original['status_surat'] ?? 'unknown';
@@ -69,7 +69,7 @@ class KeputusanHeaderObserver
 
             // Log specific actions based on new status
             $auditService = app(AuditService::class);
-            
+
             switch ($newStatus) {
                 case 'pending':
                     $auditService->logSubmit($sk);
@@ -107,7 +107,7 @@ class KeputusanHeaderObserver
                 'status' => $sk->status_surat,
                 'user_id' => auth()->id(),
             ]);
-            
+
             return false;
         }
 

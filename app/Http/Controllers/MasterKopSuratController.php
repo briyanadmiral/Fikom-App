@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\MasterKopSurat;
+use App\Models\User;
 use App\Services\ImageOptimizerService;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
-use Illuminate\Http\JsonResponse;
-use App\Models\User;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Controller untuk pengaturan Kop Surat
@@ -42,11 +42,11 @@ class MasterKopSuratController extends Controller
     public function index()
     {
         $this->ensureAdmin();
-        
+
         $kop = MasterKopSurat::firstOrNew([]);
-        
+
         // Defaults jika baru
-        if (!$kop->exists) {
+        if (! $kop->exists) {
             $kop->mode_type = 'custom';
             $kop->text_align = 'left';
             $kop->logo_size = 160;
@@ -71,17 +71,17 @@ class MasterKopSuratController extends Controller
     public function update(Request $r)
     {
         $this->ensureAdmin();
-        
+
         \Log::info('=== KOP UPDATE START ===');
-        \Log::info('Has background file: ' . ($r->hasFile('background') ? 'YES' : 'NO'));
-        \Log::info('Mode type: ' . $r->input('mode_type'));
-        
+        \Log::info('Has background file: '.($r->hasFile('background') ? 'YES' : 'NO'));
+        \Log::info('Mode type: '.$r->input('mode_type'));
+
         $kop = MasterKopSurat::firstOrNew([]);
 
         $data = $r->validate([
             'mode_type' => ['required', 'in:custom,upload'],
             'text_align' => ['nullable', 'in:left,right,center'],
-            
+
             // Styling controls
             'logo_size' => ['nullable', 'integer', 'min:30', 'max:300'],
             'font_size_title' => ['nullable', 'integer', 'min:10', 'max:30'],
@@ -119,8 +119,8 @@ class MasterKopSuratController extends Controller
         }
 
         // Normalize boolean values
-        $data['tampilkan_logo_kanan'] = isset($data['tampilkan_logo_kanan']) ? (bool)$data['tampilkan_logo_kanan'] : false;
-        $data['tampilkan_logo_kiri'] = isset($data['tampilkan_logo_kiri']) ? (bool)$data['tampilkan_logo_kiri'] : false;
+        $data['tampilkan_logo_kanan'] = isset($data['tampilkan_logo_kanan']) ? (bool) $data['tampilkan_logo_kanan'] : false;
+        $data['tampilkan_logo_kiri'] = isset($data['tampilkan_logo_kiri']) ? (bool) $data['tampilkan_logo_kiri'] : false;
 
         // File handling with optimization
         $fileTargets = [
@@ -139,19 +139,19 @@ class MasterKopSuratController extends Controller
                 \Log::info("  - Method: {$optimizeMethod}");
 
                 // Delete old file
-                if (!empty($kop->$columnName)) {
+                if (! empty($kop->$columnName)) {
                     $oldPath = $kop->$columnName;
                     \Log::info("  - Old path exists: {$oldPath}");
                     if ($oldPath && Storage::disk('public')->exists($oldPath)) {
                         Storage::disk('public')->delete($oldPath);
-                        \Log::info("  - Old file deleted");
+                        \Log::info('  - Old file deleted');
                     }
                 }
 
                 // Optimize and store new file
                 $path = $this->imageOptimizer->$optimizeMethod($r->file($inputName));
                 $data[$columnName] = $path;
-                
+
                 \Log::info("  - New path saved: {$path}");
             }
         }
@@ -160,29 +160,29 @@ class MasterKopSuratController extends Controller
         $backgroundFile = null;
         if ($r->hasFile('background_custom')) {
             $backgroundFile = $r->file('background_custom');
-            \Log::info("Using background_custom file");
+            \Log::info('Using background_custom file');
         } elseif ($r->hasFile('background_upload')) {
             $backgroundFile = $r->file('background_upload');
-            \Log::info("Using background_upload file");
+            \Log::info('Using background_upload file');
         }
 
         if ($backgroundFile) {
-            \Log::info("Processing background file upload");
-            
+            \Log::info('Processing background file upload');
+
             // Delete old file
-            if (!empty($kop->background_path)) {
+            if (! empty($kop->background_path)) {
                 $oldPath = $kop->background_path;
                 \Log::info("  - Old background path exists: {$oldPath}");
                 if ($oldPath && Storage::disk('public')->exists($oldPath)) {
                     Storage::disk('public')->delete($oldPath);
-                    \Log::info("  - Old background file deleted");
+                    \Log::info('  - Old background file deleted');
                 }
             }
 
             // Optimize and store new file
             $path = $this->imageOptimizer->optimizeBackground($backgroundFile);
             $data['background_path'] = $path;
-            
+
             \Log::info("  - New background path saved: {$path}");
         }
 
@@ -198,8 +198,8 @@ class MasterKopSuratController extends Controller
         $kop->fill($data);
         $kop->save();
 
-        \Log::info('Kop saved with ID: ' . $kop->id);
-        \Log::info('Background path in DB: ' . ($kop->background_path ?? 'NULL'));
+        \Log::info('Kop saved with ID: '.$kop->id);
+        \Log::info('Background path in DB: '.($kop->background_path ?? 'NULL'));
         \Log::info('=== KOP UPDATE SUCCESS ===');
 
         MasterKopSurat::clearCache();
@@ -223,7 +223,7 @@ class MasterKopSuratController extends Controller
             'cap' => 'cap_path',
         ];
 
-        if (!isset($columnMap[$type])) {
+        if (! isset($columnMap[$type])) {
             return response()->json(['success' => false, 'message' => 'Invalid type'], 400);
         }
 
@@ -231,7 +231,7 @@ class MasterKopSuratController extends Controller
         if ($kop->$col && Storage::disk('public')->exists($kop->$col)) {
             Storage::disk('public')->delete($kop->$col);
         }
-        
+
         $kop->$col = null;
         $kop->save();
 
@@ -244,36 +244,36 @@ class MasterKopSuratController extends Controller
     public function preview(Request $r)
     {
         \Log::info('=== KOP PREVIEW START ===');
-        \Log::info('Request Method: ' . $r->method());
-        \Log::info('Request URL: ' . $r->fullUrl());
+        \Log::info('Request Method: '.$r->method());
+        \Log::info('Request URL: '.$r->fullUrl());
         \Log::info('Request Headers:', $r->headers->all());
-        \Log::info('Has CSRF Token: ' . ($r->header('X-CSRF-TOKEN') ? 'YES' : 'NO'));
-        
+        \Log::info('Has CSRF Token: '.($r->header('X-CSRF-TOKEN') ? 'YES' : 'NO'));
+
         try {
             $this->ensureAdmin();
             \Log::info('Admin check passed');
-            
-            $kop = MasterKopSurat::first() ?? new MasterKopSurat();
-            \Log::info('Kop loaded, ID: ' . ($kop->id ?? 'NEW'));
-            
+
+            $kop = MasterKopSurat::first() ?? new MasterKopSurat;
+            \Log::info('Kop loaded, ID: '.($kop->id ?? 'NEW'));
+
             // Fill with request data for preview (exclude file uploads and CSRF token)
             $kop->fill($r->except(['_token', 'logo_kanan', 'logo_kiri', 'background', 'cap']));
             \Log::info('Kop filled with request data');
-            
+
             $html = view('shared._kop_surat', [
                 'kop' => $kop,
                 'context' => 'web',
                 'showDivider' => true,
             ])->render();
-            
-            \Log::info('View rendered successfully, length: ' . strlen($html));
+
+            \Log::info('View rendered successfully, length: '.strlen($html));
             \Log::info('=== KOP PREVIEW SUCCESS ===');
-            
+
             return $html;
         } catch (\Exception $e) {
             \Log::error('=== KOP PREVIEW ERROR ===');
-            \Log::error('Error Message: ' . $e->getMessage());
-            \Log::error('Stack Trace: ' . $e->getTraceAsString());
+            \Log::error('Error Message: '.$e->getMessage());
+            \Log::error('Stack Trace: '.$e->getTraceAsString());
             throw $e;
         }
     }
@@ -288,7 +288,7 @@ class MasterKopSuratController extends Controller
         $presetKey = $r->input('preset');
         $presets = config('kop_surat_presets.presets', []);
 
-        if (!isset($presets[$presetKey])) {
+        if (! isset($presets[$presetKey])) {
             return response()->json(['success' => false, 'message' => 'Preset not found'], 404);
         }
 
@@ -309,7 +309,7 @@ class MasterKopSuratController extends Controller
         $this->ensureAdmin();
 
         $kop = MasterKopSurat::first();
-        if (!$kop) {
+        if (! $kop) {
             return back()->with('error', 'Tidak ada konfigurasi kop surat untuk di-export.');
         }
 
@@ -335,11 +335,11 @@ class MasterKopSuratController extends Controller
             }
         }
 
-        $filename = 'kop_surat_backup_' . date('Y-m-d_His') . '.json';
+        $filename = 'kop_surat_backup_'.date('Y-m-d_His').'.json';
 
         return Response::make(json_encode($exportData, JSON_PRETTY_PRINT), 200, [
             'Content-Type' => 'application/json',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -358,12 +358,12 @@ class MasterKopSuratController extends Controller
             $contents = file_get_contents($r->file('file')->getPathname());
             $importData = json_decode($contents, true);
 
-            if (!$importData || !isset($importData['config'])) {
+            if (! $importData || ! isset($importData['config'])) {
                 return response()->json(['success' => false, 'message' => 'Invalid import file format'], 400);
             }
 
             $kop = MasterKopSurat::firstOrNew([]);
-            
+
             // Apply configuration
             $kop->fill($importData['config']);
 
@@ -380,14 +380,14 @@ class MasterKopSuratController extends Controller
 
                         if (isset($columnMap[$key])) {
                             $columnName = $columnMap[$key];
-                            
+
                             // Delete old file
                             if ($kop->$columnName && Storage::disk('public')->exists($kop->$columnName)) {
                                 Storage::disk('public')->delete($kop->$columnName);
                             }
 
                             // Save new file
-                            $path = 'kop/' . uniqid() . '_' . $imageData['filename'];
+                            $path = 'kop/'.uniqid().'_'.$imageData['filename'];
                             Storage::disk('public')->put($path, base64_decode($imageData['data']));
                             $kop->$columnName = $path;
                         }
@@ -407,7 +407,8 @@ class MasterKopSuratController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Import kop surat failed', ['error' => $e->getMessage()]);
-            return response()->json(['success' => false, 'message' => 'Gagal import: ' . $e->getMessage()], 500);
+
+            return response()->json(['success' => false, 'message' => 'Gagal import: '.$e->getMessage()], 500);
         }
     }
 
@@ -419,7 +420,7 @@ class MasterKopSuratController extends Controller
         $this->ensureAdmin();
 
         $presets = config('kop_surat_presets.presets', []);
-        
+
         $result = [];
         foreach ($presets as $key => $preset) {
             $result[$key] = [

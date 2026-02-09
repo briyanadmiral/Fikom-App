@@ -4,16 +4,14 @@
 @section('title', 'Daftar Jenis Surat Tugas')
 
 @section('content_header')
-    <div class="custom-header-box mb-4">
-        <div class="d-flex align-items-center">
-            <div class="header-icon rounded-circle d-flex justify-content-center align-items-center mr-3">
-                <i class="fas fa-list fa-lg"></i>
-            </div>
-            <div>
-                <div class="header-title">Daftar Jenis Surat Tugas</div>
-                <div class="header-desc mt-2">
-                    Halaman ini menampilkan semua jenis surat tugas yang tersedia dalam sistem.
-                </div>
+    <div class="custom-header-box">
+        <div class="header-icon">
+            <i class="fas fa-list"></i>
+        </div>
+        <div>
+            <div class="header-title">Daftar Jenis Surat Tugas</div>
+            <div class="header-desc">
+                Halaman ini menampilkan semua jenis surat tugas yang tersedia dalam sistem.
             </div>
         </div>
     </div>
@@ -24,234 +22,192 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
 
 <style>
+    /* Professional Header Box */
     .custom-header-box {
-        background: linear-gradient(90deg, #4389a2 0%, #5c258d 100%);
-        color: #fff;
-        border-radius: 1rem;
-        box-shadow: 0 4px 20px rgba(44, 62, 80, .13);
-        padding: 1.5rem 2rem 1.25rem 1.5rem;
-        position: relative;
-        overflow: hidden;
-        border-left: 6px solid #3498db;
-        margin-top: .5rem;
+        background-color: #fff;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #007bff;
+        display: flex;
+        align-items: center;
     }
 
     .header-icon {
-        width: 54px;
-        height: 54px;
-        background: rgba(255, 255, 255, .15);
-        color: #fff;
-        font-size: 2rem;
-        box-shadow: 0 2px 12px 0 rgba(52, 152, 219, .13);
+        background-color: #e7f2ff;
+        color: #007bff;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-right: 20px;
+        flex-shrink: 0;
     }
 
     .header-title {
-        font-size: 1.6rem;
-        font-weight: 700;
-        letter-spacing: 1px;
-        margin-bottom: 2px;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #343a40;
+        line-height: 1.2;
     }
 
     .header-desc {
-        font-size: 1.07rem;
-        color: #e9f3fa;
-        font-weight: 400;
-        margin-left: .1rem;
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-top: 4px;
     }
 
-    .small-box {
-        transition: transform 0.3s ease;
-    }
-    
-    .small-box:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-
+    /* Card Styling */
     .card {
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
         border: none;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
     }
 
     .card-header {
-        background: linear-gradient(90deg, #4389a2 0%, #5c258d 100%);
-        color: white;
-        border-radius: 0.5rem 0.5rem 0 0 !important;
+        background-color: #fff;
+        border-bottom: 1px solid rgba(0,0,0,.125);
         padding: 1rem 1.25rem;
-        border: none;
     }
 
     .card-title {
-        font-weight: 600;
-        margin: 0;
-    }
-
-    .table thead th {
-        background: #f8f9fa;
-        color: #495057;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #dee2e6;
-        padding: 1rem;
-    }
-
-    .table tbody tr {
-        border-left: 3px solid transparent;
-    }
-
-    .table tbody tr:hover {
-        background-color: #f8f9fa;
-        border-left-color: #4389a2;
-    }
-
-    .table tbody td {
-        vertical-align: middle;
-        padding: 1rem;
-    }
-
-    .btn-action {
-        padding: 0.4rem 0.75rem;
-        border-radius: 5px;
-        font-size: 0.875rem;
-        margin: 0 2px;
-    }
-
-    .btn-subtugas {
-        color: #fff;
-        background-color: #17a2b8;
-        border-color: #17a2b8;
-    }
-
-    .btn-subtugas:hover {
-        background-color: #138496;
-        border-color: #117a8b;
-        color: #fff;
-    }
-
-    .btn-edit {
-        color: #fff;
-        background-color: #ffc107;
-        border-color: #ffc107;
-    }
-
-    .btn-edit:hover {
-        background-color: #e0a800;
-        border-color: #d39e00;
-        color: #fff;
-    }
-
-    .btn-delete {
-        color: #fff;
-        background-color: #dc3545;
-        border-color: #dc3545;
-    }
-
-    .btn-delete:hover {
-        background-color: #c82333;
-        border-color: #bd2130;
-        color: #fff;
-    }
-
-    .btn-primary {
-        background: linear-gradient(90deg, #4389a2 0%, #5c258d 100%);
-        border: none;
-    }
-
-    .btn-primary:hover {
-        box-shadow: 0 4px 12px rgba(67, 137, 162, 0.4);
-    }
-
-    .badge-sub-tugas {
-        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-        color: #fff;
-        padding: 0.4rem 0.75rem;
-        border-radius: 0.375rem;
+        font-size: 1.1rem;
         font-weight: 500;
-        font-size: 0.875rem;
+        color: #343a40;
     }
 
-    .empty-state {
-        text-align: center;
-        padding: 3rem 1rem;
-        color: #6c757d;
+    /* Table Styling */
+    .table thead th {
+        background-color: #f8f9fa;
+        color: #343a40;
+        border-bottom: 2px solid #dee2e6;
+        padding: 0.75rem;
+        vertical-align: middle;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .table td {
+        vertical-align: middle !important;
+        font-size: 0.95rem;
+        color: #495057;
     }
 
-    .empty-state i {
-        font-size: 3rem;
-        color: #dee2e6;
-        margin-bottom: 1rem;
-    }
-
-    .modal-header {
-        background: linear-gradient(90deg, #4389a2 0%, #5c258d 100%);
-        color: white;
-        border-radius: 0.3rem 0.3rem 0 0;
-    }
-
-    .modal-header .close {
-        color: white;
-        opacity: 0.8;
-    }
-
-    .modal-header .close:hover {
-        opacity: 1;
-    }
-
-    /* DataTables Custom Styling */
-    .dataTables_wrapper .dataTables_length select {
-        padding: 0.375rem 0.75rem;
-        border-radius: 0.25rem;
-        border: 1px solid #ced4da;
-    }
-
-    .dataTables_wrapper .dataTables_filter input {
-        padding: 0.375rem 0.75rem;
-        border-radius: 0.25rem;
-        border: 1px solid #ced4da;
-        margin-left: 0.5rem;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-        padding: 0.375rem 0.75rem;
+    /* Action Buttons */
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
         margin: 0 2px;
-        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+    
+    /* Sub Tugas Badge */
+    .badge-sub-tugas {
+        background-color: #e9ecef;
+        color: #495057;
+        font-size: 0.85rem;
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid #dee2e6;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.2s;
+    }
+    
+    .btn-view-subtugas:hover .badge-sub-tugas {
+        background-color: #dee2e6;
+        color: #212529;
+        border-color: #ced4da;
+    }
+    
+    /* Modal Styling */
+    .modal-content {
+        border: none;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        border-radius: 6px;
+    }
+    
+    .modal-header {
+        background-color: #f4f6f9;
+        color: #343a40;
+        border-bottom: 1px solid #dee2e6;
+        border-radius: 6px 6px 0 0;
+        padding: 1rem 1.5rem;
+    }
+    
+    .modal-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    /* DataTables Pagination Overrides */
+    .page-item.active .page-link {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: #fff;
+    }
+    
+    .page-link {
+        color: #007bff;
     }
 
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
-        border: none !important;
+    /* Small Box (Stat Cards if any) */
+    .small-box {
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
     }
-
-    .dataTables_wrapper .dataTables_info {
-        padding-top: 1rem;
-        color: #6c757d;
-    }
-
-    @media (max-width: 575.98px) {
+    
+    /* Responsive Fixes */
+    @media (max-width: 576px) {
         .custom-header-box {
-            padding: 1.1rem;
+            flex-direction: column;
+            text-align: center;
+            padding: 15px;
         }
-
         .header-icon {
-            width: 44px;
-            height: 44px;
-            font-size: 1.2rem;
+            margin-right: 0;
+            margin-bottom: 10px;
         }
+    }
 
-        .header-title {
-            font-size: 1.2rem;
-        }
-
-        .header-desc {
-            margin-left: 0;
-            font-size: .98rem;
-        }
+    /* Professional Button Colors */
+    .btn-edit {
+        color: #212529 !important;
+        background-color: #ffc107 !important;
+        border-color: #ffc107 !important;
+    }
+    .btn-edit:hover {
+        background-color: #e0a800 !important;
+        border-color: #d39e00 !important;
+        color: #212529 !important;
+    }
+    .btn-delete {
+        color: #fff !important;
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+    }
+    .btn-delete:hover {
+        background-color: #c82333 !important;
+        border-color: #bd2130 !important;
     }
 </style>
+
 @endpush
 
 @section('content')
@@ -317,10 +273,14 @@
                                 <td class="font-weight-bold">{{ $i+1 }}</td>
                                 <td>{{ $item->nama }}</td>
                                 <td class="text-center">
-                                    <span class="badge-sub-tugas">
-                                        <i class="fas fa-tasks mr-1"></i>
-                                        {{ $item->subTugas->count() }} Sub
-                                    </span>
+                                    <div class="btn-view-subtugas" 
+                                         data-nama="{{ $item->nama }}"
+                                         data-subtugas='@json($item->subTugas)'>
+                                        <span class="badge-sub-tugas" title="Klik untuk lihat detail" style="cursor: pointer;">
+                                            <i class="fas fa-eye mr-1"></i>
+                                            {{ $item->subTugas->count() }} Sub
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="text-center">
                                     {{-- Tombol Kelola Sub Tugas --}}
@@ -447,6 +407,9 @@
             </form>
         </div>
     </div>
+    {{-- Include Modal View Sub Tugas --}}
+    @include('jenis_surat_tugas.partials.modal_view_subtugas')
+
 </div>
 @endsection
 
@@ -467,11 +430,25 @@ $(function() {
         pageLength: 20,
         lengthMenu: [[10, 20, 25, 50, 100, -1], [10, 20, 25, 50, 100, "Semua"]],
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json',
-            emptyTable: "Belum ada data jenis surat tugas",
-            lengthMenu: "Tampilkan _MENU_ data per halaman",
-            info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ data",
-            search: "Cari:"
+            "emptyTable": "Tidak ada data yang tersedia pada tabel ini",
+            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+            "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+            "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+            "lengthMenu": "Tampilkan _MENU_ entri",
+            "loadingRecords": "Sedang memuat...",
+            "processing": "Sedang memproses...",
+            "search": "Cari:",
+            "zeroRecords": "Tidak ditemukan data yang sesuai",
+            "paginate": {
+                "first": "Pertama",
+                "last": "Terakhir",
+                "next": "Selanjutnya",
+                "previous": "Sebelumnya"
+            },
+            "aria": {
+                "sortAscending": ": aktifkan untuk mengurutkan kolom ke atas",
+                "sortDescending": ": aktifkan untuk mengurutkan kolom ke bawah"
+            }
         },
         order: [[1, 'asc']], // Sort by Nama
         columnDefs: [
@@ -506,11 +483,62 @@ $(function() {
     });
 
     // ========================================
+    // Tombol View Sub Tugas - buka modal
+    // ========================================
+    $('body').on('click', '.btn-view-subtugas', function() {
+        const nama = $(this).data('nama');
+        const subTugas = $(this).data('subtugas'); // Auto-parsed from JSON
+        const id = $(this).closest('tr').find('.btn-edit-jenis').data('id'); // Get ID for link
+        
+        // Update modal content
+        $('#modalViewSubTugas .modal-title').html(`<i class="fas fa-tasks mr-2"></i> ${nama}`);
+        $('#btnManageSubTugas').attr('href', `/jenis_surat_tugas/${id}/sub_tugas`);
+        
+        let html = '';
+        
+        if (subTugas.length > 0) {
+            html += '<ul class="list-group list-group-flush">';
+            subTugas.forEach((item, index) => {
+                html += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge badge-secondary mr-2">${index + 1}</span>
+                            <span class="font-weight-bold">${item.nama}</span>
+                        </div>
+                        <i class="fas fa-check-circle text-success"></i>
+                    </li>
+                `;
+            });
+            html += '</ul>';
+        } else {
+            html = `
+                <div class="text-center p-5 text-muted">
+                    <i class="fas fa-folder-open fa-3x mb-3 text-light-gray"></i>
+                    <h5>Belum ada Sub Tugas</h5>
+                    <p class="mb-0">Silakan tambahkan sub tugas baru.</p>
+                </div>
+            `;
+        }
+        
+        $('#subTugasList').html(html);
+        
+        // Move modal to body to prevent z-index issues
+        $('#modalViewSubTugas').appendTo("body");
+        
+        $('#modalViewSubTugas').modal('show');
+    });
+
+    // ========================================
     // Tombol Hapus - konfirmasi SweetAlert
     // ========================================
     $('body').on('click', '.btn-delete', function (e) {
         e.preventDefault();
+        e.stopImmediatePropagation(); // ✅ PREVENT GLOBAL HANDLER FROM FIRING!
+        
         const url = $(this).data('url');
+        
+        console.log('🔴 DELETE BUTTON CLICKED');
+        console.log('URL:', url);
         
         Swal.fire({
             title: 'Hapus Data?',
@@ -523,24 +551,48 @@ $(function() {
             cancelButtonText: '<i class="fas fa-times mr-1"></i>Batal',
             reverseButtons: true
         }).then((result) => {
+            console.log('🟡 SWAL RESULT:', result);
+            
             if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'Menghapus Data...',
-                    text: 'Mohon tunggu sebentar',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                $('<form>', {
-                    method: 'POST',
-                    action: url
-                })
-                .append('@csrf')
-                .append('@method("DELETE")')
-                .appendTo('body')
-                .submit();
+                console.log('✅ USER CONFIRMED DELETE');
+                
+                try {
+                    // Create form using native DOM to bypass anti-injection.js interference
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+                    
+                    console.log('📝 Form created:', form);
+                    
+                    // Add CSRF token
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '_token';
+                    tokenInput.value = '{{ csrf_token() }}';
+                    form.appendChild(tokenInput);
+                    
+                    console.log('🔐 CSRF token added');
+                    
+                    // Add DELETE method
+                    const methodInput = document.createElement('input');
+                    methodInput.type = 'hidden';
+                    methodInput.name = '_method';
+                    methodInput.value = 'DELETE';
+                    form.appendChild(methodInput);
+                    
+                    console.log('🔧 Method DELETE added');
+                    
+                    // Append to body and submit
+                    document.body.appendChild(form);
+                    console.log('📤 Form appended to body, submitting...');
+                    
+                    form.submit();
+                    console.log('✅ Form.submit() called - should redirect now!');
+                } catch (error) {
+                    console.error('❌ ERROR during form submission:', error);
+                }
+            } else {
+                console.log('❌ USER CANCELLED DELETE');
             }
         });
     });

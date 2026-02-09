@@ -2,7 +2,7 @@
 
 /**
  * Konfigurasi Preset Template Kop Surat
- * 
+ *
  * Setiap preset berisi konfigurasi siap pakai yang dapat dipilih user
  */
 

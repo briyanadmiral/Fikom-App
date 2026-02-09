@@ -2,8 +2,9 @@
 {{-- ✅ FASE 1.2: Section Lampiran File --}}
 
 @php
-    $isEditable = $isEdit && in_array($keputusan->status_surat ?? 'draft', ['draft', 'ditolak']);
-    $attachments = $keputusan->attachments ?? collect();
+    $keputusan = $keputusan ?? null;
+    $isEditable = $isEdit && in_array(optional($keputusan)->status_surat ?? 'draft', ['draft', 'ditolak']);
+    $attachments = optional($keputusan)->attachments ?? collect();
 @endphp
 
 <div class="card card-outline card-info">
@@ -19,8 +20,8 @@
     </div>
 
     <div class="card-body">
-        {{-- Upload Form (hanya tampil jika editable) --}}
-        @if ($isEditable)
+        {{-- Upload Form (hanya tampil jika editable dan ada ID keputusan) --}}
+        @if ($isEditable && optional($keputusan)->id)
             <form action="{{ route('surat_keputusan.attachments.upload', $keputusan->id) }}" method="POST"
                 enctype="multipart/form-data" id="formUploadAttachment">
                 @csrf
@@ -103,7 +104,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($keputusan->attachments as $attachment)
+                @forelse($attachments as $attachment)
                     <tr>
                         <td class="text-center">
                             <i class="{{ $attachment->file_icon }}"></i>
@@ -128,6 +129,7 @@
                         </td>
                         <td class="text-right">
                             {{-- ✅ FIXED: Tambahkan $keputusan->id di route --}}
+                            @if(optional($keputusan)->id)
                             <a href="{{ route('surat_keputusan.attachments.download', [$keputusan->id, $attachment->id]) }}"
                                 class="btn btn-sm btn-primary" title="Download">
                                 <i class="fas fa-download"></i>
@@ -145,6 +147,7 @@
                                     </button>
                                 </form>
                             @endif
+                            @endif
                         </td>
                     </tr>
                 @empty
@@ -159,10 +162,10 @@
         </table>
 
         {{-- Info total lampiran --}}
-        @if ($keputusan->attachments->count() > 0)
+        @if ($attachments->count() > 0)
             <div class="text-muted small mt-2">
                 <i class="fas fa-info-circle"></i>
-                Total {{ $keputusan->attachments->count() }} lampiran
+                Total {{ $attachments->count() }} lampiran
             </div>
         @endif
 

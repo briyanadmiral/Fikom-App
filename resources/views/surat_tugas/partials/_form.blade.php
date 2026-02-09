@@ -278,7 +278,10 @@
                                         <label for="bulan" class="small text-muted">Bulan (Romawi)</label>
                                         <input type="text" id="bulan" name="bulan"
                                             class="form-control text-center" value="{{ $bulanInit }}"
-                                            {{ $lockStructural ? 'readonly' : '' }}>
+                                            {{ $lockStructural ? 'readonly' : '' }}
+                                            pattern="^M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$"
+                                            title="Masukkan bulan dalam angka Romawi (contoh: I, II, X)"
+                                            oninput="this.value = this.value.toUpperCase()">
                                         @if ($lockStructural)
                                             <input type="hidden" name="bulan" value="{{ $bulanInit }}">
                                         @endif
@@ -500,31 +503,67 @@
                         {{-- TAB 2: DETAIL TUGAS --}}
                         <div class="tab-pane fade" id="tab-isi" role="tabpanel">
                             
-                            {{-- Template Selector --}}
+                            {{-- Template Selector - REDESIGNED --}}
                             @if(isset($templates) && count($templates) > 0)
-                                <div class="alert alert-secondary mb-4">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-7">
-                                            <div class="d-flex align-items-center">
-                                                <i class="fas fa-magic text-warning mr-3 fa-lg"></i>
-                                                <div>
-                                                    <h6 class="mb-0 font-weight-bold">Gunakan Template Cepat</h6>
-                                                    <small>Isi formulir otomatis menggunakan template yang tersedia.</small>
-                                                </div>
+                                <div class="template-selector-section mb-4">
+                                    <div class="template-selector-header">
+                                        <div class="d-flex align-items-center">
+                                            <div class="template-icon-box">
+                                                <i class="fas fa-file-signature"></i>
+                                            </div>
+                                            <div class="ml-3">
+                                                <h5 class="mb-0 font-weight-bold text-white">Template Surat</h5>
+                                                <small class="text-white-50">Pilih template untuk mengisi formulir secara otomatis</small>
                                             </div>
                                         </div>
-                                        <div class="col-md-5 mt-2 mt-md-0">
-                                            <div class="input-group">
-                                                <select id="template_selector" class="form-control select2bs4">
-                                                    <option value="">-- Pilih Template --</option>
+                                        <span class="badge badge-light">{{ count($templates) }} Template</span>
+                                    </div>
+                                    
+                                    <div class="template-selector-body">
+                                        <div class="row">
+                                            <div class="col-lg-5 mb-3 mb-lg-0">
+                                                <label class="small font-weight-bold text-muted mb-2">
+                                                    <i class="fas fa-list mr-1"></i> Pilih Template
+                                                </label>
+                                                <select id="template_selector" class="form-control select2bs4" data-placeholder="-- Pilih Template --">
+                                                    <option value=""></option>
                                                     @foreach($templates as $tpl)
-                                                        <option value="{{ $tpl->id }}">{{ $tpl->nama }}</option>
+                                                        <option value="{{ $tpl->id }}" 
+                                                                data-jenis="{{ $tpl->jenisTugas?->nama ?? '' }}"
+                                                                data-sub-tugas="{{ $tpl->subTugas?->nama ?? '' }}"
+                                                                data-deskripsi="{{ Str::limit($tpl->deskripsi ?? 'Tidak ada deskripsi', 80) }}">
+                                                            {{ $tpl->nama }}
+                                                        </option>
                                                     @endforeach
                                                 </select>
-                                                <div class="input-group-append">
-                                                    <button type="button" class="btn btn-warning" id="btn-apply-template" title="Terapkan Template">
-                                                        <i class="fas fa-arrow-down mr-1"></i> Pakai
+                                            </div>
+                                            
+                                            <div class="col-lg-7">
+                                                {{-- Template Preview Card --}}
+                                                <div id="template-preview-card" class="template-preview-card d-none">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <div>
+                                                            <h6 class="template-preview-title mb-1" id="tpl-preview-name">-</h6>
+                                                            <p class="template-preview-desc mb-0" id="tpl-preview-desc">-</p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="template-preview-badges mb-3">
+                                                        <span class="badge badge-info mr-1" id="tpl-preview-jenis" style="display:none;">
+                                                            <i class="fas fa-folder mr-1"></i> <span></span>
+                                                        </span>
+                                                        <span class="badge badge-success mr-1" id="tpl-preview-subtugas" style="display:none;">
+                                                            <i class="fas fa-tag mr-1"></i> <span></span>
+                                                        </span>
+                                                    </div>
+                                                    <button type="button" class="btn btn-warning btn-sm btn-block" id="btn-apply-template">
+                                                        <i class="fas fa-magic mr-1"></i> Terapkan Template Ini
                                                     </button>
+                                                </div>
+                                                
+                                                {{-- Empty State --}}
+                                                <div id="template-preview-empty" class="template-preview-empty">
+                                                    <i class="fas fa-hand-pointer fa-2x text-muted mb-2"></i>
+                                                    <p class="text-muted mb-0">Pilih template dari dropdown untuk melihat informasi</p>
                                                 </div>
                                             </div>
                                         </div>

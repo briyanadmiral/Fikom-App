@@ -34,7 +34,7 @@ class RecipientImport extends Model
 
     public function getStatusBadgeAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'pending' => 'warning',
             'processing' => 'info',
             'completed' => 'success',

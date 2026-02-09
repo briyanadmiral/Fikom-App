@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * ✅ REFACTORED: Security enhanced dengan global helpers
@@ -71,6 +71,7 @@ class TugasPenerima extends Model
                 if ($this->is_internal && $this->pengguna) {
                     return sanitize_output($this->pengguna->nama_lengkap ?? $this->pengguna->name);
                 }
+
                 return sanitize_output($this->nama_eksternal ?? 'Unknown');
             },
         );
@@ -86,6 +87,7 @@ class TugasPenerima extends Model
                 if ($this->is_internal && $this->pengguna) {
                     return sanitize_email($this->pengguna->email) ?: '';
                 }
+
                 return sanitize_email($this->email_eksternal) ?: '';
             },
         );
@@ -96,7 +98,7 @@ class TugasPenerima extends Model
      */
     protected function namaEksternal(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 255));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
     }
 
     /**
@@ -104,7 +106,7 @@ class TugasPenerima extends Model
      */
     protected function emailEksternal(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_email($value));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_email($value));
     }
 
     /**
@@ -112,7 +114,7 @@ class TugasPenerima extends Model
      */
     protected function jabatanEksternal(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 255));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
     }
 
     /**
@@ -120,7 +122,7 @@ class TugasPenerima extends Model
      */
     protected function instansiEksternal(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 255));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
     }
 
     // ==================== SCOPES =========================
@@ -196,7 +198,7 @@ class TugasPenerima extends Model
      */
     public function markAsUnread(): bool
     {
-        if (!$this->is_read) {
+        if (! $this->is_read) {
             return true;
         }
 
@@ -243,11 +245,11 @@ class TugasPenerima extends Model
         $info = $this->namaLengkap;
 
         if ($this->jabatan_eksternal) {
-            $info .= ' - ' . sanitize_output($this->jabatan_eksternal);
+            $info .= ' - '.sanitize_output($this->jabatan_eksternal);
         }
 
         if ($this->instansi_eksternal) {
-            $info .= ' (' . sanitize_output($this->instansi_eksternal) . ')';
+            $info .= ' ('.sanitize_output($this->instansi_eksternal).')';
         }
 
         return $info;
@@ -261,6 +263,7 @@ class TugasPenerima extends Model
         if ($this->is_read) {
             return 'badge-secondary';
         }
+
         return 'badge-primary';
     }
 

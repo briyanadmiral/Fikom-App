@@ -40,29 +40,29 @@
 
     <div class="sidebar" style="flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%;">
         @auth
-            <div class="user-panel mt-3 pb-3 mb-3 d-flex"
-                style="background: rgba(139, 92, 246, 0.08); 
-                    border-radius: 10px; 
-                    padding: 1rem !important;
-                    margin: 0.5rem 0.5rem 1rem 0.5rem !important;">
-                <div class="image">
-                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->nama_lengkap) }}&background=8B5CF6&color=fff&size=128"
-                        class="img-circle elevation-2" style="border: 3px solid #8B5CF6 !important;"
+            <div class="user-panel mt-3 pb-3 mb-3 d-flex align-items-center"
+                style="background: rgba(139, 92, 246, 0.1); 
+                    border-radius: 12px; 
+                    padding: 12px !important;
+                    margin: 0 10px 15px 10px !important;
+                    border: 1px solid rgba(139, 92, 246, 0.2);">
+                <div class="image pr-2">
+                    <img src="{{ Auth::user()->foto_url }}"
+                        class="img-circle elevation-2" 
+                        style="border: 2px solid #a78bfa !important; width: 45px; height: 45px; object-fit: cover;"
                         alt="{{ Auth::user()->nama_lengkap }}">
                 </div>
-                <div class="info">
-                    <a href="{{ route('account.settings') }}" class="d-block" title="Pengaturan Akun"
-                        style="color: #ffffff;
-                          font-weight: 600;
-                          text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);">
-                        {{ Str::limit(Auth::user()->nama_lengkap, 20) }}
+                <div class="info w-100 pl-2" style="line-height: 1.2;">
+                    <a href="{{ route('account.settings') }}" class="d-block text-white" title="Pengaturan Akun"
+                        style="font-weight: 600; font-size: 0.95rem; white-space: normal; word-wrap: break-word;">
+                        {{ Auth::user()->nama_lengkap }}
                     </a>
-                    <small class="d-block" style="color: #a0aec0;
-                              margin-top: 0.2rem;">
-                        <i class="fas fa-circle text-success"
-                            style="font-size: 0.6rem; margin-right: 0.3rem; color: #34d399 !important;"></i>
-                        {{ Auth::user()->peran->nama ?? 'User' }}
-                    </small>
+                    <div class="mt-1 d-flex align-items-center">
+                        <span class="badge badge-success badge-pill" 
+                              style="font-size: 0.65rem; font-weight: 500; padding: 3px 8px; background-color: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3);">
+                            {{ ucwords(str_replace('_', ' ', Auth::user()->peran->nama ?? 'User')) }}
+                        </span>
+                    </div>
                 </div>
             </div>
         @endauth

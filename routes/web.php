@@ -1,25 +1,23 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\TugasController;
+use App\Http\Controllers\AccountSettingsController;
+use App\Http\Controllers\ExternalEntryController;
 use App\Http\Controllers\JenisTugasController;
-use App\Http\Controllers\SubTugasController;
 use App\Http\Controllers\KlasifikasiSuratController;
-use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\MasterKopSuratController;
 use App\Http\Controllers\MySignatureController;
-use App\Http\Controllers\AccountSettingsController;
-use App\Http\Controllers\SuratKeputusanController;
-use App\Http\Controllers\SuratKeputusan\NomorSuratController;
+use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\RedirectController;
-use App\Http\Controllers\ExternalEntryController;
-use App\Models\TugasHeader;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SubTugasController;
+use App\Http\Controllers\SuratKeputusan\NomorSuratController;
+use App\Http\Controllers\SuratKeputusanController;
+use App\Http\Controllers\TugasController;
+use App\Http\Controllers\UserController;
 use App\Jobs\SendSuratTugasEmail;
 use App\Models\KeputusanHeader;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 // ❌ HAPUS: Redirect ke login (sistem eksternal yang handle)
 // Route::redirect('/', '/login');
@@ -79,8 +77,8 @@ Route::middleware('check.session.role')->group(function () {
             Route::delete('/{klasifikasi_surat}', [KlasifikasiSuratController::class, 'destroy'])->name('destroy');
 
             // AJAX Routes
-            Route::post('/ajax/next-code', [KlasifikasiSuratController::class, 'getNextCode'])->name('nextCode');
-            Route::post('/ajax/golongan', [KlasifikasiSuratController::class, 'getAvailableGolongan'])->name('getGolongan');
+            Route::get('/ajax/next-code', [KlasifikasiSuratController::class, 'getNextCode'])->name('nextCode');
+            Route::get('/ajax/golongan', [KlasifikasiSuratController::class, 'getAvailableGolongan'])->name('getGolongan');
         });
 
     // 5) Nomor Surat AJAX
@@ -97,7 +95,7 @@ Route::middleware('check.session.role')->group(function () {
             Route::post('/', [TugasController::class, 'store'])->name('store');
             Route::get('tugas_saya', [TugasController::class, 'mine'])->name('mine');
             Route::get('semua', [TugasController::class, 'all'])->name('all');
-            
+
             // Arsip: khusus Admin TU (peran_id 1)
             Route::get('arsip', [TugasController::class, 'arsipList'])
                 ->name('arsipList')
@@ -122,6 +120,12 @@ Route::middleware('check.session.role')->group(function () {
                 ->name('approve')
                 ->whereNumber('tugas')
                 ->middleware('can:approve,tugas');
+
+            // ✅ Action reject
+            Route::post('{tugas}/reject', [TugasController::class, 'reject'])
+                ->name('reject')
+                ->whereNumber('tugas')
+                ->middleware('can:reject,tugas');
 
             // ✅ Legacy
             Route::get('{tugas}/review-approve', [TugasController::class, 'approveForm'])
@@ -169,7 +173,7 @@ Route::middleware('check.session.role')->group(function () {
                 ->whereNumber('tugas')
                 ->middleware('can:update,tugas');
             // 🔹 akhir detail
-    
+
             Route::post('{tugas}/penerima', [TugasController::class, 'addRecipient'])
                 ->name('recipient.add')
                 ->middleware('can:addRecipient,tugas')
@@ -227,7 +231,7 @@ Route::middleware('check.session.role')->group(function () {
                     'tembusan' => $tugas->tembusan,
                     'klasifikasi_surat_id' => $tugas->klasifikasi_surat_id,
                     'klasifikasi_kode' => optional($tugas->klasifikasiSurat)->kode ?? '',
-                    'klasifikasi_label' => optional($tugas->klasifikasiSurat)->kode ? optional($tugas->klasifikasiSurat)->kode . ' - ' . (optional($tugas->klasifikasiSurat)->deskripsi ?? (optional($tugas->klasifikasiSurat)->nama ?? '')) : '',
+                    'klasifikasi_label' => optional($tugas->klasifikasiSurat)->kode ? optional($tugas->klasifikasiSurat)->kode.' - '.(optional($tugas->klasifikasiSurat)->deskripsi ?? (optional($tugas->klasifikasiSurat)->nama ?? '')) : '',
                     'nama_umum' => $tugas->nama_umum,
                     'asal_surat_id' => $tugas->asal_surat_id ?? $tugas->asal_surat,
                     'penandatangan_id' => $tugas->penandatangan_id ?? $tugas->penandatangan,
@@ -261,6 +265,9 @@ Route::middleware('check.session.role')->group(function () {
             Route::get('akun', [AccountSettingsController::class, 'edit'])->name('settings');
             Route::put('akun/profile', [AccountSettingsController::class, 'updateProfile'])->name('updateProfile');
             Route::put('akun/password', [AccountSettingsController::class, 'updatePassword'])->name('updatePassword');
+            // Profile Photo Routes
+            Route::put('akun/foto', [AccountSettingsController::class, 'updateFoto'])->name('updateFoto');
+            Route::delete('akun/foto', [AccountSettingsController::class, 'deleteFoto'])->name('deleteFoto');
         });
 
     Route::get('notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
@@ -298,11 +305,11 @@ Route::middleware('check.session.role')->group(function () {
 
             Route::get('/create', [SuratKeputusanController::class, 'create'])
                 ->name('create')
-                ->middleware('can:create,' . KeputusanHeader::class);
+                ->middleware('can:create,'.KeputusanHeader::class);
 
             Route::post('/', [SuratKeputusanController::class, 'store'])
                 ->name('store')
-                ->middleware('can:create,' . KeputusanHeader::class);
+                ->middleware('can:create,'.KeputusanHeader::class);
 
             // ✅ PERBAIKAN: Hapus middleware authorization dari route edit & update
             // Biarkan controller yang handle authorization
@@ -377,7 +384,7 @@ Route::middleware('check.session.role')->group(function () {
                 ->name('show')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:view,surat_keputusan');
-            
+
             // ✅ UNARCHIVE ACTION
             Route::post('{surat_keputusan}/buka-arsip', [SuratKeputusanController::class, 'bukaArsip'])
                 ->name('buka-arsip')
@@ -387,18 +394,18 @@ Route::middleware('check.session.role')->group(function () {
             Route::prefix('{surat_keputusan}')
                 ->whereNumber('surat_keputusan')
                 ->group(function () {
-                // ✅ PERBAIKAN: Hapus middleware dari upload & delete attachment
-                Route::post('/attachments', [SuratKeputusanController::class, 'uploadAttachment'])->name('attachments.upload');
+                    // ✅ PERBAIKAN: Hapus middleware dari upload & delete attachment
+                    Route::post('/attachments', [SuratKeputusanController::class, 'uploadAttachment'])->name('attachments.upload');
 
-                Route::get('/attachments/{attachment}', [SuratKeputusanController::class, 'downloadAttachment'])
-                    ->name('attachments.download')
-                    ->whereNumber('attachment')
-                    ->middleware('can:view,surat_keputusan');
+                    Route::get('/attachments/{attachment}', [SuratKeputusanController::class, 'downloadAttachment'])
+                        ->name('attachments.download')
+                        ->whereNumber('attachment')
+                        ->middleware('can:view,surat_keputusan');
 
-                Route::delete('/attachments/{attachment}', [SuratKeputusanController::class, 'deleteAttachment'])
-                    ->name('attachments.delete')
-                    ->whereNumber('attachment');
-            });
+                    Route::delete('/attachments/{attachment}', [SuratKeputusanController::class, 'deleteAttachment'])
+                        ->name('attachments.delete')
+                        ->whereNumber('attachment');
+                });
         });
 
     Route::get('/surat-keputusan/{any?}', [RedirectController::class, 'legacySk'])->where('any', '.*');
@@ -413,6 +420,7 @@ Route::middleware('check.session.role')->group(function () {
     // 10) Dev Helper
     Route::get('/dev/send-surat/{id}', function ($id) {
         SendSuratTugasEmail::dispatch((int) $id, 'to_recipients');
+
         return "Job dikirim untuk surat ID {$id}. Cek inbox (atau MailHog).";
     })->whereNumber('id');
 
@@ -421,6 +429,7 @@ Route::middleware('check.session.role')->group(function () {
     // 11) Template Surat Tugas
     Route::resource('surat_templates', \App\Http\Controllers\SuratTemplateController::class);
     Route::post('/surat_templates/{surat_template}/duplicate', [\App\Http\Controllers\SuratTemplateController::class, 'duplicate'])->name('surat_templates.duplicate');
+    Route::get('/surat_templates/{surat_template}/preview', [\App\Http\Controllers\SuratTemplateController::class, 'preview'])->name('surat_templates.preview');
     Route::get('/ajax/surat_templates/{id}', [\App\Http\Controllers\SuratTemplateController::class, 'getTemplate'])
         ->name('ajax.template.get')
         ->whereNumber('id');

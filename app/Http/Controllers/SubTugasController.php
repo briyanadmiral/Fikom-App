@@ -13,8 +13,8 @@ class SubTugasController extends Controller
      */
     public function index(JenisTugas $jenistugas)
     {
-        // Eager load sub tugas beserta detail tugas
-        $jenistugas->load('subTugas.detail');
+        // Eager load sub tugas
+        // $jenistugas->load('subTugas.detail'); // Removed detail eager load
 
         $list = $jenistugas->subTugas()->orderBy('nama')->get();
 

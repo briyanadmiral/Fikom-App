@@ -20,6 +20,7 @@ use Illuminate\Validation\Rules\File;
  * - Image dimensions validation (optional)
  *
  * @version 2.0.0
+ *
  * @date 2025-12-06
  */
 class AttachmentRequest extends FormRequest
@@ -52,7 +53,7 @@ class AttachmentRequest extends FormRequest
 
                 // ✅ ADDITIONAL: Validate MIME types (content-based, not just extension)
                 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar',
-                'mimetypes:' .
+                'mimetypes:'.
                 implode(',', [
                     // PDF
                     'application/pdf',
@@ -264,6 +265,7 @@ class AttachmentRequest extends FormRequest
                     'filename' => $file->getClientOriginalName(),
                     'user_id' => auth()->id(),
                 ]);
+
                 return;
             }
 
@@ -327,7 +329,7 @@ class AttachmentRequest extends FormRequest
         ];
 
         if (isset($allowedMimeTypes[$extension])) {
-            if (!in_array($realMimeType, $allowedMimeTypes[$extension])) {
+            if (! in_array($realMimeType, $allowedMimeTypes[$extension])) {
                 Log::warning('AttachmentRequest: MIME type mismatch', [
                     'filename' => $file->getClientOriginalName(),
                     'extension' => $extension,

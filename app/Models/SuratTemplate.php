@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * ✅ SuratTemplate - Model untuk menyimpan template Surat Tugas
- * 
+ *
  * Placeholder yang didukung:
  * - {{nama_penerima}}  : Nama penerima tugas
  * - {{tanggal}}        : Tanggal surat (formatted)
@@ -28,6 +28,7 @@ class SuratTemplate extends Model
         'nama',
         'deskripsi',
         'jenis_tugas_id',
+        'sub_tugas_id',
         'detail_tugas',
         'tembusan',
         'dibuat_oleh',
@@ -66,6 +67,14 @@ class SuratTemplate extends Model
     }
 
     /**
+     * Relasi ke Sub Tugas
+     */
+    public function subTugas(): BelongsTo
+    {
+        return $this->belongsTo(SubTugas::class, 'sub_tugas_id');
+    }
+
+    /**
      * Relasi ke User pembuat
      */
     public function creator(): BelongsTo
@@ -81,8 +90,8 @@ class SuratTemplate extends Model
     protected function nama(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => sanitize_output($value),
-            set: fn(?string $value) => sanitize_input($value, 100)
+            get: fn (?string $value) => sanitize_output($value),
+            set: fn (?string $value) => sanitize_input($value, 100)
         );
     }
 
@@ -92,8 +101,8 @@ class SuratTemplate extends Model
     protected function deskripsi(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => sanitize_output($value),
-            set: fn(?string $value) => sanitize_input($value, 500)
+            get: fn (?string $value) => sanitize_output($value),
+            set: fn (?string $value) => sanitize_input($value, 500)
         );
     }
 
@@ -115,6 +124,7 @@ class SuratTemplate extends Model
         if ($jenisId) {
             return $query->where('jenis_tugas_id', $jenisId);
         }
+
         return $query;
     }
 
@@ -126,6 +136,7 @@ class SuratTemplate extends Model
         if ($userId) {
             return $query->where('dibuat_oleh', $userId);
         }
+
         return $query;
     }
 
@@ -143,7 +154,7 @@ class SuratTemplate extends Model
 
         return $query->where(function ($q) use ($escaped) {
             $q->where('nama', 'LIKE', "%{$escaped}%")
-              ->orWhere('deskripsi', 'LIKE', "%{$escaped}%");
+                ->orWhere('deskripsi', 'LIKE', "%{$escaped}%");
         });
     }
 
@@ -163,7 +174,7 @@ class SuratTemplate extends Model
     public function getUsedPlaceholders(): array
     {
         $used = [];
-        $content = $this->detail_tugas . ' ' . ($this->tembusan ?? '');
+        $content = $this->detail_tugas.' '.($this->tembusan ?? '');
 
         foreach (array_keys(self::PLACEHOLDERS) as $placeholder) {
             if (str_contains($content, $placeholder)) {
@@ -176,8 +187,8 @@ class SuratTemplate extends Model
 
     /**
      * Apply placeholder replacements ke template
-     * 
-     * @param array $data Associative array dengan key = placeholder (tanpa {{}})
+     *
+     * @param  array  $data  Associative array dengan key = placeholder (tanpa {{}})
      * @return array ['detail_tugas' => ..., 'tembusan' => ...]
      */
     public function applyPlaceholders(array $data): array
@@ -186,9 +197,9 @@ class SuratTemplate extends Model
         $tembusan = $this->tembusan ?? '';
 
         foreach ($data as $key => $value) {
-            $placeholder = '{{' . $key . '}}';
+            $placeholder = '{{'.$key.'}}';
             $safeValue = sanitize_output($value);
-            
+
             $detailTugas = str_replace($placeholder, $safeValue, $detailTugas);
             $tembusan = str_replace($placeholder, $safeValue, $tembusan);
         }
@@ -208,7 +219,7 @@ class SuratTemplate extends Model
             'nama_penerima' => 'Dr. Contoh Nama, M.Pd.',
             'tanggal' => now()->translatedFormat('d F Y'),
             'jabatan' => 'Dekan',
-            'nomor_surat' => '001/UN.../ST/' . now()->year,
+            'nomor_surat' => '001/UN.../ST/'.now()->year,
             'tahun' => now()->year,
             'bulan' => now()->translatedFormat('F'),
             'tempat' => 'Ruang Rapat Fakultas',
@@ -224,7 +235,7 @@ class SuratTemplate extends Model
     public function duplicate(int $userId): self
     {
         $new = $this->replicate();
-        $new->nama = $this->nama . ' (Copy)';
+        $new->nama = $this->nama.' (Copy)';
         $new->dibuat_oleh = $userId;
         $new->save();
 

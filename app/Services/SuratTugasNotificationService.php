@@ -30,6 +30,7 @@ class SuratTugasNotificationService extends BaseNotificationService
             Log::warning('notifyApprovalRequest: Invalid tugas ID', [
                 'tugas_id' => $tugas->id,
             ]);
+
             return;
         }
 
@@ -41,16 +42,18 @@ class SuratTugasNotificationService extends BaseNotificationService
                 'tugas_id' => $tugasId,
                 'next_approver' => $tugas->next_approver,
             ]);
+
             return;
         }
 
         $approver = $this->getActiveUser($approverId);
 
-        if (!$approver) {
+        if (! $approver) {
             Log::warning('notifyApprovalRequest: next_approver not found or inactive', [
                 'tugas_id' => $tugasId,
                 'next_approver_id' => $approverId,
             ]);
+
             return;
         }
 
@@ -83,6 +86,7 @@ class SuratTugasNotificationService extends BaseNotificationService
             Log::warning('notifyApproved: Invalid tugas ID', [
                 'tugas_id' => $tugas->id,
             ]);
+
             return;
         }
 
@@ -115,6 +119,7 @@ class SuratTugasNotificationService extends BaseNotificationService
             Log::info('notifyApproved: No active internal recipients', [
                 'tugas_id' => $tugasId,
             ]);
+
             return;
         }
 
@@ -124,12 +129,13 @@ class SuratTugasNotificationService extends BaseNotificationService
 
         foreach ($recipients as $recipient) {
             // ✅ GOOD: Validasi recipient dengan helper
-            if (!$this->isValidRecipient($recipient)) {
+            if (! $this->isValidRecipient($recipient)) {
                 Log::warning('notifyApproved: Invalid recipient data', [
                     'tugas_id' => $tugasId,
                     'recipient_id' => $recipient->pengguna_id ?? null,
                 ]);
                 $failedCount++;
+
                 continue;
             }
 
@@ -185,6 +191,7 @@ class SuratTugasNotificationService extends BaseNotificationService
             Log::warning('notifyRejected: Invalid tugas ID', [
                 'tugas_id' => $tugas->id,
             ]);
+
             return;
         }
 
@@ -233,6 +240,7 @@ class SuratTugasNotificationService extends BaseNotificationService
             Log::warning('notifyRevisionRequested: Invalid tugas ID', [
                 'tugas_id' => $tugas->id,
             ]);
+
             return;
         }
 
@@ -282,6 +290,7 @@ class SuratTugasNotificationService extends BaseNotificationService
             Log::error('getActiveInternalRecipients: Invalid tugas ID', [
                 'tugas_id' => $tugas->id,
             ]);
+
             return [];
         }
 
@@ -303,6 +312,7 @@ class SuratTugasNotificationService extends BaseNotificationService
                 'tugas_id' => $tugasId,
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
+
             return [];
         }
     }
@@ -314,7 +324,7 @@ class SuratTugasNotificationService extends BaseNotificationService
     {
         $recipientId = validate_integer_id($recipient->pengguna_id ?? null);
 
-        return $recipientId !== null && !empty($recipient->email);
+        return $recipientId !== null && ! empty($recipient->email);
     }
 
     /**
@@ -339,6 +349,7 @@ class SuratTugasNotificationService extends BaseNotificationService
                 'recipient_id' => $validRecipientId,
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
+
             return false;
         }
     }

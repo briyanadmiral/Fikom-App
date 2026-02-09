@@ -14,11 +14,11 @@ class RedirectController extends Controller
         return redirect()->route('surat_keputusan.approveList');
     }
 
-    public function legacySt(string $any = null)
+    public function legacySt(?string $any = null)
     {
         // ✅ FIXED: Sanitize path parameter
         $safePath = $this->sanitizePath($any);
-        $to = '/surat_tugas' . ($safePath ? "/{$safePath}" : '');
+        $to = '/surat_tugas'.($safePath ? "/{$safePath}" : '');
 
         // ✅ FIXED: Validate query string
         $qs = $this->getSafeQueryString();
@@ -26,11 +26,11 @@ class RedirectController extends Controller
         return redirect()->to($qs ? "{$to}?{$qs}" : $to, 301);
     }
 
-    public function legacySk(string $any = null)
+    public function legacySk(?string $any = null)
     {
         // ✅ FIXED: Sanitize path parameter
         $safePath = $this->sanitizePath($any);
-        $to = '/surat_keputusan' . ($safePath ? "/{$safePath}" : '');
+        $to = '/surat_keputusan'.($safePath ? "/{$safePath}" : '');
 
         // ✅ FIXED: Validate query string
         $qs = $this->getSafeQueryString();
@@ -66,7 +66,7 @@ class RedirectController extends Controller
     {
         $qs = request()->getQueryString();
 
-        if (!$qs) {
+        if (! $qs) {
             return null;
         }
 

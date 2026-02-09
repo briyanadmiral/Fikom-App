@@ -141,9 +141,14 @@
             <div class="col-lg-4">
                 {{-- Kartu Profil --}}
                 <div class="card card-profile mb-4">
-                    <div class="profile-avatar" style="background-color: {{ generate_color_from_string($user->nama_lengkap) }};">
-                        {{ get_initials($user->nama_lengkap) }}
-                    </div>
+                    @if($user->foto_path && Storage::disk('public')->exists($user->foto_path))
+                        <img src="{{ asset('storage/' . $user->foto_path) }}" alt="Foto Profile" 
+                             style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto 1rem; box-shadow: 0 4px 15px rgba(0,0,0,.2);">
+                    @else
+                        <div class="profile-avatar" style="background-color: {{ generate_color_from_string($user->nama_lengkap) }};">
+                            {{ get_initials($user->nama_lengkap) }}
+                        </div>
+                    @endif
                     <div class="profile-name">{{ $user->nama_lengkap }}</div>
                     <div class="profile-email">{{ $user->email }}</div>
                 </div>

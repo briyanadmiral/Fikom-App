@@ -10,11 +10,11 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::table('keputusan_header', function (Blueprint $table) {
-        $table->json('menetapkan')->nullable()->after('mengingat');
-    });
-}
+    {
+        Schema::table('keputusan_header', function (Blueprint $table) {
+            $table->json('menetapkan')->nullable()->after('mengingat');
+        });
+    }
 
     /**
      * Reverse the migrations.

@@ -84,8 +84,8 @@
             <!-- User Account Menu -->
             <li class="nav-item dropdown">
                 <a id="navbarDropdown" class="nav-link dropdown-toggle d-flex align-items-center" href="#" data-toggle="dropdown" aria-expanded="false">
-                    <img src="https://ui-avatars.com/api/?name={{ urlencode($user->nama_lengkap) }}&background=1E88E5&color=fff&size=32"
-                         class="rounded-circle mr-2" alt="avatar" width="32" height="32">
+                    <img src="{{ $user->foto_url }}"
+                         class="rounded-circle mr-2" alt="avatar" width="32" height="32" style="object-fit: cover;">
                     <span class="d-none d-md-inline">{{ $user->nama_lengkap }}</span>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right animate__animated animate__fadeIn" aria-labelledby="navbarDropdown" style="min-width:250px;">

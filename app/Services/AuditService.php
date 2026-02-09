@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * ✅ AuditService - Service untuk logging aktivitas user
- * 
+ *
  * Usage:
  * app(AuditService::class)->log('create', $model);
  * app(AuditService::class)->log('update', $model, $oldValues);
@@ -18,12 +18,11 @@ class AuditService
 {
     /**
      * Log aktivitas
-     * 
-     * @param string $action Action type (create, update, delete, approve, etc.)
-     * @param Model|null $entity The entity being acted upon
-     * @param array|null $oldValues Old values (untuk update/delete)
-     * @param array|null $newValues New values (untuk create/update)
-     * @return AuditLog
+     *
+     * @param  string  $action  Action type (create, update, delete, approve, etc.)
+     * @param  Model|null  $entity  The entity being acted upon
+     * @param  array|null  $oldValues  Old values (untuk update/delete)
+     * @param  array|null  $newValues  New values (untuk create/update)
      */
     public function log(
         string $action,
@@ -74,10 +73,10 @@ class AuditService
     public function logUpdate(Model $entity, array $original): AuditLog
     {
         $changes = $entity->getChanges();
-        
+
         // Only log if there are actual changes
         if (empty($changes)) {
-            return new AuditLog(); // Return empty model
+            return new AuditLog; // Return empty model
         }
 
         // Get only the changed fields from original
@@ -154,7 +153,7 @@ class AuditService
      */
     protected function getEntityName(?Model $entity): ?string
     {
-        if (!$entity) {
+        if (! $entity) {
             return null;
         }
 
@@ -201,7 +200,7 @@ class AuditService
         // Truncate long text fields
         foreach ($attributes as $key => $value) {
             if (is_string($value) && strlen($value) > 200) {
-                $attributes[$key] = substr($value, 0, 200) . '...';
+                $attributes[$key] = substr($value, 0, 200).'...';
             }
         }
 
@@ -213,7 +212,7 @@ class AuditService
      */
     protected function truncateUserAgent(?string $userAgent): ?string
     {
-        if (!$userAgent) {
+        if (! $userAgent) {
             return null;
         }
 

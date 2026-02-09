@@ -2,17 +2,18 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\User;
+use App\Models\KeputusanHeader;
 use App\Models\NotificationPreference;
 use App\Models\TugasHeader;
-use App\Models\KeputusanHeader;
-use Illuminate\Support\Facades\Mail;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Mail;
 
 class SendWeeklyDigest extends Command
 {
     protected $signature = 'surat:weekly-digest';
+
     protected $description = 'Send weekly digest email to users who opted in';
 
     public function handle()
@@ -28,7 +29,7 @@ class SendWeeklyDigest extends Command
 
         foreach ($preferences as $pref) {
             $user = $pref->user;
-            if (!$user || !$user->email) {
+            if (! $user || ! $user->email) {
                 continue;
             }
 
@@ -50,6 +51,7 @@ class SendWeeklyDigest extends Command
         }
 
         $this->info("Weekly digest completed. Sent: {$sentCount} emails.");
+
         return Command::SUCCESS;
     }
 
@@ -94,7 +96,7 @@ class SendWeeklyDigest extends Command
             $data['pending_sk'] = 0;
         }
 
-        $data['total_activity'] = $data['st_created'] + $data['st_approved'] + 
+        $data['total_activity'] = $data['st_created'] + $data['st_approved'] +
                                    $data['sk_created'] + $data['sk_approved'];
 
         return $data;
@@ -107,7 +109,7 @@ class SendWeeklyDigest extends Command
             $this->buildEmailContent($user, $data),
             function ($message) use ($user) {
                 $message->to($user->email, $user->nama_lengkap)
-                    ->subject('[SIEGA] Ringkasan Mingguan - ' . Carbon::now()->format('d M Y'));
+                    ->subject('[SIEGA] Ringkasan Mingguan - '.Carbon::now()->format('d M Y'));
             }
         );
     }
@@ -116,30 +118,30 @@ class SendWeeklyDigest extends Command
     {
         $lines = [
             "Halo {$user->nama_lengkap},",
-            "",
+            '',
             "Berikut ringkasan aktivitas surat Anda minggu ini ({$data['week_start']} - {$data['week_end']}):",
-            "",
-            "SURAT TUGAS:",
+            '',
+            'SURAT TUGAS:',
             "- Dibuat: {$data['st_created']}",
             "- Disetujui: {$data['st_approved']}",
             "- Ditolak: {$data['st_rejected']}",
-            "",
-            "SURAT KEPUTUSAN:",
+            '',
+            'SURAT KEPUTUSAN:',
             "- Dibuat: {$data['sk_created']}",
             "- Disetujui: {$data['sk_approved']}",
-            "",
+            '',
         ];
 
         if ($data['pending_st'] > 0 || $data['pending_sk'] > 0) {
-            $lines[] = "MENUNGGU PERSETUJUAN ANDA:";
+            $lines[] = 'MENUNGGU PERSETUJUAN ANDA:';
             $lines[] = "- Surat Tugas: {$data['pending_st']}";
             $lines[] = "- Surat Keputusan: {$data['pending_sk']}";
-            $lines[] = "";
+            $lines[] = '';
         }
 
-        $lines[] = "---";
-        $lines[] = "Sistem Surat SIEGA - FIKOM UNIKA Soegijapranata";
-        $lines[] = "Untuk mengubah preferensi notifikasi, kunjungi menu Pengaturan Akun.";
+        $lines[] = '---';
+        $lines[] = 'Sistem Surat SIEGA - FIKOM UNIKA Soegijapranata';
+        $lines[] = 'Untuk mengubah preferensi notifikasi, kunjungi menu Pengaturan Akun.';
 
         return implode("\n", $lines);
     }

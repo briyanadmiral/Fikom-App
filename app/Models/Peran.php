@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -34,6 +34,7 @@ class Peran extends Model
     protected $dates = ['dibuat_pada', 'deleted_at'];
 
     const CACHE_KEY = 'peran_all';
+
     const CACHE_TTL = 3600;
 
     // ==================== RELASI =========================
@@ -50,7 +51,7 @@ class Peran extends Model
      */
     protected function nama(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 100));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 100));
     }
 
     /**
@@ -58,7 +59,7 @@ class Peran extends Model
      */
     protected function deskripsi(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 500));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 500));
     }
 
     // ==================== SCOPES =========================
@@ -200,7 +201,7 @@ class Peran extends Model
      */
     public static function getActiveCached()
     {
-        return Cache::remember(self::CACHE_KEY . '_active', self::CACHE_TTL, function () {
+        return Cache::remember(self::CACHE_KEY.'_active', self::CACHE_TTL, function () {
             return self::active()->orderBy('id')->get();
         });
     }
@@ -211,7 +212,7 @@ class Peran extends Model
     public static function clearCache(): void
     {
         Cache::forget(self::CACHE_KEY);
-        Cache::forget(self::CACHE_KEY . '_active');
+        Cache::forget(self::CACHE_KEY.'_active');
     }
 
     /**

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\SuratKeputusan;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Services\NomorSuratService;
+use Illuminate\Http\Request;
 
 class NomorSuratController extends Controller
 {
@@ -24,7 +24,7 @@ class NomorSuratController extends Controller
 
         // ✅ Whitelist validation for doc_type
         $validDocTypes = ['ST', 'SK', 'SP', 'SU']; // Adjust based on your system
-        if (!in_array($docType, $validDocTypes, true)) {
+        if (! in_array($docType, $validDocTypes, true)) {
             return response()->json(['message' => 'Tipe dokumen tidak valid'], 422);
         }
 
@@ -44,7 +44,7 @@ class NomorSuratController extends Controller
         // ✅ FIXED: Sanitize kode_klasifikasi
         $data['kode_klasifikasi'] = sanitize_input($data['kode_klasifikasi'], 50);
 
-        if (!$unit) {
+        if (! $unit) {
             return response()->json(['message' => 'Unit belum ditentukan'], 422);
         }
 

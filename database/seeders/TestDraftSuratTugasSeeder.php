@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\TugasHeader;
 use App\Models\TugasPenerima;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class TestDraftSuratTugasSeeder extends Seeder
 {
@@ -27,8 +27,9 @@ class TestDraftSuratTugasSeeder extends Seeder
             ->take(3)
             ->get();
 
-        if (!$pembuat || !$penandatangan) {
+        if (! $pembuat || ! $penandatangan) {
             $this->command->error('ERROR: Tidak ada user Admin TU atau Dekan di database!');
+
             return;
         }
 
@@ -75,14 +76,14 @@ class TestDraftSuratTugasSeeder extends Seeder
 
         $this->command->info('✅ SUCCESS: Surat Tugas Draft berhasil dibuat!');
         $this->command->line('─────────────────────────────────────');
-        $this->command->line('ID: ' . $tugas->id);
-        $this->command->line('Nama: ' . $tugas->nama_umum);
-        $this->command->line('Status: ' . $tugas->status_surat);
-        $this->command->line('Pembuat: ' . $pembuat->nama_lengkap);
-        $this->command->line('Penandatangan: ' . $penandatangan->nama_lengkap);
-        $this->command->line('Jumlah Penerima: ' . $penerima->count());
+        $this->command->line('ID: '.$tugas->id);
+        $this->command->line('Nama: '.$tugas->nama_umum);
+        $this->command->line('Status: '.$tugas->status_surat);
+        $this->command->line('Pembuat: '.$pembuat->nama_lengkap);
+        $this->command->line('Penandatangan: '.$penandatangan->nama_lengkap);
+        $this->command->line('Jumlah Penerima: '.$penerima->count());
         if ($penerima->count() > 0) {
-            $this->command->line('Penerima: ' . $penerima->pluck('nama_lengkap')->join(', '));
+            $this->command->line('Penerima: '.$penerima->pluck('nama_lengkap')->join(', '));
         }
         $this->command->line('─────────────────────────────────────');
     }

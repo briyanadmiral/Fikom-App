@@ -10,16 +10,16 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up()
-{
-    Schema::table('tugas_header', function (Blueprint $table) {
-        $table->dropColumn('ijin_tidak_presensi');
-    });
-}
+    {
+        Schema::table('tugas_header', function (Blueprint $table) {
+            $table->dropColumn('ijin_tidak_presensi');
+        });
+    }
 
-public function down()
-{
-    Schema::table('tugas_header', function (Blueprint $table) {
-        $table->boolean('ijin_tidak_presensi')->default(false);
-    });
-}
+    public function down()
+    {
+        Schema::table('tugas_header', function (Blueprint $table) {
+            $table->boolean('ijin_tidak_presensi')->default(false);
+        });
+    }
 };

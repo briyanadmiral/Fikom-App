@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\UserSignature;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class MySignatureController extends Controller
 {
@@ -15,6 +15,7 @@ class MySignatureController extends Controller
         $user = Auth::user();
         $this->authorizeRole($user->peran_id); // hanya 2/3
         $sig = $user->signature;
+
         return view('kop_surat.ttd_saya', compact('sig'));
     }
 
@@ -49,7 +50,8 @@ class MySignatureController extends Controller
                 return back()->withErrors(['file' => 'File bukan PNG yang valid.']);
             }
         } catch (\Throwable $e) {
-            Log::error('Failed to validate image: ' . sanitize_log_message($e->getMessage()));
+            Log::error('Failed to validate image: '.sanitize_log_message($e->getMessage()));
+
             return back()->withErrors(['file' => 'Gagal memvalidasi gambar.']);
         }
 
@@ -61,7 +63,7 @@ class MySignatureController extends Controller
                 try {
                     Storage::disk('local')->delete($oldPath);
                 } catch (\Throwable $e) {
-                    Log::warning('Failed to delete old signature: ' . sanitize_log_message($e->getMessage()));
+                    Log::warning('Failed to delete old signature: '.sanitize_log_message($e->getMessage()));
                 }
             }
         }
@@ -72,7 +74,8 @@ class MySignatureController extends Controller
         try {
             Storage::disk('local')->put($path, file_get_contents($file->getRealPath()));
         } catch (\Throwable $e) {
-            Log::error('Failed to save signature: ' . sanitize_log_message($e->getMessage()));
+            Log::error('Failed to save signature: '.sanitize_log_message($e->getMessage()));
+
             return back()->withErrors(['file' => 'Gagal menyimpan tanda tangan.']);
         }
 
@@ -90,7 +93,7 @@ class MySignatureController extends Controller
 
     private function authorizeRole($peranId)
     {
-        if (!in_array((int) $peranId, [2, 3], true)) {
+        if (! in_array((int) $peranId, [2, 3], true)) {
             abort(403, 'Hanya Dekan/Wakil Dekan.');
         }
     }

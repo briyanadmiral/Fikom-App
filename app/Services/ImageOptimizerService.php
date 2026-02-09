@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Exception;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 /**
  * Service untuk optimasi gambar yang diupload
@@ -16,24 +16,26 @@ use Exception;
 class ImageOptimizerService
 {
     protected ImageManager $manager;
-    
+
     // Default settings
     protected int $maxWidth = 800;
+
     protected int $maxHeight = 800;
+
     protected int $quality = 85;
+
     protected bool $convertToWebp = false;
 
     public function __construct()
     {
-        $this->manager = new ImageManager(new Driver());
+        $this->manager = new ImageManager(new Driver);
     }
 
     /**
      * Optimize uploaded image file
      *
-     * @param UploadedFile $file
-     * @param string $directory Storage directory (e.g., 'kop')
-     * @param array $options Custom options
+     * @param  string  $directory  Storage directory (e.g., 'kop')
+     * @param  array  $options  Custom options
      * @return string|null Stored file path or null on failure
      */
     public function optimizeAndStore(UploadedFile $file, string $directory = 'kop', array $options = []): ?string
@@ -58,13 +60,13 @@ class ImageOptimizerService
 
             // Determine output format
             $extension = $toWebp ? 'webp' : strtolower($file->getClientOriginalExtension());
-            if (!in_array($extension, ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {
+            if (! in_array($extension, ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {
                 $extension = 'jpg';
             }
 
             // Generate unique filename
-            $filename = uniqid() . '_' . time() . '.' . $extension;
-            $path = $directory . '/' . $filename;
+            $filename = uniqid().'_'.time().'.'.$extension;
+            $path = $directory.'/'.$filename;
 
             // Encode based on format
             if ($extension === 'png') {

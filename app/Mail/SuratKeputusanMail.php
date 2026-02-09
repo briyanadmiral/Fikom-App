@@ -18,20 +18,23 @@ class SuratKeputusanMail extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public string $heading;
+
     public string $messageLine;
+
     public ?string $ctaUrl;
+
     public ?string $ctaText;
+
     public KeputusanHeader $sk;
+
     public bool $attachSignedPdf;
 
     /**
-     * @param  KeputusanHeader  $sk
-     * @param  string           $subject
-     * @param  string           $heading        Judul di email body
-     * @param  string           $messageLine    Isi ringkas
-     * @param  string|null      $ctaUrl         Link aksi (opsional)
-     * @param  string|null      $ctaText        Teks tombol (opsional)
-     * @param  bool             $attachSignedPdf lampirkan PDF bertanda tangan (jika ada)
+     * @param  string  $heading  Judul di email body
+     * @param  string  $messageLine  Isi ringkas
+     * @param  string|null  $ctaUrl  Link aksi (opsional)
+     * @param  string|null  $ctaText  Teks tombol (opsional)
+     * @param  bool  $attachSignedPdf  lampirkan PDF bertanda tangan (jika ada)
      */
     public function __construct(
         KeputusanHeader $sk,
@@ -64,11 +67,11 @@ class SuratKeputusanMail extends Mailable implements ShouldQueue
         return new Content(
             view: 'emails.sk',
             with: [
-                'sk'          => $this->sk,
-                'heading'     => $this->heading,
+                'sk' => $this->sk,
+                'heading' => $this->heading,
                 'messageLine' => $this->messageLine,
-                'ctaUrl'      => $this->ctaUrl,
-                'ctaText'     => $this->ctaText,
+                'ctaUrl' => $this->ctaUrl,
+                'ctaText' => $this->ctaText,
             ]
         );
     }
@@ -82,7 +85,8 @@ class SuratKeputusanMail extends Mailable implements ShouldQueue
         // signed_pdf_path disimpan di disk "local" → ambil absolute path
         if (Storage::disk('local')->exists($this->sk->signed_pdf_path)) {
             $safeNomor = preg_replace('/[\/\\\\]+/', '-', (string) ($this->sk->nomor ?? 'TanpaNomor'));
-            $filename  = "SuratKeputusan_{$safeNomor}.pdf";
+            $filename = "SuratKeputusan_{$safeNomor}.pdf";
+
             return [
                 Attachment::fromPath(Storage::disk('local')->path($this->sk->signed_pdf_path))
                     ->as($filename)

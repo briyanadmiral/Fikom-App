@@ -3,8 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 /**
  * ✅ IMPROVED: Enhanced profile update security & validation
@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Log;
  * - Audit logging
  *
  * @version 2.0.0
+ *
  * @date 2025-12-06
  */
 class UpdateProfileRequest extends FormRequest
@@ -45,8 +46,8 @@ class UpdateProfileRequest extends FormRequest
                 'string',
                 'min:3',
                 'max:100',
-                // ✅ Only letters, spaces, dots, apostrophes (for names like O'Brien)
-                'regex:/^[\p{L}\s\.\'\-]+$/u',
+                // ✅ Allow letters, spaces, dots, apostrophes, hyphens, commas (for academic titles like SE., MM)
+                'regex:/^[\p{L}\s\.\'\'\-,]+$/u',
             ],
 
             // === Email ===
@@ -76,7 +77,7 @@ class UpdateProfileRequest extends FormRequest
 
                 // ✅ Custom rule: Validate NPP format
                 function ($attribute, $value, $fail) {
-                    if ($value && !$this->isValidNPPFormat($value)) {
+                    if ($value && ! $this->isValidNPPFormat($value)) {
                         $fail('Format NPP tidak valid. Contoh: 123.1.4567.890');
                     }
                 },
@@ -178,7 +179,7 @@ class UpdateProfileRequest extends FormRequest
         if ($this->has('jabatan')) {
             $jabatan = $this->input('jabatan');
 
-            if (!empty($jabatan)) {
+            if (! empty($jabatan)) {
                 $jabatan = strip_tags($jabatan);
                 $jabatan = $this->removeDangerousChars($jabatan);
                 $jabatan = trim($jabatan);
@@ -196,7 +197,7 @@ class UpdateProfileRequest extends FormRequest
         if ($this->has('no_telepon')) {
             $phone = $this->input('no_telepon');
 
-            if (!empty($phone)) {
+            if (! empty($phone)) {
                 // Remove all non-digit/non-plus chars except spaces and hyphens
                 $phone = preg_replace('/[^\d\+\-\s\(\)]/', '', $phone);
                 $phone = trim($phone);
@@ -213,7 +214,7 @@ class UpdateProfileRequest extends FormRequest
         if ($this->has('alamat')) {
             $alamat = $this->input('alamat');
 
-            if (!empty($alamat)) {
+            if (! empty($alamat)) {
                 $alamat = strip_tags($alamat);
                 $alamat = $this->removeDangerousChars($alamat);
                 $alamat = trim($alamat);
@@ -272,12 +273,12 @@ class UpdateProfileRequest extends FormRequest
 
         // Standard format: 11 digits → 123.1.4567.890
         if ($length === 11) {
-            return substr($digits, 0, 3) . '.' . substr($digits, 3, 1) . '.' . substr($digits, 4, 4) . '.' . substr($digits, 8, 3);
+            return substr($digits, 0, 3).'.'.substr($digits, 3, 1).'.'.substr($digits, 4, 4).'.'.substr($digits, 8, 3);
         }
 
         // Alternative format: 18 digits → 123456.789.123456.789
         if ($length === 18) {
-            return substr($digits, 0, 6) . '.' . substr($digits, 6, 3) . '.' . substr($digits, 9, 6) . '.' . substr($digits, 15, 3);
+            return substr($digits, 0, 6).'.'.substr($digits, 6, 3).'.'.substr($digits, 9, 6).'.'.substr($digits, 15, 3);
         }
 
         // Fallback: group by 3 digits
@@ -293,7 +294,7 @@ class UpdateProfileRequest extends FormRequest
         $digits = str_replace('.', '', $npp);
 
         // Must be all digits
-        if (!ctype_digit($digits)) {
+        if (! ctype_digit($digits)) {
             return false;
         }
 
@@ -338,7 +339,7 @@ class UpdateProfileRequest extends FormRequest
             'nama_lengkap.required' => 'Nama lengkap wajib diisi',
             'nama_lengkap.min' => 'Nama lengkap minimal 3 karakter',
             'nama_lengkap.max' => 'Nama lengkap maksimal 100 karakter',
-            'nama_lengkap.regex' => 'Nama lengkap hanya boleh berisi huruf, spasi, titik, dan tanda hubung',
+            'nama_lengkap.regex' => 'Nama lengkap hanya boleh berisi huruf, spasi, titik, koma, dan tanda hubung',
 
             // Email
             'email.required' => 'Email wajib diisi',

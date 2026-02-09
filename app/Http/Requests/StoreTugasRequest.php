@@ -3,14 +3,15 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Log;
 
 /**
  * ✅ IMPROVED: Enhanced sanitization & validation for Surat Tugas
  *
  * @version 2.0.0
+ *
  * @date 2025-12-06
  */
 class StoreTugasRequest extends FormRequest
@@ -66,14 +67,14 @@ class StoreTugasRequest extends FormRequest
             'status_penerima' => ['sometimes', 'nullable', 'string', 'in:dosen,tendik,mahasiswa'],
             'tahun' => [$isDraft ? 'nullable' : 'required', 'integer', 'digits:4', 'min:2000', 'max:2100'],
             'semester' => [$isDraft ? 'nullable' : 'required', 'string', 'in:Ganjil,Genap'],
-            'bulan' => [$isDraft ? 'nullable' : 'required', 'string', 'regex:/^(I{1,3}|IV|V|VI{0,3}|IX|X|XI{0,2})$/i'],
+            'bulan' => [$isDraft ? 'nullable' : 'required', 'string', 'regex:/^(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)$/i'],
 
             // === Nomor Surat ===
             'nomor' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->whereNull('deleted_at')],
             'no_surat_manual' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->whereNull('deleted_at')],
             'tahun_nomor' => ['sometimes', 'integer', 'digits:4'],
             'nomor_urut' => ['nullable', 'string', 'max:10', 'regex:/^[0-9]+$/'],
-            
+
             // === Mode Turunan (Suffix Letter) ===
             'is_turunan' => ['nullable', 'boolean'],
             'parent_tugas_id' => ['nullable', 'integer', 'exists:tugas_header,id'],
@@ -165,7 +166,7 @@ class StoreTugasRequest extends FormRequest
         // ====================================================================
         // STEP 4: Sanitize RICH TEXT fields (allow limited HTML)
         // ====================================================================
-        if ($this->has('detail_tugas') && !empty($this->input('detail_tugas'))) {
+        if ($this->has('detail_tugas') && ! empty($this->input('detail_tugas'))) {
             $value = $this->input('detail_tugas');
 
             // ✅ Use helper for HTML sanitization
@@ -184,7 +185,7 @@ class StoreTugasRequest extends FormRequest
             $sanitized = [];
 
             foreach ($this->input('penerima_eksternal') as $penerima) {
-                if (!is_array($penerima)) {
+                if (! is_array($penerima)) {
                     continue;
                 }
 
@@ -197,7 +198,7 @@ class StoreTugasRequest extends FormRequest
 
             $this->merge([
                 'penerima_eksternal' => array_filter($sanitized, function ($p) {
-                    return !empty($p['nama']) && !empty($p['jabatan']);
+                    return ! empty($p['nama']) && ! empty($p['jabatan']);
                 }),
             ]);
         }
@@ -208,7 +209,7 @@ class StoreTugasRequest extends FormRequest
         if ($this->filled('status_penerima')) {
             $status = mb_strtolower(trim((string) $this->input('status_penerima')));
 
-            if (!in_array($status, ['dosen', 'tendik', 'mahasiswa'], true)) {
+            if (! in_array($status, ['dosen', 'tendik', 'mahasiswa'], true)) {
                 $status = null;
             }
 
@@ -220,16 +221,16 @@ class StoreTugasRequest extends FormRequest
         // ====================================================================
         if ($this->has('nomor_urut')) {
             $value = $this->input('nomor_urut');
-            
+
             // Convert empty string to null
             if ($value === '' || $value === null) {
                 $this->merge(['nomor_urut' => null]);
             } else {
                 // Strip non-numeric prefix (e.g., 'ST-001' -> '001')
                 $cleaned = preg_replace('/^[^0-9]+/', '', (string) $value);
-                
+
                 // If result is still not purely numeric, set to  null
-                if ($cleaned === '' || !preg_match('/^[0-9]+$/', $cleaned)) {
+                if ($cleaned === '' || ! preg_match('/^[0-9]+$/', $cleaned)) {
                     $this->merge(['nomor_urut' => null]);
                 } else {
                     $this->merge(['nomor_urut' => $cleaned]);
@@ -299,7 +300,7 @@ class StoreTugasRequest extends FormRequest
         // STEP 10: Validate PENERIMA INTERNAL array
         // ====================================================================
         if (is_array($this->input('penerima_internal'))) {
-            $validated = collect($this->input('penerima_internal'))->map(fn($v) => validate_integer_id($v))->filter(fn($v) => $v !== null)->unique()->values()->all();
+            $validated = collect($this->input('penerima_internal'))->map(fn ($v) => validate_integer_id($v))->filter(fn ($v) => $v !== null)->unique()->values()->all();
 
             $this->merge(['penerima_internal' => $validated]);
         }
@@ -316,7 +317,7 @@ class StoreTugasRequest extends FormRequest
         // STEP 12: Validate at least one penerima exists
         // ====================================================================
         $this->validatePenerimaExists();
-        
+
         // ====================================================================
         // STEP 13: Set default values untuk DRAFT
         // ====================================================================
@@ -324,33 +325,33 @@ class StoreTugasRequest extends FormRequest
 
         if ($isDraft) {
             // Auto-fill pembuat_id jika kosong
-            if (!$this->filled('pembuat_id')) {
+            if (! $this->filled('pembuat_id')) {
                 $this->merge(['pembuat_id' => auth()->id()]);
             }
 
             // Auto-fill tanggal_surat jika kosong
-            if (!$this->filled('tanggal_surat')) {
+            if (! $this->filled('tanggal_surat')) {
                 $this->merge(['tanggal_surat' => now()->format('Y-m-d')]);
             }
 
             // Auto-fill tahun/semester/bulan jika kosong
-            if (!$this->filled('tahun')) {
+            if (! $this->filled('tahun')) {
                 $this->merge(['tahun' => (int) date('Y')]);
             }
 
-            if (!$this->filled('semester')) {
+            if (! $this->filled('semester')) {
                 $bulanInt = (int) date('n');
                 $semester = $bulanInt >= 8 || $bulanInt <= 1 ? 'Ganjil' : 'Genap';
                 $this->merge(['semester' => $semester]);
             }
 
-            if (!$this->filled('bulan')) {
+            if (! $this->filled('bulan')) {
                 $bulanInt = (int) date('n');
                 $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'];
                 $this->merge(['bulan' => $romanMap[$bulanInt] ?? 'I']);
             }
         }
-        
+
         // ====================================================================
         // STEP 14: Normalize MODE TURUNAN checkbox
         // ====================================================================
@@ -383,7 +384,7 @@ class StoreTugasRequest extends FormRequest
         if ($value === null || $value === '') {
             return '';
         }
-        
+
         $value = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $value);
         $value = preg_replace('/<iframe\b[^>]*>[\s\S]*?<\/iframe>/i', '', $value);
         $value = preg_replace('/<[^>]+\s+on\w+\s*=\s*["\'][^"\']*["\']/i', '', $value);
@@ -426,7 +427,7 @@ class StoreTugasRequest extends FormRequest
         }
 
         // Clean and deduplicate
-        $normalized = collect($items)->map(fn($s) => trim((string) $s))->filter()->unique(fn($s) => mb_strtolower($s))->values()->all();
+        $normalized = collect($items)->map(fn ($s) => trim((string) $s))->filter()->unique(fn ($s) => mb_strtolower($s))->values()->all();
 
         return implode("\n", $normalized);
     }
@@ -439,10 +440,10 @@ class StoreTugasRequest extends FormRequest
         $hasInternal = is_array($this->input('penerima_internal')) && count($this->input('penerima_internal')) > 0;
         $hasEksternal = is_array($this->input('penerima_eksternal')) && count($this->input('penerima_eksternal')) > 0;
 
-        if (!$hasInternal && !$hasEksternal) {
+        if (! $hasInternal && ! $hasEksternal) {
             Log::warning('StoreKeputusanRequest: No penerima provided', [
                 'user_id' => auth()->id(),
-                'ip'      => request()->ip(),
+                'ip' => request()->ip(),
                 'tentang' => substr($this->input('tentang', ''), 0, 50),
             ]);
         }

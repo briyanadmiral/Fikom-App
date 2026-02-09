@@ -2,11 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * ✅ REFACTORED: Security enhanced dengan global helpers
@@ -20,14 +19,14 @@ class SubTugas extends Model
 
     protected $fillable = ['jenis_tugas_id', 'nama', 'deskripsi', 'is_active'];
 
-    protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at']; // ✅ ADDED deleted_at
+    protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at'];
 
     protected $casts = [
         'jenis_tugas_id' => 'integer',
         'is_active' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime', // ✅ ADDED
+        'deleted_at' => 'datetime',
     ];
 
     // ==================== RELASI =========================
@@ -35,11 +34,6 @@ class SubTugas extends Model
     public function jenisTugas(): BelongsTo
     {
         return $this->belongsTo(JenisTugas::class, 'jenis_tugas_id');
-    }
-
-    public function detail(): HasMany
-    {
-        return $this->hasMany(TugasDetail::class, 'sub_tugas_id');
     }
 
     // ==================== SCOPES =========================
@@ -86,6 +80,7 @@ class SubTugas extends Model
     public function scopeOrderByNama($query, string $direction = 'asc')
     {
         $direction = validate_sort_direction($direction);
+
         return $query->orderBy('nama', $direction);
     }
 
@@ -96,7 +91,7 @@ class SubTugas extends Model
      */
     protected function nama(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 255));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
     }
 
     /**
@@ -104,17 +99,21 @@ class SubTugas extends Model
      */
     protected function deskripsi(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 1000));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 1000));
     }
+
+    // ==================== BUSINESS LOGIC =========================
 
     // ==================== BUSINESS LOGIC =========================
 
     /**
      * ✅ GOOD: Check if can be deleted
+     * Only check for active usage in other tables if necessary, or just allow hard delete if no constraints.
+     * Assuming no relationship to check for now since detail is gone.
      */
     public function canBeDeleted(): bool
     {
-        return $this->detail()->count() === 0;
+        return true;
     }
 
     /**
@@ -123,7 +122,7 @@ class SubTugas extends Model
     public function toggleActive(): bool
     {
         return $this->update([
-            'is_active' => !$this->is_active,
+            'is_active' => ! $this->is_active,
         ]);
     }
 
@@ -133,23 +132,8 @@ class SubTugas extends Model
     public function getDisplayNameAttribute(): string
     {
         $jenisNama = $this->jenisTugas?->nama ?? 'Unknown';
+
         return "{$jenisNama} - {$this->nama}";
-    }
-
-    /**
-     * ✅ ADDED: Check if has details
-     */
-    public function hasDetails(): bool
-    {
-        return $this->detail()->count() > 0;
-    }
-
-    /**
-     * ✅ ADDED: Get active details count
-     */
-    public function getActiveDetailsCount(): int
-    {
-        return $this->detail()->where('is_active', true)->count();
     }
 
     // ==================== STATIC METHODS =========================
@@ -216,11 +200,9 @@ class SubTugas extends Model
             }
         });
 
-        // ✅ ADDED: Prevent deletion if has details
+        // ✅ ADDED: Prevent deletion check removed since detail is gone
         static::deleting(function ($model) {
-            if ($model->detail()->count() > 0) {
-                throw new \RuntimeException('Sub tugas tidak dapat dihapus karena masih memiliki detail tugas');
-            }
+            // No constraint check needed for detail
         });
     }
 }

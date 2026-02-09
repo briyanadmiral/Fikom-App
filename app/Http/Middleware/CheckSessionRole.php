@@ -2,17 +2,17 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
+use Symfony\Component\HttpFoundation\Response;
 
 class CheckSessionRole
 {
     /**
      * Handle an incoming request.
-     * 
+     *
      * Middleware ini menggantikan 'auth' default Laravel.
      * Cek session yang di-set oleh Dashboard Menu eksternal.
      *
@@ -31,7 +31,7 @@ class CheckSessionRole
         $userRole = session('user_role');
 
         // Jika tidak ada session user_id, redirect ke login
-        if (!$userId) {
+        if (! $userId) {
             return redirect()->route('login')
                 ->with('error', 'Silakan login terlebih dahulu.');
         }
@@ -40,9 +40,10 @@ class CheckSessionRole
         $user = User::find($userId);
 
         // Validasi: user harus ada dan aktif
-        if (!$user || !$user->isActive()) {
+        if (! $user || ! $user->isActive()) {
             // Hapus session yang invalid
             session()->flush();
+
             return redirect()->route('login')
                 ->with('error', 'User tidak ditemukan atau tidak aktif. Silakan login ulang.');
         }

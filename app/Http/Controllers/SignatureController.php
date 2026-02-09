@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\UserSignature;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use App\Models\UserSignature;
 
 class SignatureController extends Controller
 {
@@ -52,8 +52,8 @@ class SignatureController extends Controller
             }
 
             // Save to private storage
-            $filename = 'ttd_' . $user->id . '_' . time() . '.' . $extension;
-            $path = 'private/ttd/' . $filename;
+            $filename = 'ttd_'.$user->id.'_'.time().'.'.$extension;
+            $path = 'private/ttd/'.$filename;
 
             Storage::disk('local')->put($path, $data);
         }
@@ -61,7 +61,7 @@ class SignatureController extends Controller
         // Handle file upload
         if ($request->hasFile('signature_file')) {
             $file = $request->file('signature_file');
-            $filename = 'ttd_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filename = 'ttd_'.$user->id.'_'.time().'.'.$file->getClientOriginalExtension();
             $path = $file->storeAs('private/ttd', $filename, 'local');
         }
 
@@ -110,7 +110,7 @@ class SignatureController extends Controller
         $user = Auth::user();
         $signature = UserSignature::where('pengguna_id', $user->id)->first();
 
-        if (!$signature || !$signature->ttd_path || !Storage::disk('local')->exists($signature->ttd_path)) {
+        if (! $signature || ! $signature->ttd_path || ! Storage::disk('local')->exists($signature->ttd_path)) {
             abort(404);
         }
 

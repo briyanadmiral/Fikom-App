@@ -16,7 +16,7 @@ class CreateKeputusanHeaderTable extends Migration
             $table->json('menimbang'); // array a, b, c...
             $table->json('mengingat'); // array 1, 2, 3...
             $table->longText('memutuskan'); // bisa 1 paragraf atau json jika repeater
-            $table->enum('status_surat',['draft','pending','disetujui']);
+            $table->enum('status_surat', ['draft', 'pending', 'disetujui']);
             $table->unsignedBigInteger('dibuat_oleh');
             $table->unsignedBigInteger('penandatangan')->nullable();
             $table->timestamps();

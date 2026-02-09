@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 class LoginController extends Controller
 {
@@ -33,22 +33,22 @@ class LoginController extends Controller
     {
         // ✅ Validasi input dengan sanitasi email
         $credentials = $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required',
         ]);
 
         // ✅ Sanitasi email
         $email = sanitize_email($credentials['email']);
 
-        if (!$email) {
+        if (! $email) {
             return back()
                 ->withErrors(['email' => 'Format email tidak valid.'])
                 ->withInput($request->only('email'));
         }
 
         // ✅ Rate limiting untuk mencegah brute force
-        $key          = 'login_attempts_' . $request->ip();
-        $maxAttempts  = 5;
+        $key = 'login_attempts_'.$request->ip();
+        $maxAttempts = 5;
         $decayMinutes = 15;
 
         if (cache()->has($key) && cache()->get($key) >= $maxAttempts) {
@@ -60,7 +60,7 @@ class LoginController extends Controller
         // Cari user berdasarkan email
         $user = User::where('email', $email)->first();
 
-        if (!$user) {
+        if (! $user) {
             // ✅ Increment failed attempts
             $attempts = cache()->get($key, 0) + 1;
             cache()->put($key, $attempts, now()->addMinutes($decayMinutes));
@@ -73,7 +73,7 @@ class LoginController extends Controller
         // ✅ Validasi password (pakai kolom yang benar / getAuthPassword)
         //    Model User kamu pakai kolom 'sandi_hash' + override getAuthPasswordName()
         //    Jadi aman gunakan getAuthPassword() atau akses langsung $user->sandi_hash.
-        if (!Hash::check($credentials['password'], $user->getAuthPassword())) { // ✅ FIX: bukan $user->password
+        if (! Hash::check($credentials['password'], $user->getAuthPassword())) { // ✅ FIX: bukan $user->password
             $attempts = cache()->get($key, 0) + 1;
             cache()->put($key, $attempts, now()->addMinutes($decayMinutes));
 
@@ -83,7 +83,7 @@ class LoginController extends Controller
         }
 
         // ✅ Validasi status user (konsisten dengan model ->isActive())
-        if (!$user->isActive()) { // ✅ FIX: gunakan helper dari model (status === 'active')
+        if (! $user->isActive()) { // ✅ FIX: gunakan helper dari model (status === 'active')
             return back()
                 ->withErrors(['email' => 'Akun Anda tidak aktif. Hubungi administrator.'])
                 ->withInput($request->only('email'));
@@ -100,12 +100,12 @@ class LoginController extends Controller
 
         // ✅ Gunakan data yang aman untuk session
         session([
-            'peran_id'      => validate_integer_id($user->peran_id),
-            'peran_nama'    => sanitize_output($user->peran->nama ?? 'Unknown'),
-            'is_admin'      => ($user->peran->nama ?? '') === 'admin_tu',
-            'is_dosen'      => ($user->peran->nama ?? '') === 'Dosen',
+            'peran_id' => validate_integer_id($user->peran_id),
+            'peran_nama' => sanitize_output($user->peran->nama ?? 'Unknown'),
+            'is_admin' => ($user->peran->nama ?? '') === 'admin_tu',
+            'is_dosen' => ($user->peran->nama ?? '') === 'Dosen',
             'last_activity' => now(),
-            'user_name'     => sanitize_output($user->nama_lengkap),
+            'user_name' => sanitize_output($user->nama_lengkap),
         ]);
 
         return redirect()->intended($this->redirectTo);

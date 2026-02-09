@@ -10,15 +10,14 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up()
-{
-    Schema::table('tugas_header', function (Blueprint $table) {
-        $table->foreignId('klasifikasi_surat_id')
-              ->nullable()
-              ->constrained('klasifikasi_surat')
-              ->after('nomor');
-    });
-}
-
+    {
+        Schema::table('tugas_header', function (Blueprint $table) {
+            $table->foreignId('klasifikasi_surat_id')
+                ->nullable()
+                ->constrained('klasifikasi_surat')
+                ->after('nomor');
+        });
+    }
 
     /**
      * Reverse the migrations.

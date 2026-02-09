@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\TugasHeader;
-use App\Models\User;
 use App\Models\KlasifikasiSurat;
+use App\Models\TugasHeader;
 use App\Models\TugasPenerima;
-use Illuminate\Support\Carbon;
+use App\Models\User;
 use Faker\Factory as Faker;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 
 class DummySuratTugasSeeder extends Seeder
 {
@@ -20,6 +20,7 @@ class DummySuratTugasSeeder extends Seeder
         $users = User::all();
         if ($users->count() < 2) {
             $this->command->error('Butuh minimal 2 user di database.');
+
             return;
         }
 
@@ -35,10 +36,10 @@ class DummySuratTugasSeeder extends Seeder
         for ($i = 0; $i < 5; $i++) {
             $status = $faker->randomElement($statuses);
             $tanggal = Carbon::now()->subDays(rand(1, 30));
-            
-            $nomor = ($status !== 'draft') 
-                ? 'ST-DUMMY-' . str_pad($i+1, 3, '0', STR_PAD_LEFT) . '/FIKOM/' . $tanggal->year
-                : 'DRAFT-' . uniqid();
+
+            $nomor = ($status !== 'draft')
+                ? 'ST-DUMMY-'.str_pad($i + 1, 3, '0', STR_PAD_LEFT).'/FIKOM/'.$tanggal->year
+                : 'DRAFT-'.uniqid();
 
             try {
                 $tugas = TugasHeader::create([
@@ -67,7 +68,7 @@ class DummySuratTugasSeeder extends Seeder
                 // Tambah penerima
                 $receiverCount = rand(1, 2);
                 $receivers = $users->random(min($receiverCount, $users->count()));
-                
+
                 foreach ($receivers as $receiver) {
                     TugasPenerima::create([
                         'tugas_id' => $tugas->id,
@@ -76,14 +77,14 @@ class DummySuratTugasSeeder extends Seeder
                         'dibaca' => $faker->boolean(30),
                     ]);
                 }
-                
+
                 $this->command->info("✓ Created: {$tugas->nomor} ({$status})");
-                
+
             } catch (\Exception $e) {
-                $this->command->error("✗ Failed #{$i}: " . $e->getMessage());
+                $this->command->error("✗ Failed #{$i}: ".$e->getMessage());
             }
         }
-        
+
         $this->command->info("\n✅ Seeding selesai!");
     }
 }

@@ -6,8 +6,8 @@ use App\Jobs\SendSuratTugasEmail;
 use App\Models\TugasHeader;
 use App\Services\AuditService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB; // ✅ ADDED
 
+// ✅ ADDED
 
 /**
  * ✅ REFACTORED: Security enhanced dengan sanitized logging
@@ -22,7 +22,7 @@ class TugasHeaderObserver
     public function creating(TugasHeader $tugas): void
     {
         // Auto-set pembuat dengan validasi
-        if (!$tugas->dibuat_oleh && auth()->check()) {
+        if (! $tugas->dibuat_oleh && auth()->check()) {
             $userId = validate_integer_id(auth()->id());
             if ($userId !== null) {
                 $tugas->dibuat_oleh = $userId;
@@ -30,17 +30,17 @@ class TugasHeaderObserver
         }
 
         // Auto-set tahun jika belum diisi
-        if (!$tugas->tahun) {
+        if (! $tugas->tahun) {
             $tugas->tahun = now()->year;
         }
 
         // Auto-set bulan jika belum diisi
-        if (!$tugas->bulan && $tugas->tanggal_surat) {
+        if (! $tugas->bulan && $tugas->tanggal_surat) {
             $tugas->bulan = now()->format('m');
         }
 
         // ✅ ADDED: Auto-set status jika belum diisi
-        if (!$tugas->status_surat) {
+        if (! $tugas->status_surat) {
             $tugas->status_surat = 'draft';
         }
 
@@ -98,7 +98,7 @@ class TugasHeaderObserver
 
         // 2. Status → DISETUJUI: Auto-set signed_at
         if ($tugas->wasChanged('status_surat') && $tugas->status_surat === 'disetujui') {
-            if (!$tugas->signed_at) {
+            if (! $tugas->signed_at) {
                 // ✅ IMPROVED: Use try-catch for saveQuietly
                 try {
                     $tugas->signed_at = now();

@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // ✅ ADDED
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -27,21 +27,21 @@ class KlasifikasiSurat extends Model
     ];
 
     // ==================== ACCESSORS & MUTATORS =========================
-/**
- * ✅ Accessor untuk backward compatibility
- * Jika ada code lama yang akses $k->nama
- */
-public function getNamaAttribute(): ?string
-{
-    return $this->deskripsi;
-}
+    /**
+     * ✅ Accessor untuk backward compatibility
+     * Jika ada code lama yang akses $k->nama
+     */
+    public function getNamaAttribute(): ?string
+    {
+        return $this->deskripsi;
+    }
 
     /**
      * ✅ ADDED: Sanitize kode using global helper
      */
     protected function kode(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_kode($value, 50));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_kode($value, 50));
     }
 
     /**
@@ -49,7 +49,17 @@ public function getNamaAttribute(): ?string
      */
     protected function deskripsi(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 500));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 500));
+    }
+
+    // ==================== RELATIONSHIPS =========================
+
+    /**
+     * Relationship: Klasifikasi has many TugasHeaders
+     */
+    public function tugasHeaders(): HasMany
+    {
+        return $this->hasMany(\App\Models\TugasHeader::class, 'klasifikasi_surat_id');
     }
 
     // ==================== STATIC METHODS =========================
@@ -70,7 +80,7 @@ public function getNamaAttribute(): ?string
             throw new \InvalidArgumentException('Prefix tidak valid');
         }
 
-        $pattern = $prefix . '.' . $golongan . '.%';
+        $pattern = $prefix.'.'.$golongan.'.%';
 
         $driver = DB::getDriverName();
         $lastCode = null;
@@ -92,19 +102,19 @@ public function getNamaAttribute(): ?string
                 }
             }
             if ($max > 0) {
-                $lastCode = $prefix . '.' . $golongan . '.' . $max;
+                $lastCode = $prefix.'.'.$golongan.'.'.$max;
             }
         }
 
-        if (!$lastCode) {
-            return $prefix . '.' . $golongan . '.1';
+        if (! $lastCode) {
+            return $prefix.'.'.$golongan.'.1';
         }
 
         $parts = explode('.', $lastCode);
         $subNumber = (int) ($parts[2] ?? 0);
         $subNumber++;
 
-        return $prefix . '.' . $golongan . '.' . $subNumber;
+        return $prefix.'.'.$golongan.'.'.$subNumber;
     }
 
     /**
@@ -132,6 +142,7 @@ public function getNamaAttribute(): ?string
         }
         $out = array_keys($prefixes);
         sort($out, SORT_STRING);
+
         return $out;
     }
 
@@ -147,7 +158,7 @@ public function getNamaAttribute(): ?string
         }
 
         $driver = DB::getDriverName();
-        $pattern = $prefix . '.%';
+        $pattern = $prefix.'.%';
 
         if ($driver === 'mysql') {
             return self::where('kode', 'LIKE', $pattern)->select(DB::raw('CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(kode, ".", 2), ".", -1) AS UNSIGNED) as golongan'))->distinct()->orderBy('golongan')->pluck('golongan')->toArray();
@@ -166,6 +177,7 @@ public function getNamaAttribute(): ?string
         }
         $out = array_keys($gol);
         sort($out, SORT_NUMERIC);
+
         return $out;
     }
 
@@ -182,7 +194,7 @@ public function getNamaAttribute(): ?string
             return $query->whereRaw('1 = 0'); // Return empty result
         }
 
-        return $query->where('kode', 'LIKE', $prefix . '.%');
+        return $query->where('kode', 'LIKE', $prefix.'.%');
     }
 
     /**
@@ -197,7 +209,7 @@ public function getNamaAttribute(): ?string
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where('kode', 'LIKE', $prefix . '.' . $golongan . '.%');
+        return $query->where('kode', 'LIKE', $prefix.'.'.$golongan.'.%');
     }
 
     /**
@@ -232,7 +244,7 @@ public function getNamaAttribute(): ?string
      */
     public function getDisplayNameAttribute(): string
     {
-        return $this->kode . ' - ' . ($this->deskripsi ?? '');
+        return $this->kode.' - '.($this->deskripsi ?? '');
     }
 
     // ==================== PRIVATE HELPERS =========================
@@ -273,7 +285,7 @@ public function getNamaAttribute(): ?string
             }
 
             // Validate kode format (e.g., A.10.1)
-            if (!preg_match('/^[A-Z]\.\d+\.\d+$/', $model->kode)) {
+            if (! preg_match('/^[A-Z]\.\d+\.\d+$/', $model->kode)) {
                 throw new \InvalidArgumentException('Format kode tidak valid (harus: HURUF.ANGKA.ANGKA)');
             }
         });

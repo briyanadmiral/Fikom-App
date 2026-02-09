@@ -45,16 +45,17 @@
             font-size: 1.03rem
         }
 
+        /* === STATISTIK === */
         .stat-wrapper {
-            display: flex;
-            justify-content: flex-start;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 1.2rem;
-            margin-bottom: 2.1rem;
-            flex-wrap: wrap
+            margin: 1.5rem 0 2.1rem;
+            width: 100%;
+            max-width: 1000px;
         }
 
         .stat-card {
-            width: 170px;
             border-radius: .85rem;
             border: none;
             background: #fff
@@ -315,7 +316,13 @@
         </span>
         <div>
             <div class="surat-header-title">
-                {{ $mode === 'approve-list' ? 'Daftar Surat Menunggu Persetujuan Anda' : 'Daftar Surat Tugas' }}
+                @if ($mode === 'approve-list')
+                    Daftar Surat Menunggu Persetujuan Anda
+                @elseif ($mode === 'arsip-list')
+                    Arsip Surat Tugas
+                @else
+                    Daftar Surat Tugas
+                @endif
             </div>
             <div class="surat-header-desc">
                 @if ($mode === 'approve-list')
@@ -334,7 +341,7 @@
     <div class="container-fluid px-2">
         {{-- Statistik --}}
         <div class="d-flex justify-content-center w-100 mb-3">
-            <div class="stat-wrapper py-1" style="width:100%;max-width:650px;">
+            <div class="stat-wrapper py-1 mx-auto">
                 @if($mode === 'arsip-list')
                     {{-- Mode ARSIP: Hanya tampilkan kartu Arsip --}}
                     @if(isset($stats['arsip']))

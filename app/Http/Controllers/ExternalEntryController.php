@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 
 class ExternalEntryController extends Controller
 {
     /**
      * Entry point dari Dashboard Menu eksternal.
-     * 
+     *
      * URL yang akan dipanggil teman Anda:
      * https://your-project.com/entry?user_id=123
      *
-     * @param Request $request
      * @return \Illuminate\Http\RedirectResponse
      */
     public function entry(Request $request)
@@ -23,24 +22,24 @@ class ExternalEntryController extends Controller
         $userId = $request->query('user_id');
 
         // 2️⃣ Validasi parameter (hanya perlu user_id)
-        if (!$userId) {
+        if (! $userId) {
             abort(403, 'Parameter user_id diperlukan.');
         }
 
         // 3️⃣ Validasi user_id harus integer
-        if (!is_numeric($userId)) {
+        if (! is_numeric($userId)) {
             abort(403, 'Parameter user_id tidak valid.');
         }
 
         // 4️⃣ Cari user di database Anda (dengan eager load peran)
         $user = User::with('peran')->find((int) $userId);
 
-        if (!$user) {
+        if (! $user) {
             abort(403, 'User dengan ID tersebut tidak ditemukan.');
         }
 
         // 5️⃣ Validasi user aktif
-        if (!$user->isActive()) {
+        if (! $user->isActive()) {
             abort(403, 'User tidak aktif. Hubungi administrator.');
         }
 
@@ -64,10 +63,9 @@ class ExternalEntryController extends Controller
 
     /**
      * Exit point - kembali ke Dashboard Menu eksternal.
-     * 
+     *
      * Dipanggil saat user klik tombol "Kembali ke Dashboard Menu"
      *
-     * @param Request $request
      * @return \Illuminate\Http\RedirectResponse
      */
     public function exit(Request $request)

@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('master_kop_surat', function (Blueprint $t) {
@@ -27,8 +28,8 @@ return new class extends Migration {
     {
         Schema::table('master_kop_surat', function (Blueprint $t) {
             $t->dropColumn([
-                'mode','judul_atas','subjudul','alamat','telepon','fax','email','website',
-                'logo_kiri_path','logo_kanan_path','tampilkan_logo_kiri','tampilkan_logo_kanan'
+                'mode', 'judul_atas', 'subjudul', 'alamat', 'telepon', 'fax', 'email', 'website',
+                'logo_kiri_path', 'logo_kanan_path', 'tampilkan_logo_kiri', 'tampilkan_logo_kanan',
             ]);
         });
     }

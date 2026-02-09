@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\RecipientImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Services\RecipientImportService;
 
 class RecipientImportController extends Controller
 {

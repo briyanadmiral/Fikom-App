@@ -69,29 +69,30 @@ class TugasHeaderPolicy
                 'tugas_nomor' => sanitize_log_message($tugas->nomor ?? ''),
                 'status' => $tugas->status_surat,
             ]);
+
             return false;
         }
 
         // Admin TU (peran_id 1) - boleh edit draft/pending/ditolak yang dia buat
         if ($user->peran_id === 1) {
-            $canUpdate = $tugas->dibuat_oleh === $user->id 
+            $canUpdate = $tugas->dibuat_oleh === $user->id
                 && in_array($tugas->status_surat, ['draft', 'pending', 'ditolak'], true);
-            
+
             Log::info('Policy update - Admin TU', [
                 'user_id' => $user->id,
                 'tugas_id' => $tugas->id,
                 'status' => $tugas->status_surat,
                 'can_update' => $canUpdate,
             ]);
-            
+
             return $canUpdate;
         }
 
         // Dekan/WD (peran_id 2/3) - boleh edit saat pending dan dia penandatangannya
         if (in_array($user->peran_id, [2, 3], true)) {
-            $canUpdate = $tugas->status_surat === 'pending' 
-                && (int)$tugas->penandatangan === (int)$user->id;
-            
+            $canUpdate = $tugas->status_surat === 'pending'
+                && (int) $tugas->penandatangan === (int) $user->id;
+
             Log::info('Policy update - Dekan/WD', [
                 'user_id' => $user->id,
                 'tugas_id' => $tugas->id,
@@ -99,7 +100,7 @@ class TugasHeaderPolicy
                 'penandatangan' => $tugas->penandatangan,
                 'can_update' => $canUpdate,
             ]);
-            
+
             return $canUpdate;
         }
 
@@ -108,7 +109,7 @@ class TugasHeaderPolicy
             'user_peran_id' => $user->peran_id,
             'tugas_id' => $tugas->id,
         ]);
-        
+
         return false;
     }
 
@@ -130,7 +131,7 @@ class TugasHeaderPolicy
 
         $canDelete = $user->isAdmin() && $userId === $dibuatOleh && $status === 'draft';
 
-        if (!$canDelete && $status !== 'draft') {
+        if (! $canDelete && $status !== 'draft') {
             $this->logUnauthorizedAttempt($user, 'delete', $tugas, 'Hanya draft yang bisa dihapus');
         }
 
@@ -155,7 +156,7 @@ class TugasHeaderPolicy
 
         $canApprove = $user->canApproveSurat() && $userId === $nextApprover && $status === 'pending';
 
-        if (!$canApprove) {
+        if (! $canApprove) {
             $reason = $this->getApprovalDenialReason($user, $tugas);
             $this->logUnauthorizedAttempt($user, 'approve', $tugas, $reason);
         }
@@ -244,6 +245,7 @@ class TugasHeaderPolicy
                 'tugas_id' => validate_integer_id($tugas->id),
                 'nomor' => sanitize_log_message($tugas->nomor ?? '(kosong)'),
             ]);
+
             return true;
         }
 
@@ -283,7 +285,7 @@ class TugasHeaderPolicy
      */
     private function getApprovalDenialReason(User $user, TugasHeader $tugas): string
     {
-        if (!$user->canApproveSurat()) {
+        if (! $user->canApproveSurat()) {
             return 'User tidak memiliki role approver';
         }
 

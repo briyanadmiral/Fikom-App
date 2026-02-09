@@ -13,6 +13,7 @@ class JenisTugasController extends Controller
     public function index()
     {
         $list = JenisTugas::with('subTugas')->orderBy('nama')->get();
+
         return view('jenis_surat_tugas.index', compact('list'));
     }
 
@@ -22,7 +23,7 @@ class JenisTugasController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:255|unique:jenistugas,nama',
+            'nama' => 'required|string|max:255|unique:jenis_tugas,nama',
         ]);
 
         JenisTugas::create($validated);
@@ -33,10 +34,12 @@ class JenisTugasController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, JenisTugas $jenis_surat_tugas)
+    public function update(Request $request, $id)
     {
+        $jenis_surat_tugas = JenisTugas::findOrFail($id);
+
         $validated = $request->validate([
-            'nama' => 'required|string|max:255|unique:jenistugas,nama,' . $jenis_surat_tugas->id,
+            'nama' => 'required|string|max:255|unique:jenis_tugas,nama,'.$jenis_surat_tugas->id,
         ]);
 
         $jenis_surat_tugas->update($validated);
@@ -47,8 +50,10 @@ class JenisTugasController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(JenisTugas $jenis_surat_tugas)
+    public function destroy($id)
     {
+        $jenis_surat_tugas = JenisTugas::findOrFail($id);
+
         // Check if has sub tugas
         if ($jenis_surat_tugas->subTugas()->count() > 0) {
             return back()->with('error', 'Jenis Surat Tugas tidak dapat dihapus karena memiliki Sub Tugas.');

@@ -91,8 +91,8 @@ sql: [
 
 // ✅ XSS patterns - Lebih specific
 xss: [
-/<script\b[^>]*>[\s\S]*?<\ /script>/gi,
-        /<iframe\b[^>]*>[\s\S]*?<\ /iframe>/gi,
+/<script\b[^>]*>[\s\S]*?<\/script>/gi,
+        /<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi,
                 /javascript\s*:/gi,
                 /<embed\b[^>]*>/gi,
                     /<object\b[^>]*>/gi,

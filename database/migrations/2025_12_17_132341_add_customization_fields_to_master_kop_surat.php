@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::table('master_kop_surat', function (Blueprint $table) {
             // Font Family
             $table->string('font_family', 50)->default('Arial')->after('text_color');
-            
+
             // Divider Customization
             $table->string('divider_color', 7)->default('#000000')->after('font_family');
             $table->tinyInteger('divider_width')->unsigned()->default(2)->after('divider_color');

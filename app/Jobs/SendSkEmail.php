@@ -16,9 +16,11 @@ class SendSkEmail implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $skId;
+
     public bool $afterCommit = true; // pastikan kirim setelah commit DB
 
     public $tries = 3;
+
     public $backoff = 30;
 
     public function __construct(int $skId)
@@ -29,7 +31,7 @@ class SendSkEmail implements ShouldQueue
     public function handle(): void
     {
         $sk = KeputusanHeader::with(['pembuat'])->find($this->skId);
-        if (!$sk || !$sk->pembuat || empty($sk->pembuat->email)) {
+        if (! $sk || ! $sk->pembuat || empty($sk->pembuat->email)) {
             return; // tidak ada email yang valid
         }
 

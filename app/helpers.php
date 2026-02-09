@@ -13,16 +13,17 @@ use Illuminate\Support\Facades\Auth;
  * Format datetime untuk input HTML5 datetime-local
  * Dengan validasi dan sanitasi input
  */
-if (!function_exists('formatDatetimeLocal')) {
+if (! function_exists('formatDatetimeLocal')) {
     function formatDatetimeLocal($value): string
     {
-        if (!$value) {
+        if (! $value) {
             return '';
         }
 
         try {
             // Validasi bahwa value adalah datetime yang valid
             $date = Carbon::parse($value);
+
             return $date->format('Y-m-d\TH:i');
         } catch (\Exception $e) {
             // Log error untuk debugging tanpa expose ke user
@@ -30,6 +31,7 @@ if (!function_exists('formatDatetimeLocal')) {
                 'value' => $value,
                 'error' => $e->getMessage(),
             ]);
+
             return '';
         }
     }
@@ -40,15 +42,10 @@ if (!function_exists('formatDatetimeLocal')) {
  * SECTION 2: INPUT SANITIZATION HELPERS (Core Security Functions)
  * ====================================================================
  */
-
-if (!function_exists('sanitize_input')) {
+if (! function_exists('sanitize_input')) {
     /**
      * Sanitasi input untuk mencegah XSS
      * SECURITY: Strip tags dan limit length
-     *
-     * @param string|null $value
-     * @param int $maxLength
-     * @return string|null
      */
     function sanitize_input(?string $value, int $maxLength = 255): ?string
     {
@@ -69,13 +66,10 @@ if (!function_exists('sanitize_input')) {
     }
 }
 
-if (!function_exists('sanitize_output')) {
+if (! function_exists('sanitize_output')) {
     /**
      * Sanitasi output untuk display
      * SECURITY: Escape HTML entities
-     *
-     * @param string|null $value
-     * @return string
      */
     function sanitize_output(?string $value): string
     {
@@ -87,13 +81,10 @@ if (!function_exists('sanitize_output')) {
     }
 }
 
-if (!function_exists('sanitize_search_keyword')) {
+if (! function_exists('sanitize_search_keyword')) {
     /**
      * Sanitasi search keyword untuk LIKE query
      * SECURITY: Escape wildcard characters
-     *
-     * @param string $keyword
-     * @return string
      */
     function sanitize_search_keyword(string $keyword): string
     {
@@ -107,14 +98,10 @@ if (!function_exists('sanitize_search_keyword')) {
     }
 }
 
-if (!function_exists('sanitize_html_limited')) {
+if (! function_exists('sanitize_html_limited')) {
     /**
      * Sanitasi HTML dengan whitelist tags
      * Untuk field yang boleh mengandung HTML terbatas (seperti CKEditor)
-     *
-     * @param string|null $input
-     * @param string $allowedTags
-     * @return string|null
      */
     function sanitize_html_limited(?string $input, string $allowedTags = '<p><br><strong><em><u><ul><ol><li><h1><h2><h3><h4><h5><h6><a><table><tr><td><th><thead><tbody>'): ?string
     {
@@ -143,14 +130,10 @@ if (!function_exists('sanitize_html_limited')) {
  * SECTION 3: FILE PATH & SECURITY HELPERS
  * ====================================================================
  */
-
-if (!function_exists('validate_file_path')) {
+if (! function_exists('validate_file_path')) {
     /**
      * Validasi file path untuk mencegah path traversal
      * SECURITY: Sanitasi path
-     *
-     * @param string|null $path
-     * @return string|null
      */
     function validate_file_path(?string $path): ?string
     {
@@ -167,6 +150,7 @@ if (!function_exists('validate_file_path')) {
         // Validasi bahwa path tidak absolute
         if (preg_match('/^[a-z]:/i', $cleaned) || ($cleaned[0] ?? '') === '/') {
             \Log::warning('Suspicious file path detected', ['path' => $path]);
+
             return null;
         }
 
@@ -179,14 +163,10 @@ if (!function_exists('validate_file_path')) {
  * SECTION 4: LOG & NOTIFICATION HELPERS
  * ====================================================================
  */
-
-if (!function_exists('sanitize_log_message')) {
+if (! function_exists('sanitize_log_message')) {
     /**
      * Sanitasi string untuk logging
      * SECURITY: Mencegah log injection
-     *
-     * @param string|null $text
-     * @return string
      */
     function sanitize_log_message(?string $text): string
     {
@@ -201,14 +181,10 @@ if (!function_exists('sanitize_log_message')) {
     }
 }
 
-if (!function_exists('sanitize_notification')) {
+if (! function_exists('sanitize_notification')) {
     /**
      * Sanitasi text untuk notifikasi
      * SECURITY: Strip tags dan limit length
-     *
-     * @param string|null $text
-     * @param int $maxLength
-     * @return string
      */
     function sanitize_notification(?string $text, int $maxLength = 500): string
     {
@@ -232,14 +208,12 @@ if (!function_exists('sanitize_notification')) {
  * SECTION 5: VALIDATION HELPERS
  * ====================================================================
  */
-
-if (!function_exists('validate_integer_id')) {
+if (! function_exists('validate_integer_id')) {
     /**
      * Validasi dan sanitasi integer ID
      * SECURITY: Mencegah type juggling
      *
-     * @param mixed $value
-     * @return int|null
+     * @param  mixed  $value
      */
     function validate_integer_id($value): ?int
     {
@@ -253,13 +227,9 @@ if (!function_exists('validate_integer_id')) {
     }
 }
 
-if (!function_exists('validate_status')) {
+if (! function_exists('validate_status')) {
     /**
      * Validasi status dengan whitelist
-     *
-     * @param string|null $status
-     * @param array $validStatuses
-     * @return string|null
      */
     function validate_status(?string $status, array $validStatuses = ['draft', 'pending', 'disetujui', 'ditolak']): ?string
     {
@@ -271,17 +241,15 @@ if (!function_exists('validate_status')) {
     }
 }
 
-if (!function_exists('validate_sort_direction')) {
+if (! function_exists('validate_sort_direction')) {
     /**
      * Validasi sort direction untuk query
      * SECURITY: Whitelist untuk mencegah SQL injection
-     *
-     * @param string|null $direction
-     * @return string
      */
     function validate_sort_direction(?string $direction): string
     {
         $direction = strtolower(trim($direction ?? ''));
+
         return in_array($direction, ['asc', 'desc'], true) ? $direction : 'asc';
     }
 }
@@ -291,12 +259,11 @@ if (!function_exists('validate_sort_direction')) {
  * SECTION 6: SPECIFIC DATA TYPE SANITIZATION
  * ====================================================================
  */
-
-if (!function_exists('sanitize_email')) {
+if (! function_exists('sanitize_email')) {
     /**
      * Validasi dan sanitasi email
      *
-     * @param string $email Email address
+     * @param  string  $email  Email address
      * @return string Email yang valid atau empty string
      */
     function sanitize_email(?string $email): string
@@ -317,11 +284,11 @@ if (!function_exists('sanitize_email')) {
     }
 }
 
-if (!function_exists('sanitize_phone')) {
+if (! function_exists('sanitize_phone')) {
     /**
      * Validasi dan sanitasi nomor telepon
      *
-     * @param string $phone Nomor telepon
+     * @param  string  $phone  Nomor telepon
      * @return string Nomor telepon yang sudah dibersihkan
      */
     function sanitize_phone(?string $phone): string
@@ -338,13 +305,11 @@ if (!function_exists('sanitize_phone')) {
     }
 }
 
-if (!function_exists('sanitize_alphanumeric')) {
+if (! function_exists('sanitize_alphanumeric')) {
     /**
      * Sanitasi string menjadi alphanumeric only
      *
-     * @param string|null $value
-     * @param string $allowed Additional allowed characters (e.g., '_-')
-     * @return string|null
+     * @param  string  $allowed  Additional allowed characters (e.g., '_-')
      */
     function sanitize_alphanumeric(?string $value, string $allowed = ''): ?string
     {
@@ -352,21 +317,17 @@ if (!function_exists('sanitize_alphanumeric')) {
             return null;
         }
 
-        $pattern = '/[^a-zA-Z0-9' . preg_quote($allowed, '/') . ']/';
+        $pattern = '/[^a-zA-Z0-9'.preg_quote($allowed, '/').']/';
         $cleaned = preg_replace($pattern, '', $value);
 
         return $cleaned ?: null;
     }
 }
 
-if (!function_exists('sanitize_kode')) {
+if (! function_exists('sanitize_kode')) {
     /**
      * Sanitasi kode (uppercase alphanumeric dengan dash/underscore)
      * Untuk field seperti kode_klasifikasi, kode_tugas, etc.
-     *
-     * @param string|null $value
-     * @param int $maxLength
-     * @return string|null
      */
     function sanitize_kode(?string $value, int $maxLength = 50): ?string
     {
@@ -387,13 +348,12 @@ if (!function_exists('sanitize_kode')) {
  * SECTION 7: HTML OUTPUT HELPERS (Safe Wrappers)
  * ====================================================================
  */
-
-if (!function_exists('safe_html')) {
+if (! function_exists('safe_html')) {
     /**
      * Sanitasi string untuk output HTML
      * Wrapper untuk htmlspecialchars dengan setting aman
      *
-     * @param mixed $value Input value
+     * @param  mixed  $value  Input value
      * @return string Sanitized string
      */
     function safe_html($value): string
@@ -406,12 +366,12 @@ if (!function_exists('safe_html')) {
     }
 }
 
-if (!function_exists('safe_attr')) {
+if (! function_exists('safe_attr')) {
     /**
      * Sanitasi string untuk output dalam atribut HTML
      * Lebih ketat dari safe_html()
      *
-     * @param mixed $value Input value
+     * @param  mixed  $value  Input value
      * @return string Sanitized string untuk atribut
      */
     function safe_attr($value): string
@@ -437,11 +397,11 @@ if (!function_exists('safe_attr')) {
  * Generate HTML badge peran berdasarkan nama peran
  * AMAN: Output di-escape dengan htmlspecialchars
  *
- * @param string      $nama  Nama peran (misal: 'admin_tu', 'dekan')
- * @param string|null $label Label/tulisan (default null = sama seperti nama)
+ * @param  string  $nama  Nama peran (misal: 'admin_tu', 'dekan')
+ * @param  string|null  $label  Label/tulisan (default null = sama seperti nama)
  * @return string HTML badge yang sudah di-escape
  */
-if (!function_exists('badge_peran')) {
+if (! function_exists('badge_peran')) {
     function badge_peran(string $nama, ?string $label = null): string
     {
         // Sanitasi input nama peran - hanya terima alphanumeric dan underscore
@@ -478,10 +438,10 @@ if (!function_exists('badge_peran')) {
  * Membuat badge untuk peran pengguna (Bootstrap style)
  * AMAN: Output di-escape dengan htmlspecialchars
  *
- * @param string $peran Nama peran
+ * @param  string  $peran  Nama peran
  * @return string HTML badge
  */
-if (!function_exists('badge_peran_bootstrap')) {
+if (! function_exists('badge_peran_bootstrap')) {
     function badge_peran_bootstrap(?string $peran): string
     {
         if (empty($peran)) {
@@ -503,7 +463,7 @@ if (!function_exists('badge_peran_bootstrap')) {
 
         // Validasi color untuk memastikan hanya Bootstrap classes yang valid
         $validColors = ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark'];
-        if (!in_array($color, $validColors, true)) {
+        if (! in_array($color, $validColors, true)) {
             $color = 'secondary';
         }
 
@@ -529,10 +489,10 @@ if (!function_exists('badge_peran_bootstrap')) {
  * Contoh: "John Doe" menjadi "JD"
  * AMAN: Output di-escape
  *
- * @param string $name Nama lengkap
+ * @param  string  $name  Nama lengkap
  * @return string Inisial (maksimal 2 huruf)
  */
-if (!function_exists('get_initials')) {
+if (! function_exists('get_initials')) {
     function get_initials(?string $name): string
     {
         if (empty($name)) {
@@ -552,7 +512,7 @@ if (!function_exists('get_initials')) {
         $max = 2; // Ambil maksimal 2 huruf
 
         for ($i = 0; $i < count($words) && $i < $max; $i++) {
-            if (!empty($words[$i])) {
+            if (! empty($words[$i])) {
                 $initials .= strtoupper(substr($words[$i], 0, 1));
             }
         }
@@ -565,10 +525,10 @@ if (!function_exists('get_initials')) {
  * Menghasilkan kode warna hex dari sebuah string (nama)
  * AMAN: Output sudah dalam format hex yang aman
  *
- * @param string $string Input string
+ * @param  string  $string  Input string
  * @return string Warna hex (contoh: #a3f2c1)
  */
-if (!function_exists('generate_color_from_string')) {
+if (! function_exists('generate_color_from_string')) {
     function generate_color_from_string(?string $string): string
     {
         if (empty($string)) {
@@ -583,7 +543,7 @@ if (!function_exists('generate_color_from_string')) {
 
         // Validasi bahwa hasilnya hex valid
         if (preg_match('/^[a-f0-9]{6}$/i', $color)) {
-            return '#' . $color;
+            return '#'.$color;
         }
 
         return '#cccccc'; // Fallback
@@ -600,24 +560,25 @@ if (!function_exists('generate_color_from_string')) {
  * Catat perubahan status surat ke tabel tugas_log
  * AMAN: Menggunakan parameter binding untuk semua query
  *
- * @param \Illuminate\Database\Connection $db      Koneksi DB Laravel
- * @param int                            $tugasId ID dari tugas_header
- * @param string|null                    $old     Status lama
- * @param string|null                    $new     Status baru
+ * @param  \Illuminate\Database\Connection  $db  Koneksi DB Laravel
+ * @param  int  $tugasId  ID dari tugas_header
+ * @param  string|null  $old  Status lama
+ * @param  string|null  $new  Status baru
  * @return void
  */
-if (!function_exists('logStatusChange')) {
+if (! function_exists('logStatusChange')) {
     function logStatusChange($db, int $tugasId, ?string $old, ?string $new): void
     {
         // Validasi tugasId
         if ($tugasId <= 0) {
             \Log::error('logStatusChange: Invalid tugasId', ['tugasId' => $tugasId]);
+
             return;
         }
 
         // Whitelist status yang valid
         $validStatuses = ['draft', 'pending', 'disetujui', 'ditolak', null];
-        if (!in_array($old, $validStatuses, true) || !in_array($new, $validStatuses, true)) {
+        if (! in_array($old, $validStatuses, true) || ! in_array($new, $validStatuses, true)) {
             \Log::warning('logStatusChange: Invalid status', [
                 'old' => $old,
                 'new' => $new,
@@ -627,12 +588,12 @@ if (!function_exists('logStatusChange')) {
         try {
             if ($db instanceof \PDO) {
                 // Menggunakan PDO dengan prepared statement
-                $stmt = $db->prepare("
+                $stmt = $db->prepare('
                     INSERT INTO tugas_log
                         (tugas_id, status_lama, status_baru, user_id, ip_address, user_agent, created_at)
                     VALUES
                         (?, ?, ?, ?, ?, ?, NOW())
-                ");
+                ');
 
                 // Sanitasi IP address dan User Agent
                 $userId = $_SESSION['user_id'] ?? null;
@@ -670,16 +631,14 @@ if (!function_exists('logStatusChange')) {
  * SECTION 11: SECURITY LOGGING HELPERS
  * ====================================================================
  */
-
-if (!function_exists('log_security_event')) {
+if (! function_exists('log_security_event')) {
     /**
      * Log security-related events ke dedicated security channel
      * Digunakan untuk: login failures, unauthorized access, suspicious activity
      *
-     * @param string $event Event type (login_failed, unauthorized_access, etc)
-     * @param array $context Additional context data
-     * @param string $level Log level (info, warning, critical)
-     * @return void
+     * @param  string  $event  Event type (login_failed, unauthorized_access, etc)
+     * @param  array  $context  Additional context data
+     * @param  string  $level  Log level (info, warning, critical)
      */
     function log_security_event(string $event, array $context = [], string $level = 'info'): void
     {
@@ -706,14 +665,13 @@ if (!function_exists('log_security_event')) {
     }
 }
 
-if (!function_exists('log_login_attempt')) {
+if (! function_exists('log_login_attempt')) {
     /**
      * Log login attempt (success atau failure)
      *
-     * @param string $email Email yang digunakan
-     * @param bool $success Berhasil atau gagal
-     * @param string|null $reason Alasan gagal (optional)
-     * @return void
+     * @param  string  $email  Email yang digunakan
+     * @param  bool  $success  Berhasil atau gagal
+     * @param  string|null  $reason  Alasan gagal (optional)
      */
     function log_login_attempt(string $email, bool $success, ?string $reason = null): void
     {
@@ -727,4 +685,3 @@ if (!function_exists('log_login_attempt')) {
         ], $level);
     }
 }
-

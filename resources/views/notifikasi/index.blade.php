@@ -4,195 +4,409 @@
 
 @push('styles')
 <style>
-    /* Header Style from User Management Page */
-    .page-header {
-        background: #f3f6fa;
-        padding: 1.3rem 2.2rem 1.3rem 1.8rem;
-        border-radius: 1.1rem;
-        margin-bottom: 2.2rem;
-        border: 1px solid #e0e6ed;
-        display: flex; align-items: center; gap: 1.3rem;
+    /* Modern Card & Layout */
+    .notif-container {
+        max-width: 900px;
+        margin: 0 auto;
     }
-    .page-header .icon {
-        background: linear-gradient(135deg,#1498ff 0,#1fc8ff 100%);
-        width: 54px; height: 54px;
-        display: flex; align-items: center; justify-content: center;
-        border-radius: 50%;
-        box-shadow: 0 1px 10px #1498ff30;
-        font-size: 2rem;
+    
+    .card-modern {
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        background: #fff;
+        overflow: hidden;
     }
-    .page-header-title {
-        font-weight: bold;
-        color: #0056b3;
-        font-size: 1.85rem;
-        margin-bottom: 0.13rem;
-        letter-spacing: -1px;
+    
+    /* Header Styling */
+    .notif-header {
+        padding: 2rem 2.5rem;
+        background: linear-gradient(to right, #ffffff, #f8f9fa);
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
-    .page-header-desc { color: #636e7b; font-size: 1.03rem; }
-    @media (max-width: 767.98px) {
-        .page-header { flex-direction: column; align-items: flex-start; padding: 1.2rem 1rem; gap: .7rem; }
-        .page-header-title { font-size: 1.18rem; }
-        .page-header-desc { font-size: .99rem; }
+    
+    .header-title h4 {
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 0.25rem;
+        font-size: 1.5rem;
+        letter-spacing: -0.5px;
+    }
+    
+    .header-subtitle {
+        color: #6c757d;
+        font-size: 0.95rem;
+    }
+    
+    /* Action Buttons */
+    .btn-action {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+    }
+    
+    .btn-mark-read {
+        background: #eef2ff;
+        color: #4361ee;
+    }
+    
+    .btn-mark-read:hover {
+        background: #dbe4ff;
+        color: #3046bc;
+        transform: translateY(-1px);
+    }
+    
+    .btn-clear {
+        background: #fff0f0;
+        color: #ef476f;
+    }
+    
+    .btn-clear:hover {
+        background: #ffe0e0;
+        color: #d63056;
+        transform: translateY(-1px);
     }
 
-    /* Notification Specific Styles */
-    .notif-item {
-        transition: background-color 0.2s;
-    }
-    .notif-item:hover {
-        background-color: #f8f9fa;
-    }
-    .notif-item.unread {
-        background-color: #f0f7ff;
-    }
-    .notif-card {
+    /* Tabs Styling */
+    .custom-tabs .nav-link {
         border: none;
-        box-shadow: 0 0 15px rgba(0,0,0,0.05);
-        border-radius: 12px;
+        color: #8898aa;
+        font-weight: 600;
+        padding: 1rem 1.5rem;
+        position: relative;
+        background: transparent;
+        transition: color 0.3s;
     }
-    .nav-tabs .nav-link {
-        border: none;
-        color: #6c757d;
-        padding-bottom: 1rem;
-        font-weight: 500;
+    
+    .custom-tabs .nav-link:hover {
+        color: #5e72e4;
     }
-    .nav-tabs .nav-link.active {
-        color: #007bff;
-        border-bottom: 2px solid #007bff;
+    
+    .custom-tabs .nav-link.active {
+        color: #5e72e4;
         background: transparent;
     }
-    .icon-circle {
-        width: 40px;
-        height: 40px;
+    
+    .custom-tabs .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: #5e72e4;
+        border-radius: 3px 3px 0 0;
+    }
+    
+    .badge-pill-custom {
+        padding: 0.35em 0.6em;
+        font-size: 75%;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 10rem;
+        transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    }
+
+    /* Notification Items */
+    .notif-list {
+        background: #fff;
+    }
+    
+    .notif-item {
+        padding: 1.5rem 2.5rem;
+        border-bottom: 1px solid #f5f5f5;
+        transition: all 0.2s;
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 1.25rem;
+    }
+    
+    .notif-item:last-child {
+        border-bottom: none;
+    }
+    
+    .notif-item:hover {
+        background-color: #fbfbfb;
+    }
+    
+    .notif-item.unread {
+        background-color: #f8faff;
+    }
+    
+    .notif-item.unread::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background-color: #4361ee;
+    }
+    
+    /* Icon Styling */
+    .notif-icon-wrapper {
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 50%;
-        font-size: 1.1rem;
+        font-size: 1.25rem;
+    }
+    
+    .icon-success { background: #e0fbf0; color: #00b894; }
+    .icon-warning { background: #fff8e1; color: #ffa502; }
+    .icon-danger  { background: #ffebee; color: #ff5252; }
+    .icon-info    { background: #e3f2fd; color: #1e90ff; }
+    .icon-default { background: #f1f2f6; color: #a4b0be; }
+    
+    /* Content Typography */
+    .notif-content {
+        flex-grow: 1;
+    }
+    
+    .notif-text {
+        color: #2d3436;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-bottom: 0.35rem;
+    }
+    
+    .notif-item.unread .notif-text {
+        font-weight: 600;
+        color: #000;
+    }
+    
+    .notif-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 0.8rem;
+    }
+    
+    .notif-time {
+        color: #b2bec3;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    
+    .notif-type-badge {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #f1f2f6;
+        color: #747d8c;
+        font-weight: 600;
+    }
+    
+    /* Individual Actions */
+    .action-link {
+        color: #4361ee;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.8rem;
+        transition: opacity 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .action-link:hover {
+        opacity: 0.8;
+        text-decoration: none;
+        color: #3046bc;
+    }
+
+    .btn-read-toggle {
+        background: transparent;
+        border: none;
+        color: #b2bec3;
+        padding: 4px;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .btn-read-toggle:hover {
+        color: #4361ee;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+    
+    .empty-icon {
+        font-size: 4rem;
+        color: #dfe6e9;
+        margin-bottom: 1rem;
+    }
+
+    @media (max-width: 576px) {
+        .notif-header { flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.5rem; }
+        .header-actions { width: 100%; display: flex; justify-content: space-between; }
+        .notif-item { padding: 1.25rem; gap: 1rem; }
+        .notif-icon-wrapper { width: 40px; height: 40px; font-size: 1rem; }
     }
 </style>
 @endpush
 
 @section('content')
 <div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-10"> {{-- Widened to match the look better --}}
-            
-            {{-- Page Header --}}
-            <div class="page-header mt-2 mb-4">
-                <span class="icon">
-                    <i class="fas fa-bell text-white"></i>
-                </span>
-                <span>
-                    <div class="page-header-title">Notifikasi</div>
-                    <div class="page-header-desc">
-                        Pantau semua aktivitas dan pembaruan penting dalam sistem.
+    <div class="notif-container">
+        
+        <div class="card card-modern">
+            {{-- Header --}}
+            <div class="notif-header">
+                <div class="header-title">
+                    <h4>Notifikasi</h4>
+                    <div class="header-subtitle">
+                        {{ $stats['unread'] > 0 ? $stats['unread'] . ' notifikasi baru menanti Anda.' : 'Anda sudah membaca semua notifikasi.' }}
                     </div>
-                </span>
-                <span class="ml-auto d-flex align-items-center gap-2">
+                </div>
+                <div class="header-actions">
                     @if ($stats['unread'] > 0)
-                        <form action="{{ route('notifikasi.markAllRead') }}" method="POST" class="mr-2">
+                        <form action="{{ route('notifikasi.markAllRead') }}" method="POST" class="d-inline-block">
                             @csrf
                             @method('PATCH')
-                            <button class="btn btn-primary shadow-sm font-weight-bold">
-                                <i class="fas fa-check-double mr-1"></i> Tandai Dibaca
+                            <button class="btn-action btn-mark-read mr-2" title="Tandai semua sudah dibaca">
+                                <i class="fas fa-check-double"></i> <span class="d-none d-sm-inline">Tandai Dibaca</span>
                             </button>
                         </form>
                     @endif
-                    <form action="{{ route('notifikasi.prune') }}" method="POST" onsubmit="return confirm('Hapus notifikasi lama (>30 hari)?');">
+                    
+                    <form action="{{ route('notifikasi.prune') }}" method="POST" class="d-inline-block" onsubmit="return confirm('Hapus notifikasi lama (>30 hari)?');">
                         @csrf
-                        <button class="btn btn-outline-danger shadow-sm font-weight-bold" data-toggle="tooltip" title="Bersihkan Notifikasi Lama">
-                            <i class="fas fa-trash-alt mr-1"></i> Bersihkan
+                        <button class="btn-action btn-clear" title="Bersihkan notifikasi lama">
+                            <i class="fas fa-trash-alt"></i> <span class="d-none d-sm-inline">Bersihkan</span>
                         </button>
                     </form>
-                </span>
+                </div>
             </div>
 
-            {{-- Card List --}}
-            <div class="card notif-card overflow-hidden">
-                <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
-                    <ul class="nav nav-tabs card-header-tabs">
-                        <li class="nav-item">
-                            <a class="nav-link {{ request('filter') != 'unread' ? 'active' : '' }}" href="{{ route('notifikasi.index') }}">Semua</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request('filter') == 'unread' ? 'active' : '' }}" href="{{ route('notifikasi.index', ['filter' => 'unread']) }}">
-                                Belum Dibaca <span class="badge badge-pill badge-primary ml-1">{{ $stats['unread'] }}</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+            {{-- Tabs --}}
+            <div class="border-bottom px-4">
+                <ul class="nav custom-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request('filter') != 'unread' ? 'active' : '' }}" href="{{ route('notifikasi.index') }}">
+                            Semua
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request('filter') == 'unread' ? 'active' : '' }}" href="{{ route('notifikasi.index', ['filter' => 'unread']) }}">
+                            Belum Dibaca
+                            @if($stats['unread'] > 0)
+                                <span class="badge badge-pill badge-primary badge-pill-custom ml-1">{{ $stats['unread'] }}</span>
+                            @endif
+                        </a>
+                    </li>
+                </ul>
+            </div>
 
-                <div class="list-group list-group-flush">
-                    @forelse($notifs as $n)
-                        @php
-                            $iconClass = 'bg-light text-secondary';
-                            if(Str::contains($n->tipe, ['success', 'approve', 'terbit'])) $iconClass = 'bg-success-light text-success';
-                            elseif(Str::contains($n->tipe, ['warning', 'pending'])) $iconClass = 'bg-warning-light text-warning';
-                            elseif(Str::contains($n->tipe, ['danger', 'reject', 'tolak'])) $iconClass = 'bg-danger-light text-danger';
-                            elseif(Str::contains($n->tipe, ['info', 'tugas'])) $iconClass = 'bg-info-light text-info';
-                        @endphp
+            {{-- Notification List --}}
+            <div class="notif-list">
+                @forelse($notifs as $n)
+                    @php
+                        // Determine type for styling
+                        $type = Str::lower($n->tipe);
+                        $iconClass = 'icon-default';
+                        $icon = 'fa-bell'; // Default FontAwesome icon
+                        
+                        if(Str::contains($type, ['success', 'approve', 'terbit', 'setuju'])) {
+                            $iconClass = 'icon-success';
+                            $icon = 'fa-check-circle';
+                        } elseif(Str::contains($type, ['warning', 'pending', 'revisi'])) {
+                            $iconClass = 'icon-warning';
+                            $icon = 'fa-exclamation-circle';
+                        } elseif(Str::contains($type, ['danger', 'reject', 'tolak', 'hapus'])) {
+                            $iconClass = 'icon-danger';
+                            $icon = 'fa-times-circle';
+                        } elseif(Str::contains($type, ['info', 'tugas', 'baru'])) {
+                            $iconClass = 'icon-info';
+                            $icon = 'fa-info-circle';
+                        }
+                    @endphp
 
-                        <div class="list-group-item notif-item p-4 {{ !$n->dibaca ? 'unread' : '' }}">
-                            <div class="d-flex align-items-start">
-                                <div class="mr-3">
-                                    <div class="icon-circle shadow-sm" style="background-color: #fff;">
-                                        <i class="bi {{ $n->getIcon() }} text-muted"></i>
-                                    </div>
+                    <div class="notif-item {{ !$n->dibaca ? 'unread' : '' }}">
+                        {{-- Icon --}}
+                        <div class="notif-icon-wrapper {{ $iconClass }}">
+                            <i class="fas {{ $icon }}"></i>
+                        </div>
+                        
+                        {{-- Content --}}
+                        <div class="notif-content">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="notif-text">
+                                    {{ $n->pesan }}
                                 </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-start mb-1">
-                                        <h6 class="mb-0 {{ !$n->dibaca ? 'font-weight-bold text-dark' : 'text-secondary' }}">
-                                            {{ $n->pesan }}
-                                        </h6>
-                                        <span class="small text-muted text-nowrap ml-2">
-                                            {{ $n->dibuat_pada->diffForHumans() }}
-                                        </span>
+                                
+                                {{-- Read Status / Toggle --}}
+                                @if(!$n->dibaca)
+                                    <form action="{{ route('notifikasi.read', $n->id) }}" method="POST" class="ml-3">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="btn btn-sm btn-light text-primary font-weight-bold shadow-sm" style="border-radius: 50px; padding: 5px 15px; font-size: 0.8rem;" title="Tandai sudah dibaca">
+                                            <i class="fas fa-check mr-1"></i> Tandai Baca
+                                        </button>
+                                    </form>
+                                @else
+                                    <div class="ml-3 text-muted small" title="Sudah dibaca">
+                                        <i class="fas fa-check-double text-success"></i>
                                     </div>
-                                    
-                                    <div class="d-flex align-items-center mt-2">
-                                        <span class="badge badge-light border text-uppercase mr-3" style="font-size: 10px; letter-spacing: 0.5px;">
-                                            {{ str_replace('_', ' ', $n->tipe) }}
-                                        </span>
-                                        
-                                        @if($n->link)
-                                            <a href="{{ url($n->link) }}" class="small font-weight-bold text-decoration-none mr-3">
-                                                Lihat Detail <i class="fas fa-arrow-right ml-1"></i>
-                                            </a>
-                                        @endif
-
-                                        @if(!$n->dibaca)
-                                            <form action="{{ route('notifikasi.read', $n->id) }}" method="POST" class="ml-auto">
-                                                @csrf
-                                                @method('PATCH')
-                                                <button type="submit" class="btn btn-link btn-sm p-0 text-muted" title="Tandai sudah dibaca">
-                                                    <small>Tandai Dibaca</small>
-                                                </button>
-                                            </form>
-                                        @else
-                                            <small class="text-muted ml-auto"><i class="fas fa-check-double text-success"></i> Dibaca</small>
-                                        @endif
-                                    </div>
-                                </div>
+                                @endif
+                            </div>
+                            
+                            <div class="notif-meta mt-2">
+                                <span class="notif-type-badge">
+                                    {{ str_replace('_', ' ', $n->tipe) }}
+                                </span>
+                                <span class="notif-time">
+                                    <i class="far fa-clock"></i> {{ $n->dibuat_pada->diffForHumans() }}
+                                </span>
+                                
+                                @if($n->link)
+                                    <span class="text-muted mx-1">&bull;</span>
+                                    <a href="{{ url($n->link) }}" class="action-link">
+                                        Lihat Detail <i class="fas fa-arrow-right" style="font-size: 0.7rem;"></i>
+                                    </a>
+                                @endif
                             </div>
                         </div>
-                    @empty
-                        <div class="text-center py-5">
-                            <div class="mb-3 text-muted display-4">
-                                <i class="bi bi-bell-slash"></i>
-                            </div>
-                            <h5 class="text-muted">Tidak ada notifikasi</h5>
-                            <p class="text-muted small">Anda sudah membaca semua notifikasi.</p>
-                        </div>
-                    @endforelse
-                </div>
-
-                @if($notifs->hasPages())
-                    <div class="card-footer bg-white text-center py-3">
-                        {{ $notifs->onEachSide(1)->links('pagination::bootstrap-4') }}
                     </div>
-                @endif
+                @empty
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-bell-slash"></i>
+                        </div>
+                        <h5 class="text-muted font-weight-bold">Tidak ada notifikasi</h5>
+                        <p class="text-muted mb-0">Hore! Anda sudah membaca semua pembaruan saat ini.</p>
+                    </div>
+                @endforelse
             </div>
+
+            {{-- Pagination --}}
+            @if($notifs->hasPages())
+                <div class="card-footer bg-white border-top-0 pt-3 pb-4 text-center">
+                    {{ $notifs->onEachSide(1)->links('pagination::bootstrap-4') }}
+                </div>
+            @endif
         </div>
     </div>
 </div>
@@ -202,7 +416,8 @@
 <script>
     $(function() {
         $('[data-toggle="tooltip"]').tooltip();
-        $('.alert').delay(5000).fadeOut('slow');
+        // Auto-hide alerts
+        $('.alert').delay(4000).fadeOut('slow');
     });
 </script>
 @endpush

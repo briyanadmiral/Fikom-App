@@ -2,33 +2,27 @@
 
 namespace App\Services;
 
+use App\Models\KlasifikasiSurat;
 use App\Models\TugasHeader;
 use App\Models\TugasPenerima;
-use App\Models\JenisTugas;
-use App\Models\SubTugas;
-use App\Models\TugasDetail;
-use App\Models\KlasifikasiSurat;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
-use App\Services\NomorSuratService;
 
 // Import helper functions (global) agar bisa dipanggil langsung
-use function sanitize_input;
+use function logStatusChange;
 use function sanitize_html_limited;
-use function sanitize_search_keyword;
+use function sanitize_input;
 use function sanitize_notification;
-use function sanitize_log_message;
 use function validate_integer_id;
 use function validate_status;
-use function logStatusChange;
 
 class SuratTugasService
 {
     protected SuratTugasNotificationService $notificationService;
+
     protected ?NomorSuratService $nomorService;
 
     public function __construct(SuratTugasNotificationService $notificationService, ?NomorSuratService $nomorService = null)
@@ -44,16 +38,11 @@ class SuratTugasService
     public function createTugas(array $validatedData, string $mode): TugasHeader
     {
         // Whitelist mode
-        if (!in_array($mode, ['submit', 'draft'], true)) {
+        if (! in_array($mode, ['submit', 'draft'], true)) {
             throw new \InvalidArgumentException('Mode tidak valid. Gunakan "submit" atau "draft".');
         }
 
         return DB::transaction(function () use ($validatedData, $mode) {
-            $detailId = $this->resolveDetailTugasId($validatedData['tugas'] ?? null, $validatedData['jenis_tugas'] ?? null);
-
-            if (!$detailId) {
-                throw new \Exception('Mapping detail tugas tidak ditemukan.');
-            }
 
             $status = $mode === 'submit' ? 'pending' : 'draft';
             $nextApprover = null;
@@ -69,17 +58,17 @@ class SuratTugasService
             $suffix = null;
             $parentTugasId = null;
             $nomorUrutInt = null;
-            
+
             // ✅ MODE TURUNAN: Gunakan suffix dari parent jika is_turunan = true
-            if (!empty($validatedData['is_turunan']) && !empty($validatedData['parent_tugas_id'])) {
+            if (! empty($validatedData['is_turunan']) && ! empty($validatedData['parent_tugas_id'])) {
                 $parentId = (int) $validatedData['parent_tugas_id'];
                 $suffixData = $this->nomorService->reserveSuffix($parentId);
-                
+
                 $nomor = $suffixData['nomor'];
                 $suffix = $suffixData['suffix'];
                 $parentTugasId = $suffixData['parent_id'];
                 $nomorUrutInt = $suffixData['nomor_urut_int'];
-                
+
                 Log::info('Mode Turunan: Created suffix nomor', [
                     'parent_id' => $parentId,
                     'suffix' => $suffix,
@@ -97,7 +86,7 @@ class SuratTugasService
 
                 $res = $this->nomorService->reserve($unit, $kodeKlas, $bulanR, $tahun);
                 $nomor = $res['nomor'];
-                
+
                 // Extract nomor_urut_int untuk sorting
                 $parts = explode('/', $nomor);
                 $nomorUrutInt = (int) preg_replace('/\D/', '', $parts[0] ?? '0');
@@ -105,7 +94,7 @@ class SuratTugasService
 
             $segmen = $this->resolveSegmenPenerima($validatedData['status_penerima'] ?? null);
             $tanggalSurat = $validatedData['tanggal_surat'] ?? now()->format('Y-m-d');
-            $tugasHeaderModel = new TugasHeader();
+            $tugasHeaderModel = new TugasHeader;
             $table = $tugasHeaderModel->getTable();
 
             // Build data aman
@@ -123,7 +112,7 @@ class SuratTugasService
                 'jenis_tugas' => sanitize_input($validatedData['jenis_tugas'] ?? '', 100),
                 'tugas' => sanitize_input($validatedData['tugas'] ?? '', 255),
                 'detail_tugas' => sanitize_input($validatedData['detail_tugas'] ?? null, 65000),
-                'detail_tugas_id' => (int) $detailId,
+
                 'status_penerima' => $segmen,
                 'redaksi_pembuka' => sanitize_html_limited($validatedData['redaksi_pembuka'] ?? null),
                 'penutup' => sanitize_html_limited($validatedData['penutup'] ?? null),
@@ -185,7 +174,7 @@ class SuratTugasService
      */
     public function updateTugas(TugasHeader $tugas, array $validatedData, string $mode): TugasHeader
     {
-        if (!in_array($mode, ['submit', 'draft'], true)) {
+        if (! in_array($mode, ['submit', 'draft'], true)) {
             throw new \InvalidArgumentException('Mode tidak valid.');
         }
 
@@ -258,7 +247,7 @@ class SuratTugasService
                 $this->putIfColumnExists($data, $table, 'penandatangan_id', validate_integer_id($validatedData['penandatangan_id']));
             }
 
-            if (!Schema::hasColumn($table, 'penandatangan_id') && Schema::hasColumn($table, 'penandatangan')) {
+            if (! Schema::hasColumn($table, 'penandatangan_id') && Schema::hasColumn($table, 'penandatangan')) {
                 if (array_key_exists('penandatangan', $validatedData)) {
                     $data['penandatangan'] = (int) validate_integer_id($validatedData['penandatangan']) ?? $tugas->penandatangan;
                 }
@@ -331,6 +320,36 @@ class SuratTugasService
     }
 
     /**
+     * Reject surat tugas
+     */
+    public function rejectTugas(TugasHeader $tugas, string $alasan): TugasHeader
+    {
+        return DB::transaction(function () use ($tugas, $alasan) {
+            $oldStatus = $tugas->status_surat;
+            
+            // Clean reason
+            $alasan = sanitize_input($alasan);
+
+            $tugas->update([
+                'status_surat' => 'ditolak',
+                'next_approver' => null,
+                'alasan_penolakan' => $alasan,
+            ]);
+
+            // Notify
+            $this->notificationService->notifyRejected($tugas, $alasan);
+
+            // Audit trail (AuditService handles logReject, but here we use logStatusChange helper for legacy support + AuditService in Observer)
+            // Note: Observer should handle AuditService logging if configured.
+            // But let's check TugasHeaderObserver again. It logs status change but doesn't explicitly call logReject with reason for TugasHeader yet (it did for KeputusanHeader).
+            // Let's add manual logStatusChange for now as per existing pattern.
+            logStatusChange(DB::connection(), (int) $tugas->id, $oldStatus, 'ditolak');
+
+            return $tugas;
+        });
+    }
+
+    /**
      * Sinkron penerima (internal dan eksternal)
      * - internal: array of user_id
      * - eksternal: array of ['nama','jabatan','instansi']
@@ -371,7 +390,7 @@ class SuratTugasService
      */
     private function resolveSegmenPenerima(?string $rawInput): ?string
     {
-        if (!$rawInput) {
+        if (! $rawInput) {
             return null;
         }
 
@@ -383,6 +402,7 @@ class SuratTugasService
                 return $segment;
             }
         }
+
         return null;
     }
 
@@ -410,143 +430,11 @@ class SuratTugasService
     }
 
     /**
-     * Pemetaan cerdas nama sub_tugas → detail_tugas_id (aman)
-     */
-    private function resolveDetailTugasId(?string $tugasNama, ?string $jenisTugas): ?int
-    {
-        $name = trim((string) $tugasNama);
-        if (!$name) {
-            Log::warning('resolveDetailTugasId: tugasNama kosong');
-            return null;
-        }
-
-        $nameLower = mb_strtolower($name);
-        $jenisId = null;
-
-        // Resolve jenis_tugas_id dari parameter
-        if (!empty($jenisTugas)) {
-            $jenisLower = mb_strtolower(trim($jenisTugas));
-            try {
-                $jenisModel = JenisTugas::whereRaw('LOWER(nama) = ?', [$jenisLower])->first();
-                $jenisId = $jenisModel ? (int) $jenisModel->id : null;
-            } catch (\Exception $e) {
-                Log::warning('resolveDetailTugasId: Error resolving jenis_tugas', [
-                    'error' => $e->getMessage(),
-                    'jenis_tugas' => $jenisTugas,
-                ]);
-            }
-        }
-
-        // 1. Exact match di SubTugas
-        $sub = null;
-        try {
-            $query = SubTugas::whereRaw('LOWER(nama) = ?', [$nameLower]);
-            if ($jenisId) {
-                $query->where('jenis_tugas_id', $jenisId);
-            }
-            $sub = $query->first();
-        } catch (\Exception $e) {
-            Log::warning('resolveDetailTugasId: Error finding SubTugas (exact match)', [
-                'error' => sanitize_log_message($e->getMessage()),
-            ]);
-        }
-
-        // 2. ✅ FIXED: Fallback LIKE dengan proper binding
-        if (!$sub) {
-            try {
-                // Sanitasi keyword untuk LIKE
-                $literal = sanitize_search_keyword($nameLower);
-
-                // ✅ FIX: Proper parameter binding
-                $query = SubTugas::whereRaw('LOWER(nama) LIKE ?', ['%' . $literal . '%']);
-
-                if ($jenisId) {
-                    $query->where('jenis_tugas_id', $jenisId);
-                }
-                $sub = $query->first();
-            } catch (\Exception $e) {
-                Log::warning('resolveDetailTugasId: Error finding SubTugas with LIKE', [
-                    'error' => sanitize_log_message($e->getMessage()),
-                ]);
-            }
-        }
-
-        // 3. Resolve TugasDetail dari SubTugas
-        if ($sub && isset($sub->id)) {
-            $detail = null;
-
-            // Keywords prioritas tinggi
-            $keywords = ['jurnal nasional', 'artikel jurnal nasional', 'artikel nasional', 'reviewer jurnal nasional', 'review jurnal nasional', 'review artikel nasional', 'publikasi nasional'];
-
-            try {
-                foreach ($keywords as $kw) {
-                    $kwLower = mb_strtolower($kw);
-                    $kwLiteral = sanitize_search_keyword($kwLower);
-
-                    // ✅ FIX: Proper parameter binding
-                    $detail = TugasDetail::where('sub_tugas_id', $sub->id)
-                        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $kwLiteral . '%'])
-                        ->first();
-
-                    if ($detail) {
-                        break;
-                    }
-                }
-
-                // Fallback: ambil TugasDetail pertama dari SubTugas
-                if (!$detail) {
-                    $detail = TugasDetail::where('sub_tugas_id', $sub->id)->orderBy('id')->first();
-                }
-            } catch (\Exception $e) {
-                Log::warning('resolveDetailTugasId: Error finding TugasDetail', [
-                    'error' => sanitize_log_message($e->getMessage()),
-                    'sub_tugas_id' => $sub->id,
-                ]);
-            }
-
-            if ($detail && isset($detail->id)) {
-                return (int) $detail->id;
-            }
-        }
-
-        // 4. Fallback #1: Cari "Lainnya"
-        try {
-            $lainnya = TugasDetail::whereRaw('LOWER(nama) = ?', ['lainnya'])->value('id');
-            if ($lainnya) {
-                return (int) $lainnya;
-            }
-        } catch (\Exception $e) {
-            Log::warning('resolveDetailTugasId: Error finding lainnya', [
-                'error' => sanitize_log_message($e->getMessage()),
-            ]);
-        }
-
-        // 5. Fallback #2: Ambil ID minimum
-        try {
-            $minId = TugasDetail::min('id');
-            if ($minId) {
-                return (int) $minId;
-            }
-        } catch (\Exception $e) {
-            Log::warning('resolveDetailTugasId: Error getting min ID', [
-                'error' => sanitize_log_message($e->getMessage()),
-            ]);
-        }
-
-        Log::error('resolveDetailTugasId: Semua fallback gagal', [
-            'tugas' => $name,
-            'jenis' => $jenisTugas,
-        ]);
-
-        return null;
-    }
-
-    /**
      * Helper: set $data[$column] hanya jika kolom ada di tabel & value tidak null
      */
     private function putIfColumnExists(array &$data, string $table, string $column, $value): void
     {
-        if (!is_null($value) && Schema::hasColumn($table, $column)) {
+        if (! is_null($value) && Schema::hasColumn($table, $column)) {
             $data[$column] = $value;
         }
     }

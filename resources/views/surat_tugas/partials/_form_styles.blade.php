@@ -175,6 +175,72 @@
             .tembusan-body .tagify__dropdown {
                 z-index: 1060;
             }
+
+            /* ===============================
+             * TEMPLATE SELECTOR COMPONENT
+             * ===============================*/
+            .template-selector-section {
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+                border: 1px solid rgba(0,0,0,0.05);
+            }
+            .template-selector-header {
+                background: linear-gradient(135deg, #fd7e14 0%, #e8590c 100%);
+                padding: 1rem 1.25rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .template-icon-box {
+                width: 45px;
+                height: 45px;
+                background: rgba(255,255,255,0.2);
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.25rem;
+                color: #fff;
+            }
+            .template-selector-body {
+                background: #fff;
+                padding: 1.25rem;
+            }
+            .template-preview-card {
+                background: linear-gradient(135deg, #f8f9fc 0%, #fff 100%);
+                border: 1px solid #e9ecef;
+                border-radius: 10px;
+                padding: 1rem;
+                height: 100%;
+            }
+            .template-preview-title {
+                font-weight: 700;
+                color: #2d3436;
+                font-size: 1rem;
+            }
+            .template-preview-desc {
+                color: #6c757d;
+                font-size: 0.85rem;
+            }
+            .template-preview-badges .badge {
+                font-size: 0.75rem;
+                font-weight: 600;
+                padding: 0.4rem 0.6rem;
+            }
+            .template-preview-empty {
+                background: #f8f9fc;
+                border: 2px dashed #dee2e6;
+                border-radius: 10px;
+                padding: 2rem;
+                text-align: center;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 120px;
+            }
         </style>
     @endpush
 @endonce

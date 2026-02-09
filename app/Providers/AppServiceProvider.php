@@ -2,15 +2,15 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Pagination\Paginator;
-use App\Models\TugasHeader;
 use App\Models\KeputusanHeader;
-use App\Observers\TugasHeaderObserver;
+use App\Models\TugasHeader;
 use App\Observers\KeputusanHeaderObserver;
-use Illuminate\Support\Facades\URL;
+use App\Observers\TugasHeaderObserver;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Schema; // ✅ ADDED
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\ServiceProvider; // ✅ ADDED
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -75,7 +75,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // ✅ GOOD: Eloquent strict mode untuk development
-        if (!app()->isProduction()) {
+        if (! app()->isProduction()) {
             Model::preventLazyLoading();
             Model::preventSilentlyDiscardingAttributes();
             Model::preventAccessingMissingAttributes();
@@ -101,7 +101,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Example: Custom validation using helpers
         \Validator::extend('sanitized_input', function ($attribute, $value, $parameters, $validator) {
-            if (!function_exists('sanitize_input')) {
+            if (! function_exists('sanitize_input')) {
                 return true; // Skip if helper not available
             }
 
@@ -112,7 +112,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \Validator::extend('valid_integer_id', function ($attribute, $value, $parameters, $validator) {
-            if (!function_exists('validate_integer_id')) {
+            if (! function_exists('validate_integer_id')) {
                 return is_numeric($value) && (int) $value > 0;
             }
 

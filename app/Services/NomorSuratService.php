@@ -16,6 +16,7 @@ class NomorSuratService
      * ✅ GOOD: Input validation dengan helpers
      *
      * @return array{no_urut:string, nomor:string, scope:array}
+     *
      * @throws \InvalidArgumentException
      * @throws \RuntimeException
      */
@@ -39,7 +40,7 @@ class NomorSuratService
 
         // ✅ GOOD: Whitelist bulan romawi
         $validMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-        if (!in_array($bulan, $validMonths, true)) {
+        if (! in_array($bulan, $validMonths, true)) {
             throw new \InvalidArgumentException("Bulan Romawi tidak valid: {$bulan}");
         }
 
@@ -63,7 +64,7 @@ class NomorSuratService
                 // Lock baris counter untuk scope ini (FOR UPDATE = pessimistic lock)
                 $row = DB::table($counterTable)->where($scope)->lockForUpdate()->first();
 
-                if (!$row) {
+                if (! $row) {
                     // Inisialisasi scope baru
                     DB::table($counterTable)->insert(
                         array_merge($scope, [
@@ -76,7 +77,7 @@ class NomorSuratService
                     // Ambil lagi dan lock
                     $row = DB::table($counterTable)->where($scope)->lockForUpdate()->first();
 
-                    if (!$row) {
+                    if (! $row) {
                         throw new \RuntimeException('Failed to initialize counter row');
                     }
                 }
@@ -151,12 +152,6 @@ class NomorSuratService
 
     /**
      * ✅ GOOD: Get current counter untuk scope tertentu (read-only)
-     *
-     * @param string $unit
-     * @param string $kodeKlasifikasi
-     * @param string $bulanRomawi
-     * @param int $tahun
-     * @return int
      */
     public function getCurrentCounter(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): int
     {
@@ -183,12 +178,6 @@ class NomorSuratService
 
     /**
      * ✅ GOOD: Reset counter untuk testing/admin purposes
-     *
-     * @param string $unit
-     * @param string $kodeKlasifikasi
-     * @param string $bulanRomawi
-     * @param int $tahun
-     * @return bool
      */
     public function resetCounter(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): bool
     {
@@ -202,11 +191,12 @@ class NomorSuratService
         }
 
         // ✅ ADDED: Validate admin authorization
-        if (!auth()->check() || !auth()->user()->isAdmin()) {
+        if (! auth()->check() || ! auth()->user()->isAdmin()) {
             Log::warning('Unauthorized counter reset attempt', [
                 'user_id' => auth()->id(),
                 'unit' => $unit,
             ]);
+
             return false;
         }
 
@@ -235,9 +225,6 @@ class NomorSuratService
 
     /**
      * ✅ ADDED: Get all counters untuk reporting
-     *
-     * @param int|null $tahun
-     * @return \Illuminate\Support\Collection
      */
     public function getAllCounters(?int $tahun = null): \Illuminate\Support\Collection
     {
@@ -255,12 +242,6 @@ class NomorSuratService
 
     /**
      * ✅ ADDED: Check if counter exists
-     *
-     * @param string $unit
-     * @param string $kodeKlasifikasi
-     * @param string $bulanRomawi
-     * @param int $tahun
-     * @return bool
      */
     public function counterExists(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): bool
     {
@@ -285,12 +266,6 @@ class NomorSuratService
 
     /**
      * ✅ ADDED: Get next available nomor (preview tanpa reserve)
-     *
-     * @param string $unit
-     * @param string $kodeKlasifikasi
-     * @param string $bulanRomawi
-     * @param int $tahun
-     * @return string
      */
     public function previewNextNomor(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): string
     {
@@ -327,15 +302,15 @@ class NomorSuratService
      * Get next available suffix for a parent tugas
      * Returns: A, B, C, ... Z (max 26 derivatives)
      *
-     * @param int $parentTugasId
      * @return string Next suffix letter (A-Z)
+     *
      * @throws \RuntimeException if max suffix (Z) exceeded
      */
     public function getNextSuffix(int $parentTugasId): string
     {
         $parent = \App\Models\TugasHeader::find($parentTugasId);
-        
-        if (!$parent) {
+
+        if (! $parent) {
             throw new \InvalidArgumentException('Parent tugas tidak ditemukan.');
         }
 
@@ -343,14 +318,14 @@ class NomorSuratService
         $existingSuffixes = \App\Models\TugasHeader::where('parent_tugas_id', $parentTugasId)
             ->whereNotNull('suffix')
             ->pluck('suffix')
-            ->map(fn($s) => strtoupper($s))
+            ->map(fn ($s) => strtoupper($s))
             ->toArray();
 
         // Generate next letter (A-Z)
         $alphabet = range('A', 'Z');
-        
+
         foreach ($alphabet as $letter) {
-            if (!in_array($letter, $existingSuffixes, true)) {
+            if (! in_array($letter, $existingSuffixes, true)) {
                 return $letter;
             }
         }
@@ -361,26 +336,25 @@ class NomorSuratService
     /**
      * Preview suffix nomor tanpa reserve (read-only)
      *
-     * @param int $parentTugasId
      * @return string Preview nomor lengkap dengan suffix
      */
     public function previewSuffixNomor(int $parentTugasId): string
     {
         $parent = \App\Models\TugasHeader::find($parentTugasId);
-        
-        if (!$parent) {
+
+        if (! $parent) {
             return '[Parent tidak ditemukan]';
         }
 
         $nextSuffix = $this->getNextSuffix($parentTugasId);
-        
+
         // Parse parent nomor dan sisipkan suffix
         // Format: 002/A.3.1/ST.IKOM/UNIKA/XII/2025 -> 002A/A.3.1/ST.IKOM/UNIKA/XII/2025
         $parts = explode('/', $parent->nomor);
-        
+
         if (count($parts) >= 1) {
             // Tambahkan suffix ke bagian pertama (nomor urut)
-            $parts[0] = $parts[0] . $nextSuffix;
+            $parts[0] = $parts[0].$nextSuffix;
         }
 
         return implode('/', $parts);
@@ -388,17 +362,18 @@ class NomorSuratService
 
     /**
      * Reserve suffix nomor untuk turunan
-     * 
-     * @param int $parentTugasId ID surat induk
+     *
+     * @param  int  $parentTugasId  ID surat induk
      * @return array{suffix: string, nomor: string, parent_id: int, nomor_urut_int: int}
+     *
      * @throws \InvalidArgumentException
      * @throws \RuntimeException
      */
     public function reserveSuffix(int $parentTugasId): array
     {
         $parent = \App\Models\TugasHeader::find($parentTugasId);
-        
-        if (!$parent) {
+
+        if (! $parent) {
             throw new \InvalidArgumentException('Parent tugas tidak ditemukan.');
         }
 
@@ -475,17 +450,17 @@ class NomorSuratService
 
         $upper = strtoupper(trim($bulan));
         if (isset($romanMap[$upper])) {
-            return $romanMap[$upper] . ' (' . $upper . ')';
+            return $romanMap[$upper].' ('.$upper.')';
         }
 
         // Kalau angka
         $int = (int) $bulan;
         if ($int >= 1 && $int <= 12) {
             $nama = array_values($romanMap)[$int - 1] ?? $bulan;
-            return $nama . ' (' . $bulan . ')';
+
+            return $nama.' ('.$bulan.')';
         }
 
         return $bulan;
     }
 }
-

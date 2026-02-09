@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 class FixDoubleEncodedJson extends Command
 {
     protected $signature = 'data:fix-double-json {--apply : Commit perubahan ke DB (default: dry-run)}';
+
     protected $description = 'Perbaiki JSON yang ter-encode dua kali pada tabel keputusan_*';
 
     public function handle(): int
@@ -15,27 +16,31 @@ class FixDoubleEncodedJson extends Command
         $apply = (bool) $this->option('apply');
 
         $targets = [
-            ['table' => 'keputusan_header', 'columns' => ['metadata_json','lampiran_json','isi_json']],
+            ['table' => 'keputusan_header', 'columns' => ['metadata_json', 'lampiran_json', 'isi_json']],
             ['table' => 'keputusan_versi',  'columns' => ['payload_json']],
         ];
 
         foreach ($targets as $t) {
-            $table   = $t['table'];
+            $table = $t['table'];
             $columns = $t['columns'];
 
-            if (!DB::getSchemaBuilder()->hasTable($table)) {
+            if (! DB::getSchemaBuilder()->hasTable($table)) {
                 $this->warn("Lewati: tabel {$table} tidak ada.");
+
                 continue;
             }
 
             $rows = DB::table($table)->select('id', ...$columns)->get();
-            $fixed = 0; $total = $rows->count();
+            $fixed = 0;
+            $total = $rows->count();
 
             foreach ($rows as $row) {
                 $updates = [];
                 foreach ($columns as $col) {
                     $val = $row->{$col};
-                    if ($val === null || $val === '') continue;
+                    if ($val === null || $val === '') {
+                        continue;
+                    }
 
                     $decoded = json_decode($val, true);
                     if (json_last_error() !== JSON_ERROR_NONE) {
@@ -52,7 +57,7 @@ class FixDoubleEncodedJson extends Command
                     }
                 }
 
-                if (!empty($updates)) {
+                if (! empty($updates)) {
                     $fixed++;
                     if ($apply) {
                         DB::table($table)->where('id', $row->id)->update($updates);
@@ -67,7 +72,7 @@ class FixDoubleEncodedJson extends Command
             ));
         }
 
-        if (!$apply) {
+        if (! $apply) {
             $this->line('Dry-run selesai. Jalankan lagi dengan --apply untuk commit perubahan.');
         }
 

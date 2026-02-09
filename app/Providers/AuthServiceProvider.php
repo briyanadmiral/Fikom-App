@@ -34,15 +34,16 @@ class AuthServiceProvider extends ServiceProvider
 
         // Lihat antrian approval (khusus approver aktif: Dekan / Wakil Dekan)
         Gate::define('view-approve-list', function (?User $user): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
+
             return $user->isActive() && $user->isApprover();
         });
 
         // ✅ FIXED: Menyetujui surat tugas dengan validasi ID
         Gate::define('approve-tugas', function (?User $user, TugasHeader $tugas): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
 
@@ -60,7 +61,7 @@ class AuthServiceProvider extends ServiceProvider
 
         // ✅ FIXED: Mengedit surat tugas dengan validasi
         Gate::define('edit-surat', function (?User $user, TugasHeader $tugas): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
 
@@ -72,7 +73,7 @@ class AuthServiceProvider extends ServiceProvider
 
             // ✅ FIXED: Validasi status surat
             $status = validate_status($tugas->status_surat, ['draft', 'pending', 'disetujui', 'ditolak']);
-            if (!in_array($status, ['draft', 'pending'], true)) {
+            if (! in_array($status, ['draft', 'pending'], true)) {
                 return false;
             }
 
@@ -101,7 +102,7 @@ class AuthServiceProvider extends ServiceProvider
 
         // ✅ ADDED: Gate untuk approve keputusan
         Gate::define('approve-keputusan', function (?User $user, KeputusanHeader $sk): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
 
@@ -118,7 +119,7 @@ class AuthServiceProvider extends ServiceProvider
 
         // ✅ ADDED: Gate untuk submit keputusan
         Gate::define('submit-keputusan', function (?User $user, KeputusanHeader $sk): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
 
@@ -141,34 +142,38 @@ class AuthServiceProvider extends ServiceProvider
 
         // ✅ GOOD: Pengaturan Kop Surat (Hanya Admin TU)
         Gate::define('manage-kop-surat', function (?User $user): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
+
             return $user->isActive() && $user->isAdmin();
         });
 
         // ✅ ADDED: Manajemen user
         Gate::define('manage-users', function (?User $user): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
+
             return $user->isActive() && $user->isAdmin();
         });
 
         // ✅ ADDED: View reports/analytics
         Gate::define('view-reports', function (?User $user): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
             $peranId = validate_integer_id($user->peran_id);
+
             return $user->isActive() && $peranId !== null && in_array($peranId, [1, 2, 3], true);
         });
 
         // ✅ ADDED: Manage notifications
         Gate::define('manage-notifications', function (?User $user): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
+
             return $user->isActive() && $user->isAdmin();
         });
 
@@ -180,21 +185,23 @@ class AuthServiceProvider extends ServiceProvider
 
         // ✅ ADDED: Upload signature
         Gate::define('upload-signature', function (?User $user): bool {
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
+
             return $user->isActive();
         });
 
         // ✅ ADDED: Download signed documents
         Gate::define('download-signed-document', function (?User $user, $document): bool {
-            if (!$user || !$user->isActive()) {
+            if (! $user || ! $user->isActive()) {
                 return false;
             }
 
             // Check if document is signed/approved
             if (method_exists($document, 'getAttribute')) {
                 $status = validate_status($document->getAttribute('status_surat'), ['disetujui', 'terbit']);
+
                 return in_array($status, ['disetujui', 'terbit'], true);
             }
 
@@ -223,7 +230,7 @@ class AuthServiceProvider extends ServiceProvider
         |--------------------------------------------------------------------------
         */
 
-        if (!app()->environment('production')) {
+        if (! app()->environment('production')) {
             // ✅ ADDED: Debug gates for development
             Gate::define('view-debug-info', function (?User $user): bool {
                 return $user && $user->isAdmin();

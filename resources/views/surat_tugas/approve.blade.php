@@ -169,6 +169,9 @@
                                 <button type="submit" class="btn btn-success btn-lg btn-block">
                                     <i class="fas fa-check-double mr-2"></i>Setujui & Tandatangani
                                 </button>
+                                <button type="button" class="btn btn-danger btn-block mt-2" data-toggle="modal" data-target="#rejectModal">
+                                    <i class="fas fa-times-circle mr-2"></i>Tolak Surat
+                                </button>
                                 <button type="button" id="btn-reset" class="btn btn-outline-secondary btn-block mt-2">
                                     <i class="fas fa-redo mr-1"></i> Reset Ukuran
                                 </button>
@@ -202,6 +205,34 @@
                 </div>
             </div>
         </form>
+
+        {{-- Modal Tolak --}}
+        <div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <form action="{{ route('surat_tugas.reject', $tugas->id) }}" method="POST">
+                    @csrf
+                    <div class="modal-content">
+                        <div class="modal-header bg-danger text-white">
+                            <h5 class="modal-title" id="rejectModalLabel"><i class="fas fa-exclamation-triangle mr-2"></i>Tolak Surat Tugas</h5>
+                            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Apakah Anda yakin ingin menolak surat tugas ini? Tindakan ini akan mengembalikan status surat ke pembuat.</p>
+                            <div class="form-group">
+                                <label for="alasan_penolakan" class="font-weight-bold">Alasan Penolakan <span class="text-danger">*</span></label>
+                                <textarea name="alasan_penolakan" id="alasan_penolakan" class="form-control" rows="4" required placeholder="Jelaskan alasan penolakan..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-danger">Tolak Surat</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 @endsection
 

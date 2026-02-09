@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TugasHeader;
 use App\Models\KeputusanHeader;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use App\Models\TugasHeader;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 
 /**
  * Controller untuk dashboard laporan dan analitik
@@ -26,7 +24,7 @@ class ReportController extends Controller
     {
         $tahun = $request->input('tahun', now()->year);
         $bulanIni = now()->month;
-        
+
         // Summary Stats
         $stats = [
             'total_st' => TugasHeader::whereYear('created_at', $tahun)->count(),
@@ -44,21 +42,21 @@ class ReportController extends Controller
             'disetujui_sk' => KeputusanHeader::whereYear('created_at', $tahun)
                 ->where('status_surat', 'disetujui')->count(),
         ];
-        
+
         // Status Distribution - ST
         $stStatusDist = TugasHeader::whereYear('created_at', $tahun)
             ->selectRaw('status_surat, COUNT(*) as jumlah')
             ->groupBy('status_surat')
             ->pluck('jumlah', 'status_surat')
             ->toArray();
-            
+
         // Status Distribution - SK
         $skStatusDist = KeputusanHeader::whereYear('created_at', $tahun)
             ->selectRaw('status_surat, COUNT(*) as jumlah')
             ->groupBy('status_surat')
             ->pluck('jumlah', 'status_surat')
             ->toArray();
-            
+
         // Monthly Trend ST
         $stMonthly = TugasHeader::whereYear('created_at', $tahun)
             ->selectRaw('MONTH(created_at) as bulan, COUNT(*) as jumlah')
@@ -66,7 +64,7 @@ class ReportController extends Controller
             ->orderByRaw('MONTH(created_at)')
             ->pluck('jumlah', 'bulan')
             ->toArray();
-            
+
         // Monthly Trend SK
         $skMonthly = KeputusanHeader::whereYear('created_at', $tahun)
             ->selectRaw('MONTH(created_at) as bulan, COUNT(*) as jumlah')
@@ -74,7 +72,7 @@ class ReportController extends Controller
             ->orderByRaw('MONTH(created_at)')
             ->pluck('jumlah', 'bulan')
             ->toArray();
-            
+
         // Fill missing months
         $stTrend = [];
         $skTrend = [];
@@ -82,12 +80,12 @@ class ReportController extends Controller
             $stTrend[$i] = $stMonthly[$i] ?? 0;
             $skTrend[$i] = $skMonthly[$i] ?? 0;
         }
-        
+
         // Available years for filter
         $years = range(now()->year - 5, now()->year);
-        
+
         return view('reports.dashboard', compact(
-            'stats', 'stStatusDist', 'skStatusDist', 
+            'stats', 'stStatusDist', 'skStatusDist',
             'stTrend', 'skTrend', 'tahun', 'years'
         ));
     }
@@ -100,7 +98,7 @@ class ReportController extends Controller
         $tahun = $request->input('tahun', now()->year);
         $type = $request->input('type', 'all'); // 'st', 'sk', or 'all'
 
-        $filename = "laporan_surat_{$tahun}_" . date('Ymd_His') . ".csv";
+        $filename = "laporan_surat_{$tahun}_".date('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=utf-8',
@@ -109,9 +107,9 @@ class ReportController extends Controller
 
         $callback = function () use ($tahun, $type) {
             $file = fopen('php://output', 'w');
-            
+
             // BOM for Excel UTF-8
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // Export Surat Tugas
             if ($type === 'all' || $type === 'st') {
@@ -216,4 +214,3 @@ class ReportController extends Controller
         return $pdf->download("laporan_surat_{$tahun}.pdf");
     }
 }
-

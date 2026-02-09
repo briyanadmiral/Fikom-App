@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Notifikasi;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class NotifikasiController extends Controller
@@ -17,7 +17,7 @@ class NotifikasiController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 
@@ -47,7 +47,7 @@ class NotifikasiController extends Controller
     public function markAsRead($id)
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 
@@ -60,10 +60,10 @@ class NotifikasiController extends Controller
 
         if ($notif) {
             $notif->update(['dibaca' => true]);
-            
+
             // Redirect ke link terkait jika ada
             if ($notif->link) {
-                 return redirect($notif->link);
+                return redirect($notif->link);
             }
         }
 
@@ -76,7 +76,7 @@ class NotifikasiController extends Controller
     public function markAllAsRead()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 
@@ -93,7 +93,7 @@ class NotifikasiController extends Controller
     public function prune()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 

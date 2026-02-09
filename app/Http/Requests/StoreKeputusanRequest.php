@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
  * ✅ IMPROVED: Enhanced sanitization & validation for Surat Keputusan
  *
  * @version 2.0.0
+ *
  * @date 2025-12-06
  */
 class StoreKeputusanRequest extends FormRequest
@@ -43,10 +44,10 @@ class StoreKeputusanRequest extends FormRequest
 
             // === Penandatangan ===
             'penandatangan' => [
-                'nullable', 
-                'integer', 
+                'nullable',
+                'integer',
                 'exists:pengguna,id',
-                'required_if:mode,pending,terkirim' // ✅ Wajib isi jika diajukan
+                'required_if:mode,pending,terkirim', // ✅ Wajib isi jika diajukan
             ],
             'npp_penandatangan' => [
                 'nullable',
@@ -95,7 +96,7 @@ class StoreKeputusanRequest extends FormRequest
                 $hasInternal = count($this->input('penerima_internal', [])) > 0;
                 $hasEksternal = count($this->input('penerima_eksternal', [])) > 0;
 
-                if (!$hasInternal && !$hasEksternal) {
+                if (! $hasInternal && ! $hasEksternal) {
                     $validator->errors()->add('penerima_internal', 'Minimal satu penerima (internal atau eksternal) wajib diisi saat pengajuan.');
                 }
             }
@@ -235,9 +236,10 @@ class StoreKeputusanRequest extends FormRequest
             array_filter(
                 array_map(function ($item) {
                     $cleaned = strip_tags(sanitize_input(trim((string) $item), 1000));
+
                     return $cleaned !== '' ? $cleaned : null;
                 }, (array) $this->input('menimbang', [])),
-                fn($v) => $v !== null,
+                fn ($v) => $v !== null,
             ),
         );
 
@@ -254,9 +256,10 @@ class StoreKeputusanRequest extends FormRequest
             array_filter(
                 array_map(function ($item) {
                     $cleaned = strip_tags(sanitize_input(trim((string) $item), 1000));
+
                     return $cleaned !== '' ? $cleaned : null;
                 }, (array) $this->input('mengingat', [])),
-                fn($v) => $v !== null,
+                fn ($v) => $v !== null,
             ),
         );
 
@@ -272,7 +275,7 @@ class StoreKeputusanRequest extends FormRequest
         $menetapkan = array_values(
             array_filter(
                 array_map(function ($d) {
-                    if (!is_array($d)) {
+                    if (! is_array($d)) {
                         return null;
                     }
 
@@ -364,6 +367,7 @@ class StoreKeputusanRequest extends FormRequest
 
         $value = str_replace("\0", '', $value);
         $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value);
+
         return $value;
     }
 
@@ -392,7 +396,7 @@ class StoreKeputusanRequest extends FormRequest
         $hasInternal = is_array($this->input('penerima_internal')) && count($this->input('penerima_internal')) > 0;
         $hasEksternal = is_array($this->input('penerima_eksternal')) && count($this->input('penerima_eksternal')) > 0;
 
-        if (!$hasInternal && !$hasEksternal) {
+        if (! $hasInternal && ! $hasEksternal) {
             Log::warning('StoreKeputusanRequest: No penerima provided', [
                 'user_id' => auth()->id(),
                 'ip' => request()->ip(),

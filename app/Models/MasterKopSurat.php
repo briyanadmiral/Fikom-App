@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use App\Services\AuditService;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Cache;
-use App\Services\AuditService;
 
 /**
  * Model untuk Master Kop Surat
@@ -50,6 +50,7 @@ class MasterKopSurat extends Model
      * Cache key untuk singleton pattern
      */
     const CACHE_KEY = 'master_kop_surat_instance';
+
     const CACHE_TTL = 3600; // 1 hour
 
     // ==================== SINGLETON PATTERN =========================
@@ -77,14 +78,14 @@ class MasterKopSurat extends Model
      */
     public function save(array $options = []): bool
     {
-        $isNew = !$this->exists;
+        $isNew = ! $this->exists;
         $original = $this->getOriginal();
-        
+
         $saved = parent::save($options);
 
         if ($saved) {
             self::clearCache();
-            
+
             // Audit logging
             $auditService = app(AuditService::class);
             if ($isNew) {
@@ -104,7 +105,7 @@ class MasterKopSurat extends Model
     {
         $auditService = app(AuditService::class);
         $auditService->logDelete($this);
-        
+
         $deleted = parent::delete();
 
         if ($deleted) {
@@ -131,32 +132,33 @@ class MasterKopSurat extends Model
 
     protected function namaFakultas(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 255));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
     }
 
     protected function alamatLengkap(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 500));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 500));
     }
 
     protected function teleponLengkap(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_phone($value));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_phone($value));
     }
 
     protected function emailWebsite(): Attribute
     {
-        return Attribute::make(get: fn(?string $value) => sanitize_output($value), set: fn(?string $value) => sanitize_input($value, 255));
+        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
     }
 
     protected function textColor(): Attribute
     {
         return Attribute::make(
-            get: fn(?string $value) => $value,
+            get: fn (?string $value) => $value,
             set: function (?string $value) {
                 if ($value && preg_match('/^#([A-Fa-f0-9]{6})$/', $value)) {
                     return strtoupper($value);
                 }
+
                 return '#000000';
             },
         );
@@ -196,7 +198,7 @@ class MasterKopSurat extends Model
 
     public function shouldShowLogoKanan(): bool
     {
-        return $this->tampilkan_logo_kanan === true && !empty($this->logo_kanan_path);
+        return $this->tampilkan_logo_kanan === true && ! empty($this->logo_kanan_path);
     }
 
     /**
@@ -204,7 +206,7 @@ class MasterKopSurat extends Model
      */
     public function shouldShowLogoKiri(): bool
     {
-        return $this->tampilkan_logo_kiri === true && !empty($this->logo_kiri_path);
+        return $this->tampilkan_logo_kiri === true && ! empty($this->logo_kiri_path);
     }
 
     /**
@@ -237,11 +239,11 @@ class MasterKopSurat extends Model
             'alamat_lengkap' => nl2br($this->alamat_lengkap),
             'telepon_lengkap' => $this->telepon_lengkap,
             'email_website' => $this->email_website,
-            'has_logo' => !empty($this->getValidatedLogoPath()),
+            'has_logo' => ! empty($this->getValidatedLogoPath()),
             'has_logo_kanan' => $this->shouldShowLogoKanan(),
             'has_logo_kiri' => $this->shouldShowLogoKiri(),
-            'has_cap' => !empty($this->getValidatedCapPath()),
-            'has_background' => !empty($this->getValidatedBackgroundPath()),
+            'has_cap' => ! empty($this->getValidatedCapPath()),
+            'has_background' => ! empty($this->getValidatedBackgroundPath()),
         ];
     }
 

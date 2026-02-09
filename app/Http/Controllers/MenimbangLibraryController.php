@@ -37,7 +37,7 @@ class MenimbangLibraryController extends Controller
         // Order by
         $orderBy = $request->input('order_by', 'usage_count');
         $orderDir = $request->input('order_dir', 'desc');
-        
+
         if ($orderBy === 'usage_count') {
             $query->popular();
         } else {
@@ -134,7 +134,7 @@ class MenimbangLibraryController extends Controller
             ->popular()
             ->limit($limit);
 
-        if (!empty($kategori)) {
+        if (! empty($kategori)) {
             $query->byKategori($kategori);
         }
 

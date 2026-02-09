@@ -9,7 +9,7 @@ use Illuminate\Validation\Rules\Password;
 
 /**
  * ✅ IMPROVED: Enhanced password security & validation
- * 
+ *
  * Password security is CRITICAL!
  * Protection layers:
  * - Current password verification
@@ -18,8 +18,9 @@ use Illuminate\Validation\Rules\Password;
  * - Password history check
  * - Rate limiting (handled by middleware)
  * - Secure logging (no password values)
- * 
+ *
  * @version 2.0.0
+ *
  * @date 2025-12-06
  */
 class UpdatePasswordRequest extends FormRequest
@@ -51,7 +52,7 @@ class UpdatePasswordRequest extends FormRequest
                 'string',
                 'confirmed', // Requires new_password_confirmation field
                 'different:current_password', // Must be different from current
-                
+
                 // ✅ Laravel 10+ Password Rule (comprehensive)
                 Password::min(8)
                     ->mixedCase()        // Requires uppercase and lowercase
@@ -59,35 +60,35 @@ class UpdatePasswordRequest extends FormRequest
                     ->numbers()          // Requires at least one number
                     ->symbols()          // Requires at least one symbol (!@#$%^&*)
                     ->uncompromised(3),  // Check against pwned passwords (allows 3 breaches max)
-                
+
                 // ✅ Custom rule: Check against password history
                 function ($attribute, $value, $fail) {
                     if ($this->isSameAsOldPassword($value)) {
                         $fail('Password baru tidak boleh sama dengan password sebelumnya.');
                     }
                 },
-                
+
                 // ✅ Custom rule: Block common passwords
                 function ($attribute, $value, $fail) {
                     if ($this->isCommonPassword($value)) {
                         $fail('Password terlalu umum. Gunakan password yang lebih unik.');
                     }
                 },
-                
+
                 // ✅ Custom rule: No sequential characters
                 function ($attribute, $value, $fail) {
                     if ($this->hasSequentialChars($value)) {
                         $fail('Password tidak boleh mengandung karakter berurutan (123, abc, dll).');
                     }
                 },
-                
+
                 // ✅ Custom rule: No repeated characters
                 function ($attribute, $value, $fail) {
                     if ($this->hasRepeatedChars($value)) {
                         $fail('Password tidak boleh mengandung karakter yang diulang lebih dari 3 kali.');
                     }
                 },
-                
+
                 // ✅ Custom rule: No user information
                 function ($attribute, $value, $fail) {
                     if ($this->containsUserInfo($value)) {
@@ -105,20 +106,20 @@ class UpdatePasswordRequest extends FormRequest
     {
         // ⚠️ JANGAN sanitize password! Password boleh ada karakter apa saja
         // Sanitasi akan merusak password yang valid
-        
+
         // ✅ Hanya trim whitespace di awal/akhir (user mungkin copy-paste)
         if ($this->has('current_password')) {
             $this->merge([
                 'current_password' => trim($this->input('current_password')),
             ]);
         }
-        
+
         if ($this->has('new_password')) {
             $this->merge([
                 'new_password' => trim($this->input('new_password')),
             ]);
         }
-        
+
         if ($this->has('new_password_confirmation')) {
             $this->merge([
                 'new_password_confirmation' => trim($this->input('new_password_confirmation')),
@@ -133,28 +134,28 @@ class UpdatePasswordRequest extends FormRequest
     private function isSameAsOldPassword(string $newPassword): bool
     {
         $user = auth()->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return false;
         }
-        
+
         // Check if same as current password
         return Hash::check($newPassword, $user->password);
-        
+
         // ✅ OPTIONAL: Check against password history (if you have password_histories table)
         /*
         $recentPasswords = \App\Models\PasswordHistory::where('user_id', $user->id)
             ->latest()
             ->take(5) // Check last 5 passwords
             ->get();
-        
+
         foreach ($recentPasswords as $history) {
             if (Hash::check($newPassword, $history->password)) {
                 return true;
             }
         }
         */
-        
+
         return false;
     }
 
@@ -174,9 +175,9 @@ class UpdatePasswordRequest extends FormRequest
             'superman', 'qazwsx', 'michael', 'football', '111111',
             '654321', 'passw0rd', 'P@ssw0rd', 'P@ssword', 'password!',
         ];
-        
+
         $lowerPassword = strtolower($password);
-        
+
         return in_array($lowerPassword, $commonPasswords);
     }
 
@@ -196,9 +197,9 @@ class UpdatePasswordRequest extends FormRequest
             'asdfghjkl',
             'zxcvbnm',
         ];
-        
+
         $lowerPassword = strtolower($password);
-        
+
         foreach ($sequences as $sequence) {
             // Check for 4+ sequential characters
             for ($i = 0; $i <= strlen($sequence) - 4; $i++) {
@@ -208,7 +209,7 @@ class UpdatePasswordRequest extends FormRequest
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -227,13 +228,13 @@ class UpdatePasswordRequest extends FormRequest
     private function containsUserInfo(string $password): bool
     {
         $user = auth()->user();
-        
-        if (!$user) {
+
+        if (! $user) {
             return false;
         }
-        
+
         $lowerPassword = strtolower($password);
-        
+
         // Check nama lengkap
         if ($user->nama_lengkap) {
             $namaParts = explode(' ', strtolower($user->nama_lengkap));
@@ -243,7 +244,7 @@ class UpdatePasswordRequest extends FormRequest
                 }
             }
         }
-        
+
         // Check email (before @)
         if ($user->email) {
             $emailUsername = explode('@', strtolower($user->email))[0];
@@ -251,20 +252,20 @@ class UpdatePasswordRequest extends FormRequest
                 return true;
             }
         }
-        
+
         // Check NPP/username
         if (isset($user->npp) && $user->npp) {
             if (strpos($lowerPassword, strtolower($user->npp)) !== false) {
                 return true;
             }
         }
-        
+
         if (isset($user->username) && $user->username) {
             if (strpos($lowerPassword, strtolower($user->username)) !== false) {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -283,7 +284,7 @@ class UpdatePasswordRequest extends FormRequest
             'new_password.min' => 'Password baru minimal 8 karakter',
             'new_password.confirmed' => 'Konfirmasi password tidak sesuai',
             'new_password.different' => 'Password baru harus berbeda dengan password saat ini',
-            
+
             // Password complexity (from Password rule)
             'new_password.mixed' => 'Password harus mengandung huruf besar dan kecil',
             'new_password.letters' => 'Password harus mengandung minimal satu huruf',

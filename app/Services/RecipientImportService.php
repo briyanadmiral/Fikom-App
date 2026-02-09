@@ -2,11 +2,9 @@
 
 namespace App\Services;
 
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
-use App\Models\User;
 use App\Models\RecipientImport;
+use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -14,6 +12,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class RecipientImportService
 {
     protected array $requiredColumns = ['nama_penerima'];
+
     protected array $optionalColumns = ['jabatan', 'npp', 'email', 'instansi'];
 
     /**
@@ -45,7 +44,7 @@ class RecipientImportService
 
         // Validate required columns
         foreach ($this->requiredColumns as $col) {
-            if (!in_array($col, $header)) {
+            if (! in_array($col, $header)) {
                 fclose($handle);
                 throw new \Exception("Kolom wajib '{$col}' tidak ditemukan di file.");
             }
@@ -91,7 +90,7 @@ class RecipientImportService
 
         // Validate required columns
         foreach ($this->requiredColumns as $col) {
-            if (!in_array($col, $header)) {
+            if (! in_array($col, $header)) {
                 throw new \Exception("Kolom wajib '{$col}' tidak ditemukan di file.");
             }
         }
@@ -123,6 +122,7 @@ class RecipientImportService
                 'row' => $rowNum,
                 'message' => 'Nama penerima kosong',
             ];
+
             return null;
         }
 
@@ -138,14 +138,14 @@ class RecipientImportService
         ];
 
         // Try to match with existing user
-        if (!empty($processedRow['npp'])) {
+        if (! empty($processedRow['npp'])) {
             $user = User::where('npp', $processedRow['npp'])->first();
             if ($user) {
                 $processedRow['matched_user_id'] = $user->id;
                 $processedRow['is_internal'] = true;
                 $processedRow['jabatan'] = $processedRow['jabatan'] ?: $user->jabatan;
             }
-        } elseif (!empty($processedRow['email'])) {
+        } elseif (! empty($processedRow['email'])) {
             $user = User::where('email', $processedRow['email'])->first();
             if ($user) {
                 $processedRow['matched_user_id'] = $user->id;
@@ -163,7 +163,7 @@ class RecipientImportService
      */
     public function generateTemplate(): string
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
 
         // Header
@@ -184,10 +184,10 @@ class RecipientImportService
         }
 
         // Save to temp
-        $filename = 'template_penerima_' . date('Ymd_His') . '.xlsx';
-        $path = storage_path('app/temp/' . $filename);
+        $filename = 'template_penerima_'.date('Ymd_His').'.xlsx';
+        $path = storage_path('app/temp/'.$filename);
 
-        if (!is_dir(storage_path('app/temp'))) {
+        if (! is_dir(storage_path('app/temp'))) {
             mkdir(storage_path('app/temp'), 0755, true);
         }
 

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use App\Models\Peran;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -58,6 +58,7 @@ class UserController extends Controller
     public function create()
     {
         $peran = Peran::all();
+
         return view('users.create', compact('peran'));
     }
 
@@ -65,45 +66,45 @@ class UserController extends Controller
      * Simpan user baru.
      */
     public function store(Request $request)
-{
-    // Normalisasi input agar validasi unik tidak "kejebak" spasi/kasus
-    $request->merge([
-        'email' => strtolower(trim((string) $request->input('email'))),
-        'npp' => $this->formatNpp($request->input('npp')),
-    ]);
-
-    $validated = $request->validate([
-        'email' => ['required', 'email', Rule::unique('pengguna', 'email')->where(fn($q) => $q->whereNull('deleted_at'))],
-        'nama_lengkap' => 'required|string|max:100',
-        'npp' => ['nullable', 'string', 'max:50', Rule::unique('pengguna', 'npp')->where(fn($q) => $q->whereNull('deleted_at'))],
-        'jabatan' => 'nullable|string|max:100',
-        'peran_id' => 'required|exists:peran,id',
-        'status' => ['required', Rule::in(['aktif', 'tidak_aktif'])],
-        'password' => 'required|string|min:6|confirmed',
-    ]);
-
-    try {
-        User::create([
-            'email'        => $validated['email'],
-            // 🔁 PAKAI sandi_hash, BUKAN password
-            'sandi_hash'   => Hash::make($validated['password']),
-            'nama_lengkap' => $validated['nama_lengkap'],
-            'npp'          => $validated['npp'] ?? null,
-            'jabatan'      => $validated['jabatan'] ?? null,
-            'peran_id'     => $validated['peran_id'],
-            'status'       => $validated['status'],
+    {
+        // Normalisasi input agar validasi unik tidak "kejebak" spasi/kasus
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
+            'npp' => $this->formatNpp($request->input('npp')),
         ]);
 
-        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan.');
-    } catch (\Throwable $e) {
-        Log::error('Gagal tambah user', [
-            'error'   => sanitize_log_message($e->getMessage()),
-            'user_id' => auth()->id(),
+        $validated = $request->validate([
+            'email' => ['required', 'email', Rule::unique('pengguna', 'email')->where(fn ($q) => $q->whereNull('deleted_at'))],
+            'nama_lengkap' => 'required|string|max:100',
+            'npp' => ['nullable', 'string', 'max:50', Rule::unique('pengguna', 'npp')->where(fn ($q) => $q->whereNull('deleted_at'))],
+            'jabatan' => 'nullable|string|max:100',
+            'peran_id' => 'required|exists:peran,id',
+            'status' => ['required', Rule::in(['aktif', 'tidak_aktif'])],
+            'password' => 'required|string|min:6|confirmed',
         ]);
-        return back()->withInput()->with('error', 'Terjadi kesalahan saat menambahkan user.');
+
+        try {
+            User::create([
+                'email' => $validated['email'],
+                // 🔁 PAKAI sandi_hash, BUKAN password
+                'sandi_hash' => Hash::make($validated['password']),
+                'nama_lengkap' => $validated['nama_lengkap'],
+                'npp' => $validated['npp'] ?? null,
+                'jabatan' => $validated['jabatan'] ?? null,
+                'peran_id' => $validated['peran_id'],
+                'status' => $validated['status'],
+            ]);
+
+            return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan.');
+        } catch (\Throwable $e) {
+            Log::error('Gagal tambah user', [
+                'error' => sanitize_log_message($e->getMessage()),
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->withInput()->with('error', 'Terjadi kesalahan saat menambahkan user.');
+        }
     }
-}
-
 
     /**
      * Form edit user.
@@ -126,57 +127,57 @@ class UserController extends Controller
      * Simpan perubahan user.
      */
     public function update(Request $request, $id)
-{
-    // ✅ FIXED: Validate ID
-    $userId = validate_integer_id($id);
-    if ($userId === null) {
-        abort(404, 'ID tidak valid');
-    }
-
-    $user = User::findOrFail($userId);
-
-    // Normalisasi input supaya validasi unik konsisten
-    $request->merge([
-        'email' => strtolower(trim((string) $request->input('email'))),
-        'npp' => $this->formatNpp($request->input('npp')),
-    ]);
-
-    $validated = $request->validate([
-        'email' => ['required', 'email', Rule::unique('pengguna', 'email')->ignore($user->id)->where(fn($q) => $q->whereNull('deleted_at'))],
-        'nama_lengkap' => 'required|string|max:100',
-        'npp' => ['nullable', 'string', 'max:50', Rule::unique('pengguna', 'npp')->ignore($user->id)->where(fn($q) => $q->whereNull('deleted_at'))],
-        'jabatan' => 'nullable|string|max:100',
-        'peran_id' => 'required|exists:peran,id',
-        'status' => ['required', Rule::in(['aktif', 'tidak_aktif'])],
-        'password' => 'nullable|string|min:6|confirmed',
-    ]);
-
-    try {
-        $user->email        = $validated['email'];
-        $user->nama_lengkap = $validated['nama_lengkap'];
-        $user->npp          = $validated['npp'] ?? null;
-        $user->jabatan      = $validated['jabatan'] ?? null;
-        $user->peran_id     = $validated['peran_id'];
-        $user->status       = $validated['status'];
-
-        if (!empty($validated['password'])) {
-            // 🔁 update via sandi_hash
-            $user->sandi_hash = Hash::make($validated['password']);
+    {
+        // ✅ FIXED: Validate ID
+        $userId = validate_integer_id($id);
+        if ($userId === null) {
+            abort(404, 'ID tidak valid');
         }
 
-        $user->save();
+        $user = User::findOrFail($userId);
 
-        return redirect()->route('users.index')->with('success', 'User berhasil diperbarui.');
-    } catch (\Throwable $e) {
-        Log::error('Gagal update user', [
-            'id'     => $user->id,
-            'error'  => sanitize_log_message($e->getMessage()),
-            'user_id'=> auth()->id(),
+        // Normalisasi input supaya validasi unik konsisten
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email'))),
+            'npp' => $this->formatNpp($request->input('npp')),
         ]);
-        return back()->withInput()->with('error', 'Terjadi kesalahan saat memperbarui user.');
-    }
-}
 
+        $validated = $request->validate([
+            'email' => ['required', 'email', Rule::unique('pengguna', 'email')->ignore($user->id)->where(fn ($q) => $q->whereNull('deleted_at'))],
+            'nama_lengkap' => 'required|string|max:100',
+            'npp' => ['nullable', 'string', 'max:50', Rule::unique('pengguna', 'npp')->ignore($user->id)->where(fn ($q) => $q->whereNull('deleted_at'))],
+            'jabatan' => 'nullable|string|max:100',
+            'peran_id' => 'required|exists:peran,id',
+            'status' => ['required', Rule::in(['aktif', 'tidak_aktif'])],
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
+
+        try {
+            $user->email = $validated['email'];
+            $user->nama_lengkap = $validated['nama_lengkap'];
+            $user->npp = $validated['npp'] ?? null;
+            $user->jabatan = $validated['jabatan'] ?? null;
+            $user->peran_id = $validated['peran_id'];
+            $user->status = $validated['status'];
+
+            if (! empty($validated['password'])) {
+                // 🔁 update via sandi_hash
+                $user->sandi_hash = Hash::make($validated['password']);
+            }
+
+            $user->save();
+
+            return redirect()->route('users.index')->with('success', 'User berhasil diperbarui.');
+        } catch (\Throwable $e) {
+            Log::error('Gagal update user', [
+                'id' => $user->id,
+                'error' => sanitize_log_message($e->getMessage()),
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->withInput()->with('error', 'Terjadi kesalahan saat memperbarui user.');
+        }
+    }
 
     /**
      * Hapus user (Soft Delete).
@@ -198,6 +199,7 @@ class UserController extends Controller
 
         try {
             $user->delete(); // Soft delete
+
             return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
         } catch (\Throwable $e) {
             // ✅ FIXED: Enable logging with sanitization
@@ -206,6 +208,7 @@ class UserController extends Controller
                 'error' => sanitize_log_message($e->getMessage()),
                 'user_id' => auth()->id(),
             ]);
+
             return back()->with('error', 'Terjadi kesalahan saat menghapus user.');
         }
     }
@@ -226,7 +229,7 @@ class UserController extends Controller
 
         if (strlen($digits) === 11) {
             // Pola utama: 3-1-4-3
-            return substr($digits, 0, 3) . '.' . substr($digits, 3, 1) . '.' . substr($digits, 4, 4) . '.' . substr($digits, 8, 3);
+            return substr($digits, 0, 3).'.'.substr($digits, 3, 1).'.'.substr($digits, 4, 4).'.'.substr($digits, 8, 3);
         }
 
         // Fallback aman: kelompok per 3 digit (biar tetap terbaca)
