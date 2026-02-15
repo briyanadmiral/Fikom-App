@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Notification service khusus untuk Surat Tugas
- * ✅ REFACTORED: Menggunakan global helpers untuk DRY code
- * ✅ EXCELLENT: Perfect implementation dengan comprehensive error handling
+ * Notification service khusus untuk Surat Tugas.
+ * Menggunakan global helpers untuk DRY code.
+ * Comprehensive error handling.
  */
 class SuratTugasNotificationService extends BaseNotificationService
 {
@@ -20,11 +20,11 @@ class SuratTugasNotificationService extends BaseNotificationService
     }
 
     /**
-     * ✅ EXCELLENT: Perfect validation & error handling
+     * Notify approval request.
      */
     public function notifyApprovalRequest(TugasHeader $tugas): void
     {
-        // ✅ ADDED: Validate tugas ID first
+        // Validate tugas ID first
         $tugasId = validate_integer_id($tugas->id);
         if ($tugasId === null) {
             Log::warning('notifyApprovalRequest: Invalid tugas ID', [
@@ -34,7 +34,7 @@ class SuratTugasNotificationService extends BaseNotificationService
             return;
         }
 
-        // ✅ GOOD: Validasi next_approver dengan helper
+        // Validasi next_approver dengan helper
         $approverId = validate_integer_id($tugas->next_approver);
 
         if ($approverId === null) {
@@ -57,7 +57,7 @@ class SuratTugasNotificationService extends BaseNotificationService
             return;
         }
 
-        // ✅ GOOD: Sanitasi nomor surat dengan helper
+        // Sanitasi nomor surat dengan helper
         $nomorSurat = sanitize_notification($tugas->nomor, 100);
 
         try {
@@ -76,11 +76,13 @@ class SuratTugasNotificationService extends BaseNotificationService
     }
 
     /**
-     * ✅ EXCELLENT: Comprehensive notification with batch processing
+     * Comprehensive notification with batch processing.
+     * In-app notifications ALWAYS sent.
+     * Email only sent if send_email_on_approve flag is true.
      */
     public function notifyApproved(TugasHeader $tugas): void
     {
-        // ✅ ADDED: Validate tugas ID
+        // Validate tugas ID
         $tugasId = validate_integer_id($tugas->id);
         if ($tugasId === null) {
             Log::warning('notifyApproved: Invalid tugas ID', [
@@ -90,10 +92,13 @@ class SuratTugasNotificationService extends BaseNotificationService
             return;
         }
 
-        // ✅ GOOD: Sanitasi nomor surat dengan helper
+        // Sanitasi nomor surat dengan helper
         $nomorSurat = sanitize_notification($tugas->nomor, 100);
 
-        // 1. Notify pembuat
+        // Check email preference (default true for backward compatibility)
+        $shouldSendEmail = (bool) ($tugas->send_email_on_approve ?? true);
+
+        // 1. Notify pembuat (in-app only, always)
         $pembuatId = validate_integer_id($tugas->dibuat_oleh);
 
         if ($pembuatId !== null) {
@@ -128,7 +133,7 @@ class SuratTugasNotificationService extends BaseNotificationService
         $failedCount = 0;
 
         foreach ($recipients as $recipient) {
-            // ✅ GOOD: Validasi recipient dengan helper
+            // Validasi recipient dengan helper
             if (! $this->isValidRecipient($recipient)) {
                 Log::warning('notifyApproved: Invalid recipient data', [
                     'tugas_id' => $tugasId,
@@ -141,7 +146,7 @@ class SuratTugasNotificationService extends BaseNotificationService
 
             $recipientId = validate_integer_id($recipient->pengguna_id);
 
-            // A. Database notification
+            // A. Database notification (ALWAYS sent)
             try {
                 if ($this->createNotification($recipientId, $tugasId, "Anda menerima Surat Tugas baru: {$nomorSurat}")) {
                     $notifiedCount++;
@@ -155,8 +160,8 @@ class SuratTugasNotificationService extends BaseNotificationService
                 $failedCount++;
             }
 
-            // B. Queue email
-            if ($this->isValidEmail($recipient->email)) {
+            // B. Queue email (ONLY if admin chose to send email)
+            if ($shouldSendEmail && $this->isValidEmail($recipient->email)) {
                 try {
                     if ($this->dispatchJob(new SendSuratTugasEmail($tugasId, 'to_recipients', $recipientId))) {
                         $emailQueuedCount++;
@@ -176,16 +181,17 @@ class SuratTugasNotificationService extends BaseNotificationService
             'total_recipients' => count($recipients),
             'notified' => $notifiedCount,
             'email_queued' => $emailQueuedCount,
+            'email_enabled' => $shouldSendEmail,
             'failed' => $failedCount,
         ]);
     }
 
     /**
-     * ✅ EXCELLENT: Perfect sanitization & error handling
+     * Notify rejection with sanitization & error handling.
      */
     public function notifyRejected(TugasHeader $tugas, string $alasan = ''): void
     {
-        // ✅ ADDED: Validate tugas ID
+        // Validate tugas ID
         $tugasId = validate_integer_id($tugas->id);
         if ($tugasId === null) {
             Log::warning('notifyRejected: Invalid tugas ID', [
@@ -204,7 +210,7 @@ class SuratTugasNotificationService extends BaseNotificationService
         $pembuat = $this->getActiveUser($pembuatId);
 
         if ($pembuat) {
-            // ✅ GOOD: Sanitasi dengan helper
+            // Sanitasi dengan helper
             $nomorSurat = sanitize_notification($tugas->nomor, 100);
             $alasanSafe = sanitize_notification($alasan, 500);
 
@@ -230,11 +236,11 @@ class SuratTugasNotificationService extends BaseNotificationService
     }
 
     /**
-     * ✅ EXCELLENT: Perfect sanitization & error handling
+     * Notify revision requested with sanitization & error handling.
      */
     public function notifyRevisionRequested(TugasHeader $tugas, string $catatan = ''): void
     {
-        // ✅ ADDED: Validate tugas ID
+        // Validate tugas ID
         $tugasId = validate_integer_id($tugas->id);
         if ($tugasId === null) {
             Log::warning('notifyRevisionRequested: Invalid tugas ID', [
@@ -253,7 +259,7 @@ class SuratTugasNotificationService extends BaseNotificationService
         $pembuat = $this->getActiveUser($pembuatId);
 
         if ($pembuat) {
-            // ✅ GOOD: Sanitasi dengan helper
+            // Sanitasi dengan helper
             $nomorSurat = sanitize_notification($tugas->nomor, 100);
             $catatanSafe = sanitize_notification($catatan, 500);
 
@@ -279,11 +285,11 @@ class SuratTugasNotificationService extends BaseNotificationService
     }
 
     /**
-     * ✅ EXCELLENT: Safe SQL query with proper validation
+     * Safe SQL query with proper validation.
      */
     private function getActiveInternalRecipients(TugasHeader $tugas): array
     {
-        // ✅ GOOD: Validasi tugas ID dengan helper
+        // Validasi tugas ID dengan helper
         $tugasId = validate_integer_id($tugas->id);
 
         if ($tugasId === null) {
@@ -296,7 +302,7 @@ class SuratTugasNotificationService extends BaseNotificationService
 
         try {
             $recipients = DB::table('tugas_penerima as tp')
-                ->join('pengguna as u', 'u.id', '=', 'tp.pengguna_id') // ✅ FIXED: Use correct table name
+                ->join('pengguna as u', 'u.id', '=', 'tp.pengguna_id')
                 ->where('tp.tugas_id', $tugasId)
                 ->whereNotNull('tp.pengguna_id')
                 ->where('u.status', 'aktif')
@@ -318,7 +324,7 @@ class SuratTugasNotificationService extends BaseNotificationService
     }
 
     /**
-     * ✅ GOOD: Validation helper
+     * Validation helper.
      */
     private function isValidRecipient($recipient): bool
     {
@@ -328,7 +334,7 @@ class SuratTugasNotificationService extends BaseNotificationService
     }
 
     /**
-     * ✅ ADDED: Notify single recipient
+     * Notify single recipient.
      */
     public function notifySingleRecipient(TugasHeader $tugas, int $recipientId): bool
     {

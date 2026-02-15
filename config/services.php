@@ -31,4 +31,6 @@ return [
         ],
     ],
 
+    'entry_shared_secret' => env('ENTRY_SHARED_SECRET'),
+
 ];

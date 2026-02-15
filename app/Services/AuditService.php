@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * ✅ AuditService - Service untuk logging aktivitas user
+ * AuditService - Service untuk logging aktivitas user.
  *
  * Usage:
  * app(AuditService::class)->log('create', $model);

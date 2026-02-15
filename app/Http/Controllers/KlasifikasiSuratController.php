@@ -14,12 +14,10 @@ class KlasifikasiSuratController extends Controller
     {
         $query = KlasifikasiSurat::query();
 
-        // ✅ FIXED: Sanitize search input
         if ($request->has('search') && $request->search) {
             $search = sanitize_input($request->search, 100); // Limit to 100 chars
 
             if ($search) {
-                // ✅ Escape LIKE wildcards
                 $searchEscaped = str_replace(['%', '_'], ['\%', '\_'], $search);
 
                 $query->where(function ($q) use ($searchEscaped) {

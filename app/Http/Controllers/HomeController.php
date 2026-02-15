@@ -45,8 +45,18 @@ class HomeController extends Controller
         // A. Perlu Action (Review/Approve) -> ONLY FOR APPROVERS (Dekan/Wakil)
         $perluAction = collect([]);
         if ($user->canApproveSurat()) {
-            $stAction = TugasHeader::where('next_approver', $user->id)->orWhere('status_surat', 'pending')->latest()->take(5)->get();
-            $skAction = KeputusanHeader::where('next_approver', $user->id)->orWhere('status_surat', 'pending')->latest()->take(5)->get();
+            $stAction = TugasHeader::with('pembuat')
+                ->where('next_approver', $user->id)
+                ->orWhere('status_surat', 'pending')
+                ->latest()
+                ->take(5)
+                ->get();
+            $skAction = KeputusanHeader::with('pembuat')
+                ->where('penandatangan', $user->id)
+                ->orWhere('status_surat', 'pending')
+                ->latest()
+                ->take(5)
+                ->get();
             $perluAction = $stAction->map(function ($i) {
                 $i->jenis = 'ST';
                 $i->display_title = $i->nama_umum ?? $i->tugas ?? '-';

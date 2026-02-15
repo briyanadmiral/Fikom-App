@@ -7,9 +7,6 @@ use Illuminate\Http\Request;
 
 class RoleController extends Controller
 {
-    /**
-     * ✅ ADDED: Authorization middleware
-     */
     public function __construct()
     {
         $this->middleware('auth');
@@ -47,7 +44,6 @@ class RoleController extends Controller
 
     public function update(Request $request, $id)
     {
-        // ✅ FIXED: Validate ID
         $roleId = validate_integer_id($id);
         if ($roleId === null) {
             return response()->json(
@@ -75,7 +71,6 @@ class RoleController extends Controller
 
     public function destroy($id)
     {
-        // ✅ FIXED: Validate ID
         $roleId = validate_integer_id($id);
         if ($roleId === null) {
             return response()->json(
@@ -89,7 +84,6 @@ class RoleController extends Controller
 
         $role = Peran::findOrFail($roleId);
 
-        // ✅ ADDED: Check if role is in use
         if ($role->users()->count() > 0) {
             return response()->json(
                 [

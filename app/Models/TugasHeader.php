@@ -61,6 +61,8 @@ class TugasHeader extends Model
         'suffix',
         'parent_tugas_id',
         'nomor_urut_int',
+        // Email preference
+        'send_email_on_approve',
         // Archive
         'tanggal_arsip',
         'arsipkan_oleh',
@@ -269,7 +271,7 @@ class TugasHeader extends Model
         $dir = strtolower($direction) === 'desc' ? 'DESC' : 'ASC';
 
         return $query->orderBy('tahun', $dir)
-            ->orderBy('bulan', $dir)
+            ->orderByRaw("FIELD(bulan, 'I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII') {$dir}")
             ->orderBy('kode_surat', $dir)
             ->orderBy('nomor_urut_int', $dir)
             ->orderByRaw("COALESCE(suffix, '') {$dir}");
@@ -746,6 +748,14 @@ class TugasHeader extends Model
         static::deleting(function ($model) {
             if ($model->status_surat === 'disetujui') {
                 throw new \RuntimeException('Surat tugas yang sudah disetujui tidak dapat dihapus');
+            }
+
+            // Prevent orphan turunan: block delete if has active children
+            $activeChildren = $model->children()->whereNull('deleted_at')->count();
+            if ($activeChildren > 0) {
+                throw new \RuntimeException(
+                    "Surat tugas ini memiliki {$activeChildren} nomor turunan aktif. Hapus turunan terlebih dahulu."
+                );
             }
         });
     }

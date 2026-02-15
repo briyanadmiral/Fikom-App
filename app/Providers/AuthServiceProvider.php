@@ -41,13 +41,13 @@ class AuthServiceProvider extends ServiceProvider
             return $user->isActive() && $user->isApprover();
         });
 
-        // ✅ FIXED: Menyetujui surat tugas dengan validasi ID
+        // Menyetujui surat tugas dengan validasi ID
         Gate::define('approve-tugas', function (?User $user, TugasHeader $tugas): bool {
             if (! $user) {
                 return false;
             }
 
-            // ✅ FIXED: Validasi ID dan status
+            // Validasi ID dan status
             $userId = validate_integer_id($user->id);
             $nextApproverId = validate_integer_id($tugas->next_approver);
             $status = validate_status($tugas->status_surat, ['pending', 'draft', 'disetujui']);
@@ -59,25 +59,25 @@ class AuthServiceProvider extends ServiceProvider
             return $user->isActive() && $user->isApprover() && $userId === $nextApproverId;
         });
 
-        // ✅ FIXED: Mengedit surat tugas dengan validasi
+        // Mengedit surat tugas dengan validasi
         Gate::define('edit-surat', function (?User $user, TugasHeader $tugas): bool {
             if (! $user) {
                 return false;
             }
 
-            // ✅ FIXED: Validasi nomor_status
+            // Validasi nomor_status
             $nomorStatus = validate_status($tugas->nomor_status, ['locked', 'active']);
             if ($nomorStatus === 'locked') {
                 return false;
             }
 
-            // ✅ FIXED: Validasi status surat
+            // Validasi status surat
             $status = validate_status($tugas->status_surat, ['draft', 'pending', 'disetujui', 'ditolak']);
             if (! in_array($status, ['draft', 'pending'], true)) {
                 return false;
             }
 
-            // ✅ FIXED: Validasi ID
+            // Validasi ID
             $userId = validate_integer_id($user->id);
             $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
             $nextApproverId = validate_integer_id($tugas->next_approver);
@@ -100,7 +100,7 @@ class AuthServiceProvider extends ServiceProvider
         |--------------------------------------------------------------------------
         */
 
-        // ✅ ADDED: Gate untuk approve keputusan
+        // Gate untuk approve keputusan
         Gate::define('approve-keputusan', function (?User $user, KeputusanHeader $sk): bool {
             if (! $user) {
                 return false;
@@ -117,7 +117,7 @@ class AuthServiceProvider extends ServiceProvider
             return $user->isActive() && $user->canApproveSurat() && $userId === $penandatanganId;
         });
 
-        // ✅ ADDED: Gate untuk submit keputusan
+        // Gate untuk submit keputusan
         Gate::define('submit-keputusan', function (?User $user, KeputusanHeader $sk): bool {
             if (! $user) {
                 return false;
@@ -140,7 +140,7 @@ class AuthServiceProvider extends ServiceProvider
         |--------------------------------------------------------------------------
         */
 
-        // ✅ GOOD: Pengaturan Kop Surat (Hanya Admin TU)
+        // Pengaturan Kop Surat (Hanya Admin TU)
         Gate::define('manage-kop-surat', function (?User $user): bool {
             if (! $user) {
                 return false;
@@ -149,7 +149,7 @@ class AuthServiceProvider extends ServiceProvider
             return $user->isActive() && $user->isAdmin();
         });
 
-        // ✅ ADDED: Manajemen user
+        // Manajemen user
         Gate::define('manage-users', function (?User $user): bool {
             if (! $user) {
                 return false;
@@ -158,7 +158,7 @@ class AuthServiceProvider extends ServiceProvider
             return $user->isActive() && $user->isAdmin();
         });
 
-        // ✅ ADDED: View reports/analytics
+        // View reports/analytics
         Gate::define('view-reports', function (?User $user): bool {
             if (! $user) {
                 return false;
@@ -168,7 +168,7 @@ class AuthServiceProvider extends ServiceProvider
             return $user->isActive() && $peranId !== null && in_array($peranId, [1, 2, 3], true);
         });
 
-        // ✅ ADDED: Manage notifications
+        // Manage notifications
         Gate::define('manage-notifications', function (?User $user): bool {
             if (! $user) {
                 return false;
@@ -183,7 +183,7 @@ class AuthServiceProvider extends ServiceProvider
         |--------------------------------------------------------------------------
         */
 
-        // ✅ ADDED: Upload signature
+        // Upload signature
         Gate::define('upload-signature', function (?User $user): bool {
             if (! $user) {
                 return false;
@@ -192,7 +192,7 @@ class AuthServiceProvider extends ServiceProvider
             return $user->isActive();
         });
 
-        // ✅ ADDED: Download signed documents
+        // Download signed documents
         Gate::define('download-signed-document', function (?User $user, $document): bool {
             if (! $user || ! $user->isActive()) {
                 return false;
@@ -214,7 +214,7 @@ class AuthServiceProvider extends ServiceProvider
         |--------------------------------------------------------------------------
         */
 
-        // ✅ ADDED: Super admin gate (if implemented)
+        // Super admin gate (if implemented)
         Gate::before(function (?User $user, string $ability) {
             // Uncomment if you have super admin role (peran_id = 0)
             // if ($user && validate_integer_id($user->peran_id) === 0) {
@@ -231,7 +231,7 @@ class AuthServiceProvider extends ServiceProvider
         */
 
         if (! app()->environment('production')) {
-            // ✅ ADDED: Debug gates for development
+            // Debug gates for development
             Gate::define('view-debug-info', function (?User $user): bool {
                 return $user && $user->isAdmin();
             });

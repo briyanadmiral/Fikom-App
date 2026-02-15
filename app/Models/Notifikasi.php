@@ -3,17 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * ✅ REFACTORED: Security enhanced dengan sanitasi pesan
- * ✅ ADDED: SoftDeletes untuk audit trail
+ * Notifikasi - Model untuk notifikasi pengguna.
  */
 class Notifikasi extends Model
 {
-    use SoftDeletes; // ✅ ADDED
+    use SoftDeletes;
 
     protected $table = 'notifikasi';
 
@@ -21,7 +20,7 @@ class Notifikasi extends Model
 
     protected $fillable = ['pengguna_id', 'tipe', 'referensi_id', 'pesan', 'dibaca', 'dibuat_pada'];
 
-    protected $guarded = ['id', 'deleted_at']; // ✅ ADDED deleted_at
+    protected $guarded = ['id', 'deleted_at'];
 
     protected $casts = [
         'pengguna_id' => 'integer',
@@ -30,10 +29,9 @@ class Notifikasi extends Model
         'dibuat_pada' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime', // ✅ ADDED
+        'deleted_at' => 'datetime',
     ];
 
-    // ✅ ADDED: Dates array untuk soft delete compatibility
     protected $dates = ['dibuat_pada', 'deleted_at'];
 
     // ==================== RELASI =========================
@@ -46,7 +44,7 @@ class Notifikasi extends Model
     // ==================== ACCESSORS & MUTATORS =========================
 
     /**
-     * ✅ GOOD: Accessor untuk tipe dengan sanitasi
+     * Accessor untuk tipe dengan sanitasi.
      */
     protected function tipe(): Attribute
     {
@@ -54,7 +52,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ GOOD: Accessor untuk pesan dengan sanitasi
+     * Accessor untuk pesan dengan sanitasi.
      */
     protected function pesan(): Attribute
     {
@@ -74,7 +72,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ GOOD: Scope by user dengan validasi ID
+     * Scope by user dengan validasi ID.
      */
     public function scopeByUser($query, $userId)
     {
@@ -88,7 +86,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ GOOD: Scope by tipe dengan sanitasi
+     * Scope by tipe dengan sanitasi.
      */
     public function scopeByTipe($query, string $tipe)
     {
@@ -102,17 +100,17 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ GOOD: Scope recent notifications
+     * Scope recent notifications.
      */
     public function scopeRecent($query, int $days = 7)
     {
-        $days = max(1, min(365, $days)); // ✅ ADDED: Bounds check
+        $days = max(1, min(365, $days));
 
         return $query->where('dibuat_pada', '>=', now()->subDays($days));
     }
 
     /**
-     * ✅ GOOD: Scope order by latest
+     * Scope order by latest.
      */
     public function scopeLatest($query)
     {
@@ -120,7 +118,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ ADDED: Scope by referensi with validation
+     * Scope by referensi with validation.
      */
     public function scopeByReferensi($query, int $referensiId)
     {
@@ -136,7 +134,7 @@ class Notifikasi extends Model
     // ==================== BUSINESS LOGIC =========================
 
     /**
-     * ✅ GOOD: Mark as read
+     * Mark as read.
      */
     public function markAsRead(): bool
     {
@@ -148,7 +146,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ GOOD: Mark as unread
+     * Mark as unread.
      */
     public function markAsUnread(): bool
     {
@@ -160,7 +158,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ GOOD: Get pesan yang aman untuk display
+     * Get pesan yang aman untuk display.
      */
     public function getPesanSafe(): string
     {
@@ -168,7 +166,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ GOOD: Get time ago (human readable)
+     * Get time ago (human readable).
      */
     public function getTimeAgo(): string
     {
@@ -180,7 +178,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ GOOD: Check if notification is old
+     * Check if notification is old.
      */
     public function isOld(int $days = 30): bool
     {
@@ -188,13 +186,13 @@ class Notifikasi extends Model
             return true;
         }
 
-        $days = max(1, $days); // ✅ ADDED: Bounds check
+        $days = max(1, $days);
 
         return $this->dibuat_pada->lt(now()->subDays($days));
     }
 
     /**
-     * ✅ ADDED: Check if notification is unread
+     * Check if notification is unread.
      */
     public function isUnread(): bool
     {
@@ -202,7 +200,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ ADDED: Get badge class for UI
+     * Get badge class for UI.
      */
     public function getBadgeClass(): string
     {
@@ -222,7 +220,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ ADDED: Dynamic Link Accessor
+     * Dynamic Link Accessor.
      */
     public function getLinkAttribute(): ?string
     {
@@ -242,7 +240,7 @@ class Notifikasi extends Model
     // ==================== STATIC METHODS =========================
 
     /**
-     * ✅ GOOD: Mark all as read for user
+     * Mark all as read for user.
      */
     public static function markAllAsReadForUser(int $userId): int
     {
@@ -258,24 +256,23 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ IMPROVED: Delete old notifications (with soft delete awareness)
+     * Delete old notifications (with soft delete awareness).
      */
     public static function deleteOldNotifications(int $days = 90): int
     {
-        $days = max(30, $days); // ✅ ADDED: Minimum 30 days safety
+        $days = max(30, $days);
 
-        // Soft delete first
         return self::where('dibuat_pada', '<', now()->subDays($days))
-            ->where('dibaca', true) // ✅ Only delete read notifications
+            ->where('dibaca', true)
             ->delete();
     }
 
     /**
-     * ✅ ADDED: Force delete old soft-deleted notifications
+     * Force delete old soft-deleted notifications.
      */
     public static function forceDeleteOldNotifications(int $days = 180): int
     {
-        $days = max(90, $days); // ✅ Minimum 90 days for force delete
+        $days = max(90, $days);
 
         return self::onlyTrashed()
             ->where('deleted_at', '<', now()->subDays($days))
@@ -283,7 +280,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ GOOD: Get unread count for user
+     * Get unread count for user.
      */
     public static function getUnreadCount(int $userId): int
     {
@@ -297,7 +294,7 @@ class Notifikasi extends Model
     }
 
     /**
-     * ✅ ADDED: Create notification with validation
+     * Create notification with validation.
      */
     public static function createNotification(array $data): ?self
     {
@@ -333,14 +330,14 @@ class Notifikasi extends Model
     {
         parent::boot();
 
-        // ✅ ADDED: Auto-set dibuat_pada on create
+        // Auto-set dibuat_pada on create
         static::creating(function ($model) {
             if (empty($model->dibuat_pada)) {
                 $model->dibuat_pada = now();
             }
         });
 
-        // ✅ ADDED: Validate before saving
+        // Validate before saving
         static::saving(function ($model) {
             if (empty($model->pengguna_id)) {
                 throw new \InvalidArgumentException('Pengguna ID wajib diisi');

@@ -7,11 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 /**
- * ✅ IMPROVED: Enhanced sanitization & validation for Surat Keputusan
- *
- * @version 2.0.0
- *
- * @date 2025-12-06
+ * Enhanced sanitization & validation for Surat Keputusan.
  */
 class StoreKeputusanRequest extends FormRequest
 {
@@ -37,17 +33,17 @@ class StoreKeputusanRequest extends FormRequest
             'tahun' => ['nullable', 'integer', 'digits:4', 'min:2020', 'max:2100'],
 
             // === Tentang (Judul) ===
-            'tentang' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'tentang' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
 
             // === Judul Penetapan ===
-            'judul_penetapan' => ['nullable', 'string', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'judul_penetapan' => ['nullable', 'string', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
 
             // === Penandatangan ===
             'penandatangan' => [
                 'nullable',
                 'integer',
                 'exists:pengguna,id',
-                'required_if:mode,pending,terkirim', // ✅ Wajib isi jika diajukan
+                'required_if:mode,pending,terkirim',
             ],
             'npp_penandatangan' => [
                 'nullable',
@@ -58,15 +54,15 @@ class StoreKeputusanRequest extends FormRequest
 
             // === Konsideran: Menimbang ===
             'menimbang' => ['required', 'array', 'min:1'],
-            'menimbang.*' => ['required', 'string', 'max:1000', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'menimbang.*' => ['required', 'string', 'max:1000', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
 
             // === Konsideran: Mengingat ===
             'mengingat' => ['required', 'array', 'min:1'],
-            'mengingat.*' => ['required', 'string', 'max:1000', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'mengingat.*' => ['required', 'string', 'max:1000', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
 
             // === Diktum: Menetapkan ===
             'menetapkan' => ['required', 'array', 'min:1'],
-            'menetapkan.*.judul' => ['required', 'string', 'max:200', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'menetapkan.*.judul' => ['required', 'string', 'max:200', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
             'menetapkan.*.isi' => ['required', 'string', 'max:65000'],
 
             // === Penerima Internal ===
@@ -86,7 +82,7 @@ class StoreKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Validate logic cross-fields (Penerima required if pending)
+     * Validate logic cross-fields (Penerima required if pending).
      */
     public function withValidator($validator)
     {
@@ -104,7 +100,7 @@ class StoreKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ IMPROVED: Comprehensive sanitization before validation
+     * Comprehensive sanitization before validation.
      */
     protected function prepareForValidation(): void
     {
@@ -123,13 +119,13 @@ class StoreKeputusanRequest extends FormRequest
             if ($this->has($field) && is_string($this->input($field))) {
                 $value = $this->input($field);
 
-                // ✅ Strip HTML tags
+
                 $value = strip_tags($value);
 
-                // ✅ Remove dangerous characters
+
                 $value = $this->removeDangerousChars($value);
 
-                // ✅ Apply sanitization helper
+
                 $value = sanitize_input($value, $maxLength);
 
                 $this->merge([$field => $value]);
@@ -282,10 +278,10 @@ class StoreKeputusanRequest extends FormRequest
                     $judul = strip_tags(trim((string) ($d['judul'] ?? '')));
                     $isi = $d['isi'] ?? ($d['konten'] ?? '');
 
-                    // ✅ Sanitize HTML content dengan helper
+
                     $isi = sanitize_html_limited($isi);
 
-                    // ✅ Additional XSS protection
+
                     $isi = $this->stripDangerousHtml($isi);
 
                     if ($judul === '' && trim(strip_tags($isi)) === '') {
@@ -357,7 +353,7 @@ class StoreKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Remove dangerous characters (SQL/XSS patterns)
+     * Remove dangerous characters (SQL/XSS patterns).
      */
     private function removeDangerousChars(?string $value): string
     {
@@ -372,7 +368,7 @@ class StoreKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Strip dangerous HTML patterns
+     * Strip dangerous HTML patterns.
      */
     private function stripDangerousHtml(?string $value): string
     {
@@ -389,7 +385,7 @@ class StoreKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Ensure at least one penerima exists
+     * Ensure at least one penerima exists.
      */
     private function validatePenerimaExists(): void
     {
@@ -474,7 +470,7 @@ class StoreKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Custom attribute names for better error messages
+     * Custom attribute names for better error messages.
      */
     public function attributes(): array
     {
@@ -497,7 +493,7 @@ class StoreKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Handle failed validation
+     * Handle failed validation.
      */
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {

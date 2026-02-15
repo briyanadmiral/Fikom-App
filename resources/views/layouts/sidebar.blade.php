@@ -34,7 +34,7 @@
                      text-shadow: 0 0 100px #fff,
                                   0 0 40px #fff,
                                   0 0 30px #fff; ">
-            SIEGA
+            FIKOM
         </span>
     </a>
 

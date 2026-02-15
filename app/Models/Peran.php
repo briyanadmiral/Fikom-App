@@ -3,18 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * ✅ REFACTORED: Security enhanced dengan sanitasi dan caching
- * ✅ ADDED: SoftDeletes untuk data integrity
+ * Peran - Model untuk manajemen role.
  */
 class Peran extends Model
 {
-    use SoftDeletes; // ✅ ADDED
+    use SoftDeletes;
 
     protected $table = 'peran';
 
@@ -22,15 +21,14 @@ class Peran extends Model
 
     protected $fillable = ['nama', 'deskripsi', 'is_active', 'dibuat_pada'];
 
-    protected $guarded = ['id', 'deleted_at']; // ✅ ADDED deleted_at
+    protected $guarded = ['id', 'deleted_at'];
 
     protected $casts = [
         'is_active' => 'boolean',
         'dibuat_pada' => 'datetime',
-        'deleted_at' => 'datetime', // ✅ ADDED
+        'deleted_at' => 'datetime',
     ];
 
-    // ✅ ADDED: Dates array for compatibility
     protected $dates = ['dibuat_pada', 'deleted_at'];
 
     const CACHE_KEY = 'peran_all';
@@ -47,7 +45,7 @@ class Peran extends Model
     // ==================== ACCESSORS & MUTATORS =========================
 
     /**
-     * ✅ GOOD: Accessor untuk nama dengan sanitasi
+     * Accessor untuk nama dengan sanitasi.
      */
     protected function nama(): Attribute
     {
@@ -55,7 +53,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ GOOD: Accessor untuk deskripsi dengan sanitasi
+     * Accessor untuk deskripsi dengan sanitasi.
      */
     protected function deskripsi(): Attribute
     {
@@ -70,7 +68,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ GOOD: Scope untuk role admin
+     * Scope untuk role admin.
      */
     public function scopeAdmin($query)
     {
@@ -78,7 +76,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ GOOD: Scope untuk role approver
+     * Scope untuk role approver.
      */
     public function scopeApprover($query)
     {
@@ -86,7 +84,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ ADDED: Scope untuk role staff
+     * Scope untuk role staff.
      */
     public function scopeStaff($query)
     {
@@ -94,7 +92,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ ADDED: Scope by name dengan sanitasi
+     * Scope by name dengan sanitasi.
      */
     public function scopeByName($query, string $nama)
     {
@@ -110,7 +108,7 @@ class Peran extends Model
     // ==================== BUSINESS LOGIC =========================
 
     /**
-     * ✅ GOOD: Check if role is admin
+     * Check if role is admin.
      */
     public function isAdmin(): bool
     {
@@ -118,7 +116,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ GOOD: Check if role can approve
+     * Check if role can approve.
      */
     public function canApprove(): bool
     {
@@ -126,7 +124,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ GOOD: Get role display name (safe)
+     * Get role display name (safe).
      */
     public function getDisplayName(): string
     {
@@ -134,7 +132,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ GOOD: Check if role can be deleted
+     * Check if role can be deleted.
      */
     public function canBeDeleted(): bool
     {
@@ -148,7 +146,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ GOOD: Get users count
+     * Get users count.
      */
     public function getUsersCount(): int
     {
@@ -156,7 +154,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ ADDED: Get active users count
+     * Get active users count.
      */
     public function getActiveUsersCount(): int
     {
@@ -164,7 +162,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ ADDED: Check if role is system role
+     * Check if role is system role.
      */
     public function isSystemRole(): bool
     {
@@ -172,7 +170,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ ADDED: Get badge class for UI
+     * Get badge class for UI.
      */
     public function getBadgeClass(): string
     {
@@ -187,7 +185,7 @@ class Peran extends Model
     // ==================== STATIC METHODS =========================
 
     /**
-     * ✅ GOOD: Get all roles dengan caching
+     * Get all roles dengan caching.
      */
     public static function getAllCached()
     {
@@ -197,7 +195,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ ADDED: Get active roles dengan caching
+     * Get active roles dengan caching.
      */
     public static function getActiveCached()
     {
@@ -207,7 +205,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ GOOD: Clear cache
+     * Clear cache.
      */
     public static function clearCache(): void
     {
@@ -216,7 +214,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ GOOD: Get role by name
+     * Get role by name.
      */
     public static function findByName(string $nama): ?self
     {
@@ -230,7 +228,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ ADDED: Get role by ID with validation
+     * Get role by ID with validation.
      */
     public static function findById(int $id): ?self
     {
@@ -244,7 +242,7 @@ class Peran extends Model
     }
 
     /**
-     * ✅ ADDED: Get approver roles
+     * Get approver roles.
      */
     public static function getApproverRoles()
     {
@@ -268,12 +266,12 @@ class Peran extends Model
             self::clearCache();
         });
 
-        // ✅ ADDED: Clear cache on restore
+        // Clear cache on restore
         static::restored(function () {
             self::clearCache();
         });
 
-        // ✅ ADDED: Prevent deletion of system roles
+        // Prevent deletion of system roles
         static::deleting(function ($model) {
             if ($model->isSystemRole()) {
                 throw new \RuntimeException('System role tidak dapat dihapus');
@@ -284,7 +282,7 @@ class Peran extends Model
             }
         });
 
-        // ✅ ADDED: Validate before saving
+        // Validate before saving
         static::saving(function ($model) {
             if (empty($model->nama)) {
                 throw new \InvalidArgumentException('Nama role wajib diisi');
@@ -301,7 +299,7 @@ class Peran extends Model
             }
         });
 
-        // ✅ ADDED: Auto-set dibuat_pada on create
+        // Auto-set dibuat_pada on create
         static::creating(function ($model) {
             if (empty($model->dibuat_pada)) {
                 $model->dibuat_pada = now();

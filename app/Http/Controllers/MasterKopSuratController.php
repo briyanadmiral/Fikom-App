@@ -12,10 +12,6 @@ use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
-/**
- * Controller untuk pengaturan Kop Surat
- * ✅ UPDATED: Added dual logo, image optimization, presets, export/import
- */
 class MasterKopSuratController extends Controller
 {
     protected ImageOptimizerService $imageOptimizer;
@@ -45,7 +41,6 @@ class MasterKopSuratController extends Controller
 
         $kop = MasterKopSurat::firstOrNew([]);
 
-        // Defaults jika baru
         if (! $kop->exists) {
             $kop->mode_type = 'custom';
             $kop->text_align = 'left';
@@ -58,7 +53,6 @@ class MasterKopSuratController extends Controller
             $kop->tampilkan_logo_kiri = false;
         }
 
-        // Get presets from config
         $presets = config('kop_surat_presets.presets', []);
         $paperSizes = config('kop_surat_presets.paper_sizes', []);
 
@@ -72,57 +66,33 @@ class MasterKopSuratController extends Controller
     {
         $this->ensureAdmin();
 
-        \Log::info('=== KOP UPDATE START ===');
-        \Log::info('Has background file: '.($r->hasFile('background') ? 'YES' : 'NO'));
-        \Log::info('Mode type: '.$r->input('mode_type'));
-
         $kop = MasterKopSurat::firstOrNew([]);
 
         $data = $r->validate([
             'mode_type' => ['required', 'in:custom,upload'],
             'text_align' => ['nullable', 'in:left,right,center'],
-
-            // Styling controls
             'logo_size' => ['nullable', 'integer', 'min:30', 'max:300'],
             'font_size_title' => ['nullable', 'integer', 'min:10', 'max:30'],
             'font_size_text' => ['nullable', 'integer', 'min:8', 'max:20'],
             'text_color' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6})$/'],
             'header_padding' => ['nullable', 'integer', 'min:0', 'max:250'],
             'background_opacity' => ['nullable', 'integer', 'min:0', 'max:100'],
-
-            // Text content
             'nama_fakultas' => ['nullable', 'string', 'max:255'],
             'alamat_lengkap' => ['nullable', 'string', 'max:500'],
             'telepon_lengkap' => ['nullable', 'string', 'max:255'],
             'email_website' => ['nullable', 'string', 'max:255'],
-
-            // Files - now with separate names
             'logo_kanan' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
             'logo_kiri' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
             'background_custom' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
             'background_upload' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
             'cap' => ['sometimes', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:1024'],
-
-            // Toggles
             'tampilkan_logo_kanan' => ['sometimes', 'boolean'],
             'tampilkan_logo_kiri' => ['sometimes', 'boolean'],
         ]);
 
-        // Merge background inputs - use whichever is provided
-        if ($r->hasFile('background_custom')) {
-            \Log::info('Has background_custom file: YES');
-            // Merge into 'background' key for processing
-            $r->files->set('background', $r->file('background_custom'));
-        } elseif ($r->hasFile('background_upload')) {
-            \Log::info('Has background_upload file: YES');
-            $r->files->set('background', $r->file('background_upload'));
-        }
-
-        // Normalize boolean values
         $data['tampilkan_logo_kanan'] = isset($data['tampilkan_logo_kanan']) ? (bool) $data['tampilkan_logo_kanan'] : false;
         $data['tampilkan_logo_kiri'] = isset($data['tampilkan_logo_kiri']) ? (bool) $data['tampilkan_logo_kiri'] : false;
 
-        // File handling with optimization
         $fileTargets = [
             'logo_kanan' => ['column' => 'logo_kanan_path', 'method' => 'optimizeLogo'],
             'logo_kiri' => ['column' => 'logo_kiri_path', 'method' => 'optimizeLogo'],
@@ -134,73 +104,45 @@ class MasterKopSuratController extends Controller
                 $columnName = $config['column'];
                 $optimizeMethod = $config['method'];
 
-                \Log::info("Processing file upload: {$inputName}");
-                \Log::info("  - Column: {$columnName}");
-                \Log::info("  - Method: {$optimizeMethod}");
-
-                // Delete old file
                 if (! empty($kop->$columnName)) {
                     $oldPath = $kop->$columnName;
-                    \Log::info("  - Old path exists: {$oldPath}");
                     if ($oldPath && Storage::disk('public')->exists($oldPath)) {
                         Storage::disk('public')->delete($oldPath);
-                        \Log::info('  - Old file deleted');
                     }
                 }
 
-                // Optimize and store new file
                 $path = $this->imageOptimizer->$optimizeMethod($r->file($inputName));
                 $data[$columnName] = $path;
-
-                \Log::info("  - New path saved: {$path}");
             }
         }
 
-        // Handle background separately - check both background_custom and background_upload
         $backgroundFile = null;
         if ($r->hasFile('background_custom')) {
             $backgroundFile = $r->file('background_custom');
-            \Log::info('Using background_custom file');
         } elseif ($r->hasFile('background_upload')) {
             $backgroundFile = $r->file('background_upload');
-            \Log::info('Using background_upload file');
         }
 
         if ($backgroundFile) {
-            \Log::info('Processing background file upload');
-
-            // Delete old file
             if (! empty($kop->background_path)) {
                 $oldPath = $kop->background_path;
-                \Log::info("  - Old background path exists: {$oldPath}");
                 if ($oldPath && Storage::disk('public')->exists($oldPath)) {
                     Storage::disk('public')->delete($oldPath);
-                    \Log::info('  - Old background file deleted');
                 }
             }
 
-            // Optimize and store new file
             $path = $this->imageOptimizer->optimizeBackground($backgroundFile);
             $data['background_path'] = $path;
-
-            \Log::info("  - New background path saved: {$path}");
         }
 
-        // Cleanup file inputs from data
         unset($data['logo_kanan'], $data['logo_kiri'], $data['background_custom'], $data['background_upload'], $data['cap']);
 
         if (Schema::hasColumn('master_kop_surat', 'updated_by')) {
             $data['updated_by'] = auth()->id();
         }
 
-        \Log::info('Data to be saved:', $data);
-
         $kop->fill($data);
         $kop->save();
-
-        \Log::info('Kop saved with ID: '.$kop->id);
-        \Log::info('Background path in DB: '.($kop->background_path ?? 'NULL'));
-        \Log::info('=== KOP UPDATE SUCCESS ===');
 
         MasterKopSurat::clearCache();
 
@@ -243,39 +185,19 @@ class MasterKopSuratController extends Controller
      */
     public function preview(Request $r)
     {
-        \Log::info('=== KOP PREVIEW START ===');
-        \Log::info('Request Method: '.$r->method());
-        \Log::info('Request URL: '.$r->fullUrl());
-        \Log::info('Request Headers:', $r->headers->all());
-        \Log::info('Has CSRF Token: '.($r->header('X-CSRF-TOKEN') ? 'YES' : 'NO'));
+        $this->ensureAdmin();
 
-        try {
-            $this->ensureAdmin();
-            \Log::info('Admin check passed');
+        $kop = MasterKopSurat::first() ?? new MasterKopSurat;
 
-            $kop = MasterKopSurat::first() ?? new MasterKopSurat;
-            \Log::info('Kop loaded, ID: '.($kop->id ?? 'NEW'));
+        $kop->fill($r->except(['_token', 'logo_kanan', 'logo_kiri', 'background', 'cap']));
 
-            // Fill with request data for preview (exclude file uploads and CSRF token)
-            $kop->fill($r->except(['_token', 'logo_kanan', 'logo_kiri', 'background', 'cap']));
-            \Log::info('Kop filled with request data');
+        $html = view('shared._kop_surat', [
+            'kop' => $kop,
+            'context' => 'web',
+            'showDivider' => true,
+        ])->render();
 
-            $html = view('shared._kop_surat', [
-                'kop' => $kop,
-                'context' => 'web',
-                'showDivider' => true,
-            ])->render();
-
-            \Log::info('View rendered successfully, length: '.strlen($html));
-            \Log::info('=== KOP PREVIEW SUCCESS ===');
-
-            return $html;
-        } catch (\Exception $e) {
-            \Log::error('=== KOP PREVIEW ERROR ===');
-            \Log::error('Error Message: '.$e->getMessage());
-            \Log::error('Stack Trace: '.$e->getTraceAsString());
-            throw $e;
-        }
+        return $html;
     }
 
     /**
@@ -315,7 +237,6 @@ class MasterKopSuratController extends Controller
 
         $exportData = $kop->exportConfig();
 
-        // Include base64 encoded images if they exist
         $imagePaths = [
             'logo_kanan' => $kop->logo_kanan_path,
             'logo_kiri' => $kop->logo_kiri_path,
@@ -364,10 +285,8 @@ class MasterKopSuratController extends Controller
 
             $kop = MasterKopSurat::firstOrNew([]);
 
-            // Apply configuration
             $kop->fill($importData['config']);
 
-            // Handle imported images
             if (isset($importData['images'])) {
                 foreach ($importData['images'] as $key => $imageData) {
                     if (isset($imageData['data']) && isset($imageData['filename'])) {
@@ -381,12 +300,10 @@ class MasterKopSuratController extends Controller
                         if (isset($columnMap[$key])) {
                             $columnName = $columnMap[$key];
 
-                            // Delete old file
                             if ($kop->$columnName && Storage::disk('public')->exists($kop->$columnName)) {
                                 Storage::disk('public')->delete($kop->$columnName);
                             }
 
-                            // Save new file
                             $path = 'kop/'.uniqid().'_'.$imageData['filename'];
                             Storage::disk('public')->put($path, base64_decode($imageData['data']));
                             $kop->$columnName = $path;

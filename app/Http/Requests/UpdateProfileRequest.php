@@ -7,20 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 /**
- * ✅ IMPROVED: Enhanced profile update security & validation
- *
- * Profile update security considerations:
- * - Email uniqueness & format validation
- * - Name sanitization (XSS prevention)
- * - NPP format validation & uniqueness
- * - Jabatan sanitization
- * - No privilege escalation
- * - Disposable email blocking (optional)
- * - Audit logging
- *
- * @version 2.0.0
- *
- * @date 2025-12-06
+ * Enhanced profile update security & validation.
  */
 class UpdateProfileRequest extends FormRequest
 {
@@ -46,19 +33,19 @@ class UpdateProfileRequest extends FormRequest
                 'string',
                 'min:3',
                 'max:100',
-                // ✅ Allow letters, spaces, dots, apostrophes, hyphens, commas (for academic titles like SE., MM)
+
                 'regex:/^[\p{L}\s\.\'\'\-,]+$/u',
             ],
 
             // === Email ===
             'email' => [
                 'required',
-                'email:rfc,dns', // ✅ Validate DNS (MX record check)
+                'email:rfc,dns',
                 'max:100',
-                'regex:/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i', // ✅ Standard email format
+                'regex:/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i',
                 Rule::unique('pengguna', 'email')->ignore($userId)->whereNull('deleted_at'),
 
-                // ✅ Custom rule: Block disposable email (optional)
+
                 function ($attribute, $value, $fail) {
                     if ($this->isDisposableEmail($value)) {
                         $fail('Email dari layanan disposable/temporary tidak diizinkan.');
@@ -71,11 +58,11 @@ class UpdateProfileRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:50',
-                // ✅ NPP format: digits with dots (e.g., 123.4.5678.901)
+
                 'regex:/^[\d\.]+$/',
                 Rule::unique('pengguna', 'npp')->ignore($userId)->whereNull('deleted_at'),
 
-                // ✅ Custom rule: Validate NPP format
+
                 function ($attribute, $value, $fail) {
                     if ($value && ! $this->isValidNPPFormat($value)) {
                         $fail('Format NPP tidak valid. Contoh: 123.1.4567.890');
@@ -88,7 +75,7 @@ class UpdateProfileRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:100',
-                // ✅ Letters, numbers, spaces, common punctuation
+
                 'regex:/^[\p{L}\p{N}\s\-\.,()\/]+$/u',
             ],
 
@@ -97,7 +84,7 @@ class UpdateProfileRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:20',
-                // ✅ Indonesian phone format: +62, 08, 62, or (021)
+
                 'regex:/^(\+62|62|0)[0-9\s\-\(\)]+$/',
             ],
 
@@ -107,7 +94,7 @@ class UpdateProfileRequest extends FormRequest
     }
 
     /**
-     * ✅ IMPROVED: Comprehensive sanitization before validation
+     * Comprehensive sanitization before validation.
      */
     protected function prepareForValidation(): void
     {
@@ -247,7 +234,7 @@ class UpdateProfileRequest extends FormRequest
     }
 
     /**
-     * ✅ Remove dangerous characters
+     * Remove dangerous characters.
      */
     private function removeDangerousChars(string $value): string
     {
@@ -261,7 +248,7 @@ class UpdateProfileRequest extends FormRequest
     }
 
     /**
-     * ✅ Format NPP based on digit length
+     * Format NPP based on digit length.
      */
     private function formatNPP(string $digits): ?string
     {
@@ -286,7 +273,7 @@ class UpdateProfileRequest extends FormRequest
     }
 
     /**
-     * ✅ Validate NPP format
+     * Validate NPP format.
      */
     private function isValidNPPFormat(string $npp): bool
     {
@@ -305,7 +292,7 @@ class UpdateProfileRequest extends FormRequest
     }
 
     /**
-     * ✅ Check if email is from disposable service (optional)
+     * Check if email is from disposable service.
      */
     private function isDisposableEmail(string $email): bool
     {
@@ -381,19 +368,7 @@ class UpdateProfileRequest extends FormRequest
     }
 
     /**
-     * ✅ Handle successful validation
-     */
-    protected function passedValidation(): void
-    {
-        Log::info('Profile update validation passed', [
-            'user_id' => auth()->id(),
-            'ip' => request()->ip(),
-            'updated_fields' => array_keys($this->validated()),
-        ]);
-    }
-
-    /**
-     * ✅ Handle failed validation
+     * Handle failed validation.
      */
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {

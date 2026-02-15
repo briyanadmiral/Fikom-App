@@ -3,17 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * ✅ REFACTORED: Security enhanced dengan global helpers
- * ✅ ADDED: SoftDeletes untuk data integrity
+ * TugasPenerima - Model untuk penerima surat tugas.
  */
 class TugasPenerima extends Model
 {
-    use SoftDeletes; // ✅ ADDED
+    use SoftDeletes;
 
     protected $table = 'tugas_penerima';
 
@@ -22,15 +21,15 @@ class TugasPenerima extends Model
         'pengguna_id',
         'nama_eksternal',
         'email_eksternal',
-        'jabatan_eksternal', // ✅ ADDED
-        'instansi_eksternal', // ✅ ADDED
+        'jabatan_eksternal',
+        'instansi_eksternal',
         'is_internal',
         'is_read',
         'read_at',
-        'dibaca', // ✅ ADDED for consistency
+        'dibaca',
     ];
 
-    protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at']; // ✅ ADDED deleted_at
+    protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at'];
 
     protected $casts = [
         'tugas_id' => 'integer',
@@ -41,10 +40,9 @@ class TugasPenerima extends Model
         'read_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime', // ✅ ADDED
+        'deleted_at' => 'datetime',
     ];
 
-    // ✅ CHANGED: Enable timestamps
     public $timestamps = true;
 
     // ==================== RELASI =========================
@@ -62,7 +60,7 @@ class TugasPenerima extends Model
     // ==================== ACCESSORS & MUTATORS =========================
 
     /**
-     * ✅ GOOD: Accessor dengan sanitasi
+     * Accessor nama lengkap dengan sanitasi.
      */
     protected function namaLengkap(): Attribute
     {
@@ -78,7 +76,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ GOOD: Accessor dengan validasi email
+     * Accessor email dengan validasi.
      */
     protected function email(): Attribute
     {
@@ -94,7 +92,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ GOOD: Mutator untuk nama_eksternal
+     * Mutator untuk nama_eksternal.
      */
     protected function namaEksternal(): Attribute
     {
@@ -102,7 +100,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ GOOD: Mutator untuk email_eksternal
+     * Mutator untuk email_eksternal.
      */
     protected function emailEksternal(): Attribute
     {
@@ -110,7 +108,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ ADDED: Mutator untuk jabatan_eksternal
+     * Mutator untuk jabatan_eksternal.
      */
     protected function jabatanEksternal(): Attribute
     {
@@ -118,7 +116,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ ADDED: Mutator untuk instansi_eksternal
+     * Mutator untuk instansi_eksternal.
      */
     protected function instansiEksternal(): Attribute
     {
@@ -148,7 +146,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ GOOD: Scope by tugas dengan validasi ID
+     * Scope by tugas dengan validasi ID.
      */
     public function scopeByTugas($query, $tugasId)
     {
@@ -162,7 +160,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ ADDED: Scope by user dengan validasi ID
+     * Scope by user dengan validasi ID.
      */
     public function scopeByUser($query, $userId)
     {
@@ -178,7 +176,7 @@ class TugasPenerima extends Model
     // ==================== BUSINESS LOGIC =========================
 
     /**
-     * ✅ GOOD: Mark as read
+     * Mark as read.
      */
     public function markAsRead(): bool
     {
@@ -188,13 +186,13 @@ class TugasPenerima extends Model
 
         return $this->update([
             'is_read' => true,
-            'dibaca' => true, // ✅ ADDED for consistency
+            'dibaca' => true,
             'read_at' => now(),
         ]);
     }
 
     /**
-     * ✅ ADDED: Mark as unread
+     * Mark as unread.
      */
     public function markAsUnread(): bool
     {
@@ -210,7 +208,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ GOOD: Check if internal recipient
+     * Check if internal recipient.
      */
     public function isInternal(): bool
     {
@@ -218,7 +216,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ ADDED: Check if external recipient
+     * Check if external recipient.
      */
     public function isExternal(): bool
     {
@@ -226,7 +224,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ GOOD: Get display name (safe)
+     * Get display name (safe).
      */
     public function getDisplayName(): string
     {
@@ -234,7 +232,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ ADDED: Get full info with jabatan & instansi
+     * Get full info with jabatan & instansi.
      */
     public function getFullInfo(): string
     {
@@ -256,7 +254,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ ADDED: Get badge class for UI
+     * Get badge class for UI.
      */
     public function getBadgeClass(): string
     {
@@ -270,7 +268,7 @@ class TugasPenerima extends Model
     // ==================== STATIC METHODS =========================
 
     /**
-     * ✅ ADDED: Get penerima by tugas
+     * Get penerima by tugas.
      */
     public static function getByTugas(int $tugasId)
     {
@@ -284,7 +282,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ ADDED: Get internal penerima by tugas
+     * Get internal penerima by tugas.
      */
     public static function getInternalByTugas(int $tugasId)
     {
@@ -298,7 +296,7 @@ class TugasPenerima extends Model
     }
 
     /**
-     * ✅ ADDED: Get external penerima by tugas
+     * Get external penerima by tugas.
      */
     public static function getExternalByTugas(int $tugasId)
     {
@@ -316,7 +314,7 @@ class TugasPenerima extends Model
     {
         parent::boot();
 
-        // ✅ IMPROVED: Validate before saving (lebih lenient)
+        // Validate before saving (lebih lenient)
         static::saving(function ($model) {
             // Validate tugas_id (ini wajib)
             if (empty($model->tugas_id)) {
@@ -328,7 +326,7 @@ class TugasPenerima extends Model
                 throw new \InvalidArgumentException('Tugas ID tidak valid');
             }
 
-            // ✅ FIXED: Validate recipient data (hanya jika is_internal = true)
+            // Validate recipient data (hanya jika is_internal = true)
             if ($model->is_internal === true || $model->is_internal === 1) {
                 // Penerima internal: wajib punya pengguna_id
                 if (empty($model->pengguna_id)) {
@@ -340,7 +338,7 @@ class TugasPenerima extends Model
                     throw new \InvalidArgumentException('Pengguna ID tidak valid');
                 }
             }
-            // ✅ REMOVED: Validasi penerima eksternal dihapus
+            // Validasi penerima eksternal dihapus
             // Karena:
             // 1. Penerima eksternal OPTIONAL
             // 2. Validasi sudah ada di FormRequest

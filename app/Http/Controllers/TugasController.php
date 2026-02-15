@@ -141,7 +141,6 @@ class TugasController extends Controller
             abort(403, 'Anda tidak berhak melihat semua surat.');
         }
 
-        // ✅ STEP 1: Validasi input filter
         $validated = $request->validate([
             'search' => 'nullable|string|max:100',
 
@@ -156,21 +155,16 @@ class TugasController extends Controller
             'order' => 'nullable|in:asc,desc',
         ]);
 
-        // ✅ STEP 2: Base query dengan eager loading penting
         $query = TugasHeader::withFullRelations();
 
-        // ✅ STEP 3: Apply advance filters (scope di model)
         $query->applyFilters($validated);
 
-        // ✅ STEP 4: Sorting
         $sortBy = $validated['sort'] ?? 'created_at';
         $sortOrder = $validated['order'] ?? 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
-        // ✅ STEP 5: Eksekusi query
         $list = $query->get();
 
-        // ✅ STEP 6: Hitung statistik per status
         $stats = [
             'draft' => $list->where('status_surat', 'draft')->count(),
             'pending' => $list->where('status_surat', 'pending')->count(),
@@ -179,10 +173,8 @@ class TugasController extends Controller
             'arsip' => $list->where('status_surat', 'arsip')->count(),
         ];
 
-        // ✅ STEP 7: Data dropdown filter
         $filterData = $this->getFilterDropdownData();
 
-        // Bisa dipakai di view untuk bedakan mode list (all / approve / lainnya)
         $mode = 'all';
 
         return view('surat_tugas.index', compact('list', 'stats', 'filterData', 'mode'));
@@ -199,14 +191,10 @@ class TugasController extends Controller
         $autoNomor = sprintf('/TG/UNIKA/%s/%s', $bulanRomawi, $tahun);
         $tanggalHariIni = now()->format('Y-m-d');
 
-        // ✅ PHASE 1: Load active templates for template selector
         $templates = \App\Models\SuratTemplate::active()->with(['jenisTugas', 'subTugas'])->orderBy('nama')->get();
 
-        // ✅ NOMOR TURUNAN: Load parentable nomors (pending/approved, no suffix, current year)
-        // Surat Pending & Disetujui boleh jadi parent karena sudah punya nomor tetap
-        // Hanya Draft & Ditolak yang tidak boleh (nomor belum fix/gagal)
         $parentableNomors = TugasHeader::whereIn('status_surat', ['pending', 'disetujui'])
-            ->onlyMainNomor()  // scope: whereNull('suffix')->whereNull('parent_tugas_id')
+            ->onlyMainNomor()
             ->where('tahun', $tahun)
             ->orderByNomor('desc')
             ->limit(100)
@@ -227,7 +215,6 @@ class TugasController extends Controller
 
             return redirect()->route('surat_tugas.index')->with('success', $message);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // ✅ Tangkap validation error
             \Log::error('Validation Failed: Surat Tugas', [
                 'errors' => $e->errors(),
                 'input' => $request->except(['_token']),
@@ -251,7 +238,7 @@ class TugasController extends Controller
 
             return back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan saat menyimpan surat tugas. Silakan coba lagi.');
         }
     }
 
@@ -293,7 +280,7 @@ class TugasController extends Controller
         ];
 
         return view('surat_tugas.approve', [
-            'tugas' => $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna']),
+            'tugas' => $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran']),
             'kop' => $assets['kop'],
             'preview' => $previewData,
             'showSigns' => true,
@@ -391,7 +378,7 @@ class TugasController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
-            return back()->with('error', 'Terjadi kesalahan saat menyetujui surat: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat menyetujui surat. Silakan coba lagi.');
         }
     }
 
@@ -414,7 +401,7 @@ class TugasController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
-            return back()->with('error', 'Terjadi kesalahan saat menolak surat: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat menolak surat. Silakan coba lagi.');
         }
     }
 
@@ -431,7 +418,7 @@ class TugasController extends Controller
                 'error' => sanitize_log_message($e->getMessage()),
             ]);
 
-            return back()->with('error', 'Gagal menghapus surat tugas.');
+            return back()->with('error', 'Gagal menghapus surat tugas. Silakan coba lagi.');
         }
     }
 
@@ -485,6 +472,7 @@ class TugasController extends Controller
 
     private function renderTugasPdfWithSign(TugasHeader $tugas): string
     {
+        $tugas->loadMissing('penerima.pengguna.peran');
         $signAssets = $this->getSigningAssets($tugas);
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
 
@@ -514,6 +502,7 @@ class TugasController extends Controller
 
     private function renderTugasPdfDraft(TugasHeader $tugas): string
     {
+        $tugas->loadMissing('penerima.pengguna.peran');
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
         $kop = MasterKopSurat::getInstance();
 
@@ -544,7 +533,7 @@ class TugasController extends Controller
     public function show(TugasHeader $tugas)
     {
         // Load relasi yang dibutuhkan
-        $tugas->load(['pembuat:id,nama_lengkap,email', 'penandatanganUser:id,nama_lengkap,email,peran_id,jabatan,npp', 'penandatanganUser.peran:id,nama', 'klasifikasi:id,kode,deskripsi', 'penerima.pengguna:id,nama_lengkap']);
+        $tugas->load(['pembuat:id,nama_lengkap,email', 'penandatanganUser:id,nama_lengkap,email,peran_id,jabatan,npp', 'penandatanganUser.peran:id,nama', 'klasifikasi:id,kode,deskripsi', 'penerima.pengguna:id,nama_lengkap', 'children', 'parent:id,nomor']);
 
         // Get signing assets (TTD & Cap)
         $assets = $this->getSigningAssets($tugas);
@@ -574,11 +563,10 @@ class TugasController extends Controller
         $user = Auth::user();
         $peranId = $user->peran_id;
 
-        // ✅ FIXED: Load relasi yang dibutuhkan
         $tugas->load([
             'penerima.pengguna',
-            'pembuat', // ✅ TAMBAHKAN
-            'klasifikasiSurat', // ✅ TAMBAHKAN
+            'pembuat',
+            'klasifikasiSurat',
         ]);
         $tanggalHariIni = now()->format('Y-m-d');
 
@@ -608,7 +596,7 @@ class TugasController extends Controller
             'nomor' => $tugas->nomor,
             'tanggal_surat' => $tugas->tanggal_surat?->format('Y-m-d') ?? $tanggalHariIni,
             'tanggal_asli' => $tugas->tanggal_asli?->format('Y-m-d\TH:i'),
-            'nama_pembuat' => $tugas->pembuat?->nama_lengkap ?? $tugas->dibuat_oleh, // ✅ FIXED
+            'nama_pembuat' => $tugas->pembuat?->nama_lengkap ?? $tugas->dibuat_oleh,
             'asal_surat' => $tugas->asal_surat,
             'jenis_tugas' => $tugas->jenis_tugas,
             'tugas' => $tugas->tugas,
@@ -630,7 +618,6 @@ class TugasController extends Controller
             'klasifikasi_surat_id' => $tugas->klasifikasi_surat_id ?? null,
         ];
 
-        // ✅ NOMOR TURUNAN: Load parentable nomors untuk edit (kalau user = Admin TU)
         $parentableNomors = collect();
         if ($peranId == 1 && $tugas->status_surat === 'pending') {
             $tahun = $tugas->tahun ?? (int) date('Y');
@@ -714,18 +701,26 @@ class TugasController extends Controller
         }
 
         try {
-            // 3. Siapkan data untuk update (hanya kirim data yang diperlukan untuk trigger logic submit)
-            // Service membutuhkan 'penandatangan_id' atau 'penandatangan' untuk set next_approver
+            // 3. Capture send_email preference from checkbox
+            $sendEmail = (bool) $request->input('send_email', true);
+
+            // 4. Siapkan data untuk update
             $data = [
                 'penandatangan_id' => $tugas->penandatangan_id ?? $tugas->penandatangan,
-                // Kita kirim ulang penandatangan ID agar service bisa resolve next_approver
+                'send_email' => $sendEmail,
             ];
 
-            // 4. Panggil service dengan mode 'submit'
-            // Service akan handle transisi status ke 'pending' dan kirim notifikasi
+            // 5. Panggil service dengan mode 'submit'
             $this->tugasService->updateTugas($tugas, $data, 'submit');
 
-            return redirect()->route('surat_tugas.index')->with('success', 'Surat tugas berhasil diajukan untuk persetujuan!');
+            // 6. Simpan preferensi email di model untuk digunakan saat approve
+            $tugas->update(['send_email_on_approve' => $sendEmail]);
+
+            $emailNote = $sendEmail
+                ? ' Notifikasi email akan dikirim setelah disetujui.'
+                : ' Tanpa notifikasi email.';
+
+            return redirect()->route('surat_tugas.index')->with('success', 'Surat tugas berhasil diajukan untuk persetujuan!' . $emailNote);
         } catch (\Exception $e) {
             \Log::error('Gagal submit Surat Tugas (Direct)', [
                 'tugas_id' => $tugas->id,
@@ -733,7 +728,7 @@ class TugasController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
-            return back()->with('error', 'Terjadi kesalahan saat mengajukan surat.');
+            return back()->with('error', 'Terjadi kesalahan saat mengajukan surat. Silakan coba lagi.');
         }
     }
 
@@ -839,10 +834,10 @@ class TugasController extends Controller
         } catch (\Exception $e) {
             \Log::error('Gagal arsipkan surat tugas', [
                 'tugas_id' => $tugas->id,
-                'error' => $e->getMessage(),
+                'error' => sanitize_log_message($e->getMessage()),
             ]);
 
-            return back()->with('error', 'Gagal mengarsipkan surat tugas: ' . $e->getMessage());
+            return back()->with('error', 'Gagal mengarsipkan surat tugas. Silakan coba lagi.');
         }
     }
 
@@ -874,14 +869,14 @@ class TugasController extends Controller
         } catch (\Exception $e) {
             \Log::error('Gagal membuka arsip surat tugas', [
                 'tugas_id' => $tugas->id,
-                'error' => $e->getMessage(),
+                'error' => sanitize_log_message($e->getMessage()),
             ]);
 
-            return back()->with('error', 'Gagal membuka arsip surat tugas: ' . $e->getMessage());
+            return back()->with('error', 'Gagal membuka arsip surat tugas. Silakan coba lagi.');
         }
     }
 
-    /** ✅ FIXED: Show approve form dengan semua data yang dibutuhkan */
+    /** Show approve form dengan semua data yang dibutuhkan */
     public function showApproveForm(TugasHeader $tugas)
     {
         $tugas->load(['penerima.pengguna.peran', 'klasifikasiSurat', 'penandatanganUser.peran', 'pembuat', 'creator']);
@@ -996,5 +991,97 @@ class TugasController extends Controller
         $tugas->save();
 
         return redirect()->route('surat_tugas.detail.edit', $tugas->id)->with('success', 'Detail tugas berhasil diperbarui.');
+    }
+
+    // =========================================================
+    // NOMOR TURUNAN (SUFFIX) — Buat surat turunan dari parent
+    // =========================================================
+
+    /**
+     * Buat Surat Tugas turunan (suffix) dari parent.
+     * Meng-copy semua konten parent, reserve suffix (e.g. "A"),
+     * dan redirect ke halaman edit untuk set tanggal_surat.
+     */
+    public function createTurunan(Request $request, TugasHeader $tugas)
+    {
+        // Validasi: hanya boleh dari surat utama (bukan turunan)
+        if ($tugas->isTurunan()) {
+            return back()->with('error', 'Tidak bisa membuat turunan dari surat yang sudah turunan.');
+        }
+
+        // Validasi: parent harus punya nomor valid
+        if (empty($tugas->nomor) || str_starts_with($tugas->nomor, 'DRAFT-')) {
+            return back()->with('error', 'Surat ini belum memiliki nomor yang valid untuk dibuat turunan.');
+        }
+
+        // Load relasi yang dibutuhkan
+        $tugas->load(['penerima.pengguna', 'klasifikasiSurat']);
+
+        try {
+            // Build validated data dari parent (copy semua konten)
+            $validatedData = [
+                'is_turunan' => true,
+                'parent_tugas_id' => $tugas->id,
+                // Konten yang di-copy dari parent
+                'jenis_tugas' => $tugas->jenis_tugas,
+                'tugas' => $tugas->tugas,
+                'detail_tugas' => $tugas->detail_tugas,
+                'status_penerima' => $tugas->status_penerima,
+                'redaksi_pembuka' => $tugas->redaksi_pembuka,
+                'penutup' => $tugas->penutup,
+                'tembusan' => $tugas->tembusan,
+                'waktu_mulai' => $tugas->waktu_mulai?->format('Y-m-d\TH:i'),
+                'waktu_selesai' => $tugas->waktu_selesai?->format('Y-m-d\TH:i'),
+                'tempat' => $tugas->tempat,
+                'nama_umum' => $tugas->nama_umum,
+                'klasifikasi_surat_id' => $tugas->klasifikasi_surat_id,
+                'semester' => $tugas->semester,
+                // Tanggal: default hari ini (admin bisa edit nanti)
+                'tanggal_surat' => now()->format('Y-m-d'),
+                // Metadata nomor (copy dari parent)
+                'bulan' => $tugas->bulan,
+                'tahun' => $tugas->tahun,
+                // Penandatangan & asal surat (copy dari parent)
+                'penandatangan_id' => $tugas->penandatangan,
+                'asal_surat' => $tugas->asal_surat,
+                // Penerima (copy dari parent)
+                'penerima_internal' => $tugas->penerima
+                    ->whereNotNull('pengguna_id')
+                    ->pluck('pengguna_id')
+                    ->toArray(),
+                'penerima_eksternal' => $tugas->penerima
+                    ->whereNull('pengguna_id')
+                    ->map(fn ($p) => [
+                        'nama' => $p->nama_penerima,
+                        'jabatan' => $p->jabatan_penerima,
+                        'instansi' => $p->instansi,
+                    ])
+                    ->values()
+                    ->toArray(),
+            ];
+
+            // Create as draft (admin needs to set tanggal_surat lalu submit)
+            $turunan = $this->tugasService->createTugas($validatedData, 'draft');
+
+            \Log::info('Surat turunan created', [
+                'parent_id' => $tugas->id,
+                'parent_nomor' => $tugas->nomor,
+                'turunan_id' => $turunan->id,
+                'turunan_nomor' => $turunan->nomor,
+                'suffix' => $turunan->suffix,
+            ]);
+
+            return redirect()
+                ->route('surat_tugas.edit', $turunan->id)
+                ->with('success', "Surat turunan {$turunan->nomor} berhasil dibuat! Silakan edit tanggal surat dan ajukan.");
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to create turunan', [
+                'parent_id' => $tugas->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Gagal membuat nomor turunan: ' . $e->getMessage());
+        }
     }
 }

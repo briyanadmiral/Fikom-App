@@ -30,7 +30,6 @@ class MySignatureController extends Controller
             'default_height_mm' => 'nullable|integer|min:10|max:30',
         ]);
 
-        // ✅ FIXED: Validate user ID (integer type safety)
         $userId = validate_integer_id($user->id);
         if ($userId === null) {
             abort(500, 'Invalid user ID');
@@ -38,12 +37,10 @@ class MySignatureController extends Controller
 
         $file = $r->file('file');
 
-        // ✅ FIXED: Verify file is valid PNG
         if ($file->getMimeType() !== 'image/png') {
             return back()->withErrors(['file' => 'File harus berformat PNG.']);
         }
 
-        // ✅ FIXED: Additional image validation
         try {
             $imageInfo = @getimagesize($file->getRealPath());
             if ($imageInfo === false || $imageInfo[2] !== IMAGETYPE_PNG) {
@@ -55,7 +52,6 @@ class MySignatureController extends Controller
             return back()->withErrors(['file' => 'Gagal memvalidasi gambar.']);
         }
 
-        // ✅ FIXED: Delete old file if exists
         $existingSig = $user->signature;
         if ($existingSig && $existingSig->ttd_path) {
             $oldPath = validate_file_path($existingSig->ttd_path);

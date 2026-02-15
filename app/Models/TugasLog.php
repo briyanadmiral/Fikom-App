@@ -11,9 +11,9 @@ class TugasLog extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'tugas_log'; // ✅ FIXED: Sesuai dengan tabel di database
+    protected $table = 'tugas_log';
 
-    public $timestamps = false; // ✅ FIXED: Tabel hanya punya created_at, tidak ada updated_at
+    public $timestamps = false;
 
     const CREATED_AT = 'created_at';
 
@@ -22,10 +22,10 @@ class TugasLog extends Model
     protected $fillable = [
         'tugas_id',
         'user_id',
-        'status_lama',    // ✅ FIXED: sesuai kolom di tabel tugas_log
-        'status_baru',    // ✅ FIXED: sesuai kolom di tabel tugas_log
-        'ip_address',     // ✅ ADDED: ada di tabel tugas_log
-        'user_agent',     // ✅ ADDED: ada di tabel tugas_log
+        'status_lama',
+        'status_baru',
+        'ip_address',
+        'user_agent',
     ];
 
     protected $casts = [

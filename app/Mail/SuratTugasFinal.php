@@ -33,12 +33,14 @@ class SuratTugasFinal extends Mailable
             ]);
 
         if ($this->attachmentPath) {
-            // Coba ambil dari disk local (storage/app/...)
+            // Check file exists on local disk
             if (Storage::disk('local')->exists($this->attachmentPath)) {
-                $mail->attach(
-                    storage_path('app/'.ltrim($this->attachmentPath, '/')),
-                    ['as' => 'Surat_Tugas_'.($this->tugas->nomor ?: 'lampiran').'.pdf', 'mime' => 'application/pdf']
-                );
+                $safeNomor = preg_replace('/[\/\\\\]+/', '-', (string) ($this->tugas->nomor ?: 'lampiran'));
+                $absolute = Storage::disk('local')->path($this->attachmentPath);
+                $mail->attach($absolute, [
+                    'as' => "Surat_Tugas_{$safeNomor}.pdf",
+                    'mime' => 'application/pdf',
+                ]);
             }
         }
 

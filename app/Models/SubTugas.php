@@ -3,17 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * ✅ REFACTORED: Security enhanced dengan global helpers
- * ✅ ADDED: SoftDeletes untuk data integrity
+ * SubTugas - Model untuk sub tugas.
  */
 class SubTugas extends Model
 {
-    use SoftDeletes; // ✅ ADDED
+    use SoftDeletes;
 
     protected $table = 'sub_tugas';
 
@@ -39,7 +38,7 @@ class SubTugas extends Model
     // ==================== SCOPES =========================
 
     /**
-     * ✅ GOOD: Validasi ID dengan helper
+     * Scope by jenis tugas dengan validasi ID.
      */
     public function scopeByJenis($query, $jenisId)
     {
@@ -58,7 +57,7 @@ class SubTugas extends Model
     }
 
     /**
-     * ✅ ADDED: Scope search dengan sanitasi
+     * Scope search dengan sanitasi.
      */
     public function scopeSearch($query, ?string $keyword)
     {
@@ -75,7 +74,7 @@ class SubTugas extends Model
     }
 
     /**
-     * ✅ ADDED: Scope order by nama
+     * Scope order by nama.
      */
     public function scopeOrderByNama($query, string $direction = 'asc')
     {
@@ -87,7 +86,7 @@ class SubTugas extends Model
     // ==================== ACCESSORS & MUTATORS =========================
 
     /**
-     * ✅ GOOD: Sanitasi nama
+     * Sanitize nama.
      */
     protected function nama(): Attribute
     {
@@ -95,7 +94,7 @@ class SubTugas extends Model
     }
 
     /**
-     * ✅ GOOD: Sanitasi deskripsi
+     * Sanitize deskripsi.
      */
     protected function deskripsi(): Attribute
     {
@@ -104,12 +103,8 @@ class SubTugas extends Model
 
     // ==================== BUSINESS LOGIC =========================
 
-    // ==================== BUSINESS LOGIC =========================
-
     /**
-     * ✅ GOOD: Check if can be deleted
-     * Only check for active usage in other tables if necessary, or just allow hard delete if no constraints.
-     * Assuming no relationship to check for now since detail is gone.
+     * Check if can be deleted.
      */
     public function canBeDeleted(): bool
     {
@@ -117,7 +112,7 @@ class SubTugas extends Model
     }
 
     /**
-     * ✅ ADDED: Toggle active status
+     * Toggle active status.
      */
     public function toggleActive(): bool
     {
@@ -127,7 +122,7 @@ class SubTugas extends Model
     }
 
     /**
-     * ✅ ADDED: Get display name with jenis tugas
+     * Get display name with jenis tugas.
      */
     public function getDisplayNameAttribute(): string
     {
@@ -139,7 +134,7 @@ class SubTugas extends Model
     // ==================== STATIC METHODS =========================
 
     /**
-     * ✅ ADDED: Get by jenis tugas ID dengan validasi
+     * Get by jenis tugas ID dengan validasi.
      */
     public static function getByJenisTugas(int $jenisId)
     {
@@ -153,7 +148,7 @@ class SubTugas extends Model
     }
 
     /**
-     * ✅ ADDED: Get active sub tugas by jenis
+     * Get active sub tugas by jenis.
      */
     public static function getActiveByJenisTugas(int $jenisId)
     {
@@ -172,7 +167,7 @@ class SubTugas extends Model
     {
         parent::boot();
 
-        // ✅ ADDED: Validate before saving
+        // Validate before saving
         static::saving(function ($model) {
             if (empty($model->nama)) {
                 throw new \InvalidArgumentException('Nama sub tugas wajib diisi');
@@ -200,7 +195,7 @@ class SubTugas extends Model
             }
         });
 
-        // ✅ ADDED: Prevent deletion check removed since detail is gone
+        // Prevent deletion check removed since detail is gone
         static::deleting(function ($model) {
             // No constraint check needed for detail
         });

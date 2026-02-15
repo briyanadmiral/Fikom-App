@@ -110,7 +110,6 @@ class KeputusanAttachment extends Model
      */
     public function deleteFile(): bool
     {
-        // ✅ FIXED: Pakai disk 'public' karena file di-store ke 'public'
         if (Storage::disk('public')->exists($this->file_path)) {
             return Storage::disk('public')->delete($this->file_path);
         }
@@ -123,7 +122,6 @@ class KeputusanAttachment extends Model
      */
     public function fileExists(): bool
     {
-        // ✅ FIXED: Pakai disk 'public'
         return Storage::disk('public')->exists($this->file_path);
     }
 

@@ -1,17 +1,17 @@
-# Surat Siega Project
+# Project Surat FIKOM
 
 ## Deskripsi
 
-Project sistem manajemen surat (Surat Siega) berbasis Laravel.
+Project sistem manajemen surat (Surat FIKOM) berbasis Laravel.
 
 ## Prerequisites (Persyaratan)
 
 Sebelum menginstall, pastikan PC anda sudah terinstall aplikasi berikut:
 
--   [Git](https://git-scm.com/downloads)
--   [Composer](https://getcomposer.org/) (PHP Dependency Manager)
--   [Node.js](https://nodejs.org/) (Untuk frontend assets)
--   PHP >= 8.1 (Disarankan menggunakan Laragon/XAMPP)
+- [Git](https://git-scm.com/downloads)
+- [Composer](https://getcomposer.org/) (PHP Dependency Manager)
+- [Node.js](https://nodejs.org/) (Untuk frontend assets)
+- PHP >= 8.1 (Disarankan menggunakan Laragon/XAMPP)
 
 ## Panduan Instalasi (Installation Guide)
 
@@ -72,11 +72,11 @@ Pastikan anda sudah membuat database kosong bernama `surat_siega` di MySQL (phpM
 **Import Database:**
 Project ini menyertakan file SQL dump `DB_Surat_siega.sql` di root folder.
 
--   Buka phpMyAdmin / Database Manager anda.
--   Pilih database `surat_siega`.
--   Pilih menu **Import**.
--   Upload file `DB_Surat_siega.sql` yang ada di dalam folder project ini.
--   Klik **Go/Kirim**.
+- Buka phpMyAdmin / Database Manager anda.
+- Pilih database `surat_siega`.
+- Pilih menu **Import**.
+- Upload file `DB_Surat_siega.sql` yang ada di dalam folder project ini.
+- Klik **Go/Kirim**.
 
 ### 6. Build Assets & Jalankan
 
@@ -98,5 +98,5 @@ Akses aplikasi di browser melalui: `http://localhost:8000`
 
 ## Catatan Tambahan
 
--   Jika ada error permission di folder storage, jalankan `chmod -R 775 storage` (Linux/Mac) atau pastikan user windows memiliki akses write ke folder `storage` dan `bootstrap/cache`.
--   Dokumentasi framework Laravel asli telah dipindahkan ke file `README.laravel.md`.
+- Jika ada error permission di folder storage, jalankan `chmod -R 775 storage` (Linux/Mac) atau pastikan user windows memiliki akses write ke folder `storage` dan `bootstrap/cache`.
+- Dokumentasi framework Laravel asli telah dipindahkan ke file `README.laravel.md`.

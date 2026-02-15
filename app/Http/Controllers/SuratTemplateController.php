@@ -9,9 +9,7 @@ use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-/**
- * ✅ SuratTemplateController - CRUD untuk template Surat Tugas
- */
+
 class SuratTemplateController extends Controller
 {
     protected AuditService $auditService;

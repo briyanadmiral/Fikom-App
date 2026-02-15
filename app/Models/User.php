@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo; // ✅ ADDED
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, SoftDeletes; // ✅ ADDED SoftDeletes
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * Nama tabel model.
@@ -26,7 +26,7 @@ class User extends Authenticatable
     protected $fillable = ['email', 'sandi_hash', 'nama_lengkap', 'npp', 'jabatan', 'peran_id', 'status', 'last_activity', 'foto_path'];
 
     /**
-     * ✅ ADDED: Guarded protection
+     * Guarded protection.
      */
     protected $guarded = ['id', 'remember_token', 'email_verified_at', 'created_at', 'updated_at', 'deleted_at'];
 
@@ -35,7 +35,7 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'sandi_hash',
-        'password', // ✅ ADDED
+        'password',
         'remember_token',
     ];
 
@@ -51,7 +51,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
-            'deleted_at' => 'datetime', // ✅ ADDED
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -78,7 +78,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ GOOD: Accessor agar $user->password tersedia
+     * Accessor agar $user->password tersedia.
      */
     public function getPasswordAttribute(): ?string
     {
@@ -122,7 +122,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ ADDED: Surat keputusan yang dibuat
+     * Surat keputusan yang dibuat.
      */
     public function keputusanDibuat(): HasMany
     {
@@ -130,7 +130,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ ADDED: Surat keputusan yang ditandatangani
+     * Surat keputusan yang ditandatangani.
      */
     public function keputusanDitandatangani(): HasMany
     {
@@ -169,7 +169,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ ADDED: Check if user can create surat
+     * Check if user can create surat.
      */
     public function canCreateSurat(): bool
     {
@@ -183,8 +183,8 @@ class User extends Authenticatable
     */
 
     /**
-     * ✅ TEMPORARY FIX: Accessor untuk backward compatibility
-     * Jika ada code lama yang akses $user->nama, redirect ke nama_lengkap
+     * Accessor untuk backward compatibility.
+     * Jika ada code lama yang akses $user->nama, redirect ke nama_lengkap.
      */
     public function getNamaAttribute(): ?string
     {
@@ -192,8 +192,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ AdminLTE COMPATIBILITY: Accessor for 'name' attribute
-     * AdminLTE expects $user->name, but we use nama_lengkap
+     * AdminLTE compatibility: Accessor for 'name' attribute.
      */
     public function getNameAttribute(): ?string
     {
@@ -201,7 +200,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ IMPROVED: Nama peran dari relasi jika tersedia
+     * Nama peran dari relasi jika tersedia.
      */
     public function getRoleNameAttribute(): string
     {
@@ -241,7 +240,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ GOOD: Inisial untuk avatar
+     * Inisial untuk avatar.
      */
     public function getInitialsAttribute(): string
     {
@@ -261,7 +260,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ GOOD: Warna avatar deterministik
+     * Warna avatar deterministik.
      */
     public function getAvatarColorAttribute(): string
     {
@@ -275,8 +274,8 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ PROFILE PHOTO: Accessor untuk mendapatkan URL foto profile
-     * Fallback ke UI Avatars jika tidak ada foto
+     * Accessor untuk mendapatkan URL foto profile.
+     * Fallback ke UI Avatars jika tidak ada foto.
      */
     public function getFotoUrlAttribute(): string
     {
@@ -293,7 +292,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ ADDED: Get display name (safe)
+     * Get display name (safe).
      */
     public function getDisplayNameAttribute(): string
     {
@@ -301,7 +300,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ ADDED: Get formatted NPP
+     * Get formatted NPP.
      */
     public function getFormattedNppAttribute(): ?string
     {
@@ -321,7 +320,7 @@ class User extends Authenticatable
     public function scopeByRole($query, $roleId)
     {
         if (is_array($roleId)) {
-            // ✅ IMPROVED: Validate each ID
+            // Validate each ID
             $validIds = array_filter(array_map('validate_integer_id', $roleId));
 
             return $query->whereIn('peran_id', $validIds);
@@ -346,7 +345,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ GOOD: Scope pencarian aman dengan LIKE escape
+     * Scope pencarian aman dengan LIKE escape.
      */
     public function scopeSearch($query, ?string $term)
     {
@@ -371,7 +370,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ ADDED: Scope by status
+     * Scope by status.
      */
     public function scopeByStatus($query, string $status)
     {
@@ -387,7 +386,7 @@ class User extends Authenticatable
     */
 
     /**
-     * ✅ GOOD: Mutator dengan sanitasi
+     * Mutator email dengan sanitasi.
      */
     public function setEmailAttribute($value): void
     {
@@ -439,7 +438,7 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ GOOD: Status normalization
+     * Status normalization.
      */
     public function setStatusAttribute($value): void
     {
@@ -484,7 +483,7 @@ class User extends Authenticatable
     {
         parent::boot();
 
-        // ✅ ADDED: Validate before saving
+        // Validate before saving
         static::saving(function ($model) {
             if (empty($model->email)) {
                 throw new \InvalidArgumentException('Email wajib diisi');
@@ -504,7 +503,7 @@ class User extends Authenticatable
             }
         });
 
-        // ✅ ADDED: Prevent deletion of admin
+        // Prevent deletion of admin
         static::deleting(function ($model) {
             if ($model->isAdmin()) {
                 throw new \RuntimeException('User admin tidak dapat dihapus');

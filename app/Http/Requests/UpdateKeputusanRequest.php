@@ -7,11 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 /**
- * ✅ IMPROVED: Enhanced sanitization & validation for Update Surat Keputusan
- *
- * @version 2.0.0
- *
- * @date 2025-12-06
+ * Enhanced sanitization & validation for Update Surat Keputusan.
  */
 class UpdateKeputusanRequest extends FormRequest
 {
@@ -36,10 +32,10 @@ class UpdateKeputusanRequest extends FormRequest
             'tahun' => ['nullable', 'integer', 'digits:4', 'min:2020', 'max:2100'],
 
             // === Tentang (Judul) ===
-            'tentang' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'tentang' => ['required', 'string', 'min:10', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
 
             // === Judul Penetapan ===
-            'judul_penetapan' => ['nullable', 'string', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'judul_penetapan' => ['nullable', 'string', 'max:500', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
 
             // === Penandatangan ===
             'penandatangan' => [
@@ -52,15 +48,15 @@ class UpdateKeputusanRequest extends FormRequest
 
             // === Konsideran: Menimbang ===
             'menimbang' => ['required', 'array', 'min:1'],
-            'menimbang.*' => ['required', 'string', 'max:1000', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'menimbang.*' => ['required', 'string', 'max:1000', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
 
             // === Konsideran: Mengingat ===
             'mengingat' => ['required', 'array', 'min:1'],
-            'mengingat.*' => ['required', 'string', 'max:1000', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'mengingat.*' => ['required', 'string', 'max:1000', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
 
             // === Diktum: Menetapkan ===
             'menetapkan' => ['required', 'array', 'min:1'],
-            'menetapkan.*.judul' => ['required', 'string', 'max:200', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u'],
+            'menetapkan.*.judul' => ['required', 'string', 'max:200', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
             'menetapkan.*.isi' => ['required', 'string', 'max:65000'],
 
             // === Penerima Internal ===
@@ -80,7 +76,7 @@ class UpdateKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Validate logic cross-fields (Penerima required if pending)
+     * Validate logic cross-fields (Penerima required if pending).
      */
     public function withValidator($validator)
     {
@@ -98,7 +94,7 @@ class UpdateKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ IMPROVED: Comprehensive sanitization before validation
+     * Comprehensive sanitization before validation.
      */
     protected function prepareForValidation(): void
     {
@@ -117,13 +113,13 @@ class UpdateKeputusanRequest extends FormRequest
             if ($this->has($field) && is_string($this->input($field))) {
                 $value = $this->input($field);
 
-                // ✅ Strip HTML tags
+
                 $value = strip_tags($value);
 
-                // ✅ Remove dangerous characters
+
                 $value = $this->removeDangerousChars($value);
 
-                // ✅ Apply sanitization helper
+
                 $value = sanitize_input($value, $maxLength);
 
                 $this->merge([$field => $value]);
@@ -280,15 +276,15 @@ class UpdateKeputusanRequest extends FormRequest
                     $judul = strip_tags(trim((string) ($d['judul'] ?? '')));
                     $isi = $d['isi'] ?? ($d['konten'] ?? '');
 
-                    // ✅ PENTING: Handle null value dari CKEditor yang kosong
+
                     if ($isi === null || $isi === 'null') {
                         $isi = '';
                     }
 
-                    // ✅ Sanitize HTML content dengan helper
+
                     $isi = sanitize_html_limited($isi);
 
-                    // ✅ Additional XSS protection (sekarang sudah handle null)
+
                     $isi = $this->stripDangerousHtml($isi);
 
                     // Skip empty diktum (judul kosong DAN isi kosong)
@@ -304,7 +300,7 @@ class UpdateKeputusanRequest extends FormRequest
             ),
         );
 
-        // ✅ Pastikan minimal ada 1 diktum (meskipun kosong)
+
         if (empty($menetapkan)) {
             $menetapkan = [['judul' => '', 'isi' => '']];
         }
@@ -323,7 +319,7 @@ class UpdateKeputusanRequest extends FormRequest
                         $val = trim((string) $item);
                     }
 
-                    // ✅ Sanitize external recipient names
+
                     $val = strip_tags(sanitize_input($val, 255));
 
                     return $val === '' || $val === null ? null : $val;
@@ -363,11 +359,11 @@ class UpdateKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Remove dangerous characters (SQL/XSS patterns)
+     * Remove dangerous characters (SQL/XSS patterns).
      */
     private function removeDangerousChars(?string $value): string
     {
-        // ✅ Handle null value
+
         if ($value === null || $value === '') {
             return '';
         }
@@ -382,11 +378,11 @@ class UpdateKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Strip dangerous HTML patterns
+     * Strip dangerous HTML patterns.
      */
     private function stripDangerousHtml(?string $value): string
     {
-        // ✅ Handle null value
+
         if ($value === null || $value === '') {
             return '';
         }
@@ -407,7 +403,7 @@ class UpdateKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Ensure at least one penerima exists
+     * Ensure at least one penerima exists.
      */
     private function validatePenerimaExists(): void
     {
@@ -500,7 +496,7 @@ class UpdateKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Custom attribute names for better error messages
+     * Custom attribute names for better error messages.
      */
     public function attributes(): array
     {
@@ -523,7 +519,7 @@ class UpdateKeputusanRequest extends FormRequest
     }
 
     /**
-     * ✅ Handle failed validation
+     * Handle failed validation.
      */
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {

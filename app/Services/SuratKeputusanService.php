@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use Mews\Purifier\Facades\Purifier;
 
 /**
- * ✅ REFACTORED: Enhanced security dengan validation & error handling
+ * SuratKeputusanService - Enhanced security dengan validation & error handling.
  */
 class SuratKeputusanService
 {
@@ -26,12 +26,11 @@ class SuratKeputusanService
 
     /**
      * Membuat Surat Keputusan baru dari data yang sudah divalidasi.
-     * ✅ IMPROVED: Added error handling & logging
      */
     public function createKeputusan(array $validatedData, string $status): KeputusanHeader
     {
         try {
-            // ✅ ADDED: Validate status
+            // Validate status
             $status = validate_status($status, ['draft', 'pending']);
             if ($status === null) {
                 throw new \InvalidArgumentException('Status tidak valid');
@@ -42,9 +41,9 @@ class SuratKeputusanService
                 $data['status_surat'] = $status;
                 if (isset($data['status'])) {
                     unset($data['status']);
-                } // ✅ FIX: Prevent unknown column error
+                } // Prevent unknown column error
 
-                // ✅ ADDED: Validate auth user
+                // Validate auth user
                 $userId = validate_integer_id(Auth::id());
                 if ($userId === null) {
                     throw new \RuntimeException('User tidak terautentikasi');
@@ -55,7 +54,7 @@ class SuratKeputusanService
                 $penerimaInternalIds = $data['penerima_internal'] ?? [];
                 unset($data['penerima_internal']);
 
-                // ✅ ADDED: Validate penerima IDs
+                // Validate penerima IDs
                 $validatedIds = $this->validatePenerimaIds($penerimaInternalIds);
 
                 $sk = KeputusanHeader::create($data);
@@ -64,7 +63,7 @@ class SuratKeputusanService
                     $sk->penerima()->sync($validatedIds);
                 }
 
-                // ✅ ADDED: Log creation
+                // Log creation
                 Log::info('Surat Keputusan created', [
                     'sk_id' => $sk->id,
                     'status' => $status,
@@ -88,18 +87,17 @@ class SuratKeputusanService
 
     /**
      * Memperbarui Surat Keputusan yang ada.
-     * ✅ IMPROVED: Added error handling & logging
      */
     public function updateKeputusan(KeputusanHeader $sk, array $validatedData, ?string $newStatus): KeputusanHeader
     {
         try {
-            // ✅ ADDED: Validate SK ID
+            // Validate SK ID
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 throw new \InvalidArgumentException('SK ID tidak valid');
             }
 
-            // ✅ ADDED: Validate new status
+            // Validate new status
             if ($newStatus !== null) {
                 $newStatus = validate_status($newStatus, ['draft', 'pending', 'disetujui', 'ditolak']);
                 if ($newStatus === null) {
@@ -118,7 +116,7 @@ class SuratKeputusanService
                 $penerimaInternalIds = $data['penerima_internal'] ?? [];
                 unset($data['penerima_internal']);
 
-                // ✅ ADDED: Validate penerima IDs
+                // Validate penerima IDs
                 $validatedIds = $this->validatePenerimaIds($penerimaInternalIds);
 
                 $sk->update($data);
@@ -129,7 +127,7 @@ class SuratKeputusanService
 
                 $sk->refresh();
 
-                // ✅ ADDED: Log update
+                // Log update
                 Log::info('Surat Keputusan updated', [
                     'sk_id' => $skId,
                     'old_status' => $wasPending ? 'pending' : 'other',
@@ -155,18 +153,17 @@ class SuratKeputusanService
 
     /**
      * Menyetujui SK, menghasilkan nomor, dan menyimpan data.
-     * ✅ IMPROVED: Added error handling & logging
      */
     public function approveAndGenerateNumber(KeputusanHeader $sk, array $approvalData): KeputusanHeader
     {
         try {
-            // ✅ ADDED: Validate SK ID
+            // Validate SK ID
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 throw new \InvalidArgumentException('SK ID tidak valid');
             }
 
-            // ✅ ADDED: Validate user
+            // Validate user
             $userId = validate_integer_id(Auth::id());
             if ($userId === null) {
                 throw new \RuntimeException('User tidak terautentikasi');
@@ -178,7 +175,7 @@ class SuratKeputusanService
                     $referenceDate = $sk->tanggal_surat ?? $sk->created_at;
                     $date = now()->parse($referenceDate);
 
-                    // ✅ ADDED: Validate approval data
+                    // Validate approval data
                     $unit = sanitize_alphanumeric($approvalData['unit'] ?? 'FIKOM');
                     $kodeKlasifikasi = sanitize_kode($approvalData['kode_klasifikasi'] ?? 'B.10.1');
 
@@ -191,7 +188,7 @@ class SuratKeputusanService
                     $sk->tanggal_surat = now()->toDateString();
                 }
 
-                // ✅ ADDED: Validate dimensions & opacity
+                // Validate dimensions & opacity
                 $ttdW = $this->validateDimension($approvalData['ttd_w_mm'] ?? 42, 20, 80);
                 $capW = $this->validateDimension($approvalData['cap_w_mm'] ?? 35, 20, 80);
                 $capOpacity = $this->validateOpacity($approvalData['cap_opacity'] ?? 0.95);
@@ -209,7 +206,7 @@ class SuratKeputusanService
 
                 $sk->save();
 
-                // ✅ ADDED: Log approval
+                // Log approval
                 Log::info('Surat Keputusan approved', [
                     'sk_id' => $skId,
                     'nomor' => sanitize_log_message($sk->nomor),
@@ -230,7 +227,7 @@ class SuratKeputusanService
     }
 
     /**
-     * ✅ GOOD: Prepare data untuk save
+     * Prepare data untuk save.
      */
     private function prepareDataForSave(array $data): array
     {
@@ -247,12 +244,12 @@ class SuratKeputusanService
 
         // Handle penerima_eksternal (jika kolom ada di DB)
         if (Schema::hasColumn('keputusan_header', 'penerima_eksternal') && isset($data['penerima_eksternal'])) {
-            $data['penerima_eksternal'] = $data['penerima_eksternal'];
+            $data['penerima_eksternal'] = sanitize_input($data['penerima_eksternal'], 1000);
         } else {
             unset($data['penerima_eksternal']);
         }
 
-        // ✅ ADDED: Validate penandatangan ID
+        // Validate penandatangan ID
         if (isset($data['penandatangan'])) {
             $data['penandatangan'] = validate_integer_id($data['penandatangan']);
         }
@@ -261,16 +258,16 @@ class SuratKeputusanService
         $result = [
             'nomor' => $data['nomor'] ?? null,
             'tentang' => $data['tentang'],
-            'judul_penetapan' => $data['judul_penetapan'] ?? null, // ✅ BARU
+            'judul_penetapan' => $data['judul_penetapan'] ?? null,
             'tanggal_surat' => $data['tanggal_surat'],
-            'kota_penetapan' => $data['kota_penetapan'] ?? 'Semarang', // ✅ BARU
-            'tahun' => $data['tahun'] ?? null, // ✅ BARU (auto-fill by model event)
+            'kota_penetapan' => $data['kota_penetapan'] ?? 'Semarang',
+            'tahun' => $data['tahun'] ?? null,
             'penandatangan' => $data['penandatangan'] ?? null,
-            'npp_penandatangan' => $data['npp_penandatangan'] ?? null, // ✅ BARU
+            'npp_penandatangan' => $data['npp_penandatangan'] ?? null,
             'tembusan' => $data['tembusan'] ?? null,
         ];
 
-        // ✅ FIXED: Only include array fields if they are present to avoid overwriting with empty arrays
+        // Only include array fields if they are present to avoid overwriting with empty arrays
         $arrayFields = ['menimbang', 'mengingat', 'menetapkan', 'penerima_internal', 'penerima_eksternal'];
         foreach ($arrayFields as $field) {
             if (array_key_exists($field, $data)) {
@@ -287,8 +284,7 @@ class SuratKeputusanService
     }
 
     /**
-     * Build HTML untuk kolom memutuskan dari array menetapkan
-     * ✅ GOOD: Already using e() for escaping
+     * Build HTML untuk kolom memutuskan dari array menetapkan.
      */
     private function buildMemutuskanHtml(?array $menetapkan): string
     {
@@ -313,8 +309,7 @@ class SuratKeputusanService
     }
 
     /**
-     * Convert angka ke Roman numeral untuk bulan
-     * ✅ GOOD: Already has boundary check
+     * Convert angka ke Roman numeral untuk bulan.
      */
     private function toRoman(int $number): string
     {
@@ -351,25 +346,24 @@ class SuratKeputusanService
     }
 
     /**
-     * Reject Surat Keputusan
-     * ✅ IMPROVED: Added error handling & logging
+     * Reject Surat Keputusan.
      */
     public function rejectKeputusan(KeputusanHeader $sk, string $note): KeputusanHeader
     {
         try {
-            // ✅ ADDED: Validate SK ID
+            // Validate SK ID
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 throw new \InvalidArgumentException('SK ID tidak valid');
             }
 
-            // ✅ ADDED: Validate user
+            // Validate user
             $userId = validate_integer_id(Auth::id());
             if ($userId === null) {
                 throw new \RuntimeException('User tidak terautentikasi');
             }
 
-            // ✅ ADDED: Sanitize note
+            // Sanitize note
             $sanitizedNote = sanitize_input($note, 500);
 
             $sk->update([
@@ -378,7 +372,7 @@ class SuratKeputusanService
                 'rejected_at' => now(),
             ]);
 
-            // ✅ ADDED: Log rejection
+            // Log rejection
             Log::info('Surat Keputusan rejected', [
                 'sk_id' => $skId,
                 'rejected_by' => $userId,
@@ -398,13 +392,12 @@ class SuratKeputusanService
     }
 
     /**
-     * Submit SK untuk approval
-     * ✅ IMPROVED: Added error handling & logging
+     * Submit SK untuk approval.
      */
     public function submitForApproval(KeputusanHeader $sk): KeputusanHeader
     {
         try {
-            // ✅ ADDED: Validate SK ID
+            // Validate SK ID
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 throw new \InvalidArgumentException('SK ID tidak valid');
@@ -412,7 +405,7 @@ class SuratKeputusanService
 
             $sk->update(['status_surat' => 'pending']);
 
-            // ✅ ADDED: Log submission
+            // Log submission
             Log::info('Surat Keputusan submitted for approval', [
                 'sk_id' => $skId,
                 'submitted_by' => Auth::id(),
@@ -431,7 +424,7 @@ class SuratKeputusanService
     }
 
     /**
-     * ✅ ADDED: Validate penerima IDs
+     * Validate penerima IDs.
      */
     private function validatePenerimaIds(array $ids): array
     {
@@ -448,21 +441,21 @@ class SuratKeputusanService
     }
 
     /**
-     * ✅ ADDED: Validate dimension value
+     * Validate dimension value.
      */
     private function validateDimension($value, int $min, int $max): int
     {
         $value = filter_var($value, FILTER_VALIDATE_INT);
 
         if ($value === false || $value < $min || $value > $max) {
-            return ($min + $max) / 2; // Return middle value as default
+            return intdiv($min + $max, 2); // Return middle value as default
         }
 
         return $value;
     }
 
     /**
-     * ✅ ADDED: Validate opacity value
+     * Validate opacity value.
      */
     private function validateOpacity($value): float
     {

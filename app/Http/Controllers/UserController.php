@@ -11,9 +11,6 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    /**
-     * ✅ ADDED: Authorization
-     */
     public function __construct()
     {
         $this->middleware('auth');
@@ -29,7 +26,6 @@ class UserController extends Controller
     {
         $query = User::with('peran')->latest();
 
-        // ✅ FIXED: Sanitize and escape LIKE search
         if ($request->filled('search')) {
             $searchTerm = sanitize_input($request->search, 100);
 
@@ -45,9 +41,9 @@ class UserController extends Controller
             }
         }
 
-        $users = $query->paginate(15)->appends($request->only('search'));
+        $users = $query->get();
 
-        $roles = Peran::all();
+        $roles = Peran::withCount('users')->get();
 
         return view('users.index', compact('users', 'roles'));
     }
@@ -86,7 +82,6 @@ class UserController extends Controller
         try {
             User::create([
                 'email' => $validated['email'],
-                // 🔁 PAKAI sandi_hash, BUKAN password
                 'sandi_hash' => Hash::make($validated['password']),
                 'nama_lengkap' => $validated['nama_lengkap'],
                 'npp' => $validated['npp'] ?? null,
@@ -111,7 +106,6 @@ class UserController extends Controller
      */
     public function edit($id)
     {
-        // ✅ FIXED: Validate ID
         $userId = validate_integer_id($id);
         if ($userId === null) {
             abort(404, 'ID tidak valid');
@@ -128,7 +122,6 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // ✅ FIXED: Validate ID
         $userId = validate_integer_id($id);
         if ($userId === null) {
             abort(404, 'ID tidak valid');
@@ -161,7 +154,6 @@ class UserController extends Controller
             $user->status = $validated['status'];
 
             if (! empty($validated['password'])) {
-                // 🔁 update via sandi_hash
                 $user->sandi_hash = Hash::make($validated['password']);
             }
 
@@ -184,7 +176,6 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        // ✅ FIXED: Validate ID
         $userId = validate_integer_id($id);
         if ($userId === null) {
             abort(404, 'ID tidak valid');
@@ -192,7 +183,6 @@ class UserController extends Controller
 
         $user = User::findOrFail($userId);
 
-        // ✅ FIXED: Use === for comparison
         if (auth()->check() && auth()->id() === $user->id) {
             return redirect()->route('users.index')->with('error', 'Anda tidak bisa menghapus akun Anda sendiri.');
         }
@@ -202,7 +192,6 @@ class UserController extends Controller
 
             return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
         } catch (\Throwable $e) {
-            // ✅ FIXED: Enable logging with sanitization
             Log::error('Gagal hapus user', [
                 'id' => $user->id,
                 'error' => sanitize_log_message($e->getMessage()),

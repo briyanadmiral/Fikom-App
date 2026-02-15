@@ -6,7 +6,7 @@
         background: linear-gradient(135deg, #2980ff 0%, #536dfe 100%);
         min-height: 100vh;
     }
-    .siega-logo {
+    .fikom-logo {
         font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
         font-size: 2.6rem;
         color: #22223b;
@@ -48,8 +48,8 @@
 
 @section('auth_header')
     <div class="text-center mb-2">
-        <div class="siega-logo mb-1">SIEGA</div>
-        <img src="{{ asset('vendor/adminlte/dist/img/Logo_Siega.png') }}" alt="Logo" height="44" class="mb-2">
+        <div class="fikom-logo mb-1">FIKOM</div>
+        {{-- <img src="{{ asset('vendor/adminlte/dist/img/Logo_Siega.png') }}" alt="Logo" height="44" class="mb-2"> --}}
         <h2 class="font-weight-bold mb-1" style="font-size:1.25rem;">Login Sistem Arsip Surat</h2>
         <div class="text-muted small">Silakan login menggunakan akun yang telah didaftarkan.</div>
     </div>

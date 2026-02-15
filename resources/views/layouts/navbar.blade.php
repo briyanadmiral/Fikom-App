@@ -25,6 +25,7 @@
                 if (!isset($unreadCount) || !isset($recentNotifs)) {
                     $unreadCount  = $user->notifikasi()->where('dibaca', false)->count();
                     $recentNotifs = $user->notifikasi()
+                                        ->where('dibaca', false)
                                         ->orderByDesc('dibuat_pada')
                                         ->limit(5)
                                         ->get();

@@ -7,8 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Policy untuk mengatur authorization Surat Tugas
- * ✅ FIXED: Block edit untuk status disetujui
+ * Policy untuk mengatur authorization Surat Tugas.
  */
 class TugasHeaderPolicy
 {
@@ -57,11 +56,11 @@ class TugasHeaderPolicy
     }
 
     /**
-     * ✅ FIXED: Determine if user can update the tugas
+     * Determine if user can update the tugas.
      */
     public function update(User $user, TugasHeader $tugas): bool
     {
-        // ✅ FIXED: TIDAK BOLEH edit surat yang sudah disetujui
+        // TIDAK BOLEH edit surat yang sudah disetujui
         if ($tugas->status_surat === 'disetujui') {
             Log::info('Policy update DITOLAK: Status sudah disetujui', [
                 'user_id' => $user->id,
@@ -115,16 +114,15 @@ class TugasHeaderPolicy
 
     /**
      * Determine whether the user can delete the model.
-     * ✅ GOOD: Validasi ID dan status dengan helper
      */
     public function delete(User $user, TugasHeader $tugas): bool
     {
-        // ✅ GOOD: Validasi ID dan status
+        // Validasi ID dan status
         $userId = validate_integer_id($user->id);
         $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
         $status = validate_status($tugas->status_surat, ['draft', 'pending', 'disetujui']);
 
-        // ✅ ADDED: Null safety check
+        // Null safety check
         if ($userId === null) {
             return false;
         }
@@ -140,16 +138,15 @@ class TugasHeaderPolicy
 
     /**
      * Determine whether the user can approve the model.
-     * ✅ GOOD: Validasi ID dan status dengan helper
      */
     public function approve(User $user, TugasHeader $tugas): bool
     {
-        // ✅ GOOD: Validasi ID dan status
+        // Validasi ID dan status
         $userId = validate_integer_id($user->id);
         $nextApprover = validate_integer_id($tugas->next_approver);
         $status = validate_status($tugas->status_surat, ['pending', 'draft', 'disetujui']);
 
-        // ✅ ADDED: Null safety check
+        // Null safety check
         if ($userId === null) {
             return false;
         }
@@ -165,7 +162,7 @@ class TugasHeaderPolicy
     }
 
     /**
-     * ✅ ADDED: Determine whether the user can reject the model.
+     * Determine whether the user can reject the model.
      */
     public function reject(User $user, TugasHeader $tugas): bool
     {
@@ -174,7 +171,7 @@ class TugasHeaderPolicy
     }
 
     /**
-     * ✅ ADDED: Determine whether the user can submit for approval.
+     * Determine whether the user can submit for approval.
      */
     public function submit(User $user, TugasHeader $tugas): bool
     {
@@ -191,16 +188,15 @@ class TugasHeaderPolicy
 
     /**
      * Determine whether the user can add recipients to the model.
-     * ✅ GOOD: Validasi ID dan status dengan helper
      */
     public function addRecipient(User $user, TugasHeader $tugas): bool
     {
-        // ✅ GOOD: Validasi ID dan status
+        // Validasi ID dan status
         $userId = validate_integer_id($user->id);
         $dibuatOleh = validate_integer_id($tugas->dibuat_oleh);
         $status = validate_status($tugas->status_surat, ['draft', 'pending']);
 
-        // ✅ ADDED: Null safety check
+        // Null safety check
         if ($userId === null) {
             return false;
         }
@@ -209,7 +205,7 @@ class TugasHeaderPolicy
     }
 
     /**
-     * ✅ ADDED: Determine whether the user can remove recipients.
+     * Determine whether the user can remove recipients.
      */
     public function removeRecipient(User $user, TugasHeader $tugas): bool
     {
@@ -226,7 +222,7 @@ class TugasHeaderPolicy
     }
 
     /**
-     * ✅ IMPROVED: Allow admin to restore
+     * Allow admin to restore.
      */
     public function restore(User $user, TugasHeader $tugas): bool
     {
@@ -234,7 +230,7 @@ class TugasHeaderPolicy
     }
 
     /**
-     * ✅ IMPROVED: Allow admin to force delete (with caution)
+     * Allow admin to force delete (with caution).
      */
     public function forceDelete(User $user, TugasHeader $tugas): bool
     {
@@ -253,7 +249,7 @@ class TugasHeaderPolicy
     }
 
     /**
-     * ✅ ADDED: Determine whether the user can download the model.
+     * Determine whether the user can download the model.
      */
     public function download(User $user, TugasHeader $tugas): bool
     {
@@ -269,7 +265,7 @@ class TugasHeaderPolicy
     }
 
     /**
-     * ✅ ADDED: Determine whether the user can print the model.
+     * Determine whether the user can print the model.
      */
     public function print(User $user, TugasHeader $tugas): bool
     {
@@ -281,7 +277,6 @@ class TugasHeaderPolicy
 
     /**
      * Get detailed reason why approval was denied.
-     * ✅ GOOD: Sanitasi output untuk log
      */
     private function getApprovalDenialReason(User $user, TugasHeader $tugas): string
     {
@@ -289,14 +284,14 @@ class TugasHeaderPolicy
             return 'User tidak memiliki role approver';
         }
 
-        // ✅ GOOD: Sanitasi status untuk output
+        // Sanitasi status untuk output
         $status = sanitize_output($tugas->status_surat);
 
         if ($tugas->status_surat !== 'pending') {
             return "Status surat adalah '{$status}', bukan pending";
         }
 
-        // ✅ GOOD: Validasi ID
+        // Validasi ID
         $userId = validate_integer_id($user->id);
         $nextApprover = validate_integer_id($tugas->next_approver);
 
@@ -309,11 +304,10 @@ class TugasHeaderPolicy
 
     /**
      * Log unauthorized access attempts for audit trail.
-     * ✅ GOOD: Sanitasi semua data untuk log
      */
     private function logUnauthorizedAttempt(User $user, string $action, TugasHeader $tugas, string $reason): void
     {
-        // ✅ GOOD: Validasi dan sanitasi data untuk log
+        // Validasi dan sanitasi data untuk log
         $userId = validate_integer_id($user->id);
         $roleId = validate_integer_id($user->peran_id);
         $tugasId = validate_integer_id($tugas->id);
@@ -333,17 +327,17 @@ class TugasHeaderPolicy
     }
 
     /**
-     * ✅ FIXED: Before hook - runs before all policy checks
+     * Before hook - runs before all policy checks.
      */
     public function before(User $user, string $ability): ?bool
     {
-        // ✅ FIXED: Jangan bypass policy untuk 'update' dan 'approve'
+        // Jangan bypass policy untuk 'update' dan 'approve'
         // Biarkan method-specific policy yang handle
         if (in_array($ability, ['update', 'approve', 'reject', 'delete'], true)) {
             return null; // Continue ke method spesifik
         }
 
-        // Admin dapat melakukan action lain (view, create, delete, dll)
+        // Admin dapat melakukan action lain (view, create, viewApproveList, dll)
         if ($user->isAdmin()) {
             return true;
         }

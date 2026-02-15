@@ -154,7 +154,11 @@
                                             optional($pejabat->firstWhere('id', $asalIdOld))->nama_lengkap ??
                                             ($isEdit ? optional($tugas->asalSurat)->nama_lengkap ?? '' : '');
                                     @endphp
-                                    @if ($isEdit)
+                                    @php
+                                        // ✅ Allow edit if Create Mode OR (Edit Mode & Status is Draft/Ditolak)
+                                        $lockAsalSurat = $isEdit && !in_array($tugas->status_surat ?? '', ['draft', 'ditolak']);
+                                    @endphp
+                                    @if ($lockAsalSurat)
                                         <input type="text" id="asal_surat_id_display" class="form-control"
                                             value="{{ $asalLabel }}" readonly>
                                         <input type="hidden" name="asal_surat_id" value="{{ $asalIdOld }}">

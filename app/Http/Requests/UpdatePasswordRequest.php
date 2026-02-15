@@ -8,9 +8,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
 
 /**
- * ✅ IMPROVED: Enhanced password security & validation
+ * Enhanced password security & validation.
  *
- * Password security is CRITICAL!
  * Protection layers:
  * - Current password verification
  * - Password complexity requirements
@@ -18,10 +17,6 @@ use Illuminate\Validation\Rules\Password;
  * - Password history check
  * - Rate limiting (handled by middleware)
  * - Secure logging (no password values)
- *
- * @version 2.0.0
- *
- * @date 2025-12-06
  */
 class UpdatePasswordRequest extends FormRequest
 {
@@ -53,7 +48,7 @@ class UpdatePasswordRequest extends FormRequest
                 'confirmed', // Requires new_password_confirmation field
                 'different:current_password', // Must be different from current
 
-                // ✅ Laravel 10+ Password Rule (comprehensive)
+
                 Password::min(8)
                     ->mixedCase()        // Requires uppercase and lowercase
                     ->letters()          // Requires at least one letter
@@ -61,35 +56,35 @@ class UpdatePasswordRequest extends FormRequest
                     ->symbols()          // Requires at least one symbol (!@#$%^&*)
                     ->uncompromised(3),  // Check against pwned passwords (allows 3 breaches max)
 
-                // ✅ Custom rule: Check against password history
+
                 function ($attribute, $value, $fail) {
                     if ($this->isSameAsOldPassword($value)) {
                         $fail('Password baru tidak boleh sama dengan password sebelumnya.');
                     }
                 },
 
-                // ✅ Custom rule: Block common passwords
+
                 function ($attribute, $value, $fail) {
                     if ($this->isCommonPassword($value)) {
                         $fail('Password terlalu umum. Gunakan password yang lebih unik.');
                     }
                 },
 
-                // ✅ Custom rule: No sequential characters
+
                 function ($attribute, $value, $fail) {
                     if ($this->hasSequentialChars($value)) {
                         $fail('Password tidak boleh mengandung karakter berurutan (123, abc, dll).');
                     }
                 },
 
-                // ✅ Custom rule: No repeated characters
+
                 function ($attribute, $value, $fail) {
                     if ($this->hasRepeatedChars($value)) {
                         $fail('Password tidak boleh mengandung karakter yang diulang lebih dari 3 kali.');
                     }
                 },
 
-                // ✅ Custom rule: No user information
+
                 function ($attribute, $value, $fail) {
                     if ($this->containsUserInfo($value)) {
                         $fail('Password tidak boleh mengandung nama, email, atau NPP Anda.');
@@ -100,14 +95,14 @@ class UpdatePasswordRequest extends FormRequest
     }
 
     /**
-     * ✅ Prepare data for validation
+     * Prepare data for validation.
      */
     protected function prepareForValidation(): void
     {
-        // ⚠️ JANGAN sanitize password! Password boleh ada karakter apa saja
+        // JANGAN sanitize password! Password boleh ada karakter apa saja.
         // Sanitasi akan merusak password yang valid
 
-        // ✅ Hanya trim whitespace di awal/akhir (user mungkin copy-paste)
+
         if ($this->has('current_password')) {
             $this->merge([
                 'current_password' => trim($this->input('current_password')),
@@ -128,8 +123,7 @@ class UpdatePasswordRequest extends FormRequest
     }
 
     /**
-     * ✅ Check if new password is same as old password
-     * (Simple check - you can extend to check against password history table)
+     * Check if new password is same as old password.
      */
     private function isSameAsOldPassword(string $newPassword): bool
     {
@@ -139,28 +133,11 @@ class UpdatePasswordRequest extends FormRequest
             return false;
         }
 
-        // Check if same as current password
         return Hash::check($newPassword, $user->password);
-
-        // ✅ OPTIONAL: Check against password history (if you have password_histories table)
-        /*
-        $recentPasswords = \App\Models\PasswordHistory::where('user_id', $user->id)
-            ->latest()
-            ->take(5) // Check last 5 passwords
-            ->get();
-
-        foreach ($recentPasswords as $history) {
-            if (Hash::check($newPassword, $history->password)) {
-                return true;
-            }
-        }
-        */
-
-        return false;
     }
 
     /**
-     * ✅ Check against common passwords list
+     * Check against common passwords list.
      */
     private function isCommonPassword(string $password): bool
     {
@@ -182,7 +159,7 @@ class UpdatePasswordRequest extends FormRequest
     }
 
     /**
-     * ✅ Check for sequential characters (123, abc, etc)
+     * Check for sequential characters (123, abc, etc).
      */
     private function hasSequentialChars(string $password): bool
     {
@@ -214,7 +191,7 @@ class UpdatePasswordRequest extends FormRequest
     }
 
     /**
-     * ✅ Check for repeated characters (aaaa, 1111, etc)
+     * Check for repeated characters (aaaa, 1111, etc).
      */
     private function hasRepeatedChars(string $password): bool
     {
@@ -223,7 +200,7 @@ class UpdatePasswordRequest extends FormRequest
     }
 
     /**
-     * ✅ Check if password contains user information
+     * Check if password contains user information.
      */
     private function containsUserInfo(string $password): bool
     {
@@ -307,24 +284,10 @@ class UpdatePasswordRequest extends FormRequest
     }
 
     /**
-     * ✅ Handle successful validation
-     */
-    protected function passedValidation(): void
-    {
-        Log::info('Password update validation passed', [
-            'user_id' => auth()->id(),
-            'ip' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'timestamp' => now(),
-        ]);
-    }
-
-    /**
-     * ✅ Handle failed validation
+     * Handle failed validation.
      */
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {
-        // ⚠️ SECURITY: Log failed password change attempts
         Log::warning('Password update validation failed', [
             'user_id' => auth()->id(),
             'ip' => request()->ip(),

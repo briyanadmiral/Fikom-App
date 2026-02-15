@@ -20,13 +20,12 @@ class CheckSessionRole
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1️⃣ Cek apakah sudah ada user yang ter-login dari session Laravel
+        // Sudah ada user yang ter-login dari session Laravel
         if (Auth::check()) {
-            // User sudah login, lanjutkan request
             return $next($request);
         }
 
-        // 2️⃣ Cek session dari Dashboard Menu (PHP native session atau Laravel session)
+        // Cek session dari Dashboard Menu
         $userId = session('user_id');
         $userRole = session('user_role');
 
@@ -36,29 +35,36 @@ class CheckSessionRole
                 ->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        // 3️⃣ Cari user di database berdasarkan user_id dari session
+        // Validasi bahwa userId adalah integer positif
+        $userId = filter_var($userId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($userId === false) {
+            session()->flush();
+
+            return redirect()->route('login')
+                ->with('error', 'Sesi tidak valid. Silakan login ulang.');
+        }
+
+        // Cari user di database berdasarkan user_id dari session
         $user = User::find($userId);
 
         // Validasi: user harus ada dan aktif
         if (! $user || ! $user->isActive()) {
-            // Hapus session yang invalid
             session()->flush();
 
             return redirect()->route('login')
                 ->with('error', 'User tidak ditemukan atau tidak aktif. Silakan login ulang.');
         }
 
-        // 4️⃣ Login user secara programmatic (agar Auth::user() bisa dipakai)
+        // Login user secara programmatic (agar Auth::user() bisa dipakai)
         Auth::login($user);
 
-        // 5️⃣ Simpan info tambahan ke session Laravel (opsional)
+        // Simpan info tambahan ke session Laravel
         session([
             'entered_from_dashboard' => true,
             'user_role' => $userRole,
             'entry_time' => now(),
         ]);
 
-        // 6️⃣ Lanjutkan request
         return $next($request);
     }
 }

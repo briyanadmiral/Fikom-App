@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * ✅ AuditLog - Model untuk tracking aktivitas user
+ * AuditLog - Model untuk tracking aktivitas user.
  *
  * Menyimpan log untuk:
  * - Create/Update/Delete Surat Tugas

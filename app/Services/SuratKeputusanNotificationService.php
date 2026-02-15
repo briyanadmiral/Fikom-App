@@ -8,9 +8,9 @@ use App\Models\KeputusanHeader;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Notification service khusus untuk Surat Keputusan
- * Extends dari BaseNotificationService untuk shared functionality
- * ✅ REFACTORED: Enhanced dengan input validation & error handling
+ * Notification service khusus untuk Surat Keputusan.
+ * Extends dari BaseNotificationService untuk shared functionality.
+ * Enhanced dengan input validation & error handling.
  */
 class SuratKeputusanNotificationService extends BaseNotificationService
 {
@@ -23,13 +23,12 @@ class SuratKeputusanNotificationService extends BaseNotificationService
     }
 
     /**
-     * Notifikasi saat SK diajukan untuk approval
-     * ✅ IMPROVED: Added validation & error handling
+     * Notifikasi saat SK diajukan untuk approval.
      */
     public function notifyApprovalRequest(KeputusanHeader $sk): void
     {
         try {
-            // ✅ ADDED: Validate SK ID
+            // Validate SK ID
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 Log::warning('Invalid SK ID for approval request', ['sk' => $sk->id]);
@@ -37,7 +36,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                 return;
             }
 
-            // ✅ IMPROVED: Validate approver ID
+            // Validate approver ID
             $approverId = validate_integer_id($sk->next_approver ?? $sk->penandatangan);
 
             if ($approverId === null) {
@@ -61,14 +60,14 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                 return;
             }
 
-            // ✅ IMPROVED: Sanitize nomor surat
+            // Sanitize nomor surat
             $nomor = sanitize_output($sk->nomor) ?: '(draft)';
 
             $this->createNotification($approverId, $skId, "Surat Keputusan {$nomor} menunggu persetujuan Anda.");
 
             $this->logNotificationActivity('approval_request', $skId, [
                 'approver_id' => $approverId,
-                'approver_name' => sanitize_log_message($approver->nama_lengkap), // ✅ ADDED
+                'approver_name' => sanitize_log_message($approver->nama_lengkap),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send approval request notification', [
@@ -79,13 +78,12 @@ class SuratKeputusanNotificationService extends BaseNotificationService
     }
 
     /**
-     * Notifikasi saat SK disetujui
-     * ✅ IMPROVED: Added validation & error handling
+     * Notifikasi saat SK disetujui.
      */
     public function notifyApproved(KeputusanHeader $sk): void
     {
         try {
-            // ✅ ADDED: Validate SK ID
+            // Validate SK ID
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 Log::warning('Invalid SK ID for approval notification', ['sk' => $sk->id]);
@@ -93,7 +91,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                 return;
             }
 
-            // ✅ IMPROVED: Validate pembuat ID
+            // Validate pembuat ID
             $pembuatId = validate_integer_id($sk->dibuat_oleh);
 
             if ($pembuatId === null) {
@@ -116,7 +114,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                 return;
             }
 
-            // ✅ IMPROVED: Sanitize nomor surat
+            // Sanitize nomor surat
             $nomor = sanitize_output($sk->nomor) ?: '(tanpa nomor)';
 
             // 1. Database notification
@@ -127,7 +125,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
 
             $this->logNotificationActivity('approved', $skId, [
                 'pembuat_id' => $pembuatId,
-                'pembuat_name' => sanitize_log_message($pembuat->nama_lengkap), // ✅ ADDED
+                'pembuat_name' => sanitize_log_message($pembuat->nama_lengkap),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send approval notification', [
@@ -138,15 +136,14 @@ class SuratKeputusanNotificationService extends BaseNotificationService
     }
 
     /**
-     * Notifikasi saat SK ditolak
-     * ✅ IMPROVED: Added validation & error handling
+     * Notifikasi saat SK ditolak.
      *
      * @param  string|null  $note  Catatan penolakan
      */
     public function notifyRejected(KeputusanHeader $sk, ?string $note = null): void
     {
         try {
-            // ✅ ADDED: Validate SK ID
+            // Validate SK ID
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 Log::warning('Invalid SK ID for rejection notification', ['sk' => $sk->id]);
@@ -154,7 +151,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                 return;
             }
 
-            // ✅ IMPROVED: Validate pembuat ID
+            // Validate pembuat ID
             $pembuatId = validate_integer_id($sk->dibuat_oleh);
 
             if ($pembuatId === null) {
@@ -177,7 +174,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                 return;
             }
 
-            // ✅ IMPROVED: Sanitize nomor surat & note
+            // Sanitize nomor surat & note
             $nomor = sanitize_output($sk->nomor) ?: '(tanpa nomor)';
             $sanitizedNote = $note ? sanitize_input($note, 500) : null;
 
@@ -199,7 +196,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
 
             $this->logNotificationActivity('rejected', $skId, [
                 'pembuat_id' => $pembuatId,
-                'note' => sanitize_log_message($sanitizedNote ?? '(no note)'), // ✅ ADDED
+                'note' => sanitize_log_message($sanitizedNote ?? '(no note)'),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send rejection notification', [
@@ -210,15 +207,14 @@ class SuratKeputusanNotificationService extends BaseNotificationService
     }
 
     /**
-     * Notifikasi saat SK direvisi oleh pembuat
-     * ✅ IMPROVED: Added validation & error handling
+     * Notifikasi saat SK direvisi oleh pembuat.
      *
      * @param  mixed  $byUser  User yang melakukan revisi
      */
     public function notifyRevised(KeputusanHeader $sk, $byUser): void
     {
         try {
-            // ✅ ADDED: Validate SK ID
+            // Validate SK ID
             $skId = validate_integer_id($sk->id);
             if ($skId === null) {
                 Log::warning('Invalid SK ID for revision notification', ['sk' => $sk->id]);
@@ -226,7 +222,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                 return;
             }
 
-            // ✅ IMPROVED: Validate approver ID
+            // Validate approver ID
             $approverId = validate_integer_id($sk->next_approver ?? $sk->penandatangan);
 
             if ($approverId === null) {
@@ -250,7 +246,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
                 return;
             }
 
-            // ✅ IMPROVED: Sanitize nomor surat & user name
+            // Sanitize nomor surat & user name
             $nomor = sanitize_output($sk->nomor) ?? '(tanpa nomor)';
             $userName = sanitize_output($byUser->nama_lengkap ?? 'pengguna');
 
@@ -266,8 +262,8 @@ class SuratKeputusanNotificationService extends BaseNotificationService
 
             $this->logNotificationActivity('revised', $skId, [
                 'approver_id' => $approverId,
-                'revised_by' => validate_integer_id($byUser->id ?? null), // ✅ ADDED validation
-                'revised_by_name' => sanitize_log_message($userName), // ✅ ADDED
+                'revised_by' => validate_integer_id($byUser->id ?? null),
+                'revised_by_name' => sanitize_log_message($userName),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send revision notification', [
@@ -278,7 +274,7 @@ class SuratKeputusanNotificationService extends BaseNotificationService
     }
 
     /**
-     * ✅ ADDED: Notify penerima saat SK terbit
+     * Notify penerima saat SK terbit.
      */
     public function notifyRecipients(KeputusanHeader $sk): void
     {

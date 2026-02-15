@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Base service untuk notifikasi surat (Tugas & Keputusan)
+ * Base service untuk notifikasi surat (Tugas & Keputusan).
  *
- * ✅ REFACTORED: Enhanced security dengan input validation dan log sanitization
+ * Enhanced security dengan input validation dan log sanitization.
  *
  * Shared functionality:
  * - Database notification creation
@@ -27,15 +27,15 @@ abstract class BaseNotificationService
     abstract protected function getNotificationType(): string;
 
     /**
-     * Create database notification dengan error handling
-     * ✅ IMPROVED: Added input validation
+     * Create database notification dengan error handling.
+     * Added input validation.
      *
      * @return bool Success status
      */
     protected function createNotification(int $userId, int $referenceId, string $message): bool
     {
         try {
-            // ✅ ADDED: Validate IDs
+            // Validate IDs
             $validUserId = validate_integer_id($userId);
             $validReferenceId = validate_integer_id($referenceId);
 
@@ -48,7 +48,7 @@ abstract class BaseNotificationService
                 return false;
             }
 
-            // ✅ ADDED: Sanitize message
+            // Sanitize message
             $sanitizedMessage = sanitize_notification($message, 500);
 
             if (empty($sanitizedMessage)) {
@@ -60,7 +60,7 @@ abstract class BaseNotificationService
                 return false;
             }
 
-            // ✅ ADDED: Check if user exists and is active
+            // Check if user exists and is active
             $user = $this->getActiveUser($validUserId);
             if (! $user) {
                 Log::warning('User not found or inactive', [
@@ -70,19 +70,19 @@ abstract class BaseNotificationService
                 return false;
             }
 
-            // ✅ IMPROVED: Create notification with validated data
+            // Create notification with validated data
             Notifikasi::create([
                 'pengguna_id' => $validUserId,
                 'tipe' => $this->getNotificationType(),
                 'referensi_id' => $validReferenceId,
                 'pesan' => $sanitizedMessage,
                 'dibaca' => false,
-                'dibuat_pada' => now(), // ✅ ADDED
+                'dibuat_pada' => now(),
             ]);
 
             Log::debug('Notification created', [
                 'user_id' => $validUserId,
-                'type' => sanitize_log_message($this->getNotificationType()), // ✅ ADDED sanitization
+                'type' => sanitize_log_message($this->getNotificationType()),
                 'reference_id' => $validReferenceId,
             ]);
 
@@ -90,9 +90,9 @@ abstract class BaseNotificationService
         } catch (\Exception $e) {
             Log::error('Failed to create notification', [
                 'user_id' => $userId,
-                'type' => sanitize_log_message($this->getNotificationType()), // ✅ ADDED sanitization
+                'type' => sanitize_log_message($this->getNotificationType()),
                 'reference_id' => $referenceId,
-                'error' => sanitize_log_message($e->getMessage()), // ✅ ADDED sanitization
+                'error' => sanitize_log_message($e->getMessage()),
             ]);
 
             return false;
@@ -100,12 +100,12 @@ abstract class BaseNotificationService
     }
 
     /**
-     * Get active user by ID dengan validation
-     * ✅ IMPROVED: Enhanced validation
+     * Get active user by ID dengan validation.
+     * Enhanced validation.
      */
     protected function getActiveUser(?int $userId): ?User
     {
-        // ✅ ADDED: Validate ID
+        // Validate ID
         $validUserId = validate_integer_id($userId);
 
         if ($validUserId === null) {
@@ -116,8 +116,8 @@ abstract class BaseNotificationService
     }
 
     /**
-     * Validate email address
-     * ✅ IMPROVED: Enhanced email validation
+     * Validate email address.
+     * Enhanced email validation.
      */
     protected function isValidEmail(?string $email): bool
     {
@@ -125,22 +125,22 @@ abstract class BaseNotificationService
             return false;
         }
 
-        // ✅ ADDED: Sanitize email first
+        // Sanitize email first
         $sanitizedEmail = sanitize_email($email);
 
         return ! empty($sanitizedEmail) && filter_var($sanitizedEmail, FILTER_VALIDATE_EMAIL);
     }
 
     /**
-     * Queue email dengan error handling
-     * ✅ IMPROVED: Added email validation
+     * Queue email dengan error handling.
+     * Added email validation.
      *
      * @return bool Success status
      */
     protected function queueEmail(object $mailable, string $email, string $queue = 'mail', int $delaySeconds = 5): bool
     {
         try {
-            // ✅ ADDED: Validate email
+            // Validate email
             if (! $this->isValidEmail($email)) {
                 Log::warning('Invalid email address for queueing', [
                     'email' => sanitize_log_message($email),
@@ -149,28 +149,28 @@ abstract class BaseNotificationService
                 return false;
             }
 
-            // ✅ ADDED: Sanitize email
+            // Sanitize email
             $sanitizedEmail = sanitize_email($email);
 
-            // ✅ ADDED: Validate queue name
+            // Validate queue name
             $queue = sanitize_input($queue, 50) ?? 'mail';
 
-            // ✅ ADDED: Validate delay (max 1 hour)
+            // Validate delay (max 1 hour)
             $delaySeconds = max(0, min($delaySeconds, 3600));
 
             Mail::to($sanitizedEmail)->later(now()->addSeconds($delaySeconds), $mailable);
 
             Log::debug('Email queued', [
-                'email' => sanitize_log_message($sanitizedEmail), // ✅ ADDED sanitization
-                'queue' => sanitize_log_message($queue), // ✅ ADDED sanitization
+                'email' => sanitize_log_message($sanitizedEmail),
+                'queue' => sanitize_log_message($queue),
                 'delay' => $delaySeconds,
             ]);
 
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to queue email', [
-                'email' => sanitize_log_message($email), // ✅ ADDED sanitization
-                'error' => sanitize_log_message($e->getMessage()), // ✅ ADDED sanitization
+                'email' => sanitize_log_message($email),
+                'error' => sanitize_log_message($e->getMessage()),
             ]);
 
             return false;
@@ -178,18 +178,18 @@ abstract class BaseNotificationService
     }
 
     /**
-     * Dispatch queue job dengan error handling
-     * ✅ IMPROVED: Enhanced validation
+     * Dispatch queue job dengan error handling.
+     * Enhanced validation.
      *
      * @return bool Success status
      */
     protected function dispatchJob(object $job, string $queue = 'mail', int $delaySeconds = 5): bool
     {
         try {
-            // ✅ ADDED: Validate queue name
+            // Validate queue name
             $queue = sanitize_input($queue, 50) ?? 'mail';
 
-            // ✅ ADDED: Validate delay (max 1 hour)
+            // Validate delay (max 1 hour)
             $delaySeconds = max(0, min($delaySeconds, 3600));
 
             dispatch($job)
@@ -197,16 +197,16 @@ abstract class BaseNotificationService
                 ->delay(now()->addSeconds($delaySeconds));
 
             Log::debug('Job dispatched', [
-                'job' => sanitize_log_message(get_class($job)), // ✅ ADDED sanitization
-                'queue' => sanitize_log_message($queue), // ✅ ADDED sanitization
+                'job' => sanitize_log_message(get_class($job)),
+                'queue' => sanitize_log_message($queue),
                 'delay' => $delaySeconds,
             ]);
 
             return true;
         } catch (\Exception $e) {
             Log::error('Failed to dispatch job', [
-                'job' => sanitize_log_message(get_class($job)), // ✅ ADDED sanitization
-                'error' => sanitize_log_message($e->getMessage()), // ✅ ADDED sanitization
+                'job' => sanitize_log_message(get_class($job)),
+                'error' => sanitize_log_message($e->getMessage()),
             ]);
 
             return false;
@@ -214,12 +214,12 @@ abstract class BaseNotificationService
     }
 
     /**
-     * Log notification activity
-     * ✅ IMPROVED: Enhanced sanitization
+     * Log notification activity.
+     * Enhanced sanitization.
      */
     protected function logNotificationActivity(string $action, int $documentId, array $context = []): void
     {
-        // ✅ ADDED: Validate document ID
+        // Validate document ID
         $validDocId = validate_integer_id($documentId);
 
         if ($validDocId === null) {
@@ -230,7 +230,7 @@ abstract class BaseNotificationService
             return;
         }
 
-        // ✅ ADDED: Sanitize all context values
+        // Sanitize all context values
         $sanitizedContext = [];
         foreach ($context as $key => $value) {
             $sanitizedKey = sanitize_input($key, 50);
@@ -262,7 +262,7 @@ abstract class BaseNotificationService
     }
 
     /**
-     * ✅ ADDED: Batch create notifications
+     * Batch create notifications.
      *
      * @return array [success_count, failed_count]
      */
@@ -271,13 +271,13 @@ abstract class BaseNotificationService
         $successCount = 0;
         $failedCount = 0;
 
-        // ✅ Validate reference ID
+        // Validate reference ID
         $validReferenceId = validate_integer_id($referenceId);
         if ($validReferenceId === null) {
             return [0, count($userIds)];
         }
 
-        // ✅ Sanitize message once
+        // Sanitize message once
         $sanitizedMessage = sanitize_notification($message, 500);
         if (empty($sanitizedMessage)) {
             return [0, count($userIds)];
@@ -302,7 +302,7 @@ abstract class BaseNotificationService
     }
 
     /**
-     * ✅ ADDED: Get notification statistics
+     * Get notification statistics.
      */
     protected function getNotificationStats(int $userId): array
     {

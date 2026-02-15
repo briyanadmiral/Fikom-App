@@ -11,9 +11,6 @@ class NotifikasiController extends Controller
     /**
      * Tampilkan daftar notifikasi untuk user yang sedang login.
      */
-    /**
-     * Tampilkan daftar notifikasi untuk user yang sedang login.
-     */
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -61,8 +58,8 @@ class NotifikasiController extends Controller
         if ($notif) {
             $notif->update(['dibaca' => true]);
 
-            // Redirect ke link terkait jika ada
-            if ($notif->link) {
+            // Redirect ke link terkait jika ada (kecuali diminta stay)
+            if ($notif->link && !request()->has('noredirect')) {
                 return redirect($notif->link);
             }
         }

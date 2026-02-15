@@ -109,7 +109,7 @@ class SendWeeklyDigest extends Command
             $this->buildEmailContent($user, $data),
             function ($message) use ($user) {
                 $message->to($user->email, $user->nama_lengkap)
-                    ->subject('[SIEGA] Ringkasan Mingguan - '.Carbon::now()->format('d M Y'));
+                    ->subject('[FIKOM] Ringkasan Mingguan - '.Carbon::now()->format('d M Y'));
             }
         );
     }
@@ -140,7 +140,7 @@ class SendWeeklyDigest extends Command
         }
 
         $lines[] = '---';
-        $lines[] = 'Sistem Surat SIEGA - FIKOM UNIKA Soegijapranata';
+        $lines[] = 'Sistem Surat FIKOM - UNIKA Soegijapranata';
         $lines[] = 'Untuk mengubah preferensi notifikasi, kunjungi menu Pengaturan Akun.';
 
         return implode("\n", $lines);

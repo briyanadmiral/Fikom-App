@@ -7,8 +7,8 @@ use App\Services\AuditService;
 use Illuminate\Support\Facades\Log;
 
 /**
- * ✅ KeputusanHeaderObserver - Observer untuk Surat Keputusan
- * Menangani audit logging untuk SK
+ * KeputusanHeaderObserver - Observer untuk Surat Keputusan.
+ * Menangani audit logging untuk SK.
  */
 class KeputusanHeaderObserver
 {
@@ -40,11 +40,11 @@ class KeputusanHeaderObserver
     {
         Log::info('Surat keputusan created', [
             'sk_id' => $sk->id,
-            'nomor' => $sk->nomor ?? '(belum ada)',
-            'created_by' => auth()->id() ?? 'system',
+            'nomor' => sanitize_log_message($sk->nomor ?? '(belum ada)'),
+            'created_by' => validate_integer_id(auth()->id()) ?? 'system',
         ]);
 
-        // ✅ Audit logging
+        // Audit logging
         app(AuditService::class)->logCreate($sk);
     }
 
@@ -62,9 +62,9 @@ class KeputusanHeaderObserver
 
             Log::info('Status surat keputusan changed', [
                 'sk_id' => $sk->id,
-                'old_status' => $oldStatus,
-                'new_status' => $newStatus,
-                'changed_by' => auth()->id() ?? 'system',
+                'old_status' => sanitize_log_message($oldStatus),
+                'new_status' => sanitize_log_message($newStatus),
+                'changed_by' => validate_integer_id(auth()->id()) ?? 'system',
             ]);
 
             // Log specific actions based on new status
@@ -98,20 +98,18 @@ class KeputusanHeaderObserver
     /**
      * Handle the KeputusanHeader "deleting" event.
      */
-    public function deleting(KeputusanHeader $sk): bool
+    public function deleting(KeputusanHeader $sk): void
     {
-        // Only allow delete if draft
+        // Only allow delete if draft — throw to actually cancel deletion
         if ($sk->status_surat !== 'draft') {
             Log::warning('Attempted to delete non-draft surat keputusan', [
                 'sk_id' => $sk->id,
-                'status' => $sk->status_surat,
-                'user_id' => auth()->id(),
+                'status' => sanitize_log_message($sk->status_surat),
+                'user_id' => validate_integer_id(auth()->id()),
             ]);
 
-            return false;
+            throw new \RuntimeException('Hanya SK dengan status draft yang dapat dihapus.');
         }
-
-        return true;
     }
 
     /**
@@ -121,8 +119,8 @@ class KeputusanHeaderObserver
     {
         Log::info('Surat keputusan deleted', [
             'sk_id' => $sk->id,
-            'nomor' => $sk->nomor ?? '(kosong)',
-            'deleted_by' => auth()->id() ?? 'system',
+            'nomor' => sanitize_log_message($sk->nomor ?? '(kosong)'),
+            'deleted_by' => validate_integer_id(auth()->id()) ?? 'system',
         ]);
 
         app(AuditService::class)->logDelete($sk);
@@ -135,8 +133,8 @@ class KeputusanHeaderObserver
     {
         Log::info('Surat keputusan restored', [
             'sk_id' => $sk->id,
-            'nomor' => $sk->nomor ?? '(kosong)',
-            'restored_by' => auth()->id() ?? 'system',
+            'nomor' => sanitize_log_message($sk->nomor ?? '(kosong)'),
+            'restored_by' => validate_integer_id(auth()->id()) ?? 'system',
         ]);
     }
 }

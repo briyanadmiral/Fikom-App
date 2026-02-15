@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>@yield('title', config('app.name', 'Arsip Surat SIEGA'))</title>
+    <title>@yield('title', config('app.name', 'Arsip Surat FIKOM'))</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="author" content="SIEGA UNIKA">
-    <meta name="description" content="Sistem Informasi Elektronik dan Gateway Administrasi">
+    <meta name="author" content="FIKOM UNIKA">
+    <meta name="description" content="Sistem Informasi Surat Fakultas Ilmu Komputer">
     
     {{-- Favicon --}}
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">

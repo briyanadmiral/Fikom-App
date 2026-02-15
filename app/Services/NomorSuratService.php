@@ -6,14 +6,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * ✅ REFACTORED: Security enhanced dengan input sanitization
- * ✅ ADDED: Thread-safe counter management dengan deadlock handling
+ * NomorSuratService - Security enhanced dengan input sanitization.
+ * Thread-safe counter management dengan deadlock handling.
  */
 class NomorSuratService
 {
     /**
      * Reserve nomor berikutnya untuk scope tertentu (unit+klas+bulan+tahun).
-     * ✅ GOOD: Input validation dengan helpers
      *
      * @return array{no_urut:string, nomor:string, scope:array}
      *
@@ -22,29 +21,29 @@ class NomorSuratService
      */
     public function reserve(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): array
     {
-        // ✅ GOOD: Sanitasi input dengan helpers
+        // Sanitasi input dengan helpers
         $unit = sanitize_alphanumeric(trim($unit), '_-.');
         $klas = sanitize_kode(trim($kodeKlasifikasi));
         $bulan = sanitize_alphanumeric(strtoupper(trim($bulanRomawi)));
         $tahun = filter_var($tahun, FILTER_VALIDATE_INT);
 
-        // ✅ GOOD: Validasi input tidak boleh kosong
+        // Validasi input tidak boleh kosong
         if (empty($unit) || empty($klas) || empty($bulan)) {
             throw new \InvalidArgumentException('Unit, kode klasifikasi, dan bulan tidak boleh kosong.');
         }
 
-        // ✅ GOOD: Validasi tahun
+        // Validasi tahun
         if ($tahun === false || $tahun < 2000 || $tahun > 2100) {
             throw new \InvalidArgumentException('Tahun tidak valid. Harus antara 2000-2100.');
         }
 
-        // ✅ GOOD: Whitelist bulan romawi
+        // Whitelist bulan romawi
         $validMonths = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
         if (! in_array($bulan, $validMonths, true)) {
             throw new \InvalidArgumentException("Bulan Romawi tidak valid: {$bulan}");
         }
 
-        // ✅ GOOD: Limit panjang untuk mencegah DB overflow
+        // Limit panjang untuk mencegah DB overflow
         if (strlen($unit) > 20 || strlen($klas) > 20 || strlen($bulan) > 10) {
             throw new \InvalidArgumentException('Input terlalu panjang.');
         }
@@ -59,7 +58,7 @@ class NomorSuratService
         $counterTable = 'nomor_surat_counters';
 
         try {
-            // ✅ GOOD: Gunakan DB transaction dengan retry logic
+            // Gunakan DB transaction dengan retry logic
             $noUrut = DB::transaction(function () use ($counterTable, $scope) {
                 // Lock baris counter untuk scope ini (FOR UPDATE = pessimistic lock)
                 $row = DB::table($counterTable)->where($scope)->lockForUpdate()->first();
@@ -82,19 +81,19 @@ class NomorSuratService
                     }
                 }
 
-                // ✅ GOOD: Validasi last_number
+                // Validasi last_number
                 $lastNumber = filter_var($row->last_number, FILTER_VALIDATE_INT);
                 if ($lastNumber === false || $lastNumber < 0) {
                     Log::error('Invalid last_number in counter', [
                         'row_id' => $row->id,
-                        'last_number' => sanitize_log_message($row->last_number), // ✅ ADDED
+                        'last_number' => sanitize_log_message($row->last_number),
                     ]);
                     throw new \RuntimeException('Invalid last_number in database');
                 }
 
                 $next = $lastNumber + 1;
 
-                // ✅ GOOD: Safety check: Prevent overflow (max 99999)
+                // Safety check: Prevent overflow (max 99999)
                 if ($next > 99999) {
                     throw new \RuntimeException('Nomor surat counter overflow. Max 99999.');
                 }
@@ -107,27 +106,23 @@ class NomorSuratService
                     ]);
 
                 return $next;
-            }, 3); // ✅ GOOD: Retry 3x untuk deadlock handling
+            }, 3); // Retry 3x untuk deadlock handling
         } catch (\Exception $e) {
             Log::error('Failed to reserve nomor surat', [
                 'scope' => $scope,
-                'error' => sanitize_log_message($e->getMessage()), // ✅ GOOD
-                'trace' => sanitize_log_message($e->getTraceAsString()), // ✅ ADDED
+                'error' => sanitize_log_message($e->getMessage()),
+                'trace' => sanitize_log_message($e->getTraceAsString()),
             ]);
             throw $e;
         }
 
-        // ✅ GOOD: Format nomor dengan validasi config
+        // Format nomor dengan validasi config
         $fmt = config('nomor_surat.format', '{NO}/{KLAS}/{UNIT}/UNIKA/{BULAN}/{TAHUN}');
-        $pad = filter_var(config('nomor_surat.zero_pad', 3), FILTER_VALIDATE_INT);
-
-        if ($pad === false || $pad < 1 || $pad > 10) {
-            $pad = 3; // Default fallback
-        }
+        $pad = $this->getZeroPad();
 
         $noStr = str_pad((string) $noUrut, $pad, '0', STR_PAD_LEFT);
 
-        // ✅ GOOD: Sanitasi replacement values
+        // Sanitasi replacement values
         $nomor = strtr($fmt, [
             '{NO}' => $noStr,
             '{KLAS}' => $klas, // Already sanitized
@@ -136,7 +131,7 @@ class NomorSuratService
             '{TAHUN}' => (string) $tahun,
         ]);
 
-        // ✅ GOOD: Log successful reservation
+        // Log successful reservation
         Log::info('Nomor surat reserved', [
             'nomor' => sanitize_log_message($nomor),
             'no_urut' => $noUrut,
@@ -146,12 +141,13 @@ class NomorSuratService
         return [
             'no_urut' => $noStr,
             'nomor' => $nomor,
+            'nomor_urut_int' => $noUrut,
             'scope' => $scope,
         ];
     }
 
     /**
-     * ✅ GOOD: Get current counter untuk scope tertentu (read-only)
+     * Get current counter untuk scope tertentu (read-only).
      */
     public function getCurrentCounter(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): int
     {
@@ -177,9 +173,10 @@ class NomorSuratService
     }
 
     /**
-     * ✅ GOOD: Reset counter untuk testing/admin purposes
+     * Reset counter untuk testing/admin purposes.
+     * @param bool $skipAuthCheck Set true when calling from CLI/artisan commands
      */
-    public function resetCounter(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): bool
+    public function resetCounter(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun, bool $skipAuthCheck = false): bool
     {
         $unit = sanitize_alphanumeric(trim($unit), '_-');
         $klas = sanitize_kode(trim($kodeKlasifikasi));
@@ -190,14 +187,16 @@ class NomorSuratService
             return false;
         }
 
-        // ✅ ADDED: Validate admin authorization
-        if (! auth()->check() || ! auth()->user()->isAdmin()) {
-            Log::warning('Unauthorized counter reset attempt', [
-                'user_id' => auth()->id(),
-                'unit' => $unit,
-            ]);
+        // Validate admin authorization (skip for CLI/artisan)
+        if (! $skipAuthCheck) {
+            if (! auth()->check() || ! auth()->user()->isAdmin()) {
+                Log::warning('Unauthorized counter reset attempt', [
+                    'user_id' => auth()->id(),
+                    'unit' => $unit,
+                ]);
 
-            return false;
+                return false;
+            }
         }
 
         $affected = DB::table('nomor_surat_counters')
@@ -213,18 +212,18 @@ class NomorSuratService
             ]);
 
         Log::warning('Counter reset', [
-            'unit' => sanitize_log_message($unit), // ✅ ADDED
-            'kode' => sanitize_log_message($klas), // ✅ ADDED
-            'bulan' => sanitize_log_message($bulan), // ✅ ADDED
+            'unit' => sanitize_log_message($unit),
+            'kode' => sanitize_log_message($klas),
+            'bulan' => sanitize_log_message($bulan),
             'tahun' => $tahun,
-            'admin' => auth()->id(),
+            'admin' => auth()->id() ?? 'cli',
         ]);
 
         return $affected > 0;
     }
 
     /**
-     * ✅ ADDED: Get all counters untuk reporting
+     * Get all counters untuk reporting.
      */
     public function getAllCounters(?int $tahun = null): \Illuminate\Support\Collection
     {
@@ -241,7 +240,7 @@ class NomorSuratService
     }
 
     /**
-     * ✅ ADDED: Check if counter exists
+     * Check if counter exists.
      */
     public function counterExists(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): bool
     {
@@ -265,7 +264,7 @@ class NomorSuratService
     }
 
     /**
-     * ✅ ADDED: Get next available nomor (preview tanpa reserve)
+     * Get next available nomor (preview tanpa reserve).
      */
     public function previewNextNomor(string $unit, string $kodeKlasifikasi, string $bulanRomawi, int $tahun): string
     {
@@ -273,11 +272,7 @@ class NomorSuratService
         $nextNumber = $currentCounter + 1;
 
         $fmt = config('nomor_surat.format', '{NO}/{KLAS}/{UNIT}/UNIKA/{BULAN}/{TAHUN}');
-        $pad = filter_var(config('nomor_surat.zero_pad', 3), FILTER_VALIDATE_INT);
-
-        if ($pad === false || $pad < 1 || $pad > 10) {
-            $pad = 3;
-        }
+        $pad = $this->getZeroPad();
 
         $noStr = str_pad((string) $nextNumber, $pad, '0', STR_PAD_LEFT);
 
@@ -299,24 +294,28 @@ class NomorSuratService
     // =========================================================
 
     /**
-     * Get next available suffix for a parent tugas
-     * Returns: A, B, C, ... Z (max 26 derivatives)
+     * Get next available suffix for a parent tugas.
+     * MUST be called inside a transaction with lockForUpdate on children
+     * to prevent race conditions. Use reserveSuffix() instead for safe usage.
      *
+     * @param  int  $parentTugasId  ID surat induk
+     * @param  bool $locked         True jika sudah dalam transaction context
      * @return string Next suffix letter (A-Z)
      *
      * @throws \RuntimeException if max suffix (Z) exceeded
      */
-    public function getNextSuffix(int $parentTugasId): string
+    public function getNextSuffix(int $parentTugasId, bool $locked = false): string
     {
-        $parent = \App\Models\TugasHeader::find($parentTugasId);
+        // Get existing suffixes for this parent
+        $query = \App\Models\TugasHeader::where('parent_tugas_id', $parentTugasId)
+            ->whereNotNull('suffix');
 
-        if (! $parent) {
-            throw new \InvalidArgumentException('Parent tugas tidak ditemukan.');
+        // Jika dalam transaction, lock rows untuk mencegah race condition
+        if ($locked) {
+            $query->lockForUpdate();
         }
 
-        // Get existing suffixes for this parent
-        $existingSuffixes = \App\Models\TugasHeader::where('parent_tugas_id', $parentTugasId)
-            ->whereNotNull('suffix')
+        $existingSuffixes = $query
             ->pluck('suffix')
             ->map(fn ($s) => strtoupper($s))
             ->toArray();
@@ -334,11 +333,44 @@ class NomorSuratService
     }
 
     /**
-     * Preview suffix nomor tanpa reserve (read-only)
+     * Build nomor turunan dari parent nomor + suffix.
+     * Helper method untuk menghindari duplikasi logic.
      *
+     * @param  string  $parentNomor  Nomor surat induk (e.g. "002/A.3.1/ST.IKOM/UNIKA/XII/2025")
+     * @param  string  $suffix       Suffix letter (e.g. "A")
+     * @return string  Nomor turunan (e.g. "002A/A.3.1/ST.IKOM/UNIKA/XII/2025")
+     */
+    private function buildSuffixNomor(string $parentNomor, string $suffix): string
+    {
+        $parts = explode('/', $parentNomor);
+
+        if (count($parts) >= 1) {
+            $parts[0] = $parts[0] . $suffix;
+        }
+
+        return implode('/', $parts);
+    }
+
+    /**
+     * Extract nomor urut integer dari nomor string.
+     * "001/A.4/TG/UNIKA/II/2026" → 1
+     */
+    private function extractNomorUrutInt(string $nomor): int
+    {
+        $parts = explode('/', $nomor);
+
+        return (int) preg_replace('/\D/', '', $parts[0] ?? '0');
+    }
+
+    /**
+     * Preview suffix nomor tanpa reserve (read-only).
+     * Aman dipanggil tanpa transaction — hanya untuk display.
+     *
+     * @param  int          $parentTugasId  ID surat induk
+     * @param  string|null  $suffix         Suffix spesifik (opsional, jika sudah diketahui)
      * @return string Preview nomor lengkap dengan suffix
      */
-    public function previewSuffixNomor(int $parentTugasId): string
+    public function previewSuffixNomor(int $parentTugasId, ?string $suffix = null): string
     {
         $parent = \App\Models\TugasHeader::find($parentTugasId);
 
@@ -346,22 +378,17 @@ class NomorSuratService
             return '[Parent tidak ditemukan]';
         }
 
-        $nextSuffix = $this->getNextSuffix($parentTugasId);
-
-        // Parse parent nomor dan sisipkan suffix
-        // Format: 002/A.3.1/ST.IKOM/UNIKA/XII/2025 -> 002A/A.3.1/ST.IKOM/UNIKA/XII/2025
-        $parts = explode('/', $parent->nomor);
-
-        if (count($parts) >= 1) {
-            // Tambahkan suffix ke bagian pertama (nomor urut)
-            $parts[0] = $parts[0].$nextSuffix;
+        // Jika suffix tidak diberikan, cari yang berikutnya (read-only, tanpa lock)
+        if ($suffix === null) {
+            $suffix = $this->getNextSuffix($parentTugasId, false);
         }
 
-        return implode('/', $parts);
+        return $this->buildSuffixNomor($parent->nomor, $suffix);
     }
 
     /**
-     * Reserve suffix nomor untuk turunan
+     * Reserve suffix nomor untuk turunan.
+     * Thread-safe: menggunakan DB transaction + lockForUpdate.
      *
      * @param  int  $parentTugasId  ID surat induk
      * @return array{suffix: string, nomor: string, parent_id: int, nomor_urut_int: int}
@@ -371,41 +398,79 @@ class NomorSuratService
      */
     public function reserveSuffix(int $parentTugasId): array
     {
-        $parent = \App\Models\TugasHeader::find($parentTugasId);
-
-        if (! $parent) {
-            throw new \InvalidArgumentException('Parent tugas tidak ditemukan.');
+        $parentTugasId = filter_var($parentTugasId, FILTER_VALIDATE_INT);
+        if ($parentTugasId === false || $parentTugasId < 1) {
+            throw new \InvalidArgumentException('Parent ID tidak valid.');
         }
 
-        if ($parent->suffix !== null || $parent->parent_tugas_id !== null) {
-            throw new \InvalidArgumentException('Tidak bisa membuat turunan dari nomor yang sudah turunan.');
+        try {
+            return DB::transaction(function () use ($parentTugasId) {
+                // Lock parent row to prevent concurrent modifications
+                $parent = \App\Models\TugasHeader::lockForUpdate()->find($parentTugasId);
+
+                if (! $parent) {
+                    throw new \InvalidArgumentException('Parent tugas tidak ditemukan.');
+                }
+
+                if ($parent->suffix !== null || $parent->parent_tugas_id !== null) {
+                    throw new \InvalidArgumentException('Tidak bisa membuat turunan dari nomor yang sudah turunan.');
+                }
+
+                if (empty($parent->nomor) || str_starts_with($parent->nomor, 'DRAFT-')) {
+                    throw new \InvalidArgumentException('Parent belum memiliki nomor surat yang valid.');
+                }
+
+                // Get next suffix with lock on children rows
+                $suffix = $this->getNextSuffix($parentTugasId, true);
+
+                // Build nomor turunan (single call, no double query)
+                $nomor = $this->buildSuffixNomor($parent->nomor, $suffix);
+
+                // Extract nomor_urut_int from parent
+                $nomorUrutInt = $this->extractNomorUrutInt($parent->nomor);
+
+                Log::info('Suffix nomor reserved', [
+                    'parent_id' => $parentTugasId,
+                    'parent_nomor' => sanitize_log_message($parent->nomor),
+                    'suffix' => $suffix,
+                    'new_nomor' => sanitize_log_message($nomor),
+                ]);
+
+                return [
+                    'suffix' => $suffix,
+                    'nomor' => $nomor,
+                    'parent_id' => $parentTugasId,
+                    'nomor_urut_int' => $nomorUrutInt,
+                ];
+            }, 3); // Retry 3x untuk deadlock handling
+        } catch (\InvalidArgumentException $e) {
+            throw $e; // Re-throw validation errors without wrapping
+        } catch (\Exception $e) {
+            Log::error('Failed to reserve suffix nomor', [
+                'parent_id' => $parentTugasId,
+                'error' => sanitize_log_message($e->getMessage()),
+            ]);
+            throw $e;
         }
-
-        $suffix = $this->getNextSuffix($parentTugasId);
-        $nomor = $this->previewSuffixNomor($parentTugasId);
-
-        // Extract nomor_urut_int from parent
-        $parts = explode('/', $parent->nomor);
-        $nomorUrutInt = (int) preg_replace('/\D/', '', $parts[0] ?? '0');
-
-        Log::info('Suffix nomor reserved', [
-            'parent_id' => $parentTugasId,
-            'parent_nomor' => sanitize_log_message($parent->nomor),
-            'suffix' => $suffix,
-            'new_nomor' => sanitize_log_message($nomor),
-        ]);
-
-        return [
-            'suffix' => $suffix,
-            'nomor' => $nomor,
-            'parent_id' => $parentTugasId,
-            'nomor_urut_int' => $nomorUrutInt,
-        ];
     }
 
     // =========================================================
     // HELPER METHODS
     // =========================================================
+
+    /**
+     * Get zero-pad setting with validation.
+     */
+    private function getZeroPad(): int
+    {
+        $pad = filter_var(config('nomor_surat.zero_pad', 3), FILTER_VALIDATE_INT);
+
+        if ($pad === false || $pad < 1 || $pad > 10) {
+            return 3;
+        }
+
+        return $pad;
+    }
 
     /**
      * Convert integer ke Romawi (1-3999)

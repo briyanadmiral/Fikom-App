@@ -166,7 +166,7 @@
     </div>
 
     <div class="footer">
-        Dicetak pada: {{ now()->format('d M Y H:i:s') }} | Sistem SIEGA
+        Dicetak pada: {{ now()->format('d M Y H:i:s') }} | Sistem FIKOM
     </div>
 </body>
 </html>

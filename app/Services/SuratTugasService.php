@@ -59,7 +59,7 @@ class SuratTugasService
             $parentTugasId = null;
             $nomorUrutInt = null;
 
-            // ✅ MODE TURUNAN: Gunakan suffix dari parent jika is_turunan = true
+            // MODE TURUNAN: Gunakan suffix dari parent jika is_turunan = true
             if (! empty($validatedData['is_turunan']) && ! empty($validatedData['parent_tugas_id'])) {
                 $parentId = (int) $validatedData['parent_tugas_id'];
                 $suffixData = $this->nomorService->reserveSuffix($parentId);
@@ -122,24 +122,24 @@ class SuratTugasService
                 'next_approver' => $nextApprover ? (int) $nextApprover : null,
                 'tembusan' => sanitize_input($validatedData['tembusan'] ?? '', 500),
                 'submitted_at' => $status === 'pending' ? now() : null,
-                // ✅ NOMOR TURUNAN (Suffix Letter)
+                // NOMOR TURUNAN (Suffix Letter)
                 'suffix' => $suffix,
                 'parent_tugas_id' => $parentTugasId,
                 'nomor_urut_int' => $nomorUrutInt,
             ];
 
-            // ✅ FIX: Set semua FK yang dibutuhkan
+            // FIX: Set semua FK yang dibutuhkan
             // Kolom baru dengan _id
             $this->putIfColumnExists($data, $table, 'pembuat_id', validate_integer_id($validatedData['pembuat_id'] ?? ($validatedData['nama_pembuat'] ?? null)));
             $this->putIfColumnExists($data, $table, 'asal_surat_id', validate_integer_id($validatedData['asal_surat_id'] ?? ($validatedData['asal_surat'] ?? null)));
             $this->putIfColumnExists($data, $table, 'penandatangan_id', $penandaIn);
 
-            // ✅ FIX: Set kolom legacy nama_pembuat, asal_surat, penandatangan
+            // FIX: Set kolom legacy nama_pembuat, asal_surat, penandatangan
             // CRITICAL: Kolom ini harus diisi jika masih ada di DB dan NOT NULL
             if (Schema::hasColumn($table, 'nama_pembuat')) {
                 // Prioritas: ambil ID dari pembuat_id
                 $pembuatId = validate_integer_id($validatedData['pembuat_id'] ?? ($validatedData['nama_pembuat'] ?? Auth::id()));
-                $data['nama_pembuat'] = $pembuatId; // ✅ FIXED: Set with ID
+                $data['nama_pembuat'] = $pembuatId;
             }
 
             if (Schema::hasColumn($table, 'asal_surat')) {
@@ -149,7 +149,7 @@ class SuratTugasService
             }
 
             if (Schema::hasColumn($table, 'penandatangan')) {
-                $data['penandatangan'] = $penandaIn; // ✅ FIXED: Set with ID
+                $data['penandatangan'] = $penandaIn;
             }
 
             $tugas = TugasHeader::create($data);
@@ -289,7 +289,7 @@ class SuratTugasService
                 'dikunci_pada' => now(),
             ];
 
-            // ✅ FIX: Only update size values if explicitly provided
+            // FIX: Only update size values if explicitly provided
             // This preserves values already saved by controller
             if (array_key_exists('ttd_w_mm', $validatedData)) {
                 $update['ttd_w_mm'] = (int) $validatedData['ttd_w_mm'];

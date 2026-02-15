@@ -141,15 +141,19 @@ if (! function_exists('validate_file_path')) {
             return null;
         }
 
-        // Hapus path traversal attempts
-        $cleaned = str_replace(['../', '..\\'], '', $path);
-
         // Hapus null bytes
-        $cleaned = str_replace("\0", '', $cleaned);
+        $cleaned = str_replace("\0", '', $path);
+
+        // Recursive removal of path traversal attempts
+        // (prevents bypass like '....//etc/passwd' → '../etc/passwd')
+        do {
+            $before = $cleaned;
+            $cleaned = str_replace(['../', '..\\'], '', $cleaned);
+        } while ($cleaned !== $before);
 
         // Validasi bahwa path tidak absolute
         if (preg_match('/^[a-z]:/i', $cleaned) || ($cleaned[0] ?? '') === '/') {
-            \Log::warning('Suspicious file path detected', ['path' => $path]);
+            \Log::warning('Suspicious file path detected', ['path' => sanitize_log_message($path)]);
 
             return null;
         }
@@ -335,7 +339,7 @@ if (! function_exists('sanitize_kode')) {
             return null;
         }
 
-        // ✅ FIXED: Allow alphanumeric, dash, underscore, DAN TITIK
+        // Allow alphanumeric, dash, underscore, and dot
         $cleaned = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $value);
 
         // Uppercase dan limit length
@@ -586,37 +590,20 @@ if (! function_exists('logStatusChange')) {
         }
 
         try {
-            if ($db instanceof \PDO) {
-                // Menggunakan PDO dengan prepared statement
-                $stmt = $db->prepare('
-                    INSERT INTO tugas_log
-                        (tugas_id, status_lama, status_baru, user_id, ip_address, user_agent, created_at)
-                    VALUES
-                        (?, ?, ?, ?, ?, ?, NOW())
-                ');
+            // Laravel DB facade - parameter binding built-in
+            $userId = Auth::id();
+            $ip = request()->ip();
+            $userAgent = substr((string) request()->userAgent(), 0, 255);
 
-                // Sanitasi IP address dan User Agent
-                $userId = $_SESSION['user_id'] ?? null;
-                $ip = filter_var($_SERVER['REMOTE_ADDR'] ?? null, FILTER_VALIDATE_IP);
-                $userAgent = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255); // Limit length
-
-                $stmt->execute([$tugasId, $old, $new, $userId, $ip, $userAgent]);
-            } else {
-                // Laravel DB facade - sudah otomatis menggunakan parameter binding
-                $userId = Auth::id();
-                $ip = request()->ip(); // Laravel sudah validasi IP
-                $userAgent = substr((string) request()->userAgent(), 0, 255); // Limit length
-
-                \DB::table('tugas_log')->insert([
-                    'tugas_id' => (int) $tugasId,
-                    'status_lama' => $old,
-                    'status_baru' => $new,
-                    'user_id' => $userId,
-                    'ip_address' => $ip,
-                    'user_agent' => $userAgent,
-                    'created_at' => now(),
-                ]);
-            }
+            \DB::table('tugas_log')->insert([
+                'tugas_id' => (int) $tugasId,
+                'status_lama' => $old,
+                'status_baru' => $new,
+                'user_id' => $userId,
+                'ip_address' => $ip,
+                'user_agent' => $userAgent,
+                'created_at' => now(),
+            ]);
         } catch (\Exception $e) {
             \Log::error('logStatusChange: Failed to log status change', [
                 'tugasId' => $tugasId,

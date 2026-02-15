@@ -16,11 +16,9 @@ class RedirectController extends Controller
 
     public function legacySt(?string $any = null)
     {
-        // ✅ FIXED: Sanitize path parameter
         $safePath = $this->sanitizePath($any);
         $to = '/surat_tugas'.($safePath ? "/{$safePath}" : '');
 
-        // ✅ FIXED: Validate query string
         $qs = $this->getSafeQueryString();
 
         return redirect()->to($qs ? "{$to}?{$qs}" : $to, 301);
@@ -28,18 +26,16 @@ class RedirectController extends Controller
 
     public function legacySk(?string $any = null)
     {
-        // ✅ FIXED: Sanitize path parameter
         $safePath = $this->sanitizePath($any);
         $to = '/surat_keputusan'.($safePath ? "/{$safePath}" : '');
 
-        // ✅ FIXED: Validate query string
         $qs = $this->getSafeQueryString();
 
         return redirect()->to($qs ? "{$to}?{$qs}" : $to, 301);
     }
 
     /**
-     * ✅ Sanitize path to prevent directory traversal
+     * Sanitize path to prevent directory traversal
      */
     private function sanitizePath(?string $path): ?string
     {
@@ -60,7 +56,7 @@ class RedirectController extends Controller
     }
 
     /**
-     * ✅ Get validated query string
+     * Get validated query string
      */
     private function getSafeQueryString(): ?string
     {

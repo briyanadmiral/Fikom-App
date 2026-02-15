@@ -264,24 +264,31 @@
             top: 20px
         }
 
-        .btn-block+.btn-block {
-            margin-top: .55rem
-        }
-
-        .btn {
-            border-radius: .6rem;
-            font-weight: 700
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(15, 23, 42, .12)
-        }
-
         @media(max-width:991px) {
             .sticky-sidebar {
                 position: static
             }
+        }
+
+        /* Action Buttons Spacing */
+        .action-buttons > .btn,
+        .action-buttons > form {
+            margin-bottom: 1rem;
+        }
+        .action-buttons > :last-child {
+            margin-bottom: 0;
+        }
+
+        /* Custom clean purple button */
+        .btn-outline-purple {
+            color: #8b5cf6;
+            border: 1px solid #8b5cf6;
+            background: transparent;
+        }
+        .btn-outline-purple:hover {
+            color: #fff;
+            background: #8b5cf6;
+            border-color: #8b5cf6;
         }
     </style>
 @endpush
@@ -323,6 +330,15 @@
             <span class="chip">
                 <span class="icon"><i class="far fa-clock"></i></span>
                 Disetujui: {{ $tugas->signed_at->isoFormat('D MMM YYYY, HH:mm') }}
+            </span>
+        @endif
+        @if ($tugas->isTurunan())
+            <span class="chip" style="border-color: #c084fc; background: #faf5ff;">
+                <span class="icon" style="color: #9333ea;"><i class="fas fa-code-branch"></i></span>
+                Turunan dari:
+                <a href="{{ route('surat_tugas.show', $tugas->parent_tugas_id) }}" class="mono" style="color: #7c3aed;">
+                    {{ optional($tugas->parent)->nomor ?? '#' . $tugas->parent_tugas_id }}
+                </a>
             </span>
         @endif
     </div>
@@ -407,7 +423,7 @@
                 {{-- AKSI UTAMA --}}
                 <div class="card soft">
                     <div class="card-header"><i class="fas fa-bolt mr-2 text-warning"></i>Aksi Utama</div>
-                    <div class="card-body">
+                    <div class="card-body action-buttons">
                         @if (($tugas->status_surat ?? null) === 'pending' && Gate::allows('approve', $tugas))
                             <a href="{{ route('surat_tugas.approve.form', $tugas->id) }}"
                                 class="btn btn-success btn-block">
@@ -415,11 +431,19 @@
                             </a>
                         @endif
 
-                        {{-- ✅ FIXED: Tombol Ajukan (Direct Submit) untuk Draft --}}
+                        {{-- ✅ Tombol Ajukan (Direct Submit) untuk Draft --}}
                         @if (($tugas->status_surat ?? null) === 'draft')
                             @can('update', $tugas)
-                                <form action="{{ route('surat_tugas.submit', $tugas->id) }}" method="POST" class="mb-2">
+                                <form action="{{ route('surat_tugas.submit', $tugas->id) }}" method="POST" class="mb-2" id="formAjukan">
                                     @csrf
+                                    {{-- Opsi kirim email --}}
+                                    <div class="custom-control custom-checkbox mb-2" style="padding-left: 1.75rem;">
+                                        <input type="hidden" name="send_email" value="0">
+                                        <input type="checkbox" class="custom-control-input" id="sendEmailCheck" name="send_email" value="1" checked>
+                                        <label class="custom-control-label" for="sendEmailCheck" style="font-size: .85rem; color: #4b5563; cursor: pointer;">
+                                            <i class="fas fa-envelope mr-1" style="color: #06b6d4;"></i>Kirim notifikasi email setelah disetujui
+                                        </label>
+                                    </div>
                                     <button type="submit" class="btn btn-info btn-block"
                                         data-confirm-message="Apakah Anda yakin ingin mengajukan surat tugas ini? Status akan berubah menjadi PENDING."
                                         data-confirm-title="Konfirmasi Pengajuan"
@@ -444,11 +468,55 @@
                             target="_blank">
                             <i class="fas fa-file-pdf mr-2"></i>Download PDF
                         </a>
+
+                        {{-- Buat Nomor Turunan (Suffix) --}}
+                        @if (!$tugas->isTurunan() && !empty($tugas->nomor) && !str_starts_with($tugas->nomor ?? '', 'DRAFT-'))
+                            @can('create', App\Models\TugasHeader::class)
+                                <form action="{{ route('surat_tugas.buatTurunan', $tugas->id) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn btn-outline-purple btn-block"
+                                        data-confirm-message="Buat nomor turunan (suffix) dari surat ini? Konten akan di-copy dan Anda bisa edit tanggal surat."
+                                        data-confirm-title="Buat Nomor Turunan"
+                                        data-confirm-text="Ya, Buat!"
+                                        data-confirm-icon="question">
+                                        <i class="fas fa-code-branch mr-2"></i>Buat Nomor Turunan
+                                    </button>
+                                </form>
+                            @endcan
+                        @endif
+
                         <a href="{{ url()->previous() }}" class="btn btn-secondary btn-block">
                             <i class="fas fa-arrow-left mr-2"></i>Kembali
                         </a>
                     </div>
                 </div>
+
+                {{-- NOMOR TURUNAN (jika parent punya children) --}}
+                @if (!$tugas->isTurunan() && $tugas->children->count() > 0)
+                    <div class="card soft">
+                        <div class="card-header">
+                            <i class="fas fa-code-branch mr-2" style="color: #8b5cf6;"></i>Nomor Turunan ({{ $tugas->children->count() }})
+                        </div>
+                        <div class="card-body p-0">
+                            <ul class="info-list mb-0">
+                                @foreach ($tugas->children->sortBy('suffix') as $child)
+                                    <li class="px-3">
+                                        <span class="label" style="min-width: 0;">
+                                            <a href="{{ route('surat_tugas.show', $child->id) }}" style="color: #7c3aed; text-decoration: none; font-weight: 700;">
+                                                <span class="mono">{{ $child->nomor }}</span>
+                                            </a>
+                                        </span>
+                                        <span class="value">
+                                            <span class="badge badge-{{ ['draft' => 'secondary', 'pending' => 'warning', 'disetujui' => 'success', 'ditolak' => 'danger'][$child->status_surat] ?? 'secondary' }}">
+                                                {{ ucfirst($child->status_surat) }}
+                                            </span>
+                                        </span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- INFORMASI SURAT --}}
                 <div class="card soft">
@@ -560,7 +628,5 @@
                     </div>
                 </div>
 
-            </div>
-        </div>
-    </div>
+                {{-- METADATA --}}
 @endsection

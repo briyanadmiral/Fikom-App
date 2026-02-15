@@ -7,9 +7,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\File;
 
 /**
- * ✅ IMPROVED: Enhanced file upload security & validation
+ * Enhanced file upload security & validation.
  *
- * File upload adalah HIGH RISK vector attack!
  * Layer proteksi:
  * - Extension validation
  * - MIME type validation (real content check)
@@ -18,10 +17,6 @@ use Illuminate\Validation\Rules\File;
  * - Path traversal protection
  * - Double extension detection
  * - Image dimensions validation (optional)
- *
- * @version 2.0.0
- *
- * @date 2025-12-06
  */
 class AttachmentRequest extends FormRequest
 {
@@ -48,10 +43,10 @@ class AttachmentRequest extends FormRequest
                 'file',
                 'max:10240', // 10MB max (10 * 1024 KB)
 
-                // ✅ IMPROVED: Use Laravel 10+ File rule for better validation
+
                 File::types(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'zip', 'rar'])->max(10 * 1024), // 10MB in KB
 
-                // ✅ ADDITIONAL: Validate MIME types (content-based, not just extension)
+
                 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,zip,rar',
                 'mimetypes:'.
                 implode(',', [
@@ -93,7 +88,7 @@ class AttachmentRequest extends FormRequest
     }
 
     /**
-     * ✅ IMPROVED: Comprehensive file validation before processing
+     * Comprehensive file validation before processing.
      */
     protected function prepareForValidation(): void
     {
@@ -121,7 +116,7 @@ class AttachmentRequest extends FormRequest
         if ($this->hasFile('file')) {
             $file = $this->file('file');
 
-            // ✅ Validate filename for path traversal attacks
+
             $originalName = $file->getClientOriginalName();
 
             if ($this->hasPathTraversal($originalName)) {
@@ -135,7 +130,7 @@ class AttachmentRequest extends FormRequest
                 $originalName = $this->sanitizeFilename($originalName);
             }
 
-            // ✅ Check for double extensions (e.g., shell.php.jpg)
+
             if ($this->hasDoubleExtension($originalName)) {
                 Log::warning('AttachmentRequest: Double extension detected', [
                     'filename' => $originalName,
@@ -144,7 +139,7 @@ class AttachmentRequest extends FormRequest
                 ]);
             }
 
-            // ✅ Check for executable extensions in filename
+
             if ($this->hasExecutableExtension($originalName)) {
                 Log::critical('AttachmentRequest: Executable extension detected', [
                     'filename' => $originalName,
@@ -155,18 +150,18 @@ class AttachmentRequest extends FormRequest
                 abort(403, 'File dengan ekstensi executable tidak diizinkan');
             }
 
-            // ✅ Validate image dimensions (if image file)
+
             if ($this->isImage($file)) {
                 $this->validateImageDimensions($file);
             }
 
-            // ✅ Additional MIME type validation
+
             $this->validateMimeType($file);
         }
     }
 
     /**
-     * ✅ Check for path traversal patterns in filename
+     * Check for path traversal patterns in filename.
      */
     private function hasPathTraversal(string $filename): bool
     {
@@ -187,7 +182,7 @@ class AttachmentRequest extends FormRequest
     }
 
     /**
-     * ✅ Sanitize filename (remove dangerous characters)
+     * Sanitize filename (remove dangerous characters).
      */
     private function sanitizeFilename(string $filename): string
     {
@@ -207,7 +202,7 @@ class AttachmentRequest extends FormRequest
     }
 
     /**
-     * ✅ Check for double extensions (e.g., file.php.jpg)
+     * Check for double extensions (e.g., file.php.jpg).
      */
     private function hasDoubleExtension(string $filename): bool
     {
@@ -231,7 +226,7 @@ class AttachmentRequest extends FormRequest
     }
 
     /**
-     * ✅ Check for executable extensions
+     * Check for executable extensions.
      */
     private function hasExecutableExtension(string $filename): bool
     {
@@ -243,7 +238,7 @@ class AttachmentRequest extends FormRequest
     }
 
     /**
-     * ✅ Check if file is an image
+     * Check if file is an image.
      */
     private function isImage($file): bool
     {
@@ -253,7 +248,7 @@ class AttachmentRequest extends FormRequest
     }
 
     /**
-     * ✅ Validate image dimensions (prevent decompression bomb)
+     * Validate image dimensions (prevent decompression bomb).
      */
     private function validateImageDimensions($file): void
     {
@@ -271,7 +266,7 @@ class AttachmentRequest extends FormRequest
 
             [$width, $height] = $imageInfo;
 
-            // ✅ Max dimensions: 10000x10000 (prevent decompression bomb)
+
             $maxDimension = 10000;
 
             if ($width > $maxDimension || $height > $maxDimension) {
@@ -284,7 +279,7 @@ class AttachmentRequest extends FormRequest
                 abort(422, "Dimensi gambar terlalu besar. Maksimal {$maxDimension}x{$maxDimension} piksel.");
             }
 
-            // ✅ Check pixel count (max 100 megapixels)
+
             $maxPixels = 100 * 1000 * 1000; // 100 megapixels
             $pixels = $width * $height;
 
@@ -307,14 +302,14 @@ class AttachmentRequest extends FormRequest
     }
 
     /**
-     * ✅ Validate MIME type (content-based, not extension-based)
+     * Validate MIME type (content-based, not extension-based).
      */
     private function validateMimeType($file): void
     {
         $realMimeType = $file->getMimeType();
         $extension = strtolower($file->getClientOriginalExtension());
 
-        // ✅ MIME type whitelist mapping
+
         $allowedMimeTypes = [
             'pdf' => ['application/pdf'],
             'doc' => ['application/msword'],
@@ -373,7 +368,7 @@ class AttachmentRequest extends FormRequest
     }
 
     /**
-     * ✅ Custom attribute names
+     * Custom attribute names.
      */
     public function attributes(): array
     {
@@ -386,7 +381,7 @@ class AttachmentRequest extends FormRequest
     }
 
     /**
-     * ✅ Handle failed validation
+     * Handle failed validation.
      */
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {

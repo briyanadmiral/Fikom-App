@@ -16,10 +16,21 @@ class UpdateLastActivity
     public function handle(Request $request, Closure $next)
     {
         if (Auth::check()) {
-            $user = Auth::user();
-            // Update only if last update was > 2 minutes ago to reduce DB writes
-            if (! $user->last_activity || $user->last_activity->diffInMinutes(now()) > 2) {
-                $user->update(['last_activity' => now()]);
+            try {
+                $user = Auth::user();
+                // Update only if last update was > 2 minutes ago to reduce DB writes
+                $shouldUpdate = ! $user->last_activity
+                    || now()->diffInMinutes($user->last_activity) > 2;
+
+                if ($shouldUpdate) {
+                    // Use direct DB update to bypass model events and ensuring updates
+                    \Illuminate\Support\Facades\DB::table('pengguna')
+                        ->where('id', $user->id)
+                        ->update(['last_activity' => now()]);
+                }
+            } catch (\Exception $e) {
+                // Don't break the request if activity update fails
+                report($e);
             }
         }
 

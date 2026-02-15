@@ -9,14 +9,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * ✅ REFACTORED: Enhanced security dengan file path validation & error handling
+ * SkPdfService - Enhanced security dengan file path validation & error handling.
  */
 class SkPdfService
 {
     /**
-     * Get signing assets (TTD & Cap) dengan validation
-     * ✅ PUBLIC: Dapat digunakan oleh controller
-     * ✅ IMPROVED: Added error handling & validation
+     * Get signing assets (TTD & Cap) dengan validation.
      */
     public function getSigningAssets(KeputusanHeader $sk): array
     {
@@ -27,7 +25,7 @@ class SkPdfService
             if ($penandatangan && $penandatangan->signature) {
                 $ttdPath = $penandatangan->signature->ttd_path;
 
-                // ✅ ADDED: Validate file path
+                // Validate file path
                 $validTtdPath = validate_file_path($ttdPath);
 
                 if ($validTtdPath !== null) {
@@ -39,7 +37,7 @@ class SkPdfService
             $kop = MasterKopSurat::query()->first();
 
             if ($kop && ! empty($kop->cap_path)) {
-                // ✅ ADDED: Validate file path
+                // Validate file path
                 $validCapPath = validate_file_path($kop->cap_path);
 
                 if ($validCapPath !== null) {
@@ -47,12 +45,12 @@ class SkPdfService
                 }
             }
 
-            // ✅ ADDED: Validate dimensions
+            // Validate dimensions
             $ttdW = $this->validateDimension($sk->ttd_w_mm ?? ($penandatangan?->signature?->default_width_mm ?? 42), 20, 80);
 
             $capW = $this->validateDimension($sk->cap_w_mm ?? 35, 20, 80);
 
-            // ✅ ADDED: Validate opacity
+            // Validate opacity
             $capOpacity = $this->validateOpacity($sk->cap_opacity ?? 0.95);
 
             return compact('ttdImageB64', 'capImageB64', 'ttdW', 'capW', 'capOpacity', 'kop');
@@ -75,8 +73,7 @@ class SkPdfService
     }
 
     /**
-     * Get base64 dari storage (private disk)
-     * ✅ IMPROVED: Added validation & error handling
+     * Get base64 dari storage (private disk).
      */
     private function b64FromStorage(?string $path): ?string
     {
@@ -85,7 +82,7 @@ class SkPdfService
         }
 
         try {
-            // ✅ ADDED: Validate file path
+            // Validate file path
             $validPath = validate_file_path($path);
 
             if ($validPath === null) {
@@ -96,7 +93,7 @@ class SkPdfService
                 return null;
             }
 
-            // ✅ ADDED: Check if file exists
+            // Check if file exists
             if (! Storage::disk('local')->exists($validPath)) {
                 Log::warning('File not found in storage', [
                     'path' => sanitize_log_message($validPath),
@@ -105,7 +102,7 @@ class SkPdfService
                 return null;
             }
 
-            // ✅ ADDED: Check file size (max 5MB)
+            // Check file size (max 5MB)
             $fileSize = Storage::disk('local')->size($validPath);
             if ($fileSize > 5 * 1024 * 1024) {
                 Log::warning('File too large for base64 encoding', [
@@ -116,7 +113,7 @@ class SkPdfService
                 return null;
             }
 
-            // ✅ ADDED: Validate mime type
+            // Validate mime type
             $mimeType = Storage::disk('local')->mimeType($validPath);
             if (! in_array($mimeType, ['image/png', 'image/jpeg', 'image/jpg'], true)) {
                 Log::warning('Invalid mime type for image', [
@@ -129,7 +126,7 @@ class SkPdfService
 
             $raw = Storage::disk('local')->get($validPath);
 
-            // ✅ IMPROVED: Dynamic mime type in base64
+            // Dynamic mime type in base64
             $mime = $mimeType === 'image/jpeg' || $mimeType === 'image/jpg' ? 'jpeg' : 'png';
 
             return "data:image/{$mime};base64,".base64_encode($raw);
@@ -144,8 +141,7 @@ class SkPdfService
     }
 
     /**
-     * Get base64 dari public atau storage
-     * ✅ IMPROVED: Added validation & error handling
+     * Get base64 dari public atau storage.
      */
     private function b64FromPublicOrStorage(?string $path): ?string
     {
@@ -154,7 +150,7 @@ class SkPdfService
         }
 
         try {
-            // ✅ ADDED: Validate file path
+            // Validate file path
             $validPath = validate_file_path($path);
 
             if ($validPath === null) {
@@ -169,7 +165,7 @@ class SkPdfService
             $publicPath = 'public/'.ltrim($validPath, '/');
 
             if (Storage::exists($publicPath)) {
-                // ✅ ADDED: Check file size
+                // Check file size
                 $fileSize = Storage::size($publicPath);
                 if ($fileSize > 5 * 1024 * 1024) {
                     Log::warning('File too large in public storage', [
@@ -180,7 +176,7 @@ class SkPdfService
                     return null;
                 }
 
-                // ✅ ADDED: Validate mime type
+                // Validate mime type
                 $mimeType = Storage::mimeType($publicPath);
                 if (! in_array($mimeType, ['image/png', 'image/jpeg', 'image/jpg'], true)) {
                     return null;
@@ -205,13 +201,12 @@ class SkPdfService
     }
 
     /**
-     * Render PDF dan simpan ke storage
-     * ✅ IMPROVED: Added comprehensive validation & error handling
+     * Render PDF dan simpan ke storage.
      */
     public function renderAndStore(KeputusanHeader $sk): string
     {
         try {
-            // ✅ ADDED: Validate SK
+            // Validate SK
             if (empty($sk->id)) {
                 throw new \InvalidArgumentException('Invalid Surat Keputusan ID');
             }
@@ -219,7 +214,7 @@ class SkPdfService
             // Get signing assets
             $assets = $this->getSigningAssets($sk);
 
-            // ✅ ADDED: Validate view exists
+            // Validate view exists
             if (! view()->exists('surat_keputusan.surat_pdf')) {
                 throw new \RuntimeException('PDF template view not found');
             }
@@ -227,7 +222,7 @@ class SkPdfService
             // Render HTML
             $html = view('surat_keputusan.surat_pdf', array_merge(['sk' => $sk], $assets, ['showSigns' => true, 'context' => 'pdf']))->render();
 
-            // ✅ ADDED: Validate HTML not empty
+            // Validate HTML not empty
             if (empty($html)) {
                 throw new \RuntimeException('Generated HTML is empty');
             }
@@ -240,28 +235,28 @@ class SkPdfService
                     'isRemoteEnabled' => true,
                     'dpi' => 96,
                     'chroot' => public_path(),
-                    // ✅ ADDED: Security options
+                    // Security options
                     'debugPng' => false,
                     'debugKeepTemp' => false,
                     'debugCss' => false,
                 ])
                 ->output();
 
-            // ✅ ADDED: Validate PDF bytes
+            // Validate PDF bytes
             if (empty($bytes)) {
                 throw new \RuntimeException('PDF generation failed - empty output');
             }
 
-            // ✅ IMPROVED: Sanitize filename components
+            // Sanitize filename components
             $skId = validate_integer_id($sk->id);
             $nomor = sanitize_alphanumeric($sk->nomor ?? 'unnamed', '_-');
             $hash = substr(md5($nomor), 0, 8);
 
-            // ✅ IMPROVED: Secure path construction
+            // Secure path construction
             $filename = "{$skId}_{$hash}.pdf";
             $path = "private/surat_keputusan/signed/{$filename}";
 
-            // ✅ ADDED: Ensure directory exists
+            // Ensure directory exists
             $directory = dirname($path);
             if (! Storage::disk('local')->exists($directory)) {
                 Storage::disk('local')->makeDirectory($directory);
@@ -270,12 +265,12 @@ class SkPdfService
             // Store PDF
             Storage::disk('local')->put($path, $bytes);
 
-            // ✅ ADDED: Verify file was saved
+            // Verify file was saved
             if (! Storage::disk('local')->exists($path)) {
                 throw new \RuntimeException('Failed to save PDF to storage');
             }
 
-            // ✅ ADDED: Log success
+            // Log success
             Log::info('PDF generated and stored', [
                 'sk_id' => $skId,
                 'nomor' => sanitize_log_message($nomor),
@@ -297,21 +292,21 @@ class SkPdfService
     }
 
     /**
-     * ✅ ADDED: Validate dimension value
+     * Validate dimension value.
      */
     private function validateDimension($value, int $min, int $max): int
     {
         $value = filter_var($value, FILTER_VALIDATE_INT);
 
         if ($value === false || $value < $min || $value > $max) {
-            return ($min + $max) / 2; // Return middle value as default
+            return intdiv($min + $max, 2); // Return middle value as default
         }
 
         return $value;
     }
 
     /**
-     * ✅ ADDED: Validate opacity value
+     * Validate opacity value.
      */
     private function validateOpacity($value): float
     {
@@ -325,7 +320,7 @@ class SkPdfService
     }
 
     /**
-     * ✅ ADDED: Delete PDF file
+     * Delete PDF file.
      */
     public function deletePdf(string $path): bool
     {
@@ -359,7 +354,7 @@ class SkPdfService
     }
 
     /**
-     * ✅ ADDED: Check if PDF exists
+     * Check if PDF exists.
      */
     public function pdfExists(string $path): bool
     {

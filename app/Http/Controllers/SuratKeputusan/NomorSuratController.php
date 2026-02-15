@@ -8,9 +8,6 @@ use Illuminate\Http\Request;
 
 class NomorSuratController extends Controller
 {
-    /**
-     * ✅ ADDED: Authorization middleware
-     */
     public function __construct()
     {
         $this->middleware('auth');
@@ -18,17 +15,14 @@ class NomorSuratController extends Controller
 
     public function reserve(Request $request, NomorSuratService $service)
     {
-        // ✅ FIXED: Sanitize and validate doc_type
         $docTypeRaw = $request->input('doc_type', 'ST');
         $docType = strtoupper(sanitize_input($docTypeRaw, 10));
 
-        // ✅ Whitelist validation for doc_type
-        $validDocTypes = ['ST', 'SK', 'SP', 'SU']; // Adjust based on your system
+        $validDocTypes = ['ST', 'SK', 'SP', 'SU'];
         if (! in_array($docType, $validDocTypes, true)) {
             return response()->json(['message' => 'Tipe dokumen tidak valid'], 422);
         }
 
-        // ✅ FIXED: Sanitize unit input
         $unit = $request->input('unit') ?? ($request->input('unit_display') ?? data_get(config('nomor_surat.formats'), "{$docType}.unit"));
 
         if ($unit) {
@@ -41,7 +35,6 @@ class NomorSuratController extends Controller
             'tahun' => 'required|integer|min:2000|max:2100',
         ]);
 
-        // ✅ FIXED: Sanitize kode_klasifikasi
         $data['kode_klasifikasi'] = sanitize_input($data['kode_klasifikasi'], 50);
 
         if (! $unit) {

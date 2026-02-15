@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'title' => 'Login SIEGA',
+    'title' => 'Login FIKOM',
     'title_prefix' => '',
     'title_postfix' => '',
 

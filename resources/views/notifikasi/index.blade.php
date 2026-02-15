@@ -362,6 +362,7 @@
                                     <form action="{{ route('notifikasi.read', $n->id) }}" method="POST" class="ml-3">
                                         @csrf
                                         @method('PATCH')
+                                        <input type="hidden" name="noredirect" value="1">
                                         <button type="submit" class="btn btn-sm btn-light text-primary font-weight-bold shadow-sm" style="border-radius: 50px; padding: 5px 15px; font-size: 0.8rem;" title="Tandai sudah dibaca">
                                             <i class="fas fa-check mr-1"></i> Tandai Baca
                                         </button>
@@ -383,7 +384,7 @@
                                 
                                 @if($n->link)
                                     <span class="text-muted mx-1">&bull;</span>
-                                    <a href="{{ url($n->link) }}" class="action-link">
+                                    <a href="{{ route('notifikasi.read', $n->id) }}" class="action-link">
                                         Lihat Detail <i class="fas fa-arrow-right" style="font-size: 0.7rem;"></i>
                                     </a>
                                 @endif

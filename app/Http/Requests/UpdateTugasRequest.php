@@ -8,11 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
- * ✅ IMPROVED: Enhanced sanitization & validation for Update Surat Tugas
- *
- * @version 2.0.0
- *
- * @date 2025-12-06
+ * Enhanced sanitization & validation for Update Surat Tugas.
  */
 class UpdateTugasRequest extends FormRequest
 {
@@ -40,7 +36,7 @@ class UpdateTugasRequest extends FormRequest
                 'string',
                 'min:10',
                 'max:255',
-                // ✅ Allow: letters, numbers, spaces, and common punctuation
+
                 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u',
             ],
 
@@ -96,7 +92,25 @@ class UpdateTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ IMPROVED: Comprehensive sanitization before validation
+     * Custom Validation for Recipients.
+     */
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            // Only enforce if submitting (not draft)
+            if ($this->input('action') === 'submit') {
+                $internal = $this->input('penerima_internal', []);
+                $external = $this->input('penerima_eksternal', []);
+
+                if (empty($internal) && empty($external)) {
+                    $validator->errors()->add('penerima_internal', 'Harap pilih minimal satu penerima (Internal atau Eksternal).');
+                }
+            }
+        });
+    }
+
+    /**
+     * Comprehensive sanitization before validation.
      */
     protected function prepareForValidation(): void
     {
@@ -147,13 +161,13 @@ class UpdateTugasRequest extends FormRequest
             if ($this->has($field) && is_string($this->input($field))) {
                 $value = $this->input($field);
 
-                // ✅ Strip HTML tags
+
                 $value = strip_tags($value);
 
-                // ✅ Remove dangerous characters
+
                 $value = $this->removeDangerousChars($value);
 
-                // ✅ Apply sanitization helper
+
                 $value = sanitize_input($value, $maxLength);
 
                 $this->merge([$field => $value]);
@@ -166,10 +180,10 @@ class UpdateTugasRequest extends FormRequest
         if ($this->has('detail_tugas') && ! empty($this->input('detail_tugas'))) {
             $value = $this->input('detail_tugas');
 
-            // ✅ Use helper for HTML sanitization
+
             $value = sanitize_html_limited($value);
 
-            // ✅ Additional XSS protection
+
             $value = $this->stripDangerousHtml($value);
 
             $this->merge(['detail_tugas' => $value]);
@@ -209,26 +223,15 @@ class UpdateTugasRequest extends FormRequest
             // Convert empty string to null
             if ($value === '' || $value === null) {
                 $this->merge(['nomor_urut' => null]);
-                Log::debug('UpdateTugasRequest: nomor_urut set to null', [
-                    'original_value' => $value,
-                ]);
             } else {
-                // ✅ FIX: Strip non-numeric prefix (e.g., 'ST-001' -> '001')
+                // Strip non-numeric prefix (e.g., 'ST-001' -> '001')
                 $cleaned = preg_replace('/^[^0-9]+/', '', (string) $value);
 
                 // If result is still not purely numeric, set to null
                 if ($cleaned === '' || ! preg_match('/^[0-9]+$/', $cleaned)) {
                     $this->merge(['nomor_urut' => null]);
-                    Log::warning('UpdateTugasRequest: nomor_urut invalid format, set to null', [
-                        'original_value' => $value,
-                        'cleaned_value' => $cleaned,
-                    ]);
                 } else {
                     $this->merge(['nomor_urut' => $cleaned]);
-                    Log::debug('UpdateTugasRequest: nomor_urut normalized', [
-                        'original_value' => $value,
-                        'cleaned_value' => $cleaned,
-                    ]);
                 }
             }
         }
@@ -334,7 +337,7 @@ class UpdateTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Remove dangerous characters (SQL/XSS patterns)
+     * Remove dangerous characters (SQL/XSS patterns).
      */
     private function removeDangerousChars(string $value): string
     {
@@ -348,7 +351,7 @@ class UpdateTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Strip dangerous HTML patterns
+     * Strip dangerous HTML patterns.
      */
     private function stripDangerousHtml(string $value): string
     {
@@ -368,7 +371,7 @@ class UpdateTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Normalize tembusan field
+     * Normalize tembusan field.
      */
     private function normalizeTembusan($raw): string
     {
@@ -407,7 +410,7 @@ class UpdateTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Ensure at least one penerima exists
+     * Ensure at least one penerima exists.
      */
     private function validatePenerimaExists(): void
     {
@@ -495,7 +498,7 @@ class UpdateTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Custom attribute names for better error messages
+     * Custom attribute names for better error messages.
      */
     public function attributes(): array
     {
@@ -518,7 +521,7 @@ class UpdateTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Handle failed validation
+     * Handle failed validation.
      */
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {

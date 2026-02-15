@@ -3,18 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * ✅ REFACTORED: Security enhanced dengan path validation
- * ✅ ADDED: SoftDeletes untuk data integrity
+ * UserSignature - Model untuk tanda tangan digital pengguna.
  */
 class UserSignature extends Model
 {
-    use SoftDeletes; // ✅ ADDED
+    use SoftDeletes;
 
     protected $table = 'user_signatures';
 
@@ -24,7 +23,7 @@ class UserSignature extends Model
         'id',
         'created_at',
         'updated_at',
-        'deleted_at', // ✅ ADDED
+        'deleted_at',
     ];
 
     protected $casts = [
@@ -33,7 +32,7 @@ class UserSignature extends Model
         'default_height_mm' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime', // ✅ ADDED
+        'deleted_at' => 'datetime',
     ];
 
     /**
@@ -51,7 +50,7 @@ class UserSignature extends Model
     // ==================== ACCESSORS & MUTATORS =========================
 
     /**
-     * ✅ GOOD: Accessor untuk ttd_path dengan validasi
+     * Accessor untuk ttd_path dengan validasi.
      */
     protected function ttdPath(): Attribute
     {
@@ -61,7 +60,7 @@ class UserSignature extends Model
     // ==================== SCOPES =========================
 
     /**
-     * ✅ GOOD: Scope by user dengan validasi ID
+     * Scope by user dengan validasi ID.
      */
     public function scopeByUser($query, $userId)
     {
@@ -77,7 +76,7 @@ class UserSignature extends Model
     // ==================== BUSINESS LOGIC =========================
 
     /**
-     * ✅ GOOD: Get validated TTD path
+     * Get validated TTD path.
      */
     public function getValidatedTtdPath(): ?string
     {
@@ -85,7 +84,7 @@ class UserSignature extends Model
     }
 
     /**
-     * ✅ GOOD: Check if TTD file exists
+     * Check if TTD file exists.
      */
     public function hasTtdFile(): bool
     {
@@ -99,7 +98,7 @@ class UserSignature extends Model
     }
 
     /**
-     * ✅ GOOD: Get TTD as base64
+     * Get TTD as base64.
      */
     public function getTtdBase64(): ?string
     {
@@ -134,7 +133,7 @@ class UserSignature extends Model
     }
 
     /**
-     * ✅ GOOD: Get default dimensions
+     * Get default dimensions.
      */
     public function getDefaultDimensions(): array
     {
@@ -145,7 +144,7 @@ class UserSignature extends Model
     }
 
     /**
-     * ✅ GOOD: Validate dimensions
+     * Validate dimensions.
      */
     public function validateDimensions(int $width, int $height): bool
     {
@@ -158,7 +157,7 @@ class UserSignature extends Model
     }
 
     /**
-     * ✅ ADDED: Delete TTD file from storage
+     * Delete TTD file from storage.
      */
     public function deleteTtdFile(): bool
     {
@@ -191,7 +190,7 @@ class UserSignature extends Model
     }
 
     /**
-     * ✅ ADDED: Get TTD URL
+     * Get TTD URL.
      */
     public function getTtdUrl(): ?string
     {
@@ -217,7 +216,7 @@ class UserSignature extends Model
     {
         parent::boot();
 
-        // ✅ ADDED: Validate before saving
+        // Validate before saving
         static::saving(function ($model) {
             if (empty($model->pengguna_id)) {
                 throw new \InvalidArgumentException('Pengguna ID wajib diisi');
@@ -247,13 +246,13 @@ class UserSignature extends Model
             }
         });
 
-        // ✅ ADDED: Delete file on model deletion
+        // Delete file on model deletion
         static::deleting(function ($model) {
             // Delete physical file when signature is deleted
             $model->deleteTtdFile();
         });
 
-        // ✅ ADDED: Check for duplicate on create
+        // Check for duplicate on create
         static::creating(function ($model) {
             // Check if user already has a signature
             $existing = self::where('pengguna_id', $model->pengguna_id)->whereNull('deleted_at')->first();

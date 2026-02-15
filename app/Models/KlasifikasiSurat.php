@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
@@ -11,25 +11,23 @@ use Illuminate\Support\Facades\Log;
 
 class KlasifikasiSurat extends Model
 {
-    use SoftDeletes; // ✅ ADDED
+    use SoftDeletes;
 
     protected $table = 'klasifikasi_surat';
 
     protected $fillable = ['kode', 'deskripsi'];
 
-    // ✅ ADDED: Guarded for extra protection
     protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at'];
 
     protected $casts = [
         'kode' => 'string',
         'deskripsi' => 'string',
-        'deleted_at' => 'datetime', // ✅ ADDED
+        'deleted_at' => 'datetime',
     ];
 
     // ==================== ACCESSORS & MUTATORS =========================
     /**
-     * ✅ Accessor untuk backward compatibility
-     * Jika ada code lama yang akses $k->nama
+     * Accessor untuk backward compatibility.
      */
     public function getNamaAttribute(): ?string
     {
@@ -37,7 +35,7 @@ class KlasifikasiSurat extends Model
     }
 
     /**
-     * ✅ ADDED: Sanitize kode using global helper
+     * Sanitize kode using global helper.
      */
     protected function kode(): Attribute
     {
@@ -45,7 +43,7 @@ class KlasifikasiSurat extends Model
     }
 
     /**
-     * ✅ ADDED: Sanitize deskripsi using global helper
+     * Sanitize deskripsi using global helper.
      */
     protected function deskripsi(): Attribute
     {
@@ -72,7 +70,6 @@ class KlasifikasiSurat extends Model
      */
     public static function getNextCode(string $prefix, int $golongan): string
     {
-        // ✅ IMPROVED: Use global helper + custom prefix validation
         $prefix = self::sanitizePrefix($prefix);
         $golongan = max(0, (int) $golongan);
 
@@ -87,7 +84,6 @@ class KlasifikasiSurat extends Model
 
         if ($driver === 'mysql') {
             // Optimized path for MySQL/MariaDB
-            // ✅ SECURE: Pattern already sanitized
             $lastCode = self::where('kode', 'LIKE', $pattern)->orderByRaw('CAST(SUBSTRING_INDEX(kode, ".", -1) AS UNSIGNED) DESC')->value('kode');
         } else {
             // Portable fallback: ambil semua lalu tentukan max suffix di PHP
@@ -213,7 +209,7 @@ class KlasifikasiSurat extends Model
     }
 
     /**
-     * ✅ ADDED: Search scope with sanitization
+     * Search scope with sanitization.
      */
     public function scopeSearch($query, ?string $keyword)
     {
@@ -232,7 +228,7 @@ class KlasifikasiSurat extends Model
     // ==================== HELPER METHODS =========================
 
     /**
-     * ✅ ADDED: Check if can be deleted
+     * Check if can be deleted.
      */
     public function canBeDeleted(): bool
     {
@@ -240,7 +236,7 @@ class KlasifikasiSurat extends Model
     }
 
     /**
-     * ✅ ADDED: Get formatted display name
+     * Get formatted display name.
      */
     public function getDisplayNameAttribute(): string
     {
@@ -250,13 +246,10 @@ class KlasifikasiSurat extends Model
     // ==================== PRIVATE HELPERS =========================
 
     /**
-     * ✅ IMPROVED: Enhanced prefix sanitization
-     *
-     * Normalisasi & validasi prefix: huruf saja, uppercase, maksimal 10 char.
+     * Enhanced prefix sanitization.
      */
     private static function sanitizePrefix(string $prefix): string
     {
-        // ✅ Use global helper first
         $prefix = sanitize_input($prefix, 10);
 
         // Remove non-letters
@@ -278,7 +271,7 @@ class KlasifikasiSurat extends Model
     {
         parent::boot();
 
-        // ✅ ADDED: Validate before saving
+        // Validate before saving
         static::saving(function ($model) {
             if (empty($model->kode)) {
                 throw new \InvalidArgumentException('Kode klasifikasi wajib diisi');
@@ -290,7 +283,7 @@ class KlasifikasiSurat extends Model
             }
         });
 
-        // ✅ ADDED: Prevent deletion if has tugasHeaders
+        // Prevent deletion if has tugasHeaders
         static::deleting(function ($model) {
             if ($model->tugasHeaders()->count() > 0) {
                 throw new \RuntimeException('Klasifikasi tidak dapat dihapus karena masih digunakan');

@@ -4,7 +4,6 @@ namespace App\Mail;
 
 use App\Models\KeputusanHeader;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
@@ -13,9 +12,11 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
 
-class SuratKeputusanMail extends Mailable implements ShouldQueue
+class SuratKeputusanMail extends Mailable
 {
     use Queueable, SerializesModels;
+
+    public string $subjectLine;
 
     public string $heading;
 
@@ -45,7 +46,7 @@ class SuratKeputusanMail extends Mailable implements ShouldQueue
         ?string $ctaText = null,
         bool $attachSignedPdf = false
     ) {
-        $this->subject($subject);
+        $this->subjectLine = $subject;
         $this->heading = $heading;
         $this->messageLine = $messageLine;
         $this->ctaUrl = $ctaUrl;
@@ -57,7 +58,7 @@ class SuratKeputusanMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->subject,
+            subject: $this->subjectLine,
             from: new Address(config('mail.from.address'), config('mail.from.name'))
         );
     }

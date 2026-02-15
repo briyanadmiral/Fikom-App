@@ -8,11 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
- * ✅ IMPROVED: Enhanced sanitization & validation for Surat Tugas
- *
- * @version 2.0.0
- *
- * @date 2025-12-06
+ * Enhanced sanitization & validation for Surat Tugas.
  */
 class StoreTugasRequest extends FormRequest
 {
@@ -23,13 +19,13 @@ class StoreTugasRequest extends FormRequest
 
     public function rules(): array
     {
-        // ✅ Deteksi mode: draft atau submit
+
         $isDraft = $this->input('action') === 'draft';
 
         return [
             // === ID References ===
             'pembuat_id' => [$isDraft ? 'nullable' : 'required', 'integer', 'exists:pengguna,id'],
-            'asal_surat_id' => ['nullable', 'integer', 'exists:pengguna,id'], // ✅ Selalu nullable
+            'asal_surat_id' => ['nullable', 'integer', 'exists:pengguna,id'],
             'penandatangan_id' => [$isDraft ? 'nullable' : 'required', 'integer', 'exists:pengguna,id'],
             'klasifikasi_surat_id' => [$isDraft ? 'nullable' : 'required', 'integer', 'exists:klasifikasi_surat,id'],
 
@@ -37,7 +33,7 @@ class StoreTugasRequest extends FormRequest
             'nama_umum' => [
                 $isDraft ? 'nullable' : 'required',
                 'string',
-                $isDraft ? 'min:3' : 'min:10', // ✅ Draft lebih lenient
+                $isDraft ? 'min:3' : 'min:10',
                 'max:255',
                 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\']+$/u',
             ],
@@ -54,7 +50,7 @@ class StoreTugasRequest extends FormRequest
             'penutup' => ['nullable', 'string', 'max:1000'],
 
             // === Penerima Internal ===
-            'penerima_internal' => ['sometimes', 'array', $isDraft ? '' : 'min:1'], // ✅ Draft tidak wajib penerima
+            'penerima_internal' => ['sometimes', 'array'],
             'penerima_internal.*' => ['integer', 'exists:pengguna,id', 'distinct'],
 
             // === Penerima Eksternal ===
@@ -89,7 +85,7 @@ class StoreTugasRequest extends FormRequest
             'waktu_selesai' => ['nullable', 'date', 'after_or_equal:waktu_mulai'],
 
             // === Tempat ===
-            'tempat' => ['nullable', 'string', 'max:255', 'regex:/^[\p{L}\p{N}\s\-\.,()\/]+$/u'], // ✅ Ubah jadi nullable
+            'tempat' => ['nullable', 'string', 'max:255', 'regex:/^[\p{L}\p{N}\s\-\.,()\/]+$/u'],
 
             // === Tembusan ===
             'tembusan' => ['nullable'],
@@ -98,7 +94,25 @@ class StoreTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ IMPROVED: Comprehensive sanitization before validation
+     * Custom Validation for Recipients.
+     */
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            // Only enforce if submitting (not draft)
+            if ($this->input('action') === 'submit') {
+                $internal = $this->input('penerima_internal', []);
+                $external = $this->input('penerima_eksternal', []);
+
+                if (empty($internal) && empty($external)) {
+                    $validator->errors()->add('penerima_internal', 'Harap pilih minimal satu penerima (Internal atau Eksternal).');
+                }
+            }
+        });
+    }
+
+    /**
+     * Comprehensive sanitization before validation.
      */
     protected function prepareForValidation(): void
     {
@@ -150,13 +164,13 @@ class StoreTugasRequest extends FormRequest
             if ($this->has($field) && is_string($this->input($field))) {
                 $value = $this->input($field);
 
-                // ✅ Strip HTML tags
+
                 $value = strip_tags($value);
 
-                // ✅ Remove dangerous characters
+
                 $value = $this->removeDangerousChars($value);
 
-                // ✅ Apply sanitization helper
+
                 $value = sanitize_input($value, $maxLength);
 
                 $this->merge([$field => $value]);
@@ -169,10 +183,10 @@ class StoreTugasRequest extends FormRequest
         if ($this->has('detail_tugas') && ! empty($this->input('detail_tugas'))) {
             $value = $this->input('detail_tugas');
 
-            // ✅ Use helper for HTML sanitization
+
             $value = sanitize_html_limited($value);
 
-            // ✅ Additional XSS protection
+
             $value = $this->stripDangerousHtml($value);
 
             $this->merge(['detail_tugas' => $value]);
@@ -363,7 +377,7 @@ class StoreTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Remove dangerous characters (SQL/XSS patterns)
+     * Remove dangerous characters (SQL/XSS patterns).
      */
     private function removeDangerousChars(string $value): string
     {
@@ -377,7 +391,7 @@ class StoreTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Strip dangerous HTML patterns
+     * Strip dangerous HTML patterns.
      */
     private function stripDangerousHtml(?string $value): string
     {
@@ -394,7 +408,7 @@ class StoreTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Normalize tembusan field
+     * Normalize tembusan field.
      */
     private function normalizeTembusan($raw): string
     {
@@ -433,7 +447,7 @@ class StoreTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Ensure at least one penerima exists
+     * Ensure at least one penerima exists.
      */
     private function validatePenerimaExists(): void
     {
@@ -441,7 +455,7 @@ class StoreTugasRequest extends FormRequest
         $hasEksternal = is_array($this->input('penerima_eksternal')) && count($this->input('penerima_eksternal')) > 0;
 
         if (! $hasInternal && ! $hasEksternal) {
-            Log::warning('StoreKeputusanRequest: No penerima provided', [
+            Log::warning('StoreTugasRequest: No penerima provided', [
                 'user_id' => auth()->id(),
                 'ip' => request()->ip(),
                 'tentang' => substr($this->input('tentang', ''), 0, 50),
@@ -523,7 +537,7 @@ class StoreTugasRequest extends FormRequest
     }
 
     /**
-     * ✅ Custom attribute names for better error messages
+     * Custom attribute names for better error messages.
      */
     public function attributes(): array
     {

@@ -3,31 +3,29 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Model; // ✅ ADDED
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Model untuk Jenis Tugas
- * ✅ REFACTORED: Menggunakan global helpers untuk DRY code
- * ✅ ADDED: SoftDeletes support
+ * Model untuk Jenis Tugas.
  */
 class JenisTugas extends Model
 {
-    use SoftDeletes; // ✅ ADDED
+    use SoftDeletes;
 
     protected $table = 'jenis_tugas';
 
     protected $fillable = ['nama', 'kode', 'deskripsi', 'is_active'];
 
-    protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at']; // ✅ ADDED deleted_at
+    protected $guarded = ['id', 'created_at', 'updated_at', 'deleted_at'];
 
     protected $casts = [
         'is_active' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime', // ✅ ADDED
+        'deleted_at' => 'datetime',
     ];
 
     const CACHE_KEY_ALL = 'jenis_tugas_all';
@@ -51,7 +49,7 @@ class JenisTugas extends Model
     }
 
     /**
-     * ✅ FIXED: Use str_replace for LIKE wildcard escaping
+     * Escape LIKE wildcards and search.
      */
     public function scopeSearch($query, ?string $keyword)
     {
@@ -59,7 +57,6 @@ class JenisTugas extends Model
             return $query;
         }
 
-        // ✅ FIXED: Sanitize + escape LIKE wildcards
         $keyword = sanitize_input($keyword, 100);
         $keyword = str_replace(['%', '_'], ['\%', '\_'], $keyword);
 
@@ -71,7 +68,7 @@ class JenisTugas extends Model
     }
 
     /**
-     * ✅ GOOD: Already using validate_sort_direction()
+     * Order by nama.
      */
     public function scopeOrderByNama($query, string $direction = 'asc')
     {
@@ -83,7 +80,7 @@ class JenisTugas extends Model
     // ==================== ACCESSORS & MUTATORS =========================
 
     /**
-     * ✅ GOOD: Already using global helpers
+     * Sanitize nama accessor/mutator.
      */
     protected function nama(): Attribute
     {
@@ -91,7 +88,7 @@ class JenisTugas extends Model
     }
 
     /**
-     * ✅ GOOD: Already using sanitize_kode()
+     * Sanitize kode accessor/mutator.
      */
     protected function kode(): Attribute
     {
@@ -99,7 +96,7 @@ class JenisTugas extends Model
     }
 
     /**
-     * ✅ GOOD: Already using global helpers
+     * Sanitize deskripsi accessor/mutator.
      */
     protected function deskripsi(): Attribute
     {
@@ -129,7 +126,7 @@ class JenisTugas extends Model
     }
 
     /**
-     * ✅ GOOD: Already using sanitize_kode()
+     * Find by kode with sanitization.
      */
     public static function findByKode(string $kode): ?self
     {
@@ -177,10 +174,10 @@ class JenisTugas extends Model
             throw new \InvalidArgumentException('Kode harus terdiri dari huruf kapital, angka, dash, atau underscore');
         }
 
-        // ✅ ADDED: Exclude soft deleted records
+        // Exclude soft deleted records
         $existing = self::where('kode', $this->kode)
             ->where('id', '!=', $this->id ?? 0)
-            ->whereNull('deleted_at') // ✅ ADDED
+            ->whereNull('deleted_at')
             ->first();
 
         if ($existing) {
@@ -217,7 +214,7 @@ class JenisTugas extends Model
             self::clearCache();
         });
 
-        // ✅ ADDED: Clear cache on restore
+        // Clear cache on restore
         static::restored(function () {
             self::clearCache();
         });

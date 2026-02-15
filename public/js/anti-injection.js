@@ -13,7 +13,7 @@
 * - ✅ Configurable per field
 *
 * @version 2.0.0
-* @author SIEGA Security Team (Improved)
+* @author FIKOM Security Team (Improved)
 * @date 2025-12-06
 */
 

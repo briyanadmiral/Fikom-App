@@ -26,6 +26,10 @@ use Illuminate\Support\Facades\Route;
 // External dashboard entry (/entry?user_id=X) tetap berfungsi untuk integrasi
 Auth::routes(['register' => false, 'reset' => false, 'verify' => false]);
 
+Route::post('login', [\App\Http\Controllers\Auth\LoginController::class, 'login'])
+    ->name('login')
+    ->middleware('throttle:10,1');
+
 // ❌ DISABLE: Login redirect ke external entry (sudah ada Auth::routes di atas)
 // ✅ FIX: Define 'login' route name to prevent RouteNotFoundException
 // Route::get('/login', function () {
@@ -179,6 +183,12 @@ Route::middleware('check.session.role')->group(function () {
                 ->middleware('can:addRecipient,tugas')
                 ->whereNumber('tugas');
 
+            // Buat Nomor Turunan (Suffix) dari detail page
+            Route::post('{tugas}/buat-turunan', [TugasController::class, 'createTurunan'])
+                ->name('buatTurunan')
+                ->middleware('can:create,App\Models\TugasHeader')
+                ->whereNumber('tugas');
+
             // ✅ TAMBAH: Route khusus submit dari detail (bypass edit form)
             Route::post('{tugas}/submit', [TugasController::class, 'submit'])
                 ->name('submit')
@@ -271,7 +281,7 @@ Route::middleware('check.session.role')->group(function () {
         });
 
     Route::get('notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
-    Route::patch('notifikasi/{id}/read', [NotifikasiController::class, 'markAsRead'])
+    Route::match(['get', 'patch'], 'notifikasi/{id}/read', [NotifikasiController::class, 'markAsRead'])
         ->name('notifikasi.read')
         ->whereNumber('id');
     Route::post('notifikasi/prune', [NotifikasiController::class, 'prune'])->name('notifikasi.prune');

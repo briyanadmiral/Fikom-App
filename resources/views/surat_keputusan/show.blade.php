@@ -109,22 +109,35 @@
             box-shadow: 0 5px 25px rgba(0, 0, 0, .1)
         }
 
+        /* Updated to match ST .card.soft */
         .info-card {
             border: none;
-            border-radius: .8rem;
-            box-shadow: 0 4px 25px rgba(0, 0, 0, .05);
-            margin-bottom: 1.2rem
+            border-radius: 1rem;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
+            overflow: hidden;
+            margin-bottom: 1rem;
+            background: #fff;
         }
 
         .info-card .card-header {
-            background: #fff;
-            border-bottom: 1px solid #f0f0f0;
+            background: linear-gradient(135deg, #ffffff 0%, #f9fbfd 100%);
+            border-bottom: 1px solid #eef2f7;
             padding: 1rem 1.25rem;
-            font-weight: 600
+            font-weight: 700;
+            color: #243447;
         }
 
         .info-card .card-body {
             padding: 1.1rem 1.25rem
+        }
+
+        /* Action Buttons Spacing (Match ST) */
+        .action-buttons > .btn,
+        .action-buttons > form {
+            margin-bottom: 1rem;
+        }
+        .action-buttons > :last-child {
+            margin-bottom: 0;
         }
 
         .info-list {
@@ -156,10 +169,6 @@
         .info-list .value {
             font-weight: 600;
             text-align: right
-        }
-
-        .btn-block + .btn-block {
-            margin-top: .5rem
         }
     </style>
 @endpush
@@ -204,7 +213,7 @@
                 {{-- Aksi Utama --}}
                 <div class="card info-card">
                     <div class="card-header"><i class="fas fa-bolt mr-2 text-primary"></i>Aksi Utama</div>
-                    <div class="card-body">
+                    <div class="card-body action-buttons">
                         @if ($keputusan->status_surat === 'pending')
                             @can('approve', $keputusan)
                                 <a href="{{ route('surat_keputusan.approveForm', $keputusan->id) }}"
@@ -228,7 +237,7 @@
 
                         {{-- Duplicate SK Button --}}
                         @can('create', App\Models\KeputusanHeader::class)
-                            <form action="{{ route('surat_keputusan.duplicate', $keputusan->id) }}" method="POST" class="d-inline w-100">
+                            <form action="{{ route('surat_keputusan.duplicate', $keputusan->id) }}" method="POST" class="d-block w-100">
                                 @csrf
                                 <button type="submit" class="btn btn-info btn-block" 
                                         onclick="return confirm('Duplikat SK ini ke draft baru?')">

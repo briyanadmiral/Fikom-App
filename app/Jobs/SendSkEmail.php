@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class SendSkEmail implements ShouldQueue
@@ -32,15 +33,28 @@ class SendSkEmail implements ShouldQueue
     {
         $sk = KeputusanHeader::with(['pembuat'])->find($this->skId);
         if (! $sk || ! $sk->pembuat || empty($sk->pembuat->email)) {
-            return; // tidak ada email yang valid
+            Log::info('SendSkEmail: skipped, no valid recipient', [
+                'sk_id' => $this->skId,
+            ]);
+
+            return;
         }
 
-        Mail::to($sk->pembuat->email)->send(new SkFinal($sk));
-        // OPTIONAL: cc ke penandatangan untuk arsip
-        // if ($sk->penandatanganUser?->email) {
-        //     Mail::to($sk->pembuat->email)
-        //         ->cc([$sk->penandatanganUser->email])
-        //         ->send(new SkFinal($sk));
-        // }
+        try {
+            Mail::to($sk->pembuat->email)->send(new SkFinal($sk));
+
+            Log::info('SendSkEmail: sent successfully', [
+                'sk_id' => $this->skId,
+                'email' => $sk->pembuat->email,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('SendSkEmail: failed to send', [
+                'sk_id' => $this->skId,
+                'email' => $sk->pembuat->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e; // Re-throw to trigger retry
+        }
     }
 }

@@ -74,11 +74,11 @@ class SendSuratTugasEmail implements ShouldQueue
 
             $emails = array_values(array_unique(array_filter($rows)));
 
-            // ✅ Update subject untuk recipients
+            // Subject for recipients
             $subject = 'Surat Tugas Disetujui: '.($st->nomor ?: '(tanpa nomor)');
 
         } elseif ($this->mode === 'to_approver') {
-            // ✅ ADDED: Kirim email ke approver (next_approver)
+            // Kirim email ke approver (next_approver)
             if ($st->next_approver) {
                 $approver = DB::table('pengguna')
                     ->where('id', $st->next_approver)
@@ -91,10 +91,10 @@ class SendSuratTugasEmail implements ShouldQueue
                 }
             }
 
-            // ✅ Update subject untuk approver
+            // Subject for approver
             $subject = 'Permintaan Persetujuan Surat Tugas: '.($st->nomor ?: '(draft)');
 
-            // ✅ Update payload untuk approver
+            // Payload for approver template
             $payload = (object) [
                 'nomor' => $st->nomor ?: '(belum ada nomor)',
                 'tugas' => $st->tugas,
@@ -127,7 +127,7 @@ class SendSuratTugasEmail implements ShouldQueue
             } catch (\Throwable $e) {
                 Log::error('Gagal kirim email ST', [
                     'tugas_id' => $this->tugasId,
-                    'email' => $email,
+                    'email' => sanitize_log_message($email),
                     'error' => $e->getMessage(),
                 ]);
             }

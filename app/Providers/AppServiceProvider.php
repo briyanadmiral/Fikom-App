@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\ServiceProvider; // ✅ ADDED
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,17 +19,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // ✅ GOOD: Bind sebagai singleton
-        $this->app->singleton(\App\Services\BaseNotificationService::class);
+        // Bind services as singletons
         $this->app->singleton(\App\Services\SuratTugasNotificationService::class);
         $this->app->singleton(\App\Services\SuratKeputusanNotificationService::class);
         $this->app->singleton(\App\Services\NomorSuratService::class);
-        $this->app->singleton(\App\Services\AuditService::class); // ✅ PHASE 1: AuditService
+        $this->app->singleton(\App\Services\AuditService::class);
 
-        // ✅ ADDED: Register helpers as singletons if they're classes
+        // Register helpers as singletons if they're classes
         // (Skip if helpers are functions)
 
-        // ✅ ADDED: Performance optimization for production
+        // Performance optimization for production
         if ($this->app->environment('production')) {
             $this->app->singleton('url', function ($app) {
                 return new \Illuminate\Routing\UrlGenerator($app['router']->getRoutes(), $app['request'], $app['config']['app.asset_url']);
@@ -42,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // ✅ ADDED: Database connection safety
+        // Database connection safety
         try {
             // Set default string length for older MySQL versions
             Schema::defaultStringLength(191);
@@ -51,51 +50,51 @@ class AppServiceProvider extends ServiceProvider
             report($e);
         }
 
-        // ✅ FIX: Set Carbon locale and timezone for correct diffForHumans()
+        // Set Carbon locale and timezone for correct diffForHumans()
         \Carbon\Carbon::setLocale(config('app.locale', 'id'));
         date_default_timezone_set(config('app.timezone', 'Asia/Jakarta'));
 
-        // ✅ GOOD: Bootstrap pagination
+        // Bootstrap pagination
         if (method_exists(Paginator::class, 'useBootstrapFive')) {
             Paginator::useBootstrapFive();
         } else {
             Paginator::useBootstrap();
         }
 
-        // ✅ GOOD: Observers registration
+        // Observers registration
         TugasHeader::observe(TugasHeaderObserver::class);
-        KeputusanHeader::observe(KeputusanHeaderObserver::class); // ✅ PHASE 1: SK Observer
+        KeputusanHeader::observe(KeputusanHeaderObserver::class);
 
-        // ✅ GOOD: Force HTTPS di production
+        // Force HTTPS in production
         if (app()->environment('production')) {
             URL::forceScheme('https');
 
-            // ✅ ADDED: Force root URL if needed
+            // Force root URL if needed
             // URL::forceRootUrl(config('app.url'));
         }
 
-        // ✅ GOOD: Eloquent strict mode untuk development
+        // Eloquent strict mode for development
         if (! app()->isProduction()) {
             Model::preventLazyLoading();
             Model::preventSilentlyDiscardingAttributes();
             Model::preventAccessingMissingAttributes();
 
-            // ✅ ADDED: Additional development safety
+            // Additional development safety
             Model::handleLazyLoadingViolationUsing(function ($model, $relation) {
                 $class = get_class($model);
                 report(new \Exception("Attempted to lazy load [{$relation}] on model [{$class}]"));
             });
         }
 
-        // ✅ ADDED: Custom validation rules registration
+        // Custom validation rules registration
         $this->registerCustomValidationRules();
 
-        // ✅ ADDED: View composers registration
+        // View composers registration
         $this->registerViewComposers();
     }
 
     /**
-     * ✅ ADDED: Register custom validation rules
+     * Register custom validation rules.
      */
     private function registerCustomValidationRules(): void
     {
@@ -121,25 +120,22 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * ✅ ADDED: Register view composers
+     * Register view composers.
      */
     private function registerViewComposers(): void
     {
-        // Share common data with all views
-        view()->composer('*', function ($view) {
+        // Share common data with layout views only (not partials/components)
+        view()->composer('layouts.*', function ($view) {
             $view->with([
                 'app_name' => config('app.name', 'Laravel'),
                 'app_version' => config('app.version', '1.0.0'),
             ]);
-        });
 
-        // Share user data with authenticated views
-        view()->composer('layouts.app', function ($view) {
             if (auth()->check()) {
                 $view->with([
                     'current_user' => auth()->user(),
-                    // ✅ FIXED: Get results from relationship
-                    'unread_notifications' => auth()->user()->unreadNotifications()->get(),
+                    // Use count() instead of get() to avoid loading full objects
+                    'unread_notifications_count' => auth()->user()->unreadNotifications()->count(),
                 ]);
             }
         });

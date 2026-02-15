@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>403 - Akses Ditolak | Surat SIEGA</title>
+    <title>403 - Akses Ditolak | Surat FIKOM</title>
     <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -302,7 +302,7 @@
     
     <!-- Footer -->
     <div class="footer">
-        &copy; {{ date('Y') }} Surat SIEGA. All rights reserved.
+        &copy; {{ date('Y') }} Surat FIKOM. All rights reserved.
     </div>
 </body>
 </html>

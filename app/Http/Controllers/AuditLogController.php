@@ -6,9 +6,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 
-/**
- * ✅ AuditLogController - View audit logs (Admin only)
- */
+
 class AuditLogController extends Controller
 {
     /**
@@ -86,9 +84,6 @@ class AuditLogController extends Controller
     /**
      * Show detail of a single audit log
      */
-    /**
-     * Show detail of a single audit log
-     */
     public function show(AuditLog $audit_log)
     {
         // Always return the modal view for now, as we don't have a separate full-page show view
@@ -155,7 +150,6 @@ class AuditLogController extends Controller
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
 
-        // Header
         $headers = ['Waktu', 'User', 'Aksi', 'Tipe Entitas', 'Nama Objek', 'Detail Lama', 'Detail Baru', 'IP Address', 'Browser/OS'];
         $sheet->fromArray($headers, null, 'A1');
         $sheet->getStyle('A1:I1')->getFont()->setBold(true);
@@ -185,7 +179,7 @@ class AuditLogController extends Controller
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="'.$filename.'"');
         $writer->save('php://output');
-        exit;
+        die;
     }
 
     /**
@@ -193,7 +187,7 @@ class AuditLogController extends Controller
      */
     public function prune(Request $request)
     {
-        // Authorization: Only Admin (Role ID 1) can prune logs
+
         if (auth()->user()->peran_id !== 1) {
             abort(403, 'Unauthorized action.');
         }

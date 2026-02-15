@@ -7,17 +7,14 @@ use App\Models\TugasHeader;
 use App\Services\AuditService;
 use Illuminate\Support\Facades\Log;
 
-// ✅ ADDED
-
 /**
- * ✅ REFACTORED: Security enhanced dengan sanitized logging
- * ✅ ADDED: Transaction support untuk data consistency
+ * TugasHeaderObserver - Observer untuk Surat Tugas.
+ * Security enhanced dengan sanitized logging.
  */
 class TugasHeaderObserver
 {
     /**
      * Handle the TugasHeader "creating" event.
-     * ✅ GOOD: Validasi ID dengan helper
      */
     public function creating(TugasHeader $tugas): void
     {
@@ -39,13 +36,13 @@ class TugasHeaderObserver
             $tugas->bulan = now()->format('m');
         }
 
-        // ✅ ADDED: Auto-set status jika belum diisi
+        // Auto-set status jika belum diisi
         if (! $tugas->status_surat) {
             $tugas->status_surat = 'draft';
         }
 
-        // ✅ ADDED: Log creation
-        Log::info('Surat tugas creating', [
+        // Log creation (debug level to avoid noise)
+        Log::debug('Surat tugas creating', [
             'dibuat_oleh' => $tugas->dibuat_oleh,
             'tahun' => $tugas->tahun,
             'status' => $tugas->status_surat,
@@ -53,7 +50,7 @@ class TugasHeaderObserver
     }
 
     /**
-     * ✅ ADDED: Handle the TugasHeader "created" event.
+     * Handle the TugasHeader "created" event.
      */
     public function created(TugasHeader $tugas): void
     {
@@ -65,13 +62,12 @@ class TugasHeaderObserver
             'created_by' => $userId ?? 'system',
         ]);
 
-        // ✅ PHASE 1: Audit logging
+        // Audit logging
         app(AuditService::class)->logCreate($tugas);
     }
 
     /**
      * Handle the TugasHeader "updated" event.
-     * ✅ GOOD: Sanitized logging dengan helper
      */
     public function updated(TugasHeader $tugas): void
     {
@@ -99,7 +95,7 @@ class TugasHeaderObserver
         // 2. Status → DISETUJUI: Auto-set signed_at
         if ($tugas->wasChanged('status_surat') && $tugas->status_surat === 'disetujui') {
             if (! $tugas->signed_at) {
-                // ✅ IMPROVED: Use try-catch for saveQuietly
+                // Use try-catch for saveQuietly
                 try {
                     $tugas->signed_at = now();
                     $tugas->saveQuietly();
@@ -136,7 +132,7 @@ class TugasHeaderObserver
                     ]);
                 }
             } else {
-                // ✅ ADDED: Log invalid path
+                // Log invalid path
                 Log::warning('Invalid signed_pdf_path', [
                     'tugas_id' => $tugas->id,
                     'path' => sanitize_log_message($tugas->signed_pdf_path),
@@ -146,8 +142,9 @@ class TugasHeaderObserver
 
         // 4. Log perubahan status dengan sanitasi
         if ($tugas->wasChanged('status_surat')) {
-            $oldStatus = validate_status($tugas->getOriginal('status_surat'));
-            $newStatus = validate_status($tugas->status_surat);
+            $allowedStatuses = ['draft', 'pending', 'disetujui', 'ditolak'];
+            $oldStatus = validate_status($tugas->getOriginal('status_surat'), $allowedStatuses);
+            $newStatus = validate_status($tugas->status_surat, $allowedStatuses);
             $userId = validate_integer_id(auth()->id());
 
             Log::info('Status surat tugas changed', [
@@ -158,7 +155,7 @@ class TugasHeaderObserver
             ]);
         }
 
-        // ✅ ADDED: Log nomor changes
+        // Log nomor changes
         if ($tugas->wasChanged('nomor')) {
             Log::info('Nomor surat tugas changed', [
                 'tugas_id' => $tugas->id,
@@ -170,13 +167,12 @@ class TugasHeaderObserver
 
     /**
      * Handle the TugasHeader "deleting" event.
-     * ✅ GOOD: Validasi status dengan helper
      */
-    public function deleting(TugasHeader $tugas): bool
+    public function deleting(TugasHeader $tugas): void
     {
         $status = validate_status($tugas->status_surat, ['draft', 'pending', 'disetujui', 'ditolak']);
 
-        // Hanya izinkan delete jika status draft
+        // Hanya izinkan delete jika status draft — throw to actually cancel
         if ($status !== 'draft') {
             Log::warning('Attempted to delete non-draft surat tugas', [
                 'tugas_id' => $tugas->id,
@@ -185,10 +181,10 @@ class TugasHeaderObserver
                 'user_id' => validate_integer_id(auth()->id()),
             ]);
 
-            return false; // Cancel deletion
+            throw new \RuntimeException('Hanya surat tugas draft yang dapat dihapus.');
         }
 
-        // ✅ ADDED: Check if has penerima
+        // Check if has penerima
         $penerimaCount = $tugas->penerima()->count();
         if ($penerimaCount > 0) {
             Log::info('Deleting surat tugas with penerima', [
@@ -196,13 +192,10 @@ class TugasHeaderObserver
                 'penerima_count' => $penerimaCount,
             ]);
         }
-
-        return true;
     }
 
     /**
      * Handle the TugasHeader "deleted" event.
-     * ✅ GOOD: Sanitized logging
      */
     public function deleted(TugasHeader $tugas): void
     {
@@ -220,7 +213,7 @@ class TugasHeaderObserver
     }
 
     /**
-     * ✅ GOOD: Handle the TugasHeader "restored" event.
+     * Handle the TugasHeader "restored" event.
      */
     public function restored(TugasHeader $tugas): void
     {
@@ -234,7 +227,7 @@ class TugasHeaderObserver
     }
 
     /**
-     * ✅ GOOD: Handle the TugasHeader "forceDeleted" event.
+     * Handle the TugasHeader "forceDeleted" event.
      */
     public function forceDeleted(TugasHeader $tugas): void
     {
@@ -246,7 +239,7 @@ class TugasHeaderObserver
             'force_deleted_by' => $userId ?? 'system',
         ]);
 
-        // ✅ ADDED: Cleanup related data on force delete
+        // Cleanup related data on force delete
         try {
             // Force delete penerima
             $tugas->penerima()->forceDelete();
@@ -266,8 +259,8 @@ class TugasHeaderObserver
     }
 
     /**
-     * ✅ ADDED: Handle the TugasHeader "saving" event.
-     * Validation before save
+     * Handle the TugasHeader "saving" event.
+     * Validation before save.
      */
     public function saving(TugasHeader $tugas): void
     {

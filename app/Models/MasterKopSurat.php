@@ -9,9 +9,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Model untuk Master Kop Surat
- * SECURITY: Singleton pattern dengan caching untuk performance
- * ✅ UPDATED: Added audit logging, dual logo support, image optimization hooks
+ * Model untuk Master Kop Surat.
+ * Singleton pattern dengan caching untuk performance.
  */
 class MasterKopSurat extends Model
 {

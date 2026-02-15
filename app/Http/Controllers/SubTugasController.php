@@ -13,9 +13,6 @@ class SubTugasController extends Controller
      */
     public function index(JenisTugas $jenistugas)
     {
-        // Eager load sub tugas
-        // $jenistugas->load('subTugas.detail'); // Removed detail eager load
-
         $list = $jenistugas->subTugas()->orderBy('nama')->get();
 
         return view('sub_tugas.index', compact('jenistugas', 'list'));
@@ -40,7 +37,6 @@ class SubTugasController extends Controller
      */
     public function update(Request $request, JenisTugas $jenistugas, SubTugas $subtugas)
     {
-        // ✅ FIXED: Type-safe comparison
         if ((int) $subtugas->jenis_tugas_id !== (int) $jenistugas->id) {
             abort(404);
         }
@@ -59,7 +55,6 @@ class SubTugasController extends Controller
      */
     public function destroy(JenisTugas $jenistugas, SubTugas $subtugas)
     {
-        // ✅ FIXED: Type-safe comparison
         if ((int) $subtugas->jenis_tugas_id !== (int) $jenistugas->id) {
             abort(404);
         }

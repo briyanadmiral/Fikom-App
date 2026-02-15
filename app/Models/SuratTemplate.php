@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * ✅ SuratTemplate - Model untuk menyimpan template Surat Tugas
+ * SuratTemplate - Model untuk menyimpan template Surat Tugas.
  *
  * Placeholder yang didukung:
  * - {{nama_penerima}}  : Nama penerima tugas

@@ -621,21 +621,60 @@
                 $('#nama_pembuat_hidden').val($('#pembuat_id').val() || '');
             }
 
+            // ====== Bidirectional Sync Asal Surat <-> Penandatangan ======
+            
+            // Helper to safely set Select2 value without triggering infinite loop
+            function safeSetValue($element, value) {
+                if ($element.val() != value) {
+                    $element.val(value).trigger('change');
+                }
+            }
+
             function syncAsalSurat() {
                 const $opt = $('#asal_surat_id').find(':selected');
                 if ($opt.length) $('#asal_surat_hidden').val($opt.val()); // ID, bukan label
             }
             $('#pembuat_id').on('change', syncNamaPembuat);
-            $('#asal_surat_id').on('change', syncAsalSurat);
+            // $('#asal_surat_id').on('change', syncAsalSurat); // Digabung di bawah
             syncNamaPembuat();
             syncAsalSurat();
 
-            // ✅ AUTO-SYNC: Saat Asal Surat (Pejabat) dipilih, otomatis set Penandatangan ke orang yang sama
+            // 1. Sync Asal Surat -> Penandatangan
             $('#asal_surat_id').on('change', function() {
-                const selectedPejabat = $(this).val();
-                if (selectedPejabat) {
-                    // Set value dan trigger change agar Select2 update UI
-                    $('#penandatangan_id').val(selectedPejabat).trigger('change');
+                syncAsalSurat(); // Update hidden input
+                const selectedVal = $(this).val();
+                if (selectedVal) {
+                    safeSetValue($('#penandatangan_id'), selectedVal);
+                }
+            });
+
+            // 2. Sync Penandatangan -> Asal Surat
+            $('#penandatangan_id').on('change', function() {
+                const selectedVal = $(this).val();
+                if (selectedVal) {
+                    // Jika Asal Surat masih berupa Select (Create Mode)
+                    if ($('#asal_surat_id').is('select')) {
+                        safeSetValue($('#asal_surat_id'), selectedVal);
+                    } 
+                    // Jika Asal Surat berupa Text/Hidden (Edit Mode - Asal Surat biasanya readonly/hidden)
+                    else {
+                        // Update hidden value (untuk name="asal_surat")
+                        $('#asal_surat_hidden').val(selectedVal);
+                        
+                        // Update hidden value (untuk name="asal_surat_id") karena backend prioritaskan field ini
+                        const $baseHidden = $('input[name="asal_surat_id"]');
+                        if($baseHidden.length) {
+                             $baseHidden.val(selectedVal);
+                        }
+                        
+                        // Update display text jika ada
+                        // Ambil nama dari option di dropdown penandatangan
+                        const selectedText = $(this).find("option:selected").text().trim();
+                        // Format text biasanya "Nama (Jabatan)", kita ambil full text saja untuk display
+                        if($('#asal_surat_id_display').length) {
+                             $('#asal_surat_id_display').val(selectedText);
+                        }
+                    }
                 }
             });
 
