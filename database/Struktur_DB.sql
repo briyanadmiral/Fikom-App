@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jan 30, 2026 at 03:52 PM
+-- Generation Time: Feb 23, 2026 at 03:21 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.2.12
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `surat_siega`
+-- Database: `surat_fikom`
 --
 
 -- --------------------------------------------------------
@@ -69,6 +69,22 @@ CREATE TABLE `cache_locks` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `failed_jobs`
+--
+
+CREATE TABLE `failed_jobs` (
+  `id` bigint UNSIGNED NOT NULL,
+  `uuid` varchar(191) NOT NULL,
+  `connection` text NOT NULL,
+  `queue` text NOT NULL,
+  `payload` longtext NOT NULL,
+  `exception` longtext NOT NULL,
+  `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `jenis_tugas`
 --
 
@@ -105,15 +121,15 @@ CREATE TABLE `jobs` (
 CREATE TABLE `keputusan_attachments` (
   `id` bigint UNSIGNED NOT NULL,
   `keputusan_id` bigint UNSIGNED NOT NULL,
-  `nama_file` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama file original dari user',
-  `nama_file_sistem` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama file hasil rename sistem',
-  `file_path` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Path storage file',
+  `nama_file` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama file original dari user',
+  `nama_file_sistem` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama file hasil rename sistem',
+  `file_path` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Path storage file',
   `file_size` int UNSIGNED NOT NULL COMMENT 'Ukuran file dalam bytes',
-  `mime_type` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tipe MIME file',
-  `extension` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Ekstensi file',
+  `mime_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tipe MIME file',
+  `extension` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Ekstensi file',
   `uploaded_by` bigint UNSIGNED NOT NULL,
-  `deskripsi` text COLLATE utf8mb4_unicode_ci COMMENT 'Deskripsi/keterangan file',
-  `kategori` enum('proposal','rab','surat_pengantar','dokumentasi','lainnya') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'lainnya' COMMENT 'Kategori dokumen',
+  `deskripsi` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Deskripsi/keterangan file',
+  `kategori` enum('proposal','rab','surat_pengantar','dokumentasi','lainnya') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'lainnya' COMMENT 'Kategori dokumen',
   `download_count` int UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Jumlah download',
   `last_downloaded_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -194,8 +210,8 @@ CREATE TABLE `keputusan_penerima` (
 CREATE TABLE `keputusan_status_logs` (
   `id` bigint UNSIGNED NOT NULL,
   `keputusan_id` bigint UNSIGNED NOT NULL,
-  `status_dari` enum('draft','pending','disetujui','ditolak','terbit','arsip') COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `status_ke` enum('draft','pending','disetujui','ditolak','terbit','arsip') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status_dari` enum('draft','pending','disetujui','ditolak','terbit','arsip') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `status_ke` enum('draft','pending','disetujui','ditolak','terbit','arsip') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `diubah_oleh` bigint UNSIGNED NOT NULL,
   `catatan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -404,7 +420,8 @@ CREATE TABLE `pengguna` (
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `last_activity` datetime DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
-  `remember_token` varchar(100) DEFAULT NULL
+  `remember_token` varchar(100) DEFAULT NULL,
+  `foto_path` varchar(255) DEFAULT NULL COMMENT 'Path foto profile user di storage'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -465,6 +482,7 @@ CREATE TABLE `sessions` (
 CREATE TABLE `sub_tugas` (
   `id` bigint UNSIGNED NOT NULL,
   `jenis_tugas_id` bigint UNSIGNED NOT NULL,
+  `klasifikasi_surat_id` bigint UNSIGNED DEFAULT NULL,
   `nama` varchar(255) NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -482,6 +500,7 @@ CREATE TABLE `surat_templates` (
   `nama` varchar(100) NOT NULL COMMENT 'Nama template',
   `deskripsi` varchar(500) DEFAULT NULL COMMENT 'Deskripsi singkat template',
   `jenis_tugas_id` bigint UNSIGNED DEFAULT NULL COMMENT 'Kategori jenis tugas (opsional)',
+  `sub_tugas_id` bigint UNSIGNED DEFAULT NULL COMMENT 'FK ke sub_tugas',
   `detail_tugas` text NOT NULL COMMENT 'Isi template dengan placeholder',
   `tembusan` text COMMENT 'Tembusan default',
   `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Status aktif template',
@@ -500,36 +519,21 @@ CREATE TABLE `surat_templates` (
 CREATE TABLE `tugas_attachments` (
   `id` bigint UNSIGNED NOT NULL,
   `tugas_id` bigint UNSIGNED NOT NULL COMMENT 'FK ke tugas_header',
-  `nama_file` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama file original dari user',
-  `nama_file_sistem` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama file hasil rename sistem',
-  `file_path` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Path storage file',
+  `nama_file` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama file original dari user',
+  `nama_file_sistem` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Nama file hasil rename sistem',
+  `file_path` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Path storage file',
   `file_size` int UNSIGNED NOT NULL COMMENT 'Ukuran file dalam bytes',
-  `mime_type` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tipe MIME file',
-  `extension` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Ekstensi file',
+  `mime_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Tipe MIME file',
+  `extension` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Ekstensi file',
   `uploaded_by` bigint UNSIGNED NOT NULL COMMENT 'User yang upload',
-  `deskripsi` text COLLATE utf8mb4_unicode_ci COMMENT 'Deskripsi/keterangan file',
-  `kategori` enum('proposal','rab','surat_pengantar','dokumentasi','tor','lainnya') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'lainnya' COMMENT 'Kategori dokumen',
+  `deskripsi` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Deskripsi/keterangan file',
+  `kategori` enum('proposal','rab','surat_pengantar','dokumentasi','tor','lainnya') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'lainnya' COMMENT 'Kategori dokumen',
   `download_count` int UNSIGNED NOT NULL DEFAULT '0' COMMENT 'Jumlah download',
   `last_downloaded_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Lampiran dokumen pendukung surat tugas';
-
--- --------------------------------------------------------
-
---
--- Table structure for table `tugas_detail`
---
-
-CREATE TABLE `tugas_detail` (
-  `id` bigint UNSIGNED NOT NULL,
-  `sub_tugas_id` bigint UNSIGNED NOT NULL,
-  `nama` varchar(255) NOT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -545,6 +549,7 @@ CREATE TABLE `tugas_header` (
   `nomor_urut_int` smallint UNSIGNED DEFAULT NULL COMMENT 'Nomor urut integer untuk sorting yang benar',
   `tanggal_asli` datetime DEFAULT NULL,
   `status_surat` enum('draft','pending','disetujui','ditolak','arsip') NOT NULL DEFAULT 'draft',
+  `alasan_penolakan` text,
   `nomor_surat` varchar(255) DEFAULT NULL,
   `tanggal_surat` date DEFAULT NULL,
   `submitted_at` datetime DEFAULT NULL,
@@ -565,7 +570,6 @@ CREATE TABLE `tugas_header` (
   `jenis_tugas` varchar(255) DEFAULT NULL,
   `tugas` varchar(255) NOT NULL,
   `detail_tugas` text,
-  `detail_tugas_id` bigint UNSIGNED NOT NULL,
   `waktu_mulai` datetime DEFAULT NULL,
   `waktu_selesai` datetime DEFAULT NULL,
   `tempat` varchar(255) DEFAULT NULL,
@@ -579,6 +583,7 @@ CREATE TABLE `tugas_header` (
   `cap_w_mm` smallint UNSIGNED DEFAULT NULL COMMENT 'Lebar Cap dalam mm',
   `cap_opacity` decimal(3,2) DEFAULT NULL COMMENT 'Opacity Cap (0.00 - 1.00)',
   `next_approver` bigint UNSIGNED DEFAULT NULL,
+  `send_email_on_approve` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Apakah kirim email ke penerima setelah surat disetujui',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `kode_surat` varchar(255) DEFAULT NULL,
@@ -617,10 +622,10 @@ CREATE TABLE `tugas_logs` (
   `id` bigint UNSIGNED NOT NULL,
   `tugas_id` bigint UNSIGNED NOT NULL COMMENT 'FK ke tugas_header',
   `user_id` bigint UNSIGNED DEFAULT NULL COMMENT 'FK ke pengguna (user yang melakukan action)',
-  `action` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Action: created, updated, submitted, approved, rejected, deleted',
-  `old_status` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Status sebelum perubahan',
-  `new_status` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Status setelah perubahan',
-  `notes` text COLLATE utf8mb4_unicode_ci COMMENT 'Catatan tambahan',
+  `action` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Action: created, updated, submitted, approved, rejected, deleted',
+  `old_status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Status sebelum perubahan',
+  `new_status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Status setelah perubahan',
+  `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'Catatan tambahan',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL COMMENT 'Soft delete'
@@ -721,6 +726,13 @@ ALTER TABLE `audit_logs`
   ADD KEY `idx_audit_entity` (`entity_type`,`entity_id`),
   ADD KEY `idx_audit_created` (`created_at`),
   ADD KEY `idx_audit_entity_type` (`entity_type`);
+
+--
+-- Indexes for table `failed_jobs`
+--
+ALTER TABLE `failed_jobs`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`);
 
 --
 -- Indexes for table `jenis_tugas`
@@ -916,7 +928,8 @@ ALTER TABLE `sessions`
 --
 ALTER TABLE `sub_tugas`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `sub_tugas_jenis_tugas_id_foreign` (`jenis_tugas_id`);
+  ADD KEY `sub_tugas_jenis_tugas_id_foreign` (`jenis_tugas_id`),
+  ADD KEY `sub_tugas_klasifikasi_surat_id_foreign` (`klasifikasi_surat_id`);
 
 --
 -- Indexes for table `surat_templates`
@@ -927,7 +940,8 @@ ALTER TABLE `surat_templates`
   ADD KEY `idx_template_creator` (`dibuat_oleh`),
   ADD KEY `idx_template_active` (`is_active`),
   ADD KEY `idx_template_nama` (`nama`),
-  ADD KEY `idx_template_deleted` (`deleted_at`);
+  ADD KEY `idx_template_deleted` (`deleted_at`),
+  ADD KEY `surat_templates_sub_tugas_id_foreign` (`sub_tugas_id`);
 
 --
 -- Indexes for table `tugas_attachments`
@@ -940,21 +954,14 @@ ALTER TABLE `tugas_attachments`
   ADD KEY `idx_deleted_at` (`deleted_at`);
 
 --
--- Indexes for table `tugas_detail`
---
-ALTER TABLE `tugas_detail`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `tugas_detail_sub_tugas_id_foreign` (`sub_tugas_id`);
-
---
 -- Indexes for table `tugas_header`
 --
 ALTER TABLE `tugas_header`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `tugas_header_nomor_unique` (`nomor`),
+  ADD UNIQUE KEY `uq_parent_suffix` (`parent_tugas_id`,`suffix`),
   ADD KEY `tugas_header_asal_surat_foreign` (`asal_surat`),
   ADD KEY `tugas_header_klasifikasi_surat_id_foreign` (`klasifikasi_surat_id`),
-  ADD KEY `tugas_header_detail_tugas_id_foreign` (`detail_tugas_id`),
   ADD KEY `idx_tugas_status` (`status_surat`),
   ADD KEY `idx_tugas_dibuat_oleh` (`dibuat_oleh`),
   ADD KEY `idx_tugas_next_approver` (`next_approver`),
@@ -1013,6 +1020,12 @@ ALTER TABLE `user_signatures`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `failed_jobs`
+--
+ALTER TABLE `failed_jobs`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
@@ -1139,12 +1152,6 @@ ALTER TABLE `surat_templates`
 -- AUTO_INCREMENT for table `tugas_attachments`
 --
 ALTER TABLE `tugas_attachments`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `tugas_detail`
---
-ALTER TABLE `tugas_detail`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
@@ -1275,14 +1282,16 @@ ALTER TABLE `sessions`
 --
 ALTER TABLE `sub_tugas`
   ADD CONSTRAINT `fk_sub_tugas__jenis` FOREIGN KEY (`jenis_tugas_id`) REFERENCES `jenis_tugas` (`id`) ON DELETE RESTRICT,
-  ADD CONSTRAINT `sub_tugas_jenis_tugas_id_foreign` FOREIGN KEY (`jenis_tugas_id`) REFERENCES `jenis_tugas` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `sub_tugas_jenis_tugas_id_foreign` FOREIGN KEY (`jenis_tugas_id`) REFERENCES `jenis_tugas` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `sub_tugas_klasifikasi_surat_id_foreign` FOREIGN KEY (`klasifikasi_surat_id`) REFERENCES `klasifikasi_surat` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `surat_templates`
 --
 ALTER TABLE `surat_templates`
   ADD CONSTRAINT `fk_template_creator` FOREIGN KEY (`dibuat_oleh`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_template_jenis_tugas` FOREIGN KEY (`jenis_tugas_id`) REFERENCES `jenis_tugas` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_template_jenis_tugas` FOREIGN KEY (`jenis_tugas_id`) REFERENCES `jenis_tugas` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `surat_templates_sub_tugas_id_foreign` FOREIGN KEY (`sub_tugas_id`) REFERENCES `sub_tugas` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `tugas_attachments`
@@ -1292,21 +1301,12 @@ ALTER TABLE `tugas_attachments`
   ADD CONSTRAINT `fk_tugas_attachments_user` FOREIGN KEY (`uploaded_by`) REFERENCES `pengguna` (`id`) ON DELETE RESTRICT;
 
 --
--- Constraints for table `tugas_detail`
---
-ALTER TABLE `tugas_detail`
-  ADD CONSTRAINT `fk_tugas_detail__sub` FOREIGN KEY (`sub_tugas_id`) REFERENCES `sub_tugas` (`id`) ON DELETE RESTRICT,
-  ADD CONSTRAINT `tugas_detail_sub_tugas_id_foreign` FOREIGN KEY (`sub_tugas_id`) REFERENCES `sub_tugas` (`id`) ON DELETE CASCADE;
-
---
 -- Constraints for table `tugas_header`
 --
 ALTER TABLE `tugas_header`
-  ADD CONSTRAINT `fk_tugas_header__detail` FOREIGN KEY (`detail_tugas_id`) REFERENCES `tugas_detail` (`id`) ON DELETE RESTRICT,
   ADD CONSTRAINT `fk_tugas_header__klasifikasi` FOREIGN KEY (`klasifikasi_surat_id`) REFERENCES `klasifikasi_surat` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tugas_header_arsipkan_oleh_foreign` FOREIGN KEY (`arsipkan_oleh`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tugas_header_asal_surat_foreign` FOREIGN KEY (`asal_surat`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `tugas_header_detail_tugas_id_foreign` FOREIGN KEY (`detail_tugas_id`) REFERENCES `tugas_detail` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `tugas_header_dibuat_oleh_foreign` FOREIGN KEY (`dibuat_oleh`) REFERENCES `pengguna` (`id`),
   ADD CONSTRAINT `tugas_header_klasifikasi_surat_id_foreign` FOREIGN KEY (`klasifikasi_surat_id`) REFERENCES `klasifikasi_surat` (`id`),
   ADD CONSTRAINT `tugas_header_next_approver_foreign` FOREIGN KEY (`next_approver`) REFERENCES `pengguna` (`id`),

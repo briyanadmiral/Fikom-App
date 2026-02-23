@@ -44,7 +44,7 @@ class MengingatLibraryController extends Controller
             $query->orderBy($orderBy, $orderDir);
         }
 
-        $items = $query->paginate(20);
+        $items = $query->get();
         $categories = MengingatLibrary::getCategories();
 
         return view('mengingat_library.index', compact('items', 'categories'));

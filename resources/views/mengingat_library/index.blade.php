@@ -3,6 +3,8 @@
 @section('title', 'Library Mengingat')
 
 @push('styles')
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
 <style>
     body { background: #f7faff }
     .surat-header {
@@ -64,14 +66,6 @@
 
 @section('content')
 <div class="container-fluid">
-    {{-- Flash Messages --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            <button type="button" class="close" data-dismiss="alert">&times;</button>
-            <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
-        </div>
-    @endif
-
     <div class="card">
         <div class="card-header">
             <div class="row align-items-center">
@@ -99,7 +93,7 @@
             </div>
         </div>
         <div class="card-body table-responsive p-0">
-            <table class="table table-hover table-striped">
+            <table id="table-mengingat" class="table table-hover table-striped mb-0">
                 <thead>
                     <tr>
                         <th style="width: 40px">#</th>
@@ -113,7 +107,7 @@
                 <tbody>
                     @forelse($items as $index => $item)
                         <tr>
-                            <td>{{ $items->firstItem() + $index }}</td>
+                            <td>{{ $index + 1 }}</td>
                             <td>
                                 <strong>{{ $item->judul }}</strong>
                                 <br><small class="text-muted">{{ Str::limit(strip_tags($item->isi), 80) }}</small>
@@ -141,7 +135,7 @@
                                 <a href="{{ route('mengingat_library.edit', $item->id) }}" class="btn btn-xs btn-warning" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <form action="{{ route('mengingat_library.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin hapus item ini?')">
+                                <form action="{{ route('mengingat_library.destroy', $item->id) }}" method="POST" class="d-inline form-delete-mengingat">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-xs btn-danger" title="Hapus">
@@ -161,11 +155,62 @@
                 </tbody>
             </table>
         </div>
-        @if($items->hasPages())
-            <div class="card-footer">
-                {{ $items->withQueryString()->links() }}
-            </div>
-        @endif
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script>
+$(function() {
+    const table = $('#table-mengingat').DataTable({
+        responsive: true,
+        autoWidth: false,
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'Semua']],
+        dom: 't<"row align-items-center px-3 py-2"<"col-sm-6"i><"col-sm-6 text-sm-right"p>>',
+        language: {
+            url: '/assets/datatables/i18n/id.json',
+            emptyTable: 'Belum ada data dasar hukum.'
+        },
+        columnDefs: [
+            { targets: [0, -1], orderable: false, searchable: false }
+        ],
+        order: [[0, 'asc']]
+    });
+
+    $('.form-delete-mengingat').on('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+
+        Swal.fire({
+            title: 'Hapus Dasar Hukum?',
+            text: 'Data yang dihapus tidak dapat dikembalikan.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
+
+    @if(session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: "{{ session('success') }}",
+        timer: 3000,
+        showConfirmButton: false
+    });
+    @endif
+});
+</script>
+@endpush
