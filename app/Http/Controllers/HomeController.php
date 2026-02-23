@@ -37,8 +37,18 @@ class HomeController extends Controller
             'total_st' => TugasHeader::whereBetween('created_at', [$startDate, $endDate])->count(),
             'total_sk' => KeputusanHeader::whereBetween('created_at', [$startDate, $endDate])->count(),
             'waiting_review' => $this->countStatus(['pending'], $startDate, $endDate),
-            'waiting_sign' => $this->countStatus(['disetujui'], $startDate, $endDate, true), // Disetujui but no Number/File yet implies waiting sign/stamp if logic allows, or just 'disetujui' state
-            'final' => $this->countStatus(['disetujui'], $startDate, $endDate), // Assuming 'disetujui' + has number is final
+            'waiting_sign' => $this->countStatus(['disetujui'], $startDate, $endDate, true),
+            'final' => $this->countStatus(['disetujui'], $startDate, $endDate),
+        ];
+
+        $bulanIni = now()->month;
+        $stats = [
+            'st_bulan_ini' => TugasHeader::whereYear('created_at', $tahun)
+                ->whereMonth('created_at', $bulanIni)
+                ->count(),
+            'sk_bulan_ini' => KeputusanHeader::whereYear('created_at', $tahun)
+                ->whereMonth('created_at', $bulanIni)
+                ->count(),
         ];
 
         // --- 2. WORK QUEUE (Operational - User Centric) ---
@@ -158,7 +168,7 @@ class HomeController extends Controller
         // VIEW
         return view('home', compact(
             'user', 'tahun', 'bulan', 'periodType',
-            'kpi',
+            'kpi', 'stats',
             'perluAction', 'myDrafts', 'myRevisions', 'notifications',
             'months', 'trendST', 'trendSK', 'statuses', 'statusBreakdown',
             'lastST', 'lastSK', 'recentFinal', 'activeUsersCount', 'onlineUsers'

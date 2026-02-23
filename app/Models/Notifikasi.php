@@ -210,12 +210,12 @@ class Notifikasi extends Model
     public function getIcon(): string
     {
         return match ($this->tipe) {
-            'surat_tugas' => 'bi-file-earmark-text',
-            'surat_keputusan' => 'bi-file-earmark-check',
-            'approval' => 'bi-check-circle',
-            'rejection' => 'bi-x-circle',
-            'info' => 'bi-info-circle',
-            default => 'bi-bell',
+            'surat_tugas' => 'fas fa-envelope-open-text text-info',
+            'surat_keputusan' => 'fas fa-gavel text-success',
+            'approval' => 'fas fa-check-circle text-success',
+            'rejection' => 'fas fa-times-circle text-danger',
+            'info' => 'fas fa-info-circle text-secondary',
+            default => 'fas fa-bell text-warning',
         };
     }
 

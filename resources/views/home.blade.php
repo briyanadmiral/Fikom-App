@@ -204,7 +204,32 @@
             flex-shrink: 0;
             text-align: right;
         }
-        
+        .notif-item-unread {
+            background-color: #fdfdfd;
+        }
+        .notif-icon-wrapper {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            background-color: #f8f9fa;
+            position: relative;
+        }
+        .notif-item-unread .notif-icon-wrapper {
+            background-color: #fff7e6;
+        }
+        .notif-unread-dot {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #007bff;
+        }
     </style>
 @endpush
 
@@ -584,11 +609,14 @@
                 <div class="card-body p-0 overflow-auto">
                     <ul class="list-group list-group-flush">
                         @forelse($notifications as $notif)
-                            <li class="list-group-item list-group-item-action d-flex align-items-start py-3 {{ !$notif->dibaca ? 'bg-light' : '' }}" onclick="window.location='{{ route('notifikasi.index') }}'" style="cursor: pointer;">
+                            <li class="list-group-item list-group-item-action d-flex align-items-start py-3 {{ !$notif->dibaca ? 'notif-item-unread' : '' }}" onclick="window.location='{{ route('notifikasi.index') }}'" style="cursor: pointer;">
                                 <div class="mr-3 pt-1">
-                                    @php $icon = method_exists($notif, 'getIcon') ? $notif->getIcon() : 'bi-bell'; @endphp
-                                    <div class="icon-circle {{ !$notif->dibaca ? 'bg-warning text-white' : 'bg-light text-muted' }}" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
-                                        <i class="{{ str_contains($icon, 'bi-') ? 'bi '.$icon : 'fas fa-info' }}"></i>
+                                    @php $icon = method_exists($notif, 'getIcon') ? $notif->getIcon() : 'fas fa-bell text-warning'; @endphp
+                                    <div class="notif-icon-wrapper">
+                                        <i class="{{ $icon }}"></i>
+                                        @if(!$notif->dibaca)
+                                            <span class="notif-unread-dot"></span>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="w-100 overflow-hidden">

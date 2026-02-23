@@ -427,12 +427,14 @@ Route::middleware('check.session.role')->group(function () {
     Route::delete('/kop-surat/ttd-saya', [MySignatureController::class, 'destroy'])->name('kop.ttd.destroy');
     Route::post('/kop-surat/ttd-saya/preview', [MySignatureController::class, 'preview'])->name('kop.ttd.preview');
 
-    // 10) Dev Helper
-    Route::get('/dev/send-surat/{id}', function ($id) {
-        SendSuratTugasEmail::dispatch((int) $id, 'to_recipients');
+    // 10) Dev Helper (local/testing only)
+    if (app()->environment(['local', 'testing'])) {
+        Route::get('/dev/send-surat/{id}', function ($id) {
+            SendSuratTugasEmail::dispatch((int) $id, 'to_recipients');
 
-        return "Job dikirim untuk surat ID {$id}. Cek inbox (atau MailHog).";
-    })->whereNumber('id');
+            return "Job dikirim untuk surat ID {$id}. Cek inbox (atau MailHog).";
+        })->whereNumber('id');
+    }
 
     // ==================== PHASE 1 ROUTES ====================
 

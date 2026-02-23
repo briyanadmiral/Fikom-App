@@ -355,16 +355,6 @@
 @section('content')
 <div class="container-fluid px-2">
     
-    {{-- Success Message --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-lg mb-4" role="alert" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); border-left: 4px solid #28a745 !important;">
-            <i class="fas fa-check-circle mr-2 text-success"></i> <strong>{{ session('success') }}</strong>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    @endif
-
     {{-- Stats Row --}}
     <div class="row stats-row">
         <div class="col-md-4 mb-3 mb-md-0">
@@ -583,7 +573,6 @@ $(document).ready(function() {
     // Initialize tooltips
     $('[data-toggle="tooltip"]').tooltip();
     
-    // Delete confirmation
     $('.delete-form').on('submit', function(e) {
         e.preventDefault();
         const form = this;
@@ -604,6 +593,16 @@ $(document).ready(function() {
             }
         });
     });
+
+    @if(session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: "{{ session('success') }}",
+        timer: 3000,
+        showConfirmButton: false
+    });
+    @endif
 });
 
 function previewTemplate(id) {
