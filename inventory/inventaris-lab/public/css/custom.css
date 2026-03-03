@@ -1,0 +1,49 @@
+/* Definisikan variabel warna */
+:root {
+    --sidebar-bg: #3a006a; /* Warna ungu gelap sidebar */
+    --content-bg: #f4f6f9; /* Warna abu-abu muda untuk latar konten */
+    --card-bg: #ffffff;   /* Warna putih untuk card */
+    --text-color: #495057;
+    --sidebar-active-bg: #6a0dad; /* Warna highlight untuk menu aktif */
+    --sidebar-hover-bg: #5a1a97;
+}
+
+/* Terapkan font dan warna latar utama */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--content-bg);
+    color: var(--text-color);
+}
+
+/* Styling untuk card agar "mengambang" */
+.card {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+/* Styling untuk sidebar desktop */
+.sidebar-desktop {
+    background-color: var(--sidebar-bg) !important;
+}
+
+.sidebar-desktop .nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    transition: all 0.2s ease-in-out;
+}
+
+.sidebar-desktop .nav-link:hover {
+    background-color: var(--sidebar-hover-bg);
+    color: #ffffff;
+}
+
+/* Styling untuk menu yang sedang aktif */
+.sidebar-desktop .nav-link.active {
+    background-color: var(--sidebar-active-bg);
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* Styling untuk dropdown user di header */
+.navbar .dropdown-toggle::after {
+    display: none; /* Sembunyikan panah dropdown default */
+}
