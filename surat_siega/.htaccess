@@ -7,46 +7,46 @@
     # ============================================================
     
     # Redirect file .blade.php ke /not-found (PRIORITAS TERTINGGI)
-    RewriteRule \.blade\.php$ /surat_siega/not-found [R=302,L]
+    RewriteRule \.blade\.php$ /fikomapp/surat_siega/not-found [R=302,L]
     
     # Redirect folder sensitif ke /not-found (302 redirect)
-    RewriteRule ^app(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^bootstrap(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^config(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^database(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^lang(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^resources(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^routes(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^storage(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^tests(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^vendor(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^node_modules(/.*)?$ /surat_siega/not-found [R=302,L]
+    RewriteRule ^app(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^bootstrap(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^config(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^database(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^lang(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^resources(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^routes(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^storage(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^tests(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^vendor(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^node_modules(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
     
     # Redirect file sensitif ke /not-found (302 redirect)
-    RewriteRule ^\.env$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^\.env\..*$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^\.git(/.*)?$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^\.gitignore$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^\.gitattributes$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^\.editorconfig$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^composer\.(json|lock)$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^package(-lock)?\.json$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^artisan$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^phpunit\.xml$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^vite\.config\.js$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^README\.md$ /surat_siega/not-found [R=302,L]
-    RewriteRule ^\.phpunit\.result\.cache$ /surat_siega/not-found [R=302,L]
+    RewriteRule ^\.env$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^\.env\..*$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^\.git(/.*)?$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^\.gitignore$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^\.gitattributes$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^\.editorconfig$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^composer\.(json|lock)$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^package(-lock)?\.json$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^artisan$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^phpunit\.xml$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^vite\.config\.js$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^README\.md$ /fikomapp/surat_siega/not-found [R=302,L]
+    RewriteRule ^\.phpunit\.result\.cache$ /fikomapp/surat_siega/not-found [R=302,L]
     
     # Redirect file PHP di luar public ke /not-found
-    RewriteCond %{REQUEST_URI} !^/surat_siega/public/
-    RewriteRule \.php$ /surat_siega/not-found [R=302,L]
+    RewriteCond %{REQUEST_URI} !^/fikomapp/surat_siega/public/
+    RewriteRule \.php$ /fikomapp/surat_siega/not-found [R=302,L]
 
     # ============================================================
     # Redirect semua request ke folder public
     # ============================================================
     
     # Jika request sudah mengarah ke public, biarkan lewat
-    RewriteCond %{REQUEST_URI} ^/surat_siega/public/
+    RewriteCond %{REQUEST_URI} ^/fikomapp/surat_siega/public/
     RewriteRule ^ - [L]
     
     # Untuk request ke root, redirect ke public/index.php

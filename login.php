@@ -226,7 +226,7 @@ $loginUrl = $client->createAuthUrl();
             opacity: 0.9;
         }
 
-        /* Styling Sisi Kanan (Form Login) */
+
         .login-form {
             flex-basis: 55%;
             padding: 50px;
