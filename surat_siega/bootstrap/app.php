@@ -22,6 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'check.session.role' => \App\Http\Middleware\CheckSessionRole::class,
         ]);
+
+        // Redirect unauthenticated guests to the main bridge login
+        $middleware->redirectTo(
+            guests: function() {
+                return 'http://localhost/fikomapp/index.php';
+            }
+        );
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

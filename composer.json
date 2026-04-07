@@ -8,6 +8,7 @@
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
         "doctrine/dbal": "^4.3",
+        "google/apiclient": "^2.19",
         "intervention/image": "3.0",
         "intervention/image-laravel": "^1.2",
         "jeroennoten/laravel-adminlte": "^3.15",

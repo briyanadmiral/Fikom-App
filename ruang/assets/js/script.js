@@ -1,0 +1,835 @@
+// assets/js/script.js - Complete JavaScript for Sentralisasi Ruangan FIKOM
+
+// =============================================================================
+// GLOBAL VARIABLES & CONFIGURATION
+// =============================================================================
+
+let roomsData = {};
+let selectedRoomId = 'all';
+let currentDate = new Date().toISOString().split('T')[0];
+
+// Configuration
+const CONFIG = {
+    AUTO_REFRESH_INTERVAL: 300000, // 5 minutes
+    OPERATING_HOURS: {
+        START: 6,
+        END: 20
+    },
+    MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
+    ALLOWED_FILE_TYPES: ['pdf']
+};
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+const Utils = {
+    // Format time
+    formatTime: (timeString) => {
+        const [hour, minute] = timeString.split(':');
+        return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    },
+
+    // Format date to Indonesian
+    formatDateIndo: (dateString) => {
+        const date = new Date(dateString);
+        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        
+        return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+    },
+
+    // Show notification
+    showNotification: (message, type = 'info') => {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} notification`;
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            animation: slideInRight 0.3s ease-out;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease-out';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+    },
+
+    // Debounce function
+    debounce: (func, wait) => {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    },
+
+    // API call wrapper
+    apiCall: async (url, options = {}) => {
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                ...options
+            });
+
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || `HTTP ${response.status}`);
+            }
+
+            return data;
+        } catch (error) {
+            console.error('API Error:', error);
+            throw error;
+        }
+    },
+
+    // Check file validation
+    validateFile: (file, maxSize = CONFIG.MAX_FILE_SIZE, allowedTypes = CONFIG.ALLOWED_FILE_TYPES) => {
+        if (!file) return { valid: true };
+
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedTypes.includes(fileExtension)) {
+            return {
+                valid: false,
+                message: `File harus berformat: ${allowedTypes.join(', ').toUpperCase()}`
+            };
+        }
+
+        if (file.size > maxSize) {
+            const maxSizeMB = Math.round(maxSize / (1024 * 1024));
+            return {
+                valid: false,
+                message: `Ukuran file maksimal ${maxSizeMB}MB`
+            };
+        }
+
+        return { valid: true };
+    }
+};
+
+// =============================================================================
+// PUBLIC PAGE FUNCTIONS
+// =============================================================================
+
+const PublicPage = {
+    // Initialize public page
+    init: () => {
+        console.log('🚀 Sentralisasi Ruangan FIKOM initialized');
+        
+        if (document.getElementById('dateInput')) {
+            PublicPage.initializeDate();
+            PublicPage.loadRooms();
+            PublicPage.setupEventListeners();
+        }
+        
+        // Setup scroll animations
+        setTimeout(PublicPage.animateOnScroll, 1000);
+    },
+
+    // Initialize date
+    initializeDate: () => {
+        const today = new Date();
+        const dateString = today.toISOString().split('T')[0];
+        const dateInput = document.getElementById('dateInput');
+        if (dateInput) {
+            dateInput.value = dateString;
+            currentDate = dateString;
+        }
+    },
+
+    // Load rooms from API
+    loadRooms: async () => {
+        try {
+            const result = await Utils.apiCall('api/ruangan.php?action=list');
+            
+            if (result.success) {
+                roomsData = {};
+                const roomSelect = document.getElementById('roomSelect');
+                
+                if (roomSelect) {
+                    roomSelect.innerHTML = '<option value="all">Semua Ruangan</option>';
+                    
+                    result.data.forEach(room => {
+                        roomsData[room.id] = room;
+                        
+                        const option = document.createElement('option');
+                        option.value = room.id;
+                        option.textContent = `${room.kode_ruangan} - ${room.nama_ruangan} (${room.kapasitas} orang)`;
+                        roomSelect.appendChild(option);
+                    });
+                }
+                
+                PublicPage.updateSchedule();
+            }
+        } catch (error) {
+            console.error('Error loading rooms:', error);
+            PublicPage.showErrorMessage('Gagal memuat data ruangan');
+        }
+    },
+
+    // Update schedule
+    updateSchedule: async () => {
+        const selectedDate = document.getElementById('dateInput')?.value || currentDate;
+        const selectedRoom = document.getElementById('roomSelect')?.value || 'all';
+        const roomsGrid = document.getElementById('roomsGrid');
+        
+        if (!roomsGrid) return;
+        
+        roomsGrid.innerHTML = '<div class="loading">🔄 Memuat jadwal untuk tanggal yang dipilih...</div>';
+        
+        try {
+            if (selectedRoom === 'all') {
+                await PublicPage.loadAllRoomsSchedule(selectedDate);
+            } else {
+                await PublicPage.loadSingleRoomSchedule(selectedRoom, selectedDate);
+            }
+        } catch (error) {
+            console.error('Error updating schedule:', error);
+            roomsGrid.innerHTML = '<div class="error">❌ Gagal memuat jadwal. Silakan coba lagi.</div>';
+        }
+    },
+
+    // Load all rooms schedule
+    loadAllRoomsSchedule: async (date) => {
+        const roomsGrid = document.getElementById('roomsGrid');
+        let roomsHTML = '';
+        
+        for (const [roomId, room] of Object.entries(roomsData)) {
+            try {
+                const scheduleResult = await Utils.apiCall(`api/ruangan.php?action=schedule&room_id=${roomId}&date=${date}`);
+                
+                if (scheduleResult.success) {
+                    const scheduleHTML = PublicPage.generateScheduleHTML(scheduleResult.data);
+                    const stats = PublicPage.calculateRoomStats(scheduleResult.data);
+                    
+                    roomsHTML += `
+                        <div class="room-card scroll-animate">
+                            <div class="room-header">
+                                <h3>🏛️ ${room.nama_ruangan}</h3>
+                                <div class="room-status">
+                                    Kapasitas: ${room.kapasitas} orang | Utilisasi: ${stats.utilization}%
+                                </div>
+                                <div class="room-facilities">
+                                    ${PublicPage.generateFacilitiesHTML(room.facilities)}
+                                </div>
+                            </div>
+                            <div class="schedule-grid">
+                                ${scheduleHTML}
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error(`Error loading schedule for room ${roomId}:`, error);
+            }
+        }
+        
+        roomsGrid.innerHTML = roomsHTML;
+        setTimeout(PublicPage.animateOnScroll, 100);
+    },
+
+    // Load single room schedule
+    loadSingleRoomSchedule: async (roomId, date) => {
+        const roomsGrid = document.getElementById('roomsGrid');
+        const room = roomsData[roomId];
+        
+        if (!room) {
+            roomsGrid.innerHTML = '<div class="error">❌ Ruangan tidak ditemukan</div>';
+            return;
+        }
+        
+        try {
+            const scheduleResult = await Utils.apiCall(`api/ruangan.php?action=schedule&room_id=${roomId}&date=${date}`);
+            
+            if (scheduleResult.success) {
+                const scheduleHTML = PublicPage.generateScheduleHTML(scheduleResult.data);
+                const stats = PublicPage.calculateRoomStats(scheduleResult.data);
+                
+                const roomHTML = `
+                    <div class="room-card-single scroll-animate">
+                        <div class="room-header-detail">
+                            <h2>🏛️ ${room.nama_ruangan}</h2>
+                            <div class="room-info-grid">
+                                <div class="info-item">
+                                    <strong>Kode:</strong> ${room.kode_ruangan}
+                                </div>
+                                <div class="info-item">
+                                    <strong>Kapasitas:</strong> ${room.kapasitas} orang
+                                </div>
+                                <div class="info-item">
+                                    <strong>Lokasi:</strong> ${room.lokasi || '-'}
+                                </div>
+                                <div class="info-item">
+                                    <strong>Utilisasi:</strong> ${stats.utilization}%
+                                </div>
+                            </div>
+                            ${room.deskripsi ? `<div class="room-description">${room.deskripsi}</div>` : ''}
+                            <div class="room-facilities-detail">
+                                <strong>Fasilitas:</strong>
+                                ${PublicPage.generateFacilitiesHTML(room.facilities)}
+                            </div>
+                        </div>
+                        <div class="schedule-grid-detailed">
+                            ${scheduleHTML}
+                        </div>
+                    </div>
+                `;
+                
+                roomsGrid.innerHTML = roomHTML;
+            }
+        } catch (error) {
+            console.error('Error loading room schedule:', error);
+            roomsGrid.innerHTML = '<div class="error">❌ Gagal memuat jadwal ruangan</div>';
+        }
+        
+        setTimeout(PublicPage.animateOnScroll, 100);
+    },
+
+    // Generate schedule HTML
+    generateScheduleHTML: (schedule) => {
+        let scheduleHTML = '';
+        
+        for (let hour = CONFIG.OPERATING_HOURS.START; hour <= CONFIG.OPERATING_HOURS.END; hour++) {
+            const time = String(hour).padStart(2, '0') + ':00';
+            const slot = schedule[time] || { status: 'available', activity: '', detail: '' };
+            const statusClass = slot.status;
+            const statusText = PublicPage.getStatusText(slot.status);
+            
+            scheduleHTML += `
+                <div class="time-slot ${statusClass}">
+                    <div class="time">${time}</div>
+                    <div class="activity">
+                        <div class="activity-name">
+                            ${slot.activity || 'Tersedia'}
+                        </div>
+                        ${slot.detail ? `<div class="activity-detail">${slot.detail}</div>` : ''}
+                    </div>
+                    <span class="status-badge status-${statusClass}">
+                        ${statusText}
+                    </span>
+                </div>
+            `;
+        }
+        
+        return scheduleHTML;
+    },
+
+    // Generate facilities HTML
+    generateFacilitiesHTML: (facilities) => {
+        if (!facilities || facilities.length === 0) {
+            return '<span class="no-facilities">Tidak ada fasilitas terdaftar</span>';
+        }
+        
+        return facilities.map(facility => {
+            const kondisiClass = facility.kondisi === 'baik' ? 'good' : 
+                               facility.kondisi === 'rusak' ? 'broken' : 'maintenance';
+            return `<span class="facility-tag ${kondisiClass}">${facility.nama_fasilitas}</span>`;
+        }).join('');
+    },
+
+    // Get status text
+    getStatusText: (status) => {
+        switch(status) {
+            case 'available': return 'Tersedia';
+            case 'occupied': return 'Sedang Digunakan';
+            case 'pending': return 'Pending (Menunggu ACC)';
+            default: return 'Unknown';
+        }
+    },
+
+    // Calculate room statistics
+    calculateRoomStats: (schedule) => {
+        const totalSlots = Object.keys(schedule).length;
+        const occupiedSlots = Object.values(schedule).filter(slot => slot.status === 'occupied').length;
+        const pendingSlots = Object.values(schedule).filter(slot => slot.status === 'pending').length;
+        const availableSlots = totalSlots - occupiedSlots - pendingSlots;
+        
+        return {
+            total: totalSlots,
+            occupied: occupiedSlots,
+            pending: pendingSlots,
+            available: availableSlots,
+            utilization: Math.round((occupiedSlots / totalSlots) * 100)
+        };
+    },
+
+    // Show error message
+    showErrorMessage: (message) => {
+        const roomsGrid = document.getElementById('roomsGrid');
+        if (roomsGrid) {
+            roomsGrid.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+    },
+
+    // Animate on scroll
+    animateOnScroll: () => {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -20px 0px'
+        });
+
+        document.querySelectorAll('.scroll-animate').forEach(el => {
+            observer.observe(el);
+        });
+    },
+
+    // Setup event listeners
+    setupEventListeners: () => {
+        // Date change
+        const dateInput = document.getElementById('dateInput');
+        if (dateInput) {
+            dateInput.addEventListener('change', PublicPage.updateSchedule);
+        }
+
+        // Room change
+        const roomSelect = document.getElementById('roomSelect');
+        if (roomSelect) {
+            roomSelect.addEventListener('change', PublicPage.updateSchedule);
+        }
+    }
+};
+
+// =============================================================================
+// ADMIN DASHBOARD FUNCTIONS
+// =============================================================================
+
+const AdminDashboard = {
+    // Initialize admin dashboard
+    init: () => {
+        console.log('🎛️ Admin Dashboard initialized');
+        AdminDashboard.loadRecentActivities();
+        AdminDashboard.loadPendingRequests();
+        AdminDashboard.setupEventListeners();
+    },
+
+    // Load recent activities
+    loadRecentActivities: async () => {
+        const activityList = document.getElementById('activityList');
+        if (!activityList) return;
+
+        try {
+            const result = await Utils.apiCall('api/aktivitas.php?action=recent');
+            
+            if (result.success && result.data.length > 0) {
+                let html = '';
+                result.data.forEach(activity => {
+                    // Determine type icon based on activity text or status
+                    let iconClass = 'bi-info-circle';
+                    let typeClass = 'info';
+                    
+                    if (activity.aktivitas.toLowerCase().includes('booking') || activity.aktivitas.toLowerCase().includes('pengajuan')) {
+                        iconClass = 'bi-calendar-event';
+                        typeClass = 'booking';
+                    } else if (activity.aktivitas.toLowerCase().includes('ruangan')) {
+                        iconClass = 'bi-building';
+                        typeClass = 'room';
+                    } else if (activity.aktivitas.toLowerCase().includes('status')) {
+                        iconClass = 'bi-check-circle';
+                        typeClass = 'approval';
+                    }
+
+                    html += `
+                        <div class="activity-item">
+                            <div class="activity-time">${activity.time_formatted || '00:00'}</div>
+                            <div class="activity-text">
+                                <strong>${activity.aktivitas}</strong>
+                                <p>${activity.detail || ''}</p>
+                            </div>
+                            <div class="activity-type ${typeClass}"><i class="bi ${iconClass}"></i></div>
+                        </div>
+                    `;
+                });
+                activityList.innerHTML = html;
+            } else {
+                activityList.innerHTML = '<div class="empty-state">📭 Belum ada aktivitas yang tercatat</div>';
+            }
+        } catch (error) {
+            console.error('Error loading activities:', error);
+            activityList.innerHTML = '<div class="error">❌ Gagal memuat aktivitas terbaru</div>';
+        }
+    },
+
+    // Load pending requests
+    loadPendingRequests: async () => {
+        const pendingList = document.getElementById('pendingList');
+        if (!pendingList) return;
+
+        try {
+            const result = await Utils.apiCall('api/pengajuan.php?action=pending');
+            
+            if (result.success && result.data.length > 0) {
+                let html = '';
+                result.data.slice(0, 3).forEach(booking => {
+                    html += `
+                        <div class="pending-item">
+                            <div class="pending-header">
+                                <strong>${booking.keperluan}</strong>
+                                <span class="pending-time">${new Date(booking.tanggal_pinjam).toLocaleDateString()}</span>
+                            </div>
+                            <div class="pending-detail">
+                                ${booking.nama} - ${booking.nama_ruangan}
+                            </div>
+                        </div>
+                    `;
+                });
+                pendingList.innerHTML = html;
+            } else {
+                pendingList.innerHTML = '<div class="empty-state">✅ Tidak ada pengajuan pending</div>';
+            }
+        } catch (error) {
+            console.error('Error loading pending requests:', error);
+            pendingList.innerHTML = '<div class="error">Error loading pending requests</div>';
+        }
+    },
+
+    // Setup event listeners
+    setupEventListeners: () => {
+        // Auto refresh every 2 minutes for admin dashboard
+        setInterval(() => {
+            AdminDashboard.loadRecentActivities();
+            AdminDashboard.loadPendingRequests();
+        }, 120000);
+    }
+};
+
+// =============================================================================
+// STUDENT DASHBOARD FUNCTIONS
+// =============================================================================
+
+const StudentDashboard = {
+    // Initialize student dashboard
+    init: () => {
+        console.log('👨‍🎓 Student Dashboard initialized');
+        StudentDashboard.loadRecentBookings();
+        StudentDashboard.setupEventListeners();
+    },
+
+    // Load recent bookings
+    loadRecentBookings: async () => {
+        const bookingsContainer = document.getElementById('recentBookings');
+        if (!bookingsContainer) return;
+
+        try {
+            const result = await Utils.apiCall('api/pengajuan.php?action=user_bookings');
+            
+            if (result.success && result.data.length > 0) {
+                let html = '';
+                result.data.slice(0, 3).forEach(booking => {
+                    const statusClass = booking.status;
+                    const statusText = booking.status === 'pending' ? '⏳ Pending' : 
+                                     booking.status === 'approved' ? '✅ Disetujui' : '❌ Ditolak';
+                    
+                    html += `
+                        <div class="recent-booking-item">
+                            <div class="booking-header">
+                                <h4>${booking.keperluan}</h4>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
+                            </div>
+                            <div class="booking-info">
+                                <div>${booking.nama_ruangan}</div>
+                                <div>${new Date(booking.tanggal_pinjam).toLocaleDateString()} | ${booking.jam_mulai.slice(0,5)} - ${booking.jam_selesai.slice(0,5)}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                bookingsContainer.innerHTML = html;
+            } else {
+                bookingsContainer.innerHTML = '<div class="empty-state">📝 Belum ada pengajuan yang dibuat</div>';
+            }
+        } catch (error) {
+            console.error('Error loading bookings:', error);
+            bookingsContainer.innerHTML = '<div class="error">Error loading bookings</div>';
+        }
+    },
+
+    // Setup event listeners
+    setupEventListeners: () => {
+        // Auto refresh bookings
+        setInterval(StudentDashboard.loadRecentBookings, 180000); // 3 minutes
+    }
+};
+
+// =============================================================================
+// FORM HANDLING FUNCTIONS
+// =============================================================================
+
+const FormHandler = {
+    // Setup form validation
+    setupValidation: () => {
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', FormHandler.validateForm);
+        });
+
+        // File input validation
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        fileInputs.forEach(input => {
+            input.addEventListener('change', FormHandler.validateFileInput);
+        });
+
+        // Time input validation
+        FormHandler.setupTimeValidation();
+    },
+
+    // Validate form
+    validateForm: (event) => {
+        const form = event.target;
+        const requiredFields = form.querySelectorAll('[required]');
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.style.borderColor = '#f44336';
+            } else {
+                field.style.borderColor = '#e0e0e0';
+            }
+        });
+
+        if (!isValid) {
+            event.preventDefault();
+            Utils.showNotification('Mohon lengkapi semua field yang wajib diisi', 'error');
+        }
+    },
+
+    // Validate file input
+    validateFileInput: (event) => {
+        const file = event.target.files[0];
+        const validation = Utils.validateFile(file);
+
+        if (!validation.valid) {
+            Utils.showNotification(validation.message, 'error');
+            event.target.value = '';
+        }
+    },
+
+    // Setup time validation
+    setupTimeValidation: () => {
+        const startTimeSelect = document.querySelector('[name="jam_mulai"]');
+        const endTimeSelect = document.querySelector('[name="jam_selesai"]');
+
+        if (startTimeSelect && endTimeSelect) {
+            startTimeSelect.addEventListener('change', () => {
+                const startHour = parseInt(startTimeSelect.value.split(':')[0]);
+                const minEndHour = startHour + 1;
+                
+                for (let option of endTimeSelect.options) {
+                    const optionHour = parseInt(option.value.split(':')[0]);
+                    option.disabled = optionHour <= startHour;
+                }
+                
+                if (parseInt(endTimeSelect.value.split(':')[0]) <= startHour) {
+                    endTimeSelect.value = String(minEndHour).padStart(2, '0') + ':00';
+                }
+            });
+        }
+    }
+};
+
+// =============================================================================
+// COMMON UI FUNCTIONS
+// =============================================================================
+
+const UI = {
+    // Show/hide tabs
+    showTab: (tabName) => {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        // Show selected tab
+        const selectedTab = document.getElementById(tabName + '-tab');
+        if (selectedTab) {
+            selectedTab.classList.add('active');
+        }
+        
+        // Update button state
+        const clickedBtn = event.target;
+        if (clickedBtn) {
+            clickedBtn.classList.add('active');
+        }
+    },
+
+    // Toggle mobile sidebar
+    toggleSidebar: () => {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('show');
+        }
+    },
+
+    // Show loading state
+    showLoading: (container, message = 'Loading...') => {
+        if (container) {
+            container.innerHTML = `<div class="loading">${message}</div>`;
+        }
+    },
+
+    // Show error state
+    showError: (container, message = 'Something went wrong') => {
+        if (container) {
+            container.innerHTML = `<div class="error">${message}</div>`;
+        }
+    }
+};
+
+// =============================================================================
+// GLOBAL FUNCTIONS (for HTML onclick handlers)
+// =============================================================================
+
+// Make functions available globally for HTML onclick handlers
+window.showTab = UI.showTab;
+window.toggleSidebar = UI.toggleSidebar;
+window.updateSchedule = PublicPage.updateSchedule;
+
+// Specific functions for admin
+window.viewSchedule = (roomId) => {
+    const today = new Date().toISOString().split('T')[0];
+    window.open(`../index.php?room=${roomId}&date=${today}`, '_blank');
+};
+
+window.editRoom = (roomId) => {
+    Utils.showNotification('Edit room feature coming soon!', 'info');
+};
+
+window.checkSchedule = () => {
+    const roomSelect = document.querySelector('[name="ruangan_id"]');
+    const dateInput = document.querySelector('[name="tanggal_pinjam"]');
+    
+    if (!roomSelect?.value || !dateInput?.value) {
+        Utils.showNotification('Pilih ruangan dan tanggal terlebih dahulu', 'warning');
+        return;
+    }
+    
+    window.open(`../index.php?room=${roomSelect.value}&date=${dateInput.value}`, '_blank');
+};
+
+// =============================================================================
+// INITIALIZATION & EVENT LISTENERS
+// =============================================================================
+
+// Auto-refresh for public schedule
+let autoRefreshInterval;
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Ctrl + E = Export data
+    if (e.ctrlKey && e.key === 'e') {
+        e.preventDefault();
+        if (typeof exportSchedule === 'function') {
+            exportSchedule();
+        }
+        console.log('📁 Export shortcut triggered');
+    }
+    
+    // Ctrl + R = Refresh data
+    if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        if (typeof updateSchedule === 'function') {
+            PublicPage.updateSchedule();
+        }
+        console.log('🔄 Refresh shortcut triggered');
+    }
+
+    // Escape = Close mobile sidebar
+    if (e.key === 'Escape') {
+        const sidebar = document.querySelector('.sidebar.show');
+        if (sidebar) {
+            sidebar.classList.remove('show');
+        }
+    }
+});
+
+// Initialize based on page type
+document.addEventListener('DOMContentLoaded', () => {
+    // Determine page type and initialize accordingly
+    if (document.querySelector('.admin-container')) {
+        AdminDashboard.init();
+    } else if (document.querySelector('.student-container')) {
+        StudentDashboard.init();
+    } else {
+        PublicPage.init();
+    }
+
+    // Setup common functionality
+    FormHandler.setupValidation();
+
+    // Setup auto-refresh for public pages
+    if (document.getElementById('roomsGrid')) {
+        autoRefreshInterval = setInterval(() => {
+            console.log('🔄 Auto-refreshing room data...');
+            PublicPage.updateSchedule();
+        }, CONFIG.AUTO_REFRESH_INTERVAL);
+    }
+
+    // Add mobile menu toggle if needed
+    const header = document.querySelector('.top-bar');
+    if (header && window.innerWidth <= 768) {
+        const menuToggle = document.createElement('button');
+        menuToggle.className = 'menu-toggle';
+        menuToggle.innerHTML = '☰';
+        menuToggle.onclick = UI.toggleSidebar;
+        header.appendChild(menuToggle);
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', Utils.debounce(() => {
+    // Re-trigger animations if needed
+    if (typeof PublicPage.animateOnScroll === 'function') {
+        PublicPage.animateOnScroll();
+    }
+}, 250));
+
+// Handle visibility change (page focus/blur)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        // Refresh data when page becomes visible again
+        if (autoRefreshInterval && document.getElementById('roomsGrid')) {
+            PublicPage.updateSchedule();
+        }
+    }
+});
+
+// Export for global usage
+window.RoomSystem = {
+    roomsData,
+    PublicPage,
+    AdminDashboard,
+    StudentDashboard,
+    Utils,
+    UI
+};
+
+console.log('✅ Sentralisasi Ruangan FIKOM Script Loaded Successfully');

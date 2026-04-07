@@ -1,49 +1,184 @@
-/* Definisikan variabel warna */
+/* === TEMA GLASSMORPHISM (GREY UI/UX) === */
 :root {
-    --sidebar-bg: #3a006a; /* Warna ungu gelap sidebar */
-    --content-bg: #f4f6f9; /* Warna abu-abu muda untuk latar konten */
-    --card-bg: #ffffff;   /* Warna putih untuk card */
-    --text-color: #495057;
-    --sidebar-active-bg: #6a0dad; /* Warna highlight untuk menu aktif */
-    --sidebar-hover-bg: #5a1a97;
+    --primary: #8a9ccc;
+    --primary-soft: rgba(255, 255, 255, 0.5);
+    --dark: #3a4252;
+    --text-main: #333333;
+    --text-muted: #5e6677;
+    --bg-body: #e4e7ec;
+    --bg-card: rgba(255, 255, 255, 0.4);
+    --border: rgba(255, 255, 255, 0.7);
+    --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --glass-blur: blur(16px);
+    
+    --sidebar-bg: rgba(255, 255, 255, 0.3);
+    --sidebar-active-bg: rgba(255, 255, 255, 0.6);
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.4);
+    
+    --btn-primary-bg: #8a9ccc;
 }
 
 /* Terapkan font dan warna latar utama */
 body {
-    font-family: 'Poppins', sans-serif;
-    background-color: var(--content-bg);
-    color: var(--text-color);
+    font-family: 'Poppins', 'Inter', sans-serif;
+    color: var(--text-main);
+    background: var(--bg-body);
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.7) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(200, 205, 215, 0.5) 0%, transparent 60%);
+    background-attachment: fixed;
+    min-height: 100vh;
 }
 
-/* Styling untuk card agar "mengambang" */
+/* Styling untuk card agar glassmorphism */
 .card {
-    border: none;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    background: var(--bg-card) !important;
+    backdrop-filter: var(--glass-blur) !important;
+    -webkit-backdrop-filter: var(--glass-blur) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow) !important;
+}
+
+.card-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+/* Tabel Transparan */
+table {
+    background: transparent !important;
+}
+table th, table td {
+    background: transparent !important;
+    color: var(--text-main) !important;
+}
+table thead th {
+    border-bottom: 1px solid var(--border) !important;
 }
 
 /* Styling untuk sidebar desktop */
 .sidebar-desktop {
-    background-color: var(--sidebar-bg) !important;
+    background: var(--sidebar-bg) !important;
+    backdrop-filter: var(--glass-blur) !important;
+    -webkit-backdrop-filter: var(--glass-blur) !important;
+    border-right: 1px solid var(--border) !important;
 }
 
 .sidebar-desktop .nav-link {
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-muted) !important;
     transition: all 0.2s ease-in-out;
+    margin: 4px 10px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+/* Biar ikon ikut berubah warna */
+.sidebar-desktop .nav-link i {
+    color: var(--text-muted) !important;
 }
 
 .sidebar-desktop .nav-link:hover {
-    background-color: var(--sidebar-hover-bg);
-    color: #ffffff;
+    background-color: var(--sidebar-hover-bg) !important;
+    color: var(--dark) !important;
+    transform: translateX(5px);
+}
+
+.sidebar-desktop .nav-link:hover i {
+    color: var(--dark) !important;
 }
 
 /* Styling untuk menu yang sedang aktif */
 .sidebar-desktop .nav-link.active {
-    background-color: var(--sidebar-active-bg);
-    color: #ffffff;
-    font-weight: 500;
+    background-color: var(--sidebar-active-bg) !important;
+    color: var(--dark) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    border: 1px solid rgba(255,255,255,0.8);
 }
 
-/* Styling untuk dropdown user di header */
+.sidebar-desktop .nav-link.active i {
+    color: var(--primary) !important;
+}
+
+/* Navbar Glassmorphism */
+.navbar {
+    background: var(--bg-card) !important;
+    backdrop-filter: var(--glass-blur) !important;
+    -webkit-backdrop-filter: var(--glass-blur) !important;
+    border-bottom: 1px solid var(--border) !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important;
+}
+
+/* Judul Sidebar Mobile (Offcanvas) */
+.offcanvas {
+    background: rgba(255,255,255,0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-right: 1px solid var(--border) !important;
+    color: var(--dark) !important;
+}
+.offcanvas .nav-link {
+    color: var(--text-muted) !important;
+}
+.offcanvas .nav-link.active {
+    background: rgba(255,255,255,0.8) !important;
+    color: var(--primary) !important;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Judul Logo Sidebar  */
+.sidebar-desktop span.fs-4 {
+    color: var(--dark) !important;
+}
+
+/* Styling dropdown */
 .navbar .dropdown-toggle::after {
-    display: none; /* Sembunyikan panah dropdown default */
+    display: none;
+}
+.dropdown-menu {
+    background: rgba(255,255,255,0.9) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    border-radius: 12px;
+}
+
+/* === BOOTSTRAP UTILITY OVERRIDES UNTUK GLASMROPHISM === */
+
+/* Override Text Colors */
+.text-primary, .text-success, .text-danger, .text-warning, .text-info, .text-gray-800, .text-gray-300 {
+    color: var(--dark) !important;
+}
+
+/* Override Card Borders (kiri) */
+.border-left-primary { border-left: 4px solid #8a9ccc !important; }
+.border-left-success { border-left: 4px solid #9baab8 !important; }
+.border-left-warning { border-left: 4px solid #aebac6 !important; }
+.border-left-danger  { border-left: 4px solid #6c757d !important; }
+
+/* Override Buttons */
+.btn-primary, .btn-success, .btn-danger, .btn-warning, .btn-info, .btn-dark {
+    background: rgba(255,255,255,0.5) !important;
+    color: var(--dark) !important;
+    backdrop-filter: blur(5px) !important;
+    border: 1px solid rgba(255,255,255,0.8) !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-primary:hover, .btn-success:hover, .btn-danger:hover, .btn-warning:hover, .btn-info:hover, .btn-dark:hover {
+    background: rgba(255,255,255,0.8) !important;
+    color: #000 !important;
+    transform: translateY(-2px) !important;
+    border-color: var(--primary) !important;
+}
+
+/* Background Utility */
+.bg-primary, .bg-success, .bg-danger, .bg-warning, .bg-info, .bg-dark {
+    background-color: rgba(255,255,255,0.5) !important;
+    backdrop-filter: blur(5px) !important;
+    border: 1px solid rgba(255,255,255,0.6) !important;
+    color: var(--dark) !important;
 }

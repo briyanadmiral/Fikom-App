@@ -84,6 +84,6 @@ class ExternalEntryController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login')->with('success', 'Anda telah berhasil logout.');
+        return redirect('http://localhost/fikomapp/index.php')->with('success', 'Anda telah berhasil logout.');
     }
 }

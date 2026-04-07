@@ -26,15 +26,10 @@ use Illuminate\Support\Facades\Route;
 // External dashboard entry (/entry?user_id=X) tetap berfungsi untuk integrasi
 Auth::routes(['register' => false, 'reset' => false, 'verify' => false]);
 
-Route::post('login', [\App\Http\Controllers\Auth\LoginController::class, 'login'])
-    ->name('login')
-    ->middleware('throttle:10,1');
-
-// ❌ DISABLE: Login redirect ke external entry (sudah ada Auth::routes di atas)
-// ✅ FIX: Define 'login' route name to prevent RouteNotFoundException
-// Route::get('/login', function () {
-//     return redirect()->route('external.entry');
-// })->name('login');
+// ✅ FIX: Redirect 'login' route to main bridge index
+Route::get('/login', function () {
+    return redirect('http://localhost/fikomapp/index.php');
+})->name('login');
 
 // ✅ TAMBAH: Entry point dari Dashboard Menu eksternal
 Route::get('/entry', [ExternalEntryController::class, 'entry'])->name('external.entry');

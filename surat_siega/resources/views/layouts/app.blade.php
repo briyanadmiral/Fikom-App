@@ -23,6 +23,8 @@
     
     {{-- AdminLTE 3 Theme --}}
     <link rel="stylesheet" href="{{ asset('vendor/adminlte/dist/css/adminlte.min.css') }}">
+    {{-- Bootstrap Icons --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     {{-- Custom Styles dari Child Views --}}
     @stack('styles')
@@ -71,6 +73,104 @@
         .skip-to-content:focus {
             top: 0;
         }
+
+        /* === TEMA GLASSMORPHISM (GREY UI/UX) OVERRIDES UNTUK ADMINLTE === */
+        body {
+            background: #e4e7ec !important;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.7) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(200, 205, 215, 0.5) 0%, transparent 60%) !important;
+            background-attachment: fixed !important;
+            color: #333333 !important;
+        }
+        .wrapper, .content-wrapper, .main-footer {
+            background-color: transparent !important;
+            border: none !important;
+        }
+        /* Navbar (Header) */
+        .main-header {
+            background: rgba(255, 255, 255, 0.4) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.7) !important;
+        }
+        /* Sidebar */
+        .main-sidebar {
+            background: rgba(255, 255, 255, 0.3) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.7) !important;
+        }
+        .sidebar a, .brand-text {
+            color: #3a4252 !important;
+        }
+        .sidebar a:hover {
+            color: #000 !important;
+            background: rgba(255, 255, 255, 0.6) !important;
+        }
+        .brand-link {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.7) !important;
+        }
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.4) !important;
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.7) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
+        }
+        .card-header {
+            background: transparent !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.7) !important;
+            color: #3a4252 !important;
+        }
+        /* Table */
+        table, .table {
+            background: transparent !important;
+        }
+        table th, table td, .table th, .table td {
+            background: transparent !important;
+            color: #333333 !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.5) !important;
+        }
+        table thead th, .table thead th {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.7) !important;
+        }
+        /* Buttons & Badges & Info Boxes (Glassmorphism) */
+        .btn-primary, .btn-info, .btn-success, .btn-warning, .btn-danger, .btn-default,
+        .bg-primary, .bg-info, .bg-success, .bg-warning, .bg-danger, .info-box, .small-box {
+            background: rgba(255, 255, 255, 0.5) !important;
+            backdrop-filter: blur(5px) !important;
+            -webkit-backdrop-filter: blur(5px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.8) !important;
+            color: #3a4252 !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+            transition: all 0.3s ease !important;
+        }
+        .btn-primary:hover, .btn-info:hover, .btn-success:hover, .btn-warning:hover, .btn-danger:hover, .btn-default:hover {
+            background: rgba(255, 255, 255, 0.8) !important;
+            color: #000 !important;
+            transform: translateY(-2px) !important;
+            border-color: #8a9ccc !important;
+        }
+        .small-box .icon > i {
+            color: rgba(58, 66, 82, 0.3) !important;
+        }
+        /* Overrides form controls */
+        .form-control {
+            background: rgba(255, 255, 255, 0.5) !important;
+            backdrop-filter: blur(5px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.7) !important;
+            color: #333 !important;
+        }
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.8) !important;
+            border-color: #8a9ccc !important;
+            box-shadow: 0 0 0 0.2rem rgba(138, 156, 204, 0.25) !important;
+        }
+        .text-white { color: #3a4252 !important; }
     </style>
 </head>
 

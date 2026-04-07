@@ -13,9 +13,20 @@ include 'koneksi.php';
 
 setlocale(LC_TIME, 'id_ID.utf8');
 
-$id_mou = intval($_GET['id']);
+$id_mou = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+if ($id_mou <= 0) {
+    header("Location: index.php");
+    exit;
+}
+
 $namaSurat = mysqli_query($conn, "SELECT * FROM mou WHERE id_mou = $id_mou");
 $data_mou = mysqli_fetch_assoc($namaSurat);
+
+if (!$data_mou) {
+    echo "<script>alert('Data MOU tidak ditemukan!'); window.location.href='index.php';</script>";
+    exit;
+}
 
 $limit = 10;
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
@@ -45,6 +56,7 @@ $result = mysqli_query($conn, $query);
   <title>Pelaksanaan MOU</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="css/glass.css?v=<?= time() ?>">
 </head>
 <body>
 <div class="container-fluid">
@@ -101,20 +113,21 @@ $result = mysqli_query($conn, $query);
         </div>
       </div>
 
-      <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-          <thead class="table-dark text-center">
-            <tr>
-              <th>No</th>
-              <th>Nama Pelaksanaan</th>
-              <th>Tanggal Kegiatan</th>
-              <th>Tanggal Selesai</th>
-              <th>PIC Kegiatan</th>
-              <th>Evaluasi Internal</th>
-              <th>Evaluasi Eksternal</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
+      <div class="card border-0 shadow-none overflow-hidden">
+        <div class="card-body p-0">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama Pelaksanaan</th>
+                <th>Tanggal Kegiatan</th>
+                <th>Tanggal Selesai</th>
+                <th>PIC Kegiatan</th>
+                <th>Evaluasi Internal</th>
+                <th>Evaluasi Eksternal</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
           <tbody class="text-center">
             <?php $no = $offset + 1; while ($row = mysqli_fetch_assoc($result)):
               $id_pelaksanaan = $row['id_pelaksanaan'];

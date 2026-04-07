@@ -1,65 +1,35 @@
-<aside class="main-sidebar sidebar-dark-primary elevation-4" style="display: flex; flex-direction: column; height: 100vh; position: fixed;">
-    <a href="{{ url('/') }}" class="brand-link"
-        style="background-color: #4b0082 !important; /* Ungu gelap solid */
-               border-bottom: 4px solid #8B5CF6 !important;
-               text-align: center;
-               padding: 1.5rem 1rem 2rem 1rem;
-               box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
-               flex-shrink: 0;">
-        <span
-            style="color: transparent;
-                     font-weight: 700;
-                     font-size: 1.8rem;
-                     letter-spacing: 6px;
-                     text-transform: uppercase;
-                     font-family: 'Arial Black', sans-serif;
-                     display: block;
-                     margin-bottom: -0.5rem;
-                     -webkit-text-stroke: 1px #ffffff;
-                     text-shadow: 0 0 100px #fff,
-                                  0 0 40px #fff,
-                                  0 0 20px #fff; ">
-            Surat
-        </span>
-
-        <span
-            style="color: transparent;
-                     font-weight: 900;
-                     font-size: 3.5rem;
-                     letter-spacing: 14px;
-                     text-transform: uppercase;
-                     font-family: 'Impact', 'Arial Black', sans-serif;
-                     display: block;
-                     -webkit-text-stroke: 1px #ffffff;
-                     text-shadow: 0 0 100px #fff,
-                                  0 0 40px #fff,
-                                  0 0 30px #fff; ">
-            FIKOM
-        </span>
+<aside class="main-sidebar elevation-0" style="display: flex; flex-direction: column; height: 100vh; position: fixed;">
+    <a href="{{ url('/') }}" class="brand-link d-flex align-items-center justify-content-center py-4"
+        style="border-bottom: 1px solid rgba(255, 255, 255, 0.7) !important;">
+        <div class="brand-icon d-flex align-items-center justify-content-center mr-2" 
+             style="width: 40px; height: 40px; background: rgba(138, 156, 204, 0.2); border-radius: 10px; border: 1px solid rgba(138, 156, 204, 0.3);">
+            <i class="bi bi-envelope-paper text-primary" style="font-size: 1.4rem;"></i>
+        </div>
+        <span class="brand-text font-weight-bold" style="font-size: 1.2rem; tracking: 1px; color: #3a4252 !important;">Surat FIKOM</span>
     </a>
 
     <div class="sidebar" style="flex: 1; overflow-y: auto; overflow-x: hidden; width: 100%;">
         @auth
             <div class="user-panel mt-3 pb-3 mb-3 d-flex align-items-center"
-                style="background: rgba(139, 92, 246, 0.1); 
+                style="background: rgba(255, 255, 255, 0.4); 
                     border-radius: 12px; 
                     padding: 12px !important;
                     margin: 0 10px 15px 10px !important;
-                    border: 1px solid rgba(139, 92, 246, 0.2);">
+                    border: 1px solid rgba(255, 255, 255, 0.7);">
                 <div class="image pr-2">
                     <img src="{{ Auth::user()->foto_url }}"
-                        class="img-circle elevation-2" 
-                        style="border: 2px solid #a78bfa !important; width: 45px; height: 45px; object-fit: cover;"
+                        class="img-circle" 
+                        style="border: 2px solid rgba(138, 156, 204, 0.5) !important; width: 45px; height: 45px; object-fit: cover;"
                         alt="{{ Auth::user()->nama_lengkap }}">
                 </div>
                 <div class="info w-100 pl-2" style="line-height: 1.2;">
-                    <a href="{{ route('account.settings') }}" class="d-block text-white" title="Pengaturan Akun"
-                        style="font-weight: 600; font-size: 0.95rem; white-space: normal; word-wrap: break-word;">
+                    <a href="{{ route('account.settings') }}" class="d-block" title="Pengaturan Akun"
+                        style="font-weight: 600; font-size: 0.95rem; color: #3a4252 !important; white-space: normal; word-wrap: break-word;">
                         {{ Auth::user()->nama_lengkap }}
                     </a>
                     <div class="mt-1 d-flex align-items-center">
-                        <span class="badge badge-success badge-pill" 
-                              style="font-size: 0.65rem; font-weight: 500; padding: 3px 8px; background-color: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3);">
+                        <span class="badge badge-pill" 
+                              style="font-size: 0.65rem; font-weight: 600; padding: 3px 8px; background-color: rgba(138, 156, 204, 0.15); color: #8a9ccc; border: 1px solid rgba(138, 156, 204, 0.2);">
                             {{ ucwords(str_replace('_', ' ', Auth::user()->peran->nama ?? 'User')) }}
                         </span>
                     </div>
@@ -78,10 +48,10 @@
                 data-accordion="false">
 
                 <!-- Dashboard -->
-                <li class="nav-header" style="color: #a78bfa !important;">MENU UTAMA</li>
+                <li class="nav-header" style="color: #8a9ccc !important; font-weight: 700; font-size: 0.75rem;">MENU UTAMA</li>
                 <li class="nav-item">
                     <a href="{{ route('home') }}" class="nav-link {{ $isRoute('home') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-tachometer-alt"></i>
+                        <i class="nav-icon bi bi-house-door"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
@@ -91,14 +61,14 @@
                 <li class="nav-item">
                     <a href="{{ route('notifikasi.index') }}"
                         class="nav-link {{ $isRoute('notifikasi.*') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-bell"></i>
+                        <i class="nav-icon bi bi-bell"></i>
                         <p>
                             Notifikasi
                             @php
                                 $unreadCount = Auth::user()->notifikasi()->where('dibaca', false)->count();
                             @endphp
                             @if ($unreadCount > 0)
-                                <span class="right badge badge-warning">{{ $unreadCount }}</span>
+                                <span class="right badge badge-danger">{{ $unreadCount }}</span>
                             @endif
                         </p>
                     </a>
@@ -107,18 +77,18 @@
 
                 <!-- CRUD Pengguna (Admin TU Only) -->
                 @if ($peranId === 1)
-                    <li class="nav-header" style="color: #a78bfa !important;">ADMINISTRASI</li>
+                    <li class="nav-header" style="color: #8a9ccc !important; font-weight: 700; font-size: 0.75rem;">ADMINISTRASI</li>
                     <li class="nav-item">
                         <a href="{{ route('users.index') }}"
                             class="nav-link {{ $isRoute('users.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-users"></i>
+                            <i class="nav-icon bi bi-people"></i>
                             <p>Kelola Pengguna</p>
                         </a>
                     </li>
                 @endif
 
                 <!-- =============== SURAT TUGAS =============== -->
-                <li class="nav-header" style="color: #a78bfa !important;">SURAT & DOKUMEN</li>
+                <li class="nav-header" style="color: #8a9ccc !important; font-weight: 700; font-size: 0.75rem;">SURAT & DOKUMEN</li>
 
                 {{-- Admin TU Surat Tugas --}}
                 @if ($peranId === 1)
@@ -136,10 +106,10 @@
                     @endphp
                     <li class="nav-item {{ $stAdminOpen ? 'menu-is-opening menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $stAdminOpen ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-file-alt"></i>
+                            <i class="nav-icon bi bi-file-earmark-text"></i>
                             <p>
                                 Surat Tugas
-                                <i class="right fas fa-angle-left"></i>
+                                <i class="right bi bi-chevron-left"></i>
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -231,10 +201,10 @@
                     @endphp
                     <li class="nav-item {{ $skAdminOpen ? 'menu-is-opening menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $skAdminOpen ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-book"></i>
+                            <i class="nav-icon bi bi-journal-text"></i>
                             <p>
                                 Surat Keputusan
-                                <i class="right fas fa-angle-left"></i>
+                                <i class="right bi bi-chevron-left"></i>
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -374,7 +344,7 @@
                 @if ($peranId === 1)
                     <li class="nav-item">
                         <a href="{{ route('kop.index') }}" class="nav-link {{ $isRoute('kop.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-cog"></i>
+                            <i class="nav-icon bi bi-gear"></i>
                             <p>Kop Surat</p>
                         </a>
                     </li>
@@ -390,10 +360,10 @@
                     @endphp
                     <li class="nav-item {{ $libraryOpen ? 'menu-is-opening menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $libraryOpen ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-book-open"></i>
+                            <i class="nav-icon bi bi-book"></i>
                             <p>
                                 Library Konten
-                                <i class="right fas fa-angle-left"></i>
+                                <i class="right bi bi-chevron-left"></i>
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
@@ -429,7 +399,7 @@
                     <li class="nav-item">
                         <a href="{{ route('audit_logs.index') }}"
                             class="nav-link {{ $isRoute('audit_logs.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-history"></i>
+                            <i class="nav-icon bi bi-clock-history"></i>
                             <p>Audit Log</p>
                         </a>
                     </li>
@@ -441,7 +411,7 @@
                     <li class="nav-item">
                         <a href="{{ route('import.penerima.index') }}"
                             class="nav-link {{ $isRoute('import.penerima.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-file-import"></i>
+                            <i class="nav-icon bi bi-file-earmark-arrow-up"></i>
                             <p>Import Penerima ST</p>
                         </a>
                     </li>
@@ -456,7 +426,7 @@
                         <li class="nav-item">
                             <a href="{{ route('signature.edit') }}"
                                 class="nav-link {{ $isRoute('signature.*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-signature"></i>
+                                <i class="nav-icon bi bi-pen"></i>
                                 <p>Tanda Tangan Saya</p>
                             </a>
                         </li>
@@ -466,7 +436,7 @@
                     <li class="nav-item">
                         <a href="{{ route('notification_preferences.edit') }}"
                             class="nav-link {{ $isRoute('notification_preferences.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-bell-slash"></i>
+                            <i class="nav-icon bi bi-bell-slash"></i>
                             <p>Preferensi Notifikasi</p>
                         </a>
                     </li>
@@ -475,7 +445,7 @@
                     <li class="nav-item">
                         <a href="{{ route('account.settings') }}"
                             class="nav-link {{ $isRoute('account.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-user-cog"></i>
+                            <i class="nav-icon bi bi-person-gear"></i>
                             <p>Pengaturan Akun</p>
                         </a>
                     </li>
@@ -488,54 +458,34 @@
 
 @push('css')
     <style>
-        /* Purple accent on hover */
+        /* Modern Glass Accent */
         aside.main-sidebar .nav-link:hover {
-            background-color: rgba(139, 92, 246, 0.15) !important;
+            background-color: rgba(138, 156, 204, 0.15) !important;
+            transform: translateX(5px);
+            transition: all 0.3s ease;
         }
-
-        /* Active menu with purple border */
+ 
+        /* Active menu with glass highlight */
         aside.main-sidebar .nav-link.active {
-            background: linear-gradient(90deg, rgba(139, 92, 246, 0.25) 0%, rgba(139, 92, 246, 0.1) 100%) !important;
-            border-left: 4px solid #8B5CF6 !important;
+            background: rgba(138, 156, 204, 0.2) !important;
+            border-left: 4px solid #8a9ccc !important;
+            color: #8a9ccc !important;
         }
-
+ 
         aside.main-sidebar .nav-link.active i {
-            color: #a78bfa !important;
+            color: #8a9ccc !important;
+        }
+ 
+        /* Sidebar section headers */
+        .nav-header {
+            padding: 1rem 1rem 0.5rem 1.5rem !important;
+            letter-spacing: 0.5px;
         }
 
-        /* User panel hover effect */
-        aside.main-sidebar .user-panel:hover {
-            background: rgba(139, 92, 246, 0.12) !important;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2);
-            cursor: pointer;
-        }
-
-        /* User panel info text */
-        aside.main-sidebar .user-panel .info a {
-            color: #ffffff;
-            font-weight: 600;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        aside.main-sidebar .user-panel .info a:hover {
-            color: #e0e0e0;
-        }
-
-        aside.main-sidebar .user-panel .info small {
-            color: #a0aec0;
-            font-size: 0.8rem;
-            margin-top: 0.2rem;
-        }
-
-        aside.main-sidebar .user-panel .info small .fa-circle.text-success {
-            color: #34d399 !important;
-        }
-
-        /* Search input focus */
-        .form-control-sidebar:focus {
-            border-color: #8B5CF6 !important;
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.4) !important;
+        /* Clean separators */
+        hr {
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            margin: 10px 15px;
         }
     </style>
 @endpush

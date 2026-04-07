@@ -15,11 +15,21 @@ include 'koneksi.php';
 setlocale(LC_TIME, 'id_ID.utf8');
 
 // Ambil id MOU dari URL
-$id_mou = intval($_GET['id']);
+$id_mou = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+if ($id_mou <= 0) {
+    header("Location: index.php");
+    exit;
+}
 
 // Ambil nama MOU
 $namaSurat = mysqli_query($conn, "SELECT * FROM mou WHERE id_mou = $id_mou");
 $data_mou = mysqli_fetch_assoc($namaSurat);
+
+if (!$data_mou) {
+    echo "<script>alert('Data MOU tidak ditemukan!'); window.location.href='index.php';</script>";
+    exit;
+}
 
 // Setup pagination
 $limit = 10;
@@ -55,6 +65,7 @@ $result = mysqli_query($conn, $query);
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="css/glass.css?v=<?= time() ?>">
   <style>
     .action-buttons {
       white-space: nowrap;
@@ -102,18 +113,19 @@ $result = mysqli_query($conn, $query);
         </div>
 
         <!-- Tabel Perencanaan -->
-        <div class="table-responsive">
-          <table class="table table-striped table-hover align-middle">
-            <thead class="table-dark text-center">
-              <tr>
-                <th>No</th>
-                <th>Kegiatan Perencanaan</th>
-                <th>Tanggal Rencana</th>
-                <th>PIC Kegiatan</th>
-                <th>Keterangan</th>
-                <th class="action-buttons">Aksi</th>
-              </tr>
-            </thead>
+        <div class="card border-0 shadow-none overflow-hidden">
+          <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Kegiatan Perencanaan</th>
+                  <th>Tanggal Rencana</th>
+                  <th>PIC Kegiatan</th>
+                  <th>Keterangan</th>
+                  <th class="action-buttons">Aksi</th>
+                </tr>
+              </thead>
             <tbody class="text-center">
               <?php
               $no = $offset + 1;
@@ -176,6 +188,7 @@ $result = mysqli_query($conn, $query);
             <?php endif; ?>
           </ul>
         </nav>
+        </div></div>
       </main>
     </div>
   </div>

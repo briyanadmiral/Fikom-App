@@ -144,6 +144,7 @@ $result = mysqli_query($conn, $query);
     <title>Dashboard MOU</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/glass.css?v=<?= time() ?>">
 </head>
 
 <body>
@@ -159,50 +160,50 @@ $result = mysqli_query($conn, $query);
                 <!-- Statistik cards -->
                 <div class="row mb-4">
                     <div class="col-md-4 mb-3">
-                        <div class="card text-white bg-primary h-100">
+                        <div class="card h-100">
                             <div class="card-body">
-                                <h5 class="card-title">Total MOU</h5>
+                                <h5 class="card-title text-primary"><i class="bi bi-file-earmark-text me-2"></i>Total MOU</h5>
                                 <p class="card-text display-6"><?= $total_mou ?></p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card text-white bg-success h-100">
+                        <div class="card h-100">
                             <div class="card-body">
-                                <h5 class="card-title">MOU Selesai</h5>
+                                <h5 class="card-title text-success"><i class="bi bi-check-circle me-2"></i>MOU Selesai</h5>
                                 <p class="card-text display-6"><?= $total_finish ?></p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card text-white bg-danger h-100">
+                        <div class="card h-100">
                             <div class="card-body">
-                                <h5 class="card-title">MOU Belum Selesai</h5>
+                                <h5 class="card-title text-danger"><i class="bi bi-x-circle me-2"></i>MOU Belum Selesai</h5>
                                 <p class="card-text display-6"><?= $total_unfinish ?></p>
                             </div>
                         </div>
                     </div>
 
                     <div class="col-md-4 mb-3">
-                        <div class="card text-white bg-warning h-100">
+                        <div class="card h-100">
                             <div class="card-body">
-                                <h5 class="card-title">Kegiatan Dalam Proses</h5>
+                                <h5 class="card-title text-warning"><i class="bi bi-clock-history me-2"></i>Kegiatan Dalam Proses</h5>
                                 <p class="card-text display-6"><?= $in_progress_kegiatan ?></p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card text-white bg-success h-100">
+                        <div class="card h-100">
                             <div class="card-body">
-                                <h5 class="card-title">Kegiatan Selesai</h5>
+                                <h5 class="card-title text-success"><i class="bi bi-calendar-check me-2"></i>Kegiatan Selesai</h5>
                                 <p class="card-text display-6"><?= $done_kegiatan ?></p>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card text-white bg-secondary h-100">
+                        <div class="card h-100">
                             <div class="card-body">
-                                <h5 class="card-title">Belum Dikerjakan</h5>
+                                <h5 class="card-title text-dark"><i class="bi bi-calendar-x me-2"></i>Belum Dikerjakan</h5>
                                 <p class="card-text display-6"><?= $not_started_kegiatan ?></p>
                             </div>
                         </div>
@@ -242,8 +243,10 @@ $result = mysqli_query($conn, $query);
                 </div>
 
                 <!-- Tabel MOU -->
-                <table class="table table-striped text-center">
-                    <thead class="table-dark">
+                <div class="card border-0 shadow-none overflow-hidden">
+                    <div class="card-body p-0">
+                        <table class="table table-hover text-center mb-0">
+                            <thead>
                         <tr>
                             <th>No</th>
                             <th>No MOU (Eksternal)</th>
@@ -345,6 +348,7 @@ $result = mysqli_query($conn, $query);
                         <?php endif; ?>
                     </ul>
                 </nav>
+                </div></div>
             </main>
         </div>
     </div>

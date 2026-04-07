@@ -70,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Tambah MOU</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/glass.css?v=<?= time() ?>">
 </head>
 <body>
 <div class="container-fluid">
@@ -80,8 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <h1 class="h2">Tambah MOU</h1>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-body">
+            <div class="card border-0 mb-5">
+                <div class="card-body p-4">
                     <form method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label class="form-label">No MOU Eksternal</label>
@@ -105,7 +106,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Tingkat</label>
-                            <input type="text" name="tingkat" class="form-control" required>
+                            <select name="tingkat" class="form-select" required>
+                                <option value="" selected disabled>Pilih Tingkat...</option>
+                                <option value="Internasional">Internasional</option>
+                                <option value="Nasional">Nasional</option>
+                                <option value="Provinsi">Provinsi</option>
+                                <option value="Lokal">Lokal</option>
+                                <option value="Fakultas">Fakultas</option>
+                                <option value="Universitas">Universitas</option>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Tanggal MOU</label>

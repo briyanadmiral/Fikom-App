@@ -1,0 +1,131 @@
+/* === TEMA GLASSMORPHISM (MOU SUB-MODULE) === */
+:root {
+    --primary: #8a9ccc;
+    --primary-soft: rgba(255, 255, 255, 0.5);
+    --dark: #3a4252;
+    --text-main: #333333;
+    --text-muted: #5e6677;
+    --bg-body: #e4e7ec;
+    --bg-card: rgba(255, 255, 255, 0.4);
+    --border: rgba(255, 255, 255, 0.7);
+    --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --glass-blur: blur(16px);
+}
+
+body {
+    background: var(--bg-body) !important;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.7) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(200, 205, 215, 0.5) 0%, transparent 60%) !important;
+    background-attachment: fixed !important;
+    min-height: 100vh;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--text-main) !important;
+}
+
+/* Sidebar Glassmorphism */
+.mou-sidebar {
+    background: rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: var(--glass-blur) !important;
+    -webkit-backdrop-filter: var(--glass-blur) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+.mou-sidebar .nav-link {
+    color: var(--text-muted) !important;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.mou-sidebar .nav-link:hover {
+    background: rgba(255, 255, 255, 0.5) !important;
+    color: var(--dark) !important;
+    transform: translateX(5px);
+}
+
+.mou-sidebar .nav-link.active {
+    background: rgba(255, 255, 255, 0.6) !important;
+    color: var(--dark) !important;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+/* Cards Glassmorphism */
+.card {
+    background: var(--bg-card) !important;
+    backdrop-filter: var(--glass-blur) !important;
+    -webkit-backdrop-filter: var(--glass-blur) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow) !important;
+}
+
+.card-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--border) !important;
+    color: var(--dark) !important;
+    font-weight: 600;
+}
+
+/* Buttons Override */
+.btn-primary, .btn-success, .btn-danger, .btn-warning, .btn-info, .btn-secondary, .btn-outline-primary {
+    background: rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(5px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    color: var(--dark) !important;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.btn-primary:hover, .btn-success:hover, .btn-danger:hover, .btn-warning:hover, .btn-info:hover, .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.8) !important;
+    transform: translateY(-2px);
+    border-color: var(--primary) !important;
+    color: #000 !important;
+}
+
+/* Tables */
+.table {
+    background: transparent !important;
+}
+
+.table th, .table td {
+    background: transparent !important;
+    border-color: var(--border) !important;
+    color: var(--text-main) !important;
+}
+
+.table thead th {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: var(--dark) !important;
+}
+
+/* Pagination */
+.pagination .page-link {
+    background: rgba(255, 255, 255, 0.4) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--dark) !important;
+}
+
+.pagination .page-item.active .page-link {
+    background: rgba(255, 255, 255, 0.7) !important;
+    font-weight: 700;
+}
+
+/* Form Controls */
+.form-control, .form-select {
+    background: rgba(255, 255, 255, 0.5) !important;
+    border: 1px solid var(--border) !important;
+    backdrop-filter: blur(5px);
+}
+
+.form-control:focus, .form-select:focus {
+    background: rgba(255, 255, 255, 0.7) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 0.25rem rgba(138, 156, 204, 0.2) !important;
+}

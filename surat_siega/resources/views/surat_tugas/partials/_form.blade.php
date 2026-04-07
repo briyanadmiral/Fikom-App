@@ -14,6 +14,12 @@
     $isEdit = isset($tugas);
     $mode = $mode ?? ($isEdit ? 'edit' : 'create');
 
+    // === Konfigurasi ID Komponen Klasifikasi (Hanya SEKALI di sini) ===
+    $klModalId = 'modalKlasifikasi';
+    $klHiddenId = 'klasifikasi_surat_id';
+    $klKodeId = 'klasifikasi_kode';
+    $klDisplayId = 'klasifikasi_display';
+
     // Lock structural fields dalam kondisi tertentu
     $lockStructural = $isEdit && in_array($tugas->status_surat ?? '', ['disetujui']); // Hanya lock jika sudah disetujui
 
@@ -223,16 +229,8 @@
                                     <div class="col-md-5">
                                         <label class="small text-muted">Klasifikasi</label>
                                         @php
-                                            // === Konfigurasi komponen klasifikasi (untuk modal) ===
-                                            $klModalId = 'modalKlasifikasi';
-                                            $klHiddenId = 'klasifikasi_surat_id';
-                                            $klKodeId = 'klasifikasi_kode';
-                                            $klDisplayId = 'klasifikasi_display';
-
-                                            $selectedKlasId = old(
-                                                'klasifikasi_surat_id',
-                                                $isEdit ? $tugas->klasifikasi_surat_id : null,
-                                            );
+                                            // Prefill data klasifikasi
+                                            $selectedKlasId = old('klasifikasi_surat_id', $isEdit ? $tugas->klasifikasi_surat_id : null);
                                             $selectedKlas = optional($klasifikasi->firstWhere('id', $selectedKlasId));
                                             $selectedKode = $selectedKlas->kode ?? '';
                                             $selectedLabel = $selectedKlas
@@ -268,14 +266,7 @@
                                             <div class="invalid-feedback d-block">{{ $message }}</div>
                                         @enderror
 
-                                        {{-- MODAL PILIH KLASIFIKASI --}}
-                                        @include('surat_tugas.partials._modal_klasifikasi', [
-                                            'modalId' => $klModalId,
-                                            'hiddenId' => $klHiddenId,
-                                            'displayId' => $klDisplayId,
-                                            'kodeTargetId' => $klKodeId,
-                                            'items' => $klasifikasi,
-                                        ])
+                                        {{-- Modal di-include di bawah form agar tidak mengganggu stacking context --}}
                                     </div>
 
                                     <div class="col-md-3">
@@ -808,6 +799,45 @@
     </div>
 </form>
 
+<style>
+    /* Global Modal Fix for Grey Glassmorphism compatibility */
+    #penerimaModal, #penerimaEksternalModal {
+        z-index: 1075 !important;
+    }
+    #penerimaModal .modal-content, #penerimaEksternalModal .modal-content {
+        background: rgba(255, 255, 255, 0.95) !important; /* Kurangi transparansi agar terbaca */
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #333 !important;
+    }
+    #penerimaModal .modal-header, #penerimaEksternalModal .modal-header {
+        border-bottom: 2px solid #f0f2f5;
+        background: #f8f9fa;
+        color: #333 !important;
+    }
+    #penerimaModal .modal-title, #penerimaEksternalModal .modal-title {
+        font-weight: 700;
+        color: #333 !important;
+    }
+    /* Checkbox & Button styling */
+    .penerima-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    #penerima-table tr {
+        cursor: pointer;
+    }
+    #penerima-table tr:hover td {
+        background-color: rgba(59, 91, 219, 0.05) !important;
+    }
+    #simpanPenerima, #simpanPenerimaEksternal {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    }
+</style>
+
 
 {{-- MODAL PENERIMA EKSTERNAL --}}
 <div class="modal fade" id="penerimaEksternalModal" tabindex="-1" role="dialog"
@@ -892,6 +922,14 @@
         </div>
     </div>
 </div>
+
+@include('surat_tugas.partials._modal_klasifikasi', [
+    'modalId' => $klModalId,
+    'hiddenId' => $klHiddenId,
+    'displayId' => $klDisplayId,
+    'kodeTargetId' => $klKodeId,
+    'items' => $klasifikasi,
+])
 
 @include('surat_tugas.partials._form_scripts')
 

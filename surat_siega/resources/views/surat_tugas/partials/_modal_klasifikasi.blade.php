@@ -123,6 +123,21 @@ $letters = range('A','Z');
 #{{ $modalId }} .modal-title { font-weight:700; }
 #{{ $modalId }} .modal-search {
   position: sticky; top:0; z-index: 1021; background:#fff;
+  border-bottom: 2px solid #f0f2f5;
+}
+#{{ $modalId }} .modal-search input {
+  color: #000 !important;
+  font-weight: 500;
+}
+#{{ $modalId }} .badge[data-kt="jump"] {
+  cursor: pointer;
+  padding: .5rem .75rem;
+  font-size: .9rem;
+  transition: all 0.2s;
+}
+#{{ $modalId }} .badge[data-kt="jump"]:hover {
+  background: #3b5bdb !important;
+  color: #fff !important;
 }
 #{{ $modalId }} .badge { font-weight:600; }
 #{{ $modalId }} .btn-klasifikasi{
@@ -133,13 +148,24 @@ $letters = range('A','Z');
   line-height:1.25;
   color:#000; /* teks tombol item hitam */
   transition: box-shadow .15s ease, transform .05s ease;
+  cursor: pointer;
 }
 #{{ $modalId }} .btn-klasifikasi:hover{
-  background:#f8f9fa;
-  box-shadow:0 2px 6px rgba(0,0,0,.08);
+  background:#f0f2f5 !important;
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
+  border-color: #3b5bdb;
 }
 #{{ $modalId }} .btn-klasifikasi:active{
   transform: translateY(1px);
+}
+#{{ $modalId }}.modal {
+  z-index: 1070 !important; /* Di atas segalanya */
+}
+.modal-backdrop {
+  z-index: 1065 !important;
+}
+#{{ $modalId }} .btn-klasifikasi span {
+  pointer-events: none; /* Biar klik tembus ke button */
 }
 #{{ $modalId }} [data-kt="count"]{ color:#000; } /* info count hitam */
 #{{ $modalId }} h6 { color:#000; font-weight:700; }
@@ -226,14 +252,20 @@ $letters = range('A','Z');
   });
 
   // Pilih item
-  $modal.on('click', '[data-kt="item"]', function(){
-    var id   = $(this).data('id');
-    var lbl  = $(this).data('label');
-    var kode = $(this).data('kode');
+  $modal.on('click', '[data-kt="item"]', function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    
+    var $btn = $(this);
+    var id   = $btn.data('id');
+    var lbl  = $btn.data('label');
+    var kode = $btn.data('kode');
+
+    console.log('Klasifikasi dipilih:', {id, lbl, kode});
 
     if ($hidden.length)  $hidden.val(id).trigger('change');
     if ($display.length) $display.val(lbl);
-    if ($kodeT.length)   $kodeT.val(kode).trigger('change'); // set #klasifikasi_kode
+    if ($kodeT.length)   $kodeT.val(kode).trigger('change'); 
 
     $modal.modal('hide');
   });

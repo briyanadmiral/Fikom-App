@@ -540,9 +540,14 @@
                 updateStatusPenerima();
             }
 
-            $('#simpanPenerima').on('click', function() {
+            $('#simpanPenerima').on('click', function(e) {
+                e.preventDefault();
+                console.log('Simpan Penerima Internal diklik');
+                
                 penerimaState.internal = {};
-                table.$('.penerima-checkbox:checked').each(function() {
+                // ✅ Gunakan table.rows().nodes() agar semua data di semua halaman terbaca
+                const rows = table.rows().nodes();
+                $(rows).find('.penerima-checkbox:checked').each(function() {
                     const id = $(this).val();
                     const nama = $(this).data('nama');
                     const peranId = $(this).data('peran-id');
@@ -551,6 +556,8 @@
                         peran_id: peranId
                     };
                 });
+                
+                console.log('Total internal terpilih:', Object.keys(penerimaState.internal).length);
                 renderPenerimaList();
                 $('#penerimaModal').modal('hide');
                 Swal.fire({

@@ -359,14 +359,20 @@ class SuratTugasService
         // Bersihkan dulu penerima lama
         $tugas->penerima()->delete();
 
-        // Internal (FK aman)
-        foreach ($internalIds as $uid) {
-            $userId = validate_integer_id($uid);
-            if ($userId) {
-                TugasPenerima::create([
-                    'tugas_id' => $tugas->id,
-                    'pengguna_id' => $userId,
-                ]);
+        // Internal (Ambil data user untuk memenuhi NOT NULL constraint nama_penerima di DB)
+        if (!empty($internalIds)) {
+            $users = \App\Models\User::whereIn('id', $internalIds)->get()->keyBy('id');
+            foreach ($internalIds as $uid) {
+                $userId = validate_integer_id($uid);
+                $u = $users->get($userId);
+                if ($u) {
+                    TugasPenerima::create([
+                        'tugas_id' => $tugas->id,
+                        'pengguna_id' => $userId,
+                        'nama_penerima' => $u->nama_lengkap, // ✅ Penting: DB mengharuskan kolom ini terisi
+                        'jabatan_penerima' => $u->jabatan ?: $u->peran->deskripsi ?? null,
+                    ]);
+                }
             }
         }
 
