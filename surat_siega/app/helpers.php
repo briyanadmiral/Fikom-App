@@ -580,8 +580,8 @@ if (! function_exists('logStatusChange')) {
             return;
         }
 
-        // Whitelist status yang valid
-        $validStatuses = ['draft', 'pending', 'disetujui', 'ditolak', null];
+        // Whitelist status yang valid (termasuk terbit & arsip untuk SK)
+        $validStatuses = ['draft', 'pending', 'disetujui', 'ditolak', 'terbit', 'arsip', null];
         if (! in_array($old, $validStatuses, true) || ! in_array($new, $validStatuses, true)) {
             \Log::warning('logStatusChange: Invalid status', [
                 'old' => $old,

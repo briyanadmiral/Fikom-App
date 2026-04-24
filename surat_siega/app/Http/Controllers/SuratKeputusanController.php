@@ -99,8 +99,8 @@ class SuratKeputusanController extends Controller
         $sortOrder = $validated['order'] ?? 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
-        // Get results
-        $list = $query->get();
+        // Limit results to prevent memory issues (DataTables handles client-side pagination)
+        $list = $query->limit(500)->get();
 
         // Statistics
         $stats = [
@@ -550,7 +550,7 @@ class SuratKeputusanController extends Controller
         ]);
 
         try {
-            // Update config JSON sebelum generate PDF
+            // Set config JSON pada instance model (akan di-save oleh service dalam transaksi)
             $surat_keputusan->ttd_config = [
                 'w_mm' => $validated['ttd_w_mm'],
                 'x' => $validated['ttd_x_mm'] ?? 0,
@@ -562,20 +562,10 @@ class SuratKeputusanController extends Controller
                 'x' => $validated['cap_x_mm'] ?? 0,
                 'y' => $validated['cap_y_mm'] ?? 0,
             ];
-
-            // Simpan legacy columns juga jika perlu
             $surat_keputusan->ttd_w_mm = $validated['ttd_w_mm'];
             $surat_keputusan->cap_w_mm = $validated['cap_w_mm'];
             $surat_keputusan->cap_opacity = $validated['cap_opacity'];
-            $surat_keputusan->save(); // Ensure config is saved
-
-            // Simpan perubahan config ke DB dulu agar persistent?
-            // Service 'approveAndGenerateNumber' mungkin melakukan save() sendiri.
-            // Kita update instance model di memori, lalu service melakukan update status & nomor.
-            // Sebaiknya kita save dulu attribute ini ATAU biarkan service save.
-            // Cek implementation service... asumsikan service melakukan $sk->save().
-            // Tapi untuk amannya kita set attribute ini pada object $surat_keputusan
-            // yang dilempar ke service.
+            // Tidak save() di sini — service approveAndGenerateNumber() akan save dalam transaksi
 
             $sk = $this->skService->approveAndGenerateNumber($surat_keputusan, $validated);
 
@@ -588,7 +578,6 @@ class SuratKeputusanController extends Controller
                 ->route('surat_keputusan.approveList')
                 ->with('success', 'SK '.$sk->nomor.' berhasil disetujui.');
         } catch (\Throwable $e) {
-            DB::rollBack();
             Log::error('Gagal approve SK #'.$surat_keputusan->id, [
                 'error' => sanitize_log_message($e->getMessage()),
                 'user_id' => auth()->id(),

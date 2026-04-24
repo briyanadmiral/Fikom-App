@@ -232,7 +232,7 @@ class SkPdfService
                 ->setPaper('A4', 'portrait')
                 ->setOptions([
                     'isHtml5ParserEnabled' => true,
-                    'isRemoteEnabled' => true,
+                    'isRemoteEnabled' => false,
                     'dpi' => 96,
                     'chroot' => public_path(),
                     // Security options

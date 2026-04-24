@@ -295,15 +295,12 @@ class MasterKopSurat extends Model
     {
         parent::boot();
 
+        // NOTE: saved() fires on both create and update, so no need for separate updated() listener
         static::saved(function () {
             self::clearCache();
         });
 
         static::deleted(function () {
-            self::clearCache();
-        });
-
-        static::updated(function () {
             self::clearCache();
         });
 

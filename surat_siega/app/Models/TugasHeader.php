@@ -156,13 +156,8 @@ class TugasHeader extends Model
         return $this->belongsTo(User::class, 'penandatangan');
     }
 
-    /**
-     * Alias supaya di view bisa pakai $tugas->penandatangan
-     */
-    public function penandatangan(): BelongsTo
-    {
-        return $this->penandatanganUser();
-    }
+    // NOTE: Method penandatangan() dihapus karena konflik dengan column cast 'penandatangan' => 'integer'.
+    // Gunakan penandatanganUser() untuk relasi BelongsTo ke User.
 
     public function asalSurat(): BelongsTo
     {

@@ -258,24 +258,8 @@ class TugasHeaderObserver
         }
     }
 
-    /**
-     * Handle the TugasHeader "saving" event.
-     * Validation before save.
-     */
-    public function saving(TugasHeader $tugas): void
-    {
-        // Validate required fields
-        if ($tugas->status_surat === 'pending' && empty($tugas->nomor)) {
-            Log::warning('Attempted to set pending status without nomor', [
-                'tugas_id' => $tugas->id ?? 'new',
-            ]);
-        }
-
-        // Validate approver for pending status
-        if ($tugas->status_surat === 'pending' && empty($tugas->next_approver)) {
-            Log::warning('Attempted to set pending status without approver', [
-                'tugas_id' => $tugas->id ?? 'new',
-            ]);
-        }
-    }
+    // NOTE: saving() validation dihapus karena sudah dihandle oleh
+    // TugasHeader::validateBeforeSave() di model boot event.
+    // Observer hanya log warning tapi tidak blocking, sementara model throw exception.
+    // Duplikasi ini menyebabkan inkonsistensi.
 }

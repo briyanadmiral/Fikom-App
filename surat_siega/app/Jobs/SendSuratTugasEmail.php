@@ -18,7 +18,9 @@ class SendSuratTugasEmail implements ShouldQueue
 
     public int $tugasId;
 
-    public string $mode; // 'to_recipients' (default), (opsional lain kalau nanti mau)
+    public string $mode; // 'to_recipients' (default), 'to_approver'
+
+    public ?int $specificRecipientId; // Jika set, hanya kirim ke user ini
 
     public int $tries = 3;
 
@@ -26,10 +28,11 @@ class SendSuratTugasEmail implements ShouldQueue
 
     public $backoff = 60;      // detik
 
-    public function __construct(int $tugasId, string $mode = 'to_recipients')
+    public function __construct(int $tugasId, string $mode = 'to_recipients', ?int $specificRecipientId = null)
     {
         $this->tugasId = $tugasId;
         $this->mode = $mode;
+        $this->specificRecipientId = $specificRecipientId;
     }
 
     public function handle(): void
@@ -63,14 +66,19 @@ class SendSuratTugasEmail implements ShouldQueue
 
         if ($this->mode === 'to_recipients') {
             // Penerima internal terpilih dengan email
-            $rows = DB::table('tugas_penerima AS tp')
+            $query = DB::table('tugas_penerima AS tp')
                 ->join('pengguna AS u', 'u.id', '=', 'tp.pengguna_id')
                 ->where('tp.tugas_id', $st->id)
                 ->whereNotNull('tp.pengguna_id')
                 ->whereNotNull('u.email')
-                ->where('u.status', '=', 'aktif')
-                ->pluck('u.email')
-                ->all();
+                ->where('u.status', '=', 'aktif');
+
+            // Jika specificRecipientId di-set, hanya kirim ke user tersebut
+            if ($this->specificRecipientId !== null) {
+                $query->where('tp.pengguna_id', $this->specificRecipientId);
+            }
+
+            $rows = $query->pluck('u.email')->all();
 
             $emails = array_values(array_unique(array_filter($rows)));
 

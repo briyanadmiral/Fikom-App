@@ -55,15 +55,16 @@ class HomeController extends Controller
         // A. Perlu Action (Review/Approve) -> ONLY FOR APPROVERS (Dekan/Wakil)
         $perluAction = collect([]);
         if ($user->canApproveSurat()) {
+            // FIX: Hanya tampilkan surat pending yang ditujukan ke user ini
             $stAction = TugasHeader::with('pembuat')
+                ->where('status_surat', 'pending')
                 ->where('next_approver', $user->id)
-                ->orWhere('status_surat', 'pending')
                 ->latest()
                 ->take(5)
                 ->get();
             $skAction = KeputusanHeader::with('pembuat')
+                ->where('status_surat', 'pending')
                 ->where('penandatangan', $user->id)
-                ->orWhere('status_surat', 'pending')
                 ->latest()
                 ->take(5)
                 ->get();
@@ -126,24 +127,50 @@ class HomeController extends Controller
             ->take(20)->get();
 
         // --- 4. CHARTS & GRAPHS ---
-        // Trend 12 Months (ST vs SK)
+        // Trend 12 Months (ST vs SK) — optimized: 2 queries instead of 24
         $months = [];
-        $trendST = [];
-        $trendSK = [];
+        $trendST = array_fill(0, 12, 0);
+        $trendSK = array_fill(0, 12, 0);
+
         for ($i = 1; $i <= 12; $i++) {
-            $date = Carbon::createFromDate($tahun, $i, 1);
-            $months[] = $date->format('M');
-            $trendST[] = TugasHeader::whereYear('created_at', $tahun)->whereMonth('created_at', $i)->count();
-            $trendSK[] = KeputusanHeader::whereYear('created_at', $tahun)->whereMonth('created_at', $i)->count();
+            $months[] = Carbon::createFromDate($tahun, $i, 1)->format('M');
         }
 
-        // Status Breakdown (Donut)
+        // Single query for ST monthly counts
+        $stMonthly = TugasHeader::selectRaw('MONTH(created_at) as bulan, COUNT(*) as total')
+            ->whereYear('created_at', $tahun)
+            ->groupByRaw('MONTH(created_at)')
+            ->pluck('total', 'bulan');
+
+        // Single query for SK monthly counts
+        $skMonthly = KeputusanHeader::selectRaw('MONTH(created_at) as bulan, COUNT(*) as total')
+            ->whereYear('created_at', $tahun)
+            ->groupByRaw('MONTH(created_at)')
+            ->pluck('total', 'bulan');
+
+        for ($i = 1; $i <= 12; $i++) {
+            $trendST[$i - 1] = $stMonthly[$i] ?? 0;
+            $trendSK[$i - 1] = $skMonthly[$i] ?? 0;
+        }
+
+        // Status Breakdown (Donut) — optimized: 2 queries instead of 8
         $statuses = ['draft', 'pending', 'disetujui', 'ditolak'];
+
+        $stStatusCounts = TugasHeader::selectRaw('status_surat, COUNT(*) as total')
+            ->whereYear('created_at', $tahun)
+            ->whereIn('status_surat', $statuses)
+            ->groupBy('status_surat')
+            ->pluck('total', 'status_surat');
+
+        $skStatusCounts = KeputusanHeader::selectRaw('status_surat, COUNT(*) as total')
+            ->whereYear('created_at', $tahun)
+            ->whereIn('status_surat', $statuses)
+            ->groupBy('status_surat')
+            ->pluck('total', 'status_surat');
+
         $statusBreakdown = [];
         foreach ($statuses as $s) {
-            $count = TugasHeader::whereYear('created_at', $tahun)->where('status_surat', $s)->count() +
-                     KeputusanHeader::whereYear('created_at', $tahun)->where('status_surat', $s)->count();
-            $statusBreakdown[] = $count;
+            $statusBreakdown[] = ($stStatusCounts[$s] ?? 0) + ($skStatusCounts[$s] ?? 0);
         }
 
         // --- 5. MONITORING & ARCHIVES ---

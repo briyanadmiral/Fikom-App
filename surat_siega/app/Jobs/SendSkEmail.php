@@ -18,39 +18,65 @@ class SendSkEmail implements ShouldQueue
 
     public int $skId;
 
+    public ?string $recipientEmail;
+
     public bool $afterCommit = true; // pastikan kirim setelah commit DB
 
     public $tries = 3;
 
     public $backoff = 30;
 
-    public function __construct(int $skId)
+    /**
+     * @param  int  $skId  ID Surat Keputusan
+     * @param  string|null  $recipientEmail  Email spesifik (untuk penerima eksternal). Jika null, kirim ke pembuat.
+     */
+    public function __construct(int $skId, ?string $recipientEmail = null)
     {
         $this->skId = $skId;
+        $this->recipientEmail = $recipientEmail;
     }
 
     public function handle(): void
     {
         $sk = KeputusanHeader::with(['pembuat'])->find($this->skId);
-        if (! $sk || ! $sk->pembuat || empty($sk->pembuat->email)) {
-            Log::info('SendSkEmail: skipped, no valid recipient', [
+        if (! $sk) {
+            Log::info('SendSkEmail: skipped, SK not found', ['sk_id' => $this->skId]);
+
+            return;
+        }
+
+        // Tentukan email tujuan: eksplisit (eksternal) atau pembuat (default)
+        $targetEmail = $this->recipientEmail;
+        if (empty($targetEmail)) {
+            if (! $sk->pembuat || empty($sk->pembuat->email)) {
+                Log::info('SendSkEmail: skipped, no valid recipient', ['sk_id' => $this->skId]);
+
+                return;
+            }
+            $targetEmail = $sk->pembuat->email;
+        }
+
+        // Validasi format email
+        if (! filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+            Log::warning('SendSkEmail: invalid email address', [
                 'sk_id' => $this->skId,
+                'email' => sanitize_log_message($targetEmail),
             ]);
 
             return;
         }
 
         try {
-            Mail::to($sk->pembuat->email)->send(new SkFinal($sk));
+            Mail::to($targetEmail)->send(new SkFinal($sk));
 
             Log::info('SendSkEmail: sent successfully', [
                 'sk_id' => $this->skId,
-                'email' => $sk->pembuat->email,
+                'email' => sanitize_log_message($targetEmail),
             ]);
         } catch (\Throwable $e) {
             Log::error('SendSkEmail: failed to send', [
                 'sk_id' => $this->skId,
-                'email' => $sk->pembuat->email,
+                'email' => sanitize_log_message($targetEmail),
                 'error' => $e->getMessage(),
             ]);
 

@@ -188,15 +188,15 @@ class SuratTugasService
             $newStatus = $oldStatus;
             $nextApprover = $tugas->next_approver;
 
-            // Submit dari draft → pending
-            if ($mode === 'submit' && $oldStatus === 'draft') {
+            // Submit dari draft/ditolak → pending
+            if ($mode === 'submit' && in_array($oldStatus, ['draft', 'ditolak'], true)) {
                 $newStatus = 'pending';
                 $nextApprover = validate_integer_id($validatedData['penandatangan_id'] ?? ($validatedData['penandatangan'] ?? null));
             }
 
-            // Nomor otomatis bila transisi draft→pending dan belum ada nomor
+            // Nomor otomatis bila transisi draft/ditolak→pending dan belum ada nomor
             $nomor = trim((string) ($validatedData['nomor'] ?? ''));
-            if ($nomor === '' && $oldStatus === 'draft' && $newStatus === 'pending') {
+            if ($nomor === '' && in_array($oldStatus, ['draft', 'ditolak'], true) && $newStatus === 'pending') {
                 $klasifikasiId = (int) ($validatedData['klasifikasi_surat_id'] ?? $tugas->klasifikasi_surat_id);
                 $klasifikasi = $klasifikasiId ? KlasifikasiSurat::find($klasifikasiId) : null;
                 $kodeKlas = $klasifikasi ? $klasifikasi->kode : 'B.10.1';

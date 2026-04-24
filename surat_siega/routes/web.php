@@ -142,10 +142,11 @@ Route::middleware('check.session.role')->group(function () {
                 ->whereNumber('tugas')
                 ->middleware('can:view,tugas');
 
-            // ✅ UNARCHIVE ACTION
+            // ✅ UNARCHIVE ACTION (Admin TU only — enforced by controller + middleware)
             Route::post('{tugas}/buka-arsip', [TugasController::class, 'bukaArsip'])
                 ->name('buka-arsip')
-                ->whereNumber('tugas');
+                ->whereNumber('tugas')
+                ->middleware('can:viewAny,App\Models\TugasHeader');
 
             Route::get('{tugas}/download-pdf', [TugasController::class, 'downloadPdf'])
                 ->name('downloadPdf')
@@ -353,7 +354,8 @@ Route::middleware('check.session.role')->group(function () {
 
             Route::post('{surat_keputusan}/terbitkan', [SuratKeputusanController::class, 'terbitkan'])
                 ->name('terbitkan')
-                ->whereNumber('surat_keputusan');
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:publish,surat_keputusan');
 
             Route::post('{surat_keputusan}/arsipkan', [SuratKeputusanController::class, 'arsipkan'])
                 ->name('arsipkan')
@@ -390,10 +392,11 @@ Route::middleware('check.session.role')->group(function () {
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:view,surat_keputusan');
 
-            // ✅ UNARCHIVE ACTION
+            // ✅ UNARCHIVE ACTION (Admin TU only — enforced by controller + middleware)
             Route::post('{surat_keputusan}/buka-arsip', [SuratKeputusanController::class, 'bukaArsip'])
                 ->name('buka-arsip')
-                ->whereNumber('surat_keputusan');
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:viewArchive,App\Models\KeputusanHeader');
 
             // ✅ FASE 1.2: Lampiran file routes (NESTED RESOURCE)
             Route::prefix('{surat_keputusan}')

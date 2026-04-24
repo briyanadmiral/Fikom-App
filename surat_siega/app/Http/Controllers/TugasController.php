@@ -163,7 +163,8 @@ class TugasController extends Controller
         $sortOrder = $validated['order'] ?? 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
-        $list = $query->get();
+        // Limit results to prevent memory issues (DataTables handles client-side pagination)
+        $list = $query->limit(500)->get();
 
         $stats = [
             'draft' => $list->where('status_surat', 'draft')->count(),
@@ -560,6 +561,9 @@ class TugasController extends Controller
 
     public function edit(TugasHeader $tugas)
     {
+        // Authorization dihandle oleh TugasHeaderPolicy::update()
+        $this->authorize('update', $tugas);
+
         $user = Auth::user();
         $peranId = $user->peran_id;
 
@@ -573,21 +577,6 @@ class TugasController extends Controller
         // Parse nomor surat untuk editing
         $nomorParts = explode('/', $tugas->nomor);
         $baseNomor = '/' . implode('/', array_slice($nomorParts, 1));
-
-        // Authorization check
-        if ($peranId == 1) {
-            // Admin TU - boleh edit draft/pending/ditolak yang dia buat
-            if ($tugas->dibuat_oleh != $user->id || !in_array($tugas->status_surat, ['draft', 'pending', 'ditolak'], true)) {
-                abort(403, 'Anda tidak berhak mengedit surat ini.');
-            }
-        } elseif (in_array($peranId, [2, 3], true)) {
-            // Dekan/WD - boleh edit saat pending dan dia penandatangannya
-            if (!($tugas->status_surat === 'pending' && $tugas->penandatangan == $user->id)) {
-                abort(403, 'Anda hanya dapat merevisi surat yang menunggu persetujuan Anda.');
-            }
-        } else {
-            abort(403, 'Anda tidak berhak mengakses form edit ini.');
-        }
 
         $deps = $this->getFormDependencies();
         extract($deps);

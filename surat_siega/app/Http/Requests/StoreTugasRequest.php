@@ -156,8 +156,7 @@ class StoreTugasRequest extends FormRequest
             'status_penerima' => [50, false],
             'nomor' => [100, false],
             'no_surat_manual' => [100, false],
-            'redaksi_pembuka' => [2000, false],
-            'penutup' => [1000, false],
+            // NOTE: redaksi_pembuka & penutup dipindah ke STEP 4 (rich text) agar HTML formatting tidak hilang
         ];
 
         foreach ($textFields as $field => [$maxLength, $allowHtml]) {
@@ -180,16 +179,14 @@ class StoreTugasRequest extends FormRequest
         // ====================================================================
         // STEP 4: Sanitize RICH TEXT fields (allow limited HTML)
         // ====================================================================
-        if ($this->has('detail_tugas') && ! empty($this->input('detail_tugas'))) {
-            $value = $this->input('detail_tugas');
-
-
-            $value = sanitize_html_limited($value);
-
-
-            $value = $this->stripDangerousHtml($value);
-
-            $this->merge(['detail_tugas' => $value]);
+        $richTextFields = ['detail_tugas', 'redaksi_pembuka', 'penutup'];
+        foreach ($richTextFields as $field) {
+            if ($this->has($field) && ! empty($this->input($field))) {
+                $value = $this->input($field);
+                $value = sanitize_html_limited($value);
+                $value = $this->stripDangerousHtml($value);
+                $this->merge([$field => $value]);
+            }
         }
 
         // ====================================================================

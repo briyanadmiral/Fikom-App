@@ -524,21 +524,9 @@ class KeputusanHeader extends Model
     {
         parent::boot();
 
-        // Auto-set dibuat_oleh on create
-        static::creating(function ($model) {
-            if (empty($model->dibuat_oleh) && auth()->check()) {
-                $model->dibuat_oleh = auth()->id();
-            }
-        });
+        // NOTE: Auto-set dibuat_oleh, tahun, dan status sudah dihandle oleh KeputusanHeaderObserver::creating().
+        // Di sini hanya handle sync tahun saat update tanggal_surat.
 
-        // Auto-set tahun dari tanggal_surat
-        static::creating(function ($model) {
-            if (! empty($model->tanggal_surat) && empty($model->tahun)) {
-                $model->tahun = \Carbon\Carbon::parse($model->tanggal_surat)->year;
-            }
-        });
-
-        // Update tahun saat tanggal_surat diubah
         static::updating(function ($model) {
             if ($model->isDirty('tanggal_surat') && ! empty($model->tanggal_surat)) {
                 $model->tahun = \Carbon\Carbon::parse($model->tanggal_surat)->year;

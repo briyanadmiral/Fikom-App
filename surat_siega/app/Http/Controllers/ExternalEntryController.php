@@ -31,7 +31,18 @@ class ExternalEntryController extends Controller
         }
 
         $sharedSecret = config('services.entry_shared_secret');
-        if ($sharedSecret) {
+
+        // SECURITY: Jika shared_secret belum dikonfigurasi, block akses di production
+        // Di local/testing, izinkan tanpa token untuk kemudahan development
+        if (empty($sharedSecret)) {
+            if (app()->environment('production')) {
+                Log::critical('ExternalEntry: entry_shared_secret not configured in production!', [
+                    'ip' => $request->ip(),
+                ]);
+                abort(503, 'Konfigurasi keamanan belum lengkap. Hubungi administrator.');
+            }
+            // Di local/testing: lanjut tanpa token validation
+        } else {
             $expectedToken = hash_hmac('sha256', $userId . date('Y-m-d'), $sharedSecret);
 
             if (! $token || ! hash_equals($expectedToken, $token)) {
