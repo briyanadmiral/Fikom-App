@@ -1,4 +1,32 @@
-/vendor/
-/node_modules/
-/.env
-*.log
+# Dependencies
+vendor/
+node_modules/
+*/vendor/
+*/node_modules/
+
+# Build artifacts
+public/build/
+*/public/build/
+
+# Environment files
+.env
+*/.env
+
+# Cache & generated files
+.phpunit.result.cache
+*/.phpunit.result.cache
+*.cache
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

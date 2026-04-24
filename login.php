@@ -2,8 +2,18 @@
 session_start();
 require __DIR__ . '/config.php';  // load dotenv dan autoload
 
-$client = new Google_Client();
-$client->setClientId($_ENV['GOOGLE_CLIENT_ID']);
+$googleClientId = trim($_ENV['GOOGLE_CLIENT_ID'] ?? '');
+$appEnv = strtolower(trim($_ENV['APP_ENV'] ?? 'production'));
+$appBaseUrl = rtrim($_ENV['APP_BASE_URL'] ?? 'http://localhost/Fikom-App', '/');
+$devLoginEnabled = filter_var(
+    $_ENV['DEV_LOGIN_ENABLED'] ?? ($appEnv === 'local' ? 'true' : 'false'),
+    FILTER_VALIDATE_BOOL
+);
+
+$client = class_exists('Google_Client') ? new Google_Client() : null;
+if ($client && $googleClientId !== '') {
+    $client->setClientId($googleClientId);
+}
 
 // 1. Cek jika sudah login
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
@@ -12,7 +22,60 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 }
 
 // 2. Proses callback dari Google Identity Services (GIS)
-if (isset($_POST['credential'])) {
+if ($devLoginEnabled && isset($_POST['dev_login_account'])) {
+    $account = $_POST['dev_login_account'];
+
+    $devAccounts = [
+        'superadmin' => [
+            'email' => 'briyanadmiral@gmail.com',
+            'name' => 'Superadmin Local',
+            'picture' => 'https://ui-avatars.com/api/?name=Superadmin+Local&background=8a9ccc&color=fff',
+            'role' => 'superadmin',
+            'program' => null,
+        ],
+        'dosen' => [
+            'email' => 'dev.dosen@unika.ac.id',
+            'name' => 'Dosen Local',
+            'picture' => 'https://ui-avatars.com/api/?name=Dosen+Local&background=8a9ccc&color=fff',
+            'role' => 'dosen',
+            'program' => null,
+        ],
+        'mahasiswa_siega' => [
+            'email' => '23n10001@student.unika.ac.id',
+            'name' => 'Mahasiswa SIEGA Local',
+            'picture' => 'https://ui-avatars.com/api/?name=Mahasiswa+SIEGA&background=8a9ccc&color=fff',
+            'role' => 'mahasiswa',
+            'program' => 'siega',
+            'nim' => '23n10001',
+        ],
+    ];
+
+    if (! isset($devAccounts[$account])) {
+        header("Location: login.php?error=invalid_dev_account");
+        exit();
+    }
+
+    $selected = $devAccounts[$account];
+
+    $_SESSION['role'] = $selected['role'];
+    $_SESSION['logged_in'] = true;
+    $_SESSION['user_email'] = $selected['email'];
+    $_SESSION['user_name'] = $selected['name'];
+    $_SESSION['user_picture'] = $selected['picture'];
+
+    if (! empty($selected['program'])) {
+        $_SESSION['program'] = $selected['program'];
+    }
+
+    if (! empty($selected['nim'])) {
+        $_SESSION['nim'] = $selected['nim'];
+    }
+
+    header('Location: index.php');
+    exit();
+}
+
+if (isset($_POST['credential']) && $client && $googleClientId !== '') {
     $token = $client->verifyIdToken($_POST['credential']);
     
     if (!$token) {
@@ -324,12 +387,33 @@ if (isset($_POST['credential'])) {
         
         <h2>Selamat Datang!</h2>
         <p class="subtitle">Silakan masuk menggunakan akun email institusi Anda.</p>
+
+        <?php if ($devLoginEnabled): ?>
+        <div style="margin-bottom: 24px; padding: 16px; border-radius: 14px; background: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.7);">
+            <div style="font-weight: 700; color: var(--dark); margin-bottom: 8px;">Login Local Development</div>
+            <p style="margin: 0 0 12px 0; color: var(--text-muted); font-size: 14px;">
+                Gunakan akun lokal berikut untuk testing tanpa Google GIS.
+            </p>
+            <form method="POST" style="display: grid; gap: 10px;">
+                <button type="submit" name="dev_login_account" value="superadmin" style="padding: 12px 14px; border: 1px solid rgba(255,255,255,0.8); border-radius: 10px; background: rgba(255,255,255,0.8); cursor: pointer; font-weight: 600;">
+                    Masuk sebagai Superadmin
+                </button>
+                <button type="submit" name="dev_login_account" value="dosen" style="padding: 12px 14px; border: 1px solid rgba(255,255,255,0.8); border-radius: 10px; background: rgba(255,255,255,0.8); cursor: pointer; font-weight: 600;">
+                    Masuk sebagai Dosen
+                </button>
+                <button type="submit" name="dev_login_account" value="mahasiswa_siega" style="padding: 12px 14px; border: 1px solid rgba(255,255,255,0.8); border-radius: 10px; background: rgba(255,255,255,0.8); cursor: pointer; font-weight: 600;">
+                    Masuk sebagai Mahasiswa SIEGA
+                </button>
+            </form>
+        </div>
+        <?php endif; ?>
         
+        <?php if ($googleClientId !== ''): ?>
         <div id="g_id_onload"
-             data-client_id="<?= $_ENV['GOOGLE_CLIENT_ID'] ?>"
+             data-client_id="<?= htmlspecialchars($googleClientId) ?>"
              data-context="signin"
              data-ux_mode="popup"
-             data-login_uri="http://localhost/fikomapp/login.php"
+             data-login_uri="<?= htmlspecialchars($appBaseUrl . '/login.php') ?>"
              data-auto_prompt="false">
         </div>
 
@@ -341,6 +425,7 @@ if (isset($_POST['credential'])) {
              data-size="large"
              data-logo_alignment="center">
         </div>
+        <?php endif; ?>
 
         <div class="login-footer">
             &copy; <?php echo date("Y"); ?> Fakultas Ilmu Komputer, UNIKA Soegijapranata.

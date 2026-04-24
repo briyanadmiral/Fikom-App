@@ -13,6 +13,8 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     
     {{-- CSS Vendors --}}
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=Nunito:400,600,700,800&display=swap">
     {{-- Font Awesome 6 (CDN dengan fallback) --}}
     <link rel="stylesheet" 
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" 

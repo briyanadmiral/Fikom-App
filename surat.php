@@ -1,5 +1,8 @@
 <?php
 session_start();
+require __DIR__ . '/config.php';
+
+$appBaseUrl = rtrim($_ENV['APP_BASE_URL'] ?? 'http://localhost/Fikom-App', '/');
 
 // 1. Cek Login Utama dari Main App
 if(!isset($_SESSION['logged_in'])){
@@ -82,7 +85,7 @@ if ($role_global === 'superadmin') {
         }
 
         $token = hash_hmac('sha256', $sa_id . date('Y-m-d'), $sharedSecret);
-        header("Location: http://localhost/fikomapp/surat_siega/public/entry?user_id=" . $sa_id . "&token=" . $token);
+        header("Location: {$appBaseUrl}/surat_siega/public/entry?user_id=" . $sa_id . "&token=" . $token);
         exit;
     }
 
@@ -309,7 +312,7 @@ else {
 if ($userId_laravel !== null) {
     // Generate Token
     $token = hash_hmac('sha256', $userId_laravel . date('Y-m-d'), $sharedSecret);
-    $url_tujuan = "http://localhost/fikomapp/surat_siega/public/entry?user_id=" . $userId_laravel . "&token=" . $token;
+    $url_tujuan = "{$appBaseUrl}/surat_siega/public/entry?user_id=" . $userId_laravel . "&token=" . $token;
     
     header("Location: " . $url_tujuan);
     exit;
