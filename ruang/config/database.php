@@ -4,7 +4,7 @@
 
 class Database {
     private $host = 'localhost';
-    private $db_name = 'sentralisasi_ruangan_fikom';
+    private $db_name = 'fike8938_fikom_ruang';
     private $username = 'root';
     private $password = '';
     public $conn;

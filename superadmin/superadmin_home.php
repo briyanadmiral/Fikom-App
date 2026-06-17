@@ -6,7 +6,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'superadmin') {
     exit;
 }
 
-$koneksi = mysqli_connect('localhost', 'root', '', 'fikomapp');
+$koneksi = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_app');
 if (!$koneksi) {
   die("Koneksi database gagal: " . mysqli_connect_error());
 }

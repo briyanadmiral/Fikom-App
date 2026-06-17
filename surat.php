@@ -11,11 +11,11 @@ $role_global = $_SESSION['role'];
 $nama_user   = $_SESSION['user_name']; 
 
 // 2. Koneksi ke Database Utama & Database Surat
-$conn_utama = mysqli_connect('localhost', 'root', '', 'fikomapp');
-$conn_surat = mysqli_connect('localhost', 'root', '', 'surat_fikom'); 
+$conn_utama = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_app');
+$conn_surat = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_surat'); 
 
 if (!$conn_surat || !$conn_utama) {
-    die("Koneksi database gagal. Pastikan database fikomapp dan surat_fikom aktif.");
+    die("Koneksi database gagal. Pastikan database fike8938_fikom_app and fike8938_fikom_surat aktif.");
 }
 
 // Rahasia Jembatan Laravel

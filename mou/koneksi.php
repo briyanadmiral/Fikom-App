@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $pass = "";
-$db   = "mou";
+$db   = "fike8938_fikom_mou";
 
 $conn = mysqli_connect($host, $user, $pass, $db);
 

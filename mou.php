@@ -7,7 +7,7 @@ if(!isset($_SESSION['logged_in'])){
 }
 
 // Koneksi ke Database Utama (FIKOMAPP)
-$conn = mysqli_connect('localhost', 'root', '', 'fikomapp');
+$conn = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_app');
 
 $email       = $_SESSION['user_email'];
 $role_global = $_SESSION['role']; 

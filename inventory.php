@@ -6,7 +6,7 @@ if(!isset($_SESSION['logged_in'])){
     header('Location: login.php'); exit;
 }
 
-$conn = mysqli_connect('localhost', 'root', '', 'db_inventaris_lab');
+$conn = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_inventory');
 
 $email       = $_SESSION['user_email'];
 $role_global = $_SESSION['role']; 
@@ -325,7 +325,7 @@ if ($data_inv) {
 } 
 else {
     // 2. LAPIS KEDUA: Tidak ketemu di Inventory, Cek di Database Utama (Tabel Dosen)
-    $conn_main = mysqli_connect('localhost', 'root', '', 'fikomapp');
+    $conn_main = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_app');
     $query_dosen = "SELECT jurusan FROM dosen WHERE email = '$email' LIMIT 1";
     $result_dosen = mysqli_query($conn_main, $query_dosen);
     $data_dosen = mysqli_fetch_assoc($result_dosen);

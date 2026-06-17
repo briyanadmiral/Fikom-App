@@ -10,4 +10,4 @@ define('BASE_URL', 'http://localhost/fikomapp/inventory/inventaris-lab/public');
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root'); // Ganti dengan username database Anda
 define('DB_PASS', '');     // Ganti dengan password database Anda
-define('DB_NAME', 'db_inventaris_lab'); // Ganti dengan nama database Anda
+define('DB_NAME', 'fike8938_fikom_inventory'); // Ganti dengan nama database Anda

@@ -8,7 +8,7 @@ $email   = $_SESSION['user_email'];
 $role    = $_SESSION['role']; 
 $name    = $_SESSION['user_name'];
 
-$koneksi_ruang = mysqli_connect('localhost', 'root', '', 'sentralisasi_ruangan_fikom');
+$koneksi_ruang = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_ruang');
 
 /* =================================================================================
    BAGIAN 1: LOGIKA KHUSUS SUPERADMIN (CRUD & MODE BUNGLON)

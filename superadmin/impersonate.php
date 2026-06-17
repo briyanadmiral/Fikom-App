@@ -4,7 +4,7 @@ session_start();
 if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'superadmin') { die("Akses ditolak."); }
 if (!isset($_GET['id_dosen'])) { die("ID Dosen tidak valid."); }
 
-$koneksi = mysqli_connect('localhost', 'root', '', 'fikomapp');
+$koneksi = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_app');
 
 $target_dosen_id = (int)$_GET['id_dosen'];
 $admin_email = $_SESSION['user_email'];

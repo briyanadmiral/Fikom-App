@@ -8,7 +8,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'superadmin') {
 }
 
 // 2. Koneksi ke database Inventory
-$conn = mysqli_connect('localhost', 'root', '', 'db_inventaris_lab');
+$conn = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_inventory');
 
 // 3. Tangkap ID dari URL
 if (!isset($_GET['id'])) {
