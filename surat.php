@@ -24,6 +24,12 @@ $sharedSecret = '7bf5429f72beebd2f98b046e4527d46e83ba56f161e0508fb97fa33615b413f
 // Buat password acak (dummy) untuk menipu kolom sandi_hash Laravel
 $dummy_hash = password_hash('bypass123', PASSWORD_BCRYPT);
 
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+$host = $_SERVER['HTTP_HOST'];
+$script = $_SERVER['SCRIPT_NAME'];
+$pos = strpos($script, '/surat.php');
+$basePath = ($pos !== false) ? substr($script, 0, $pos) : '';
+
 /* =================================================================================
    BAGIAN 1: LOGIKA KHUSUS SUPERADMIN (CRUD & PINTU MASUK)
    ================================================================================= */
@@ -81,8 +87,9 @@ if ($role_global === 'superadmin') {
             $sa_id = $d_sa['id'];
         }
 
-        $token = hash_hmac('sha256', $sa_id . date('Y-m-d'), $sharedSecret);
-        header("Location: http://localhost/fikomapp/surat_siega/public/entry?user_id=" . $sa_id . "&token=" . $token);
+        $dateToday = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+        $token = hash_hmac('sha256', $sa_id . $dateToday->format('Y-m-d'), $sharedSecret);
+        header("Location: " . $protocol . $host . $basePath . "/surat_siega/public/entry?user_id=" . $sa_id . "&token=" . $token . "&global_role=superadmin");
         exit;
     }
 
@@ -308,8 +315,9 @@ else {
 // VALIDASI AKHIR & REDIRECT KE LARAVEL
 if ($userId_laravel !== null) {
     // Generate Token
-    $token = hash_hmac('sha256', $userId_laravel . date('Y-m-d'), $sharedSecret);
-    $url_tujuan = "http://localhost/fikomapp/surat_siega/public/entry?user_id=" . $userId_laravel . "&token=" . $token;
+    $dateToday = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+    $token = hash_hmac('sha256', $userId_laravel . $dateToday->format('Y-m-d'), $sharedSecret);
+    $url_tujuan = $protocol . $host . $basePath . "/surat_siega/public/entry?user_id=" . $userId_laravel . "&token=" . $token . "&global_role=" . urlencode($role_global);
     
     header("Location: " . $url_tujuan);
     exit;

@@ -1,4 +1,8 @@
-/vendor/
-/node_modules/
-/.env
+vendor/
+node_modules/
+.env
 *.log
+.venv/
+.phpunit.result.cache
+database_kosong/
+database_kosong.zip

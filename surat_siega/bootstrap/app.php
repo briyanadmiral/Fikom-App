@@ -25,8 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Redirect unauthenticated guests to the main bridge login
         $middleware->redirectTo(
-            guests: function() {
-                return 'http://localhost/fikomapp/index.php';
+            guests: function($request) {
+                $base = $request->getSchemeAndHttpHost() . $request->getBaseUrl();
+                $pos = strpos($base, '/surat_siega/public');
+                $main_url = ($pos !== false) ? substr($base, 0, $pos) : $base;
+                return $main_url . '/index.php';
             }
         );
     })

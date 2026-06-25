@@ -1,9 +1,11 @@
 <?php
 
-// URL Dasar Aplikasi
-// Sesuaikan dengan nama folder proyek Anda di htdocs atau www
-define('BASE_URL', 'http://localhost/fikomapp/inventory/inventaris-lab/public');
-// define('BASE_URL', 'http://localhost/fikomapp/inventory/inventaris-lab/public');
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+$host = $_SERVER['HTTP_HOST'];
+$script = $_SERVER['SCRIPT_NAME'];
+$pos = strpos($script, '/inventory/inventaris-lab/public');
+$basePath = ($pos !== false) ? substr($script, 0, $pos) : '';
+define('BASE_URL', $protocol . $host . $basePath . '/inventory/inventaris-lab/public');
 
 
 // Konfigurasi Database

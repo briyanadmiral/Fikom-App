@@ -1,4 +1,9 @@
 <?php
+session_start();
+if (!isset($_SESSION['mou_admin']) && !isset($_SESSION['mou_user'])) {
+    header("Location: ../mou.php");
+    exit;
+}
 include 'koneksi.php';
 
 // helper: cek apakah kolom ada

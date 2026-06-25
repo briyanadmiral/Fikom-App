@@ -28,7 +28,10 @@ Auth::routes(['register' => false, 'reset' => false, 'verify' => false]);
 
 // ✅ FIX: Redirect 'login' route to main bridge index
 Route::get('/login', function () {
-    return redirect('http://localhost/fikomapp/index.php');
+    $base = request()->getSchemeAndHttpHost() . request()->getBaseUrl();
+    $pos = strpos($base, '/surat_siega/public');
+    $main_url = ($pos !== false) ? substr($base, 0, $pos) : $base;
+    return redirect($main_url . '/index.php');
 })->name('login');
 
 // ✅ TAMBAH: Entry point dari Dashboard Menu eksternal

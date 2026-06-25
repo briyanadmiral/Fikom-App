@@ -271,9 +271,11 @@ else {
 }
 
 // VALIDASI AKHIR & REDIRECT
-// Jika punya tiket admin ATAU tiket user, izinkan masuk ke sistem
-if ($_SESSION['mou_admin'] || $_SESSION['mou_user']) {
+if (isset($_SESSION['mou_admin']) && $_SESSION['mou_admin'] === true) {
     header("Location: mou/index.php");
+    exit;
+} elseif (isset($_SESSION['mou_user']) && $_SESSION['mou_user'] === true) {
+    header("Location: mou/index_umum.php");
     exit;
 } else {
     echo "<script>alert('Akses Ditolak. Anda tidak memiliki izin untuk masuk ke sistem MOU.'); window.location='index.php';</script>";

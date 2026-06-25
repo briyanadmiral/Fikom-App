@@ -32,9 +32,27 @@ class ExternalEntryController extends Controller
 
         $sharedSecret = config('services.entry_shared_secret');
         if ($sharedSecret) {
-            $expectedToken = hash_hmac('sha256', $userId . date('Y-m-d'), $sharedSecret);
+            $timezone = new \DateTimeZone('Asia/Jakarta');
+            
+            // Check today
+            $dateToday = new \DateTime('now', $timezone);
+            $tokenToday = hash_hmac('sha256', $userId . $dateToday->format('Y-m-d'), $sharedSecret);
+            
+            // Check yesterday
+            $dateYesterday = clone $dateToday;
+            $dateYesterday->modify('-1 day');
+            $tokenYesterday = hash_hmac('sha256', $userId . $dateYesterday->format('Y-m-d'), $sharedSecret);
+            
+            // Check tomorrow
+            $dateTomorrow = clone $dateToday;
+            $dateTomorrow->modify('+1 day');
+            $tokenTomorrow = hash_hmac('sha256', $userId . $dateTomorrow->format('Y-m-d'), $sharedSecret);
 
-            if (! $token || ! hash_equals($expectedToken, $token)) {
+            $isValid = hash_equals($tokenToday, $token) || 
+                       hash_equals($tokenYesterday, $token) || 
+                       hash_equals($tokenTomorrow, $token);
+
+            if (! $isValid) {
                 Log::warning('ExternalEntry: Invalid token attempt', [
                     'user_id' => $userId,
                     'ip' => $request->ip(),
@@ -60,6 +78,7 @@ class ExternalEntryController extends Controller
             'user_name' => $user->nama_lengkap,
             'entered_from_dashboard' => true,
             'entry_time' => now(),
+            'global_role' => $request->query('global_role'),
         ]);
 
         Auth::login($user);
@@ -78,12 +97,17 @@ class ExternalEntryController extends Controller
     public function exit(Request $request)
     {
         $userName = Auth::user()?->nama_lengkap ?? 'User';
+        $globalRole = session('global_role');
 
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login')->with('success', 'Anda telah berhasil logout.');
+        if ($globalRole === 'superadmin') {
+            return redirect('/superadmin/superadmin_home.php')->with('success', 'Anda telah berhasil logout.');
+        } else {
+            return redirect('/login')->with('success', 'Anda telah berhasil logout.');
+        }
     }
 }
