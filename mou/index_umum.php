@@ -29,7 +29,7 @@ $offset = ($page - 1) * $limit;
 ======================== */
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $bulan  = isset($_GET['bulan']) && $_GET['bulan'] !== '' ? intval($_GET['bulan']) : '';
-$tahun  = isset($_GET['tahun']) && $_GET['tahun'] !== '' ? intval($_GET['tahun']) : date('Y');
+$tahun  = isset($_GET['tahun']) && $_GET['tahun'] !== '' ? intval($_GET['tahun']) : '';
 
 /* ========================
    Statistik
