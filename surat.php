@@ -11,8 +11,21 @@ $role_global = $_SESSION['role'];
 $nama_user   = $_SESSION['user_name']; 
 
 // 2. Koneksi ke Database Utama & Database Surat
-$conn_utama = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_app');
-$conn_surat = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_surat'); 
+if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/.env')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+    if (class_exists('Dotenv\Dotenv')) {
+        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+        $dotenv->safeLoad();
+    }
+}
+$db_host = $_ENV['DB_HOST'] ?? '127.0.0.1';
+$db_user = $_ENV['DB_USERNAME'] ?? 'root';
+$db_pass = $_ENV['DB_PASSWORD'] ?? '';
+$db_name_app = $_ENV['DB_DATABASE_APP'] ?? 'fike8938_fikom_app';
+$db_name_surat = $_ENV['DB_DATABASE_SURAT'] ?? 'fike8938_fikom_surat';
+
+$conn_utama = mysqli_connect($db_host, $db_user, $db_pass, $db_name_app);
+$conn_surat = mysqli_connect($db_host, $db_user, $db_pass, $db_name_surat); 
 
 if (!$conn_surat || !$conn_utama) {
     die("Koneksi database gagal. Pastikan database fike8938_fikom_app and fike8938_fikom_surat aktif.");
@@ -24,7 +37,7 @@ $sharedSecret = '7bf5429f72beebd2f98b046e4527d46e83ba56f161e0508fb97fa33615b413f
 // Buat password acak (dummy) untuk menipu kolom sandi_hash Laravel
 $dummy_hash = password_hash('bypass123', PASSWORD_BCRYPT);
 
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443 || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) ? "https://" : "http://";
 $host = $_SERVER['HTTP_HOST'];
 $script = $_SERVER['SCRIPT_NAME'];
 $pos = strpos($script, '/surat.php');

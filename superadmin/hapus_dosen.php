@@ -7,7 +7,8 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'superadmin') {
 }
 
 // Koneksi
-$koneksi = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_app');
+include '../koneksi.php';
+$koneksi = $conn;
 
 if (isset($_GET['id_dosen'])) {
     $id_dosen = $_GET['id_dosen'];

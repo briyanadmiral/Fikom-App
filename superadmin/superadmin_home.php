@@ -6,10 +6,8 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'superadmin') {
     exit;
 }
 
-$koneksi = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_app');
-if (!$koneksi) {
-  die("Koneksi database gagal: " . mysqli_connect_error());
-}
+include '../koneksi.php';
+$koneksi = $conn;
 
 $query_dosen = "SELECT * FROM dosen ORDER BY nama ASC";
 $tampil_dosen = mysqli_query($koneksi, $query_dosen);

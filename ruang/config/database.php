@@ -3,11 +3,27 @@
 // Konfigurasi koneksi database untuk Sentralisasi Ruangan FIKOM
 
 class Database {
-    private $host = 'localhost';
-    private $db_name = 'fike8938_fikom_ruang';
-    private $username = 'root';
-    private $password = '';
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
     public $conn;
+
+    public function __construct() {
+        if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/../../.env')) {
+            if (file_exists(__DIR__ . '/../../vendor/autoload.php')) {
+                require_once __DIR__ . '/../../vendor/autoload.php';
+                if (class_exists('Dotenv\Dotenv')) {
+                    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../../');
+                    $dotenv->safeLoad();
+                }
+            }
+        }
+        $this->host = $_ENV['DB_HOST'] ?? '127.0.0.1';
+        $this->username = $_ENV['DB_USERNAME'] ?? 'root';
+        $this->password = $_ENV['DB_PASSWORD'] ?? '';
+        $this->db_name = $_ENV['DB_DATABASE_RUANG'] ?? 'fike8938_fikom_ruang';
+    }
 
     public function getConnection() {
         $this->conn = null;

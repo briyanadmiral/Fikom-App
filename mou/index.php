@@ -25,14 +25,16 @@ $hasDeletedOnPelaksanaan = columnExists($conn, 'pelaksanaan', 'deleted_at');
 $hasDeletedOnPerencanaan = columnExists($conn, 'perencanaan', 'deleted_at');
 
 // Pagination setup
-$limit = 10;
+$limit_options = [5, 10, 25, 50, 100];
+$limit = isset($_GET['limit']) && in_array(intval($_GET['limit']), $limit_options) ? intval($_GET['limit']) : 10;
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $offset = ($page - 1) * $limit;
 
 // ambil filter dari querystring, sanitasi dasar
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $bulan = isset($_GET['bulan']) && $_GET['bulan'] !== '' ? intval($_GET['bulan']) : '';
-$tahun = isset($_GET['tahun']) && $_GET['tahun'] !== '' ? intval($_GET['tahun']) : date('Y');
+$tahun = isset($_GET['tahun']) && $_GET['tahun'] !== '' ? intval($_GET['tahun']) : '';
+$status = isset($_GET['status']) ? trim($_GET['status']) : '';
 
 // ========================
 // Statistik Umum
@@ -108,7 +110,7 @@ $not_started_kegiatan = mysqli_fetch_row(mysqli_query($conn, $not_started_kegiat
 $where_clauses = [];
 if ($search !== '') {
     $s = mysqli_real_escape_string($conn, $search);
-    $where_clauses[] = "(no_mou LIKE '%$s%' OR nama_mou LIKE '%$s%')";
+    $where_clauses[] = "(no_mou LIKE '%$s%' OR nama_mou LIKE '%$s%' OR no_mou_eks LIKE '%$s%' OR pihak_2 LIKE '%$s%')";
 }
 if ($bulan !== '') {
     $where_clauses[] = "MONTH(tgl_mou) = " . intval($bulan);
@@ -118,6 +120,67 @@ if ($tahun !== '') {
 }
 if ($hasDeletedOnMou) {
     $where_clauses[] = "deleted_at IS NULL";
+}
+
+// Filter berdasarkan status dari dashboard card
+if ($status !== '' && $status !== 'total') {
+    if ($status === 'mou_selesai') {
+        $where_clauses[] = "id_mou IN (
+            SELECT DISTINCT m.id_mou
+            FROM mou m
+            JOIN pelaksanaan p ON m.id_mou = p.id_mou
+            JOIN evaluasi_internal ei ON ei.id_pelaksanaan = p.id_pelaksanaan
+            JOIN evaluasi_eksternal ee ON ee.id_pelaksanaan = p.id_pelaksanaan
+            WHERE ei.id_ket_evaluasi = 1
+              AND ee.id_ket_evaluasi = 1
+              " . ($hasDeletedOnPelaksanaan ? "AND p.deleted_at IS NULL" : "") . "
+        )";
+    } elseif ($status === 'mou_belum_selesai') {
+        $where_clauses[] = "id_mou NOT IN (
+            SELECT DISTINCT m.id_mou
+            FROM mou m
+            JOIN pelaksanaan p ON m.id_mou = p.id_mou
+            JOIN evaluasi_internal ei ON ei.id_pelaksanaan = p.id_pelaksanaan
+            JOIN evaluasi_eksternal ee ON ee.id_pelaksanaan = p.id_pelaksanaan
+            WHERE ei.id_ket_evaluasi = 1
+              AND ee.id_ket_evaluasi = 1
+              " . ($hasDeletedOnPelaksanaan ? "AND p.deleted_at IS NULL" : "") . "
+        )";
+    } elseif ($status === 'kegiatan_proses') {
+        $where_clauses[] = "id_mou IN (
+            SELECT DISTINCT p.id_mou
+            FROM pelaksanaan p
+            LEFT JOIN evaluasi_internal ei ON ei.id_pelaksanaan = p.id_pelaksanaan
+            LEFT JOIN evaluasi_eksternal ee ON ee.id_pelaksanaan = p.id_pelaksanaan
+            WHERE 1=1
+              " . ($hasDeletedOnPelaksanaan ? "AND p.deleted_at IS NULL" : "") . "
+              AND (
+                  (ei.id_ket_evaluasi = 1 AND (ee.id_ket_evaluasi IS NULL OR ee.id_ket_evaluasi != 1))
+                  OR
+                  (ee.id_ket_evaluasi = 1 AND (ei.id_ket_evaluasi IS NULL OR ei.id_ket_evaluasi != 1))
+              )
+        )";
+    } elseif ($status === 'kegiatan_selesai') {
+        $where_clauses[] = "id_mou IN (
+            SELECT DISTINCT p.id_mou
+            FROM pelaksanaan p
+            JOIN evaluasi_internal ei ON ei.id_pelaksanaan = p.id_pelaksanaan
+            JOIN evaluasi_eksternal ee ON ee.id_pelaksanaan = p.id_pelaksanaan
+            WHERE ei.id_ket_evaluasi = 1
+              AND ee.id_ket_evaluasi = 1
+              " . ($hasDeletedOnPelaksanaan ? "AND p.deleted_at IS NULL" : "") . "
+        )";
+    } elseif ($status === 'belum_dikerjakan') {
+        $where_clauses[] = "id_mou IN (
+            SELECT DISTINCT p.id_mou
+            FROM pelaksanaan p
+            LEFT JOIN evaluasi_internal ei ON ei.id_pelaksanaan = p.id_pelaksanaan
+            LEFT JOIN evaluasi_eksternal ee ON ee.id_pelaksanaan = p.id_pelaksanaan
+            WHERE ei.id_pelaksanaan IS NULL
+              AND ee.id_pelaksanaan IS NULL
+              " . ($hasDeletedOnPelaksanaan ? "AND p.deleted_at IS NULL" : "") . "
+        )";
+    }
 }
 
 $where = "";
@@ -131,8 +194,16 @@ $total_pages = ($total_data > 0) ? ceil($total_data / $limit) : 1;
 if ($page > $total_pages) $page = $total_pages;
 $offset = ($page - 1) * $limit;
 
-$query = "SELECT * FROM mou $where ORDER BY tgl_mou ASC LIMIT $limit OFFSET $offset";
+$query = "SELECT * FROM mou $where ORDER BY tgl_mou DESC, id_mou DESC LIMIT $limit OFFSET $offset";
 $result = mysqli_query($conn, $query);
+
+// Query string tanpa status untuk tautan kartu
+$card_qs_arr = [];
+if ($search !== '') $card_qs_arr['search'] = $search;
+if ($bulan !== '') $card_qs_arr['bulan'] = $bulan;
+if ($tahun !== '') $card_qs_arr['tahun'] = $tahun;
+$card_qs_arr['limit'] = $limit;
+$card_qs = http_build_query($card_qs_arr);
 ?>
 
 <!DOCTYPE html>
@@ -157,62 +228,91 @@ $result = mysqli_query($conn, $query);
                     <h1 class="h2">Selamat Datang Admin</h1>
                 </div>
 
+                <!-- Alerts -->
+                <?php if (isset($_GET['deleted']) && $_GET['deleted'] == 1): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>Sukses!</strong> Data MOU berhasil dihapus.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+                <?php if (isset($_GET['error'])): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Gagal!</strong> <?= htmlspecialchars($_GET['error']) ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+
                 <!-- Statistik cards -->
                 <div class="row mb-4">
                     <div class="col-md-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title text-primary"><i class="bi bi-file-earmark-text me-2"></i>Total MOU</h5>
-                                <p class="card-text display-6"><?= $total_mou ?></p>
+                        <a href="?status=total&<?= $card_qs ?>" class="text-decoration-none text-dark">
+                            <div class="card h-100 <?= ($status === '' || $status === 'total') ? 'border-primary border-2 shadow-sm' : 'border-0 shadow-sm' ?>" style="transition: all 0.2s ease; cursor: pointer;" onmouseover="this.classList.add('shadow'); this.style.transform='translateY(-2px)';" onmouseout="this.classList.remove('shadow'); this.style.transform='translateY(0)';">
+                                <div class="card-body">
+                                    <h5 class="card-title text-primary"><i class="bi bi-file-earmark-text me-2"></i>Total MOU</h5>
+                                    <p class="card-text display-6"><?= $total_mou ?></p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title text-success"><i class="bi bi-check-circle me-2"></i>MOU Selesai</h5>
-                                <p class="card-text display-6"><?= $total_finish ?></p>
+                        <a href="?status=mou_selesai&<?= $card_qs ?>" class="text-decoration-none text-dark">
+                            <div class="card h-100 <?= $status === 'mou_selesai' ? 'border-success border-2 shadow-sm' : 'border-0 shadow-sm' ?>" style="transition: all 0.2s ease; cursor: pointer;" onmouseover="this.classList.add('shadow'); this.style.transform='translateY(-2px)';" onmouseout="this.classList.remove('shadow'); this.style.transform='translateY(0)';">
+                                <div class="card-body">
+                                    <h5 class="card-title text-success"><i class="bi bi-check-circle me-2"></i>MOU Selesai</h5>
+                                    <p class="card-text display-6"><?= $total_finish ?></p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title text-danger"><i class="bi bi-x-circle me-2"></i>MOU Belum Selesai</h5>
-                                <p class="card-text display-6"><?= $total_unfinish ?></p>
+                        <a href="?status=mou_belum_selesai&<?= $card_qs ?>" class="text-decoration-none text-dark">
+                            <div class="card h-100 <?= $status === 'mou_belum_selesai' ? 'border-danger border-2 shadow-sm' : 'border-0 shadow-sm' ?>" style="transition: all 0.2s ease; cursor: pointer;" onmouseover="this.classList.add('shadow'); this.style.transform='translateY(-2px)';" onmouseout="this.classList.remove('shadow'); this.style.transform='translateY(0)';">
+                                <div class="card-body">
+                                    <h5 class="card-title text-danger"><i class="bi bi-x-circle me-2"></i>MOU Belum Selesai</h5>
+                                    <p class="card-text display-6"><?= $total_unfinish ?></p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
 
                     <div class="col-md-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title text-warning"><i class="bi bi-clock-history me-2"></i>Kegiatan Dalam Proses</h5>
-                                <p class="card-text display-6"><?= $in_progress_kegiatan ?></p>
+                        <a href="?status=kegiatan_proses&<?= $card_qs ?>" class="text-decoration-none text-dark">
+                            <div class="card h-100 <?= $status === 'kegiatan_proses' ? 'border-warning border-2 shadow-sm' : 'border-0 shadow-sm' ?>" style="transition: all 0.2s ease; cursor: pointer;" onmouseover="this.classList.add('shadow'); this.style.transform='translateY(-2px)';" onmouseout="this.classList.remove('shadow'); this.style.transform='translateY(0)';">
+                                <div class="card-body">
+                                    <h5 class="card-title text-warning"><i class="bi bi-clock-history me-2"></i>Kegiatan Dalam Proses</h5>
+                                    <p class="card-text display-6"><?= $in_progress_kegiatan ?></p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title text-success"><i class="bi bi-calendar-check me-2"></i>Kegiatan Selesai</h5>
-                                <p class="card-text display-6"><?= $done_kegiatan ?></p>
+                        <a href="?status=kegiatan_selesai&<?= $card_qs ?>" class="text-decoration-none text-dark">
+                            <div class="card h-100 <?= $status === 'kegiatan_selesai' ? 'border-success border-2 shadow-sm' : 'border-0 shadow-sm' ?>" style="transition: all 0.2s ease; cursor: pointer;" onmouseover="this.classList.add('shadow'); this.style.transform='translateY(-2px)';" onmouseout="this.classList.remove('shadow'); this.style.transform='translateY(0)';">
+                                <div class="card-body">
+                                    <h5 class="card-title text-success"><i class="bi bi-calendar-check me-2"></i>Kegiatan Selesai</h5>
+                                    <p class="card-text display-6"><?= $done_kegiatan ?></p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title text-dark"><i class="bi bi-calendar-x me-2"></i>Belum Dikerjakan</h5>
-                                <p class="card-text display-6"><?= $not_started_kegiatan ?></p>
+                        <a href="?status=belum_dikerjakan&<?= $card_qs ?>" class="text-decoration-none text-dark">
+                            <div class="card h-100 <?= $status === 'belum_dikerjakan' ? 'border-dark border-2 shadow-sm' : 'border-0 shadow-sm' ?>" style="transition: all 0.2s ease; cursor: pointer;" onmouseover="this.classList.add('shadow'); this.style.transform='translateY(-2px)';" onmouseout="this.classList.remove('shadow'); this.style.transform='translateY(0)';">
+                                <div class="card-body">
+                                    <h5 class="card-title text-dark"><i class="bi bi-calendar-x me-2"></i>Belum Dikerjakan</h5>
+                                    <p class="card-text display-6"><?= $not_started_kegiatan ?></p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
                 <!-- Filter -->
                 <div class="d-flex justify-content-between align-items-end mb-4">
                     <form method="GET" class="row g-2 mb-4">
+                        <?php if ($status !== ''): ?>
+                            <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
+                        <?php endif; ?>
                         <div class="col-auto">
                             <input type="text" name="search" class="form-control" placeholder="Search..."
                                 value="<?= htmlspecialchars($search) ?>">
@@ -231,6 +331,13 @@ $result = mysqli_query($conn, $query);
                                 value="<?= htmlspecialchars($tahun) ?>">
                         </div>
                         <div class="col-auto">
+                            <select name="limit" class="form-select" onchange="this.form.submit()">
+                                <?php foreach ($limit_options as $opt): ?>
+                                <option value="<?= $opt ?>" <?= ($limit == $opt) ? 'selected' : '' ?>><?= $opt ?> data/hal</option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-auto">
                             <button type="submit" class="btn btn-primary">Filter</button>
                             <a href="index.php" class="btn btn-secondary">Reset</a>
                         </div>
@@ -242,9 +349,28 @@ $result = mysqli_query($conn, $query);
                     </div>
                 </div>
 
+                <!-- Active Filter Indicator -->
+                <?php if ($status !== '' && $status !== 'total'): ?>
+                    <div class="alert alert-info d-flex justify-content-between align-items-center mb-3 py-2 px-3">
+                        <span>
+                            <i class="bi bi-funnel-fill me-2"></i>Status Filter: 
+                            <strong>
+                                <?php
+                                if ($status === 'mou_selesai') echo 'MOU Selesai';
+                                elseif ($status === 'mou_belum_selesai') echo 'MOU Belum Selesai';
+                                elseif ($status === 'kegiatan_proses') echo 'Kegiatan Dalam Proses';
+                                elseif ($status === 'kegiatan_selesai') echo 'Kegiatan Selesai';
+                                elseif ($status === 'belum_dikerjakan') echo 'Belum Dikerjakan';
+                                ?>
+                            </strong>
+                        </span>
+                        <a href="?<?= $card_qs ?>" class="btn btn-sm btn-outline-info text-dark border-0"><i class="bi bi-x-circle me-1"></i>Hapus Filter</a>
+                    </div>
+                <?php endif; ?>
+
                 <!-- Tabel MOU -->
-                <div class="card border-0 shadow-none overflow-hidden">
-                    <div class="card-body p-0">
+                <div class="card border-0 shadow-none">
+                    <div class="card-body p-0 table-responsive">
                         <table class="table table-hover text-center mb-0">
                             <thead>
                         <tr>
@@ -252,7 +378,6 @@ $result = mysqli_query($conn, $query);
                             <th>No MOU (Eksternal)</th>
                             <th>No MOU (Internal)</th>
                             <th>Nama MOU</th>
-                            <th>Pihak 1</th>
                             <th>Pihak 2</th>
                             <th>Tingkat</th>
                             <th>Tanggal</th>
@@ -283,7 +408,6 @@ $result = mysqli_query($conn, $query);
                             <td><?= htmlspecialchars($data['no_mou_eks']) ?></td>
                             <td><?= htmlspecialchars($data['no_mou']) ?></td>
                             <td><?= htmlspecialchars($data['nama_mou']) ?></td>
-                            <td><?= htmlspecialchars($data['pihak_1']) ?></td>
                             <td><?= htmlspecialchars($data['pihak_2']) ?></td>
                             <td><?= htmlspecialchars($data['tingkat']) ?></td>
                             <td><?= date('d F Y', strtotime($data['tgl_mou'])) ?></td>
@@ -331,6 +455,7 @@ $result = mysqli_query($conn, $query);
             if ($search !== '') $qs['search'] = $search;
             if ($bulan !== '') $qs['bulan'] = $bulan;
             if ($tahun !== '') $qs['tahun'] = $tahun;
+            $qs['limit'] = $limit;
             $base_qs = http_build_query($qs);
             ?>
                         <?php if ($page > 1): ?>

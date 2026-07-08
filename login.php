@@ -2,10 +2,6 @@
 session_start();
 require __DIR__ . '/config.php';
 
-$client = new Google_Client();
-$client->setClientId($_ENV['GOOGLE_CLIENT_ID']);
-
-
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     header('Location: index.php');
     exit();
@@ -13,113 +9,167 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 
 
 if (isset($_POST['credential'])) {
-    $token = $client->verifyIdToken($_POST['credential']);
 
-    if (!$token) {
+    // === STEP 1: Verifikasi Token Google (TERPISAH dari DB) ===
+    $id_token = $_POST['credential'];
+    $url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($id_token);
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code !== 200) {
+        header("Location: login.php?error=invalid_token");
+        exit();
+    }
+    $token = json_decode($response, true);
+    if (!$token || isset($token['error_description']) || $token['aud'] !== $_ENV['GOOGLE_CLIENT_ID']) {
         header("Location: login.php?error=invalid_token");
         exit();
     }
 
+    // Token Google VALID — proses selanjutnya
+    $email   = $token['email'];
+    $name    = $token['name'];
+    $picture = $token['picture'] ?? 'assets/img/default-avatar.png';
+    $parts   = explode('@', $email);
+    $prefix  = $parts[0];
+    $domain  = $parts[1];
 
-    $email = $token['email'];
-    $name = $token['name'];
-    $picture = $token['picture'];
+    // === STEP 2: Koneksi Database (TERPISAH, tidak mempengaruhi validasi token) ===
+    $conn = null;
+    try {
+        // Nonaktifkan exception mysqli agar tidak crash jika DB error
+        mysqli_report(MYSQLI_REPORT_OFF);
+        require_once __DIR__ . '/config.php'; // pastikan .env sudah dimuat
+        $db_host = $_ENV['DB_HOST'] ?? 'localhost';
+        $db_user = $_ENV['DB_USERNAME'] ?? 'root';
+        $db_pass = $_ENV['DB_PASSWORD'] ?? '';
+        $db_name = $_ENV['DB_DATABASE_APP'] ?? 'fike8938_fikom_app';
+        $conn    = mysqli_connect($db_host, $db_user, $db_pass, $db_name);
+        if (!$conn) {
+            // Catat error DB tapi jangan hentikan alur login
+            error_log("[FIKOM LOGIN] DB connection failed: " . mysqli_connect_error());
+        }
+    } catch (Throwable $db_err) {
+        error_log("[FIKOM LOGIN] DB exception: " . $db_err->getMessage());
+        $conn = null;
+    }
 
+    try {
+        $role    = 'user';
+        $program = null;
+        // Koneksi sudah siap di $conn (bisa null jika DB gagal)
 
-    $parts = explode('@', $email);
-    $prefix = $parts[0];
-    $domain = $parts[1];
+        // Cek apakah email ini terdaftar di tabel dosen sebagai "Jalur VIP"
+        $is_registered_dosen = false;
+        if ($conn) {
+            $email_escaped = mysqli_real_escape_string($conn, $email);
+            $check_dosen = mysqli_query($conn, "SELECT * FROM dosen WHERE email = '$email_escaped' LIMIT 1");
+            if ($check_dosen) {
+                $is_registered_dosen = (mysqli_num_rows($check_dosen) > 0);
+            }
+        }
 
-    /* ------------- CEK ROLE ------------- */
-    $role = 'user';
-    $program = null;
+        if ($email === 'briyanadmiral@gmail.com') {
+            $role = 'superadmin';
+            $_SESSION['role'] = $role;
+            $_SESSION['logged_in'] = true;
+            $_SESSION['user_email'] = $email;
+            $_SESSION['user_name'] = $name;
+            $_SESSION['user_picture'] = $picture;
+            header("Location: superadmin/superadmin_home.php");
+            exit();
+        }
 
-    // Panggil koneksi di awal agar bisa mengecek database sebelum cek domain
-    include 'koneksi.php';
+        // B. CEK DOSEN (Prioritas Tabel Database)
+        elseif ($is_registered_dosen) {
+            // Jika email (apapun domainnya) ada di tabel dosen, langsung lolos!
+            $role = 'dosen';
+        }
 
-    // Cek apakah email ini terdaftar di tabel dosen sebagai "Jalur VIP"
-    $check_dosen = mysqli_query($conn, "SELECT * FROM dosen WHERE email = '$email' LIMIT 1");
-    $is_registered_dosen = (mysqli_num_rows($check_dosen) > 0);
+        // C. JIKA BUKAN DOSEN TERDAFTAR, TAPI PAKAI EMAIL @unika.ac.id
+        elseif (strpos($domain, 'unika.ac.id') !== false && strpos($domain, 'student') === false) {
+            // Berarti dia punya email kampus, tapi belum didaftarkan di sistem oleh Superadmin
+            header("Location: logout.php?error=dosen_not_found");
+            exit();
+        }
 
+        // D. CEK MAHASISWA
+        elseif (strpos($domain, 'student.unika.ac.id') !== false) {
+            // strtolower supaya NIM huruf besar tetap terbaca (ex: 23N1 -> n1)
+            $kode = strtolower(substr($prefix, 2, 2));
 
-    if ($email === 'briyanadmiral@gmail.com') {
-        $role = 'superadmin';
+            $siega = ['n1', 'n2', 'g4', 'n4'];
+            $informatika = ['k1', 'k2', 'k3', 'k4', 'k5'];
+
+            if (in_array($kode, $siega)) {
+                $role = 'mahasiswa';
+                $program = 'siega';
+            } elseif (in_array($kode, $informatika)) {
+                $role = 'mahasiswa';
+                $program = 'informatika';
+            } else {
+                // Mahasiswa tapi bukan prodi yang diizinkan
+                header("Location: logout.php?error=prodi_not_allowed");
+                exit();
+            }
+
+            $_SESSION['nim'] = $prefix;
+            $_SESSION['program'] = $program;
+        }
+
+        // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR
+        else {
+            // Jika dia pakai email pribadi (Gmail/dll) dan TIDAK ada di tabel dosen
+            header("Location: logout.php?error=wrong_domain");
+            exit();
+        }
+
+        // --- JIKA LOLOS SEMUA CEK DI ATAS ---
         $_SESSION['role'] = $role;
         $_SESSION['logged_in'] = true;
         $_SESSION['user_email'] = $email;
         $_SESSION['user_name'] = $name;
         $_SESSION['user_picture'] = $picture;
-        header("Location: superadmin/superadmin_home.php");
-        exit();
-    }
 
-    // B. CEK DOSEN (Prioritas Tabel Database)
-    elseif ($is_registered_dosen) {
-        // Jika email (apapun domainnya) ada di tabel dosen, langsung lolos!
-        $role = 'dosen';
-    }
+        // Catat ke history login
+        if ($conn) {
+            $ip = $_SERVER['REMOTE_ADDR'];
+            $nim_val = $_SESSION['nim'] ?? '-';
+            $email_escaped = mysqli_real_escape_string($conn, $email);
+            $name_escaped = mysqli_real_escape_string($conn, $name);
+            $role_escaped = mysqli_real_escape_string($conn, $role);
+            $nim_escaped = mysqli_real_escape_string($conn, $nim_val);
+            $ip_escaped = mysqli_real_escape_string($conn, $ip);
 
-    // C. JIKA BUKAN DOSEN TERDAFTAR, TAPI PAKAI EMAIL @unika.ac.id
-    elseif (strpos($domain, 'unika.ac.id') !== false && strpos($domain, 'student') === false) {
-        // Berarti dia punya email kampus, tapi belum didaftarkan di sistem oleh Superadmin
-        header("Location: logout.php?error=dosen_not_found");
-        exit();
-    }
+            $sql = "INSERT INTO history_login (email, nama, role, nim, ip_address)
+                    VALUES ('$email_escaped', '$name_escaped', '$role_escaped', '$nim_escaped', '$ip_escaped')
+                    ON DUPLICATE KEY UPDATE
+                        nama = VALUES(nama),
+                        role = VALUES(role),
+                        nim  = VALUES(nim),
+                        ip_address = VALUES(ip_address)";
 
-    // D. CEK MAHASISWA
-    elseif (strpos($domain, 'student.unika.ac.id') !== false) {
-        // strtolower supaya NIM huruf besar tetap terbaca (ex: 23N1 -> n1)
-        $kode = strtolower(substr($prefix, 2, 2));
-
-        $siega = ['n1', 'n2', 'g4', 'n4'];
-        $informatika = ['k1', 'k2', 'k3', 'k4', 'k5'];
-
-        if (in_array($kode, $siega)) {
-            $role = 'mahasiswa';
-            $program = 'siega';
-        } elseif (in_array($kode, $informatika)) {
-            $role = 'mahasiswa';
-            $program = 'informatika';
-        } else {
-            // Mahasiswa tapi bukan prodi yang diizinkan
-            header("Location: logout.php?error=prodi_not_allowed");
-            exit();
+            mysqli_query($conn, $sql);
         }
 
-        $_SESSION['nim'] = $prefix;
-        $_SESSION['program'] = $program;
-    }
-
-    // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR
-    else {
-        // Jika dia pakai email pribadi (Gmail/dll) dan TIDAK ada di tabel dosen
-        header("Location: logout.php?error=wrong_domain");
+        header("Location: index.php");
+        exit();
+    } catch (Throwable $e) {
+        error_log("[FIKOM LOGIN] SSO exception: " . $e->getMessage());
+        // Jika error adalah masalah DB, tampilkan pesan DB, bukan invalid_token
+        $msg = $e->getMessage();
+        if (stripos($msg, 'Access denied') !== false || stripos($msg, 'mysqli') !== false) {
+            header("Location: login.php?error=db_error&msg=" . urlencode($msg));
+        } else {
+            header("Location: login.php?error=invalid_token&msg=" . urlencode($msg));
+        }
         exit();
     }
-
-    // --- JIKA LOLOS SEMUA CEK DI ATAS ---
-    $_SESSION['role'] = $role;
-    $_SESSION['logged_in'] = true;
-    $_SESSION['user_email'] = $email;
-    $_SESSION['user_name'] = $name;
-    $_SESSION['user_picture'] = $picture;
-
-    // Catat ke history login
-    $ip = $_SERVER['REMOTE_ADDR'];
-    $nim_val = $_SESSION['nim'] ?? '-';
-
-    $sql = "INSERT INTO history_login (email, nama, role, nim, ip_address)
-            VALUES ('$email', '$name', '$role', '$nim_val', '$ip')
-            ON DUPLICATE KEY UPDATE
-                nama = VALUES(nama),
-                role = VALUES(role),
-                nim  = VALUES(nim),
-                ip_address = VALUES(ip_address)";
-
-    mysqli_query($conn, $sql);
-
-    header("Location: index.php");
-    exit();
 }
 ?>
 <!DOCTYPE html>
@@ -279,6 +329,21 @@ if (isset($_POST['credential'])) {
             font-size: 15px;
         }
 
+        .error-alert {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #b91c1c;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
 
 
         .login-footer {
@@ -339,21 +404,71 @@ if (isset($_POST['credential'])) {
             <h2>Selamat Datang!</h2>
             <p class="subtitle">Silakan masuk menggunakan akun email institusi Anda.</p>
 
-            <?php
-            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-            $host = $_SERVER['HTTP_HOST'];
-            $script = $_SERVER['SCRIPT_NAME'];
-            $pos = strpos($script, '/login.php');
-            $basePath = ($pos !== false) ? substr($script, 0, $pos) : '';
-            $login_uri = $protocol . $host . $basePath . '/login.php';
-            ?>
-            <div id="g_id_onload" data-client_id="<?= $_ENV['GOOGLE_CLIENT_ID'] ?>" data-context="signin"
-                data-ux_mode="popup" data-login_uri="<?= $login_uri ?>" data-auto_prompt="false">
-            </div>
+            <?php if (isset($_GET['error'])): ?>
+                <?php
+                $error_msg = 'Terjadi kesalahan saat login. Silakan coba lagi.';
+                if ($_GET['error'] === 'invalid_token') {
+                    $error_msg = 'Token Google tidak valid atau kedaluwarsa. Silakan coba lagi.';
+                    if (isset($_GET['msg'])) {
+                        $error_msg .= ' Detail: ' . htmlspecialchars($_GET['msg']);
+                    }
+                } elseif ($_GET['error'] === 'db_error') {
+                    $error_msg = 'Login berhasil diverifikasi oleh Google, namun sistem tidak dapat terhubung ke database. Hubungi administrator.';
+                } elseif ($_GET['error'] === 'dosen_not_found') {
+                    $error_msg = 'Email UNIKA Anda belum terdaftar sebagai Dosen di sistem. Silakan hubungi Superadmin.';
+                } elseif ($_GET['error'] === 'prodi_not_allowed') {
+                    $error_msg = 'Program studi Anda belum diizinkan untuk mengakses sistem ini.';
+                } elseif ($_GET['error'] === 'wrong_domain') {
+                    $error_msg = 'Akses ditolak. Harap masuk menggunakan email resmi UNIKA Soegijapranata (@unika.ac.id atau @student.unika.ac.id).';
+                }
+                ?>
+                <div class="error-alert">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span><?= htmlspecialchars($error_msg) ?></span>
+                </div>
+            <?php endif; ?>
 
-            <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
-                data-text="signin_with_google" data-size="large" data-logo_alignment="center">
-            </div>
+            <div id="g_id_signin" style="display: flex; justify-content: center;"></div>
+
+            <script>
+                function handleCredentialResponse(response) {
+                    // Buat form secara dinamis untuk mengirim credential ke login.php secara first-party.
+                    // Menggunakan POST first-party menghindari isu cookie SameSite pada cross-site POST dari Google.
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = 'login.php';
+
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'credential';
+                    input.value = response.credential;
+                    form.appendChild(input);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+
+                window.onload = function () {
+                    google.accounts.id.initialize({
+                        client_id: "<?= $_ENV['GOOGLE_CLIENT_ID'] ?>",
+                        context: "signin",
+                        callback: handleCredentialResponse,
+                        auto_prompt: false
+                    });
+
+                    google.accounts.id.renderButton(
+                        document.getElementById("g_id_signin"),
+                        {
+                            type: "standard",
+                            shape: "rectangular",
+                            theme: "outline",
+                            text: "signin_with_google",
+                            size: "large",
+                            logo_alignment: "center"
+                        }
+                    );
+                };
+            </script>
 
             <div class="login-footer">
                 &copy; <?php echo date("Y"); ?> Fakultas Ilmu Komputer, UNIKA Soegijapranata.

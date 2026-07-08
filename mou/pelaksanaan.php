@@ -132,7 +132,7 @@ $result = mysqli_query($conn, $query);
             <?php $no = $offset + 1; while ($row = mysqli_fetch_assoc($result)):
               $id_pelaksanaan = $row['id_pelaksanaan'];
               $count_internal = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM evaluasi_internal WHERE id_pelaksanaan = $id_pelaksanaan"))['total'];
-              $count_eksternal = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM evaluasi_eksternal WHERE id_pelaksanaan = $id_pelaksanaan"))['total'];
+              $count_eksternal = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM evaluasi_eksternal WHERE id_pelaksanaan = $id_pelaksanaan AND deleted_at IS NULL"))['total'];
             ?>
             <tr>
               <td><?= $no++ ?></td>

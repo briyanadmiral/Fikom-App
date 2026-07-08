@@ -1,6 +1,6 @@
 <?php
-$koneksi = mysqli_connect('localhost', 'root', '', 'fike8938_fikom_app') 
-    or die ('Koneksi database gagal');
+include '../koneksi.php';
+$koneksi = $conn;
 
 // cek apakah id_dosen ada di parameter
 if (!isset($_GET['id_dosen'])) {

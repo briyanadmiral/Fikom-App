@@ -12,10 +12,17 @@ if ($role !== 'dosen' && $role !== 'superadmin') {
 }
 
 // Database Connection
-$host = "localhost";
-$user = "root";
-$pass = "";
-$db   = "fike8938_fikom_mou";
+if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/.env')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+    if (class_exists('Dotenv\Dotenv')) {
+        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+        $dotenv->safeLoad();
+    }
+}
+$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
+$user = $_ENV['DB_USERNAME'] ?? 'root';
+$pass = $_ENV['DB_PASSWORD'] ?? '';
+$db   = $_ENV['DB_DATABASE_MOU'] ?? 'fike8938_fikom_mou';
 
 $conn = mysqli_connect($host, $user, $pass, $db);
 if (!$conn) {
@@ -40,7 +47,7 @@ if (isset($_GET['ajax_detail_id'])) {
         SELECT ee.*, ke.ket_evaluasi 
         FROM evaluasi_eksternal ee
         LEFT JOIN keterangan_evaluasi ke ON ee.id_ket_evaluasi = ke.id_ket_evaluasi
-        WHERE ee.id_pelaksanaan = $id_pel
+        WHERE ee.id_pelaksanaan = $id_pel AND ee.deleted_at IS NULL
         ORDER BY ee.tanggal_evaluasi DESC
     ");
     $data = [];
@@ -50,7 +57,11 @@ if (isset($_GET['ajax_detail_id'])) {
             'tanggal' => date('d F Y', strtotime($row['tanggal_evaluasi'])),
             'status' => htmlspecialchars($row['ket_evaluasi'] ?? '-'),
             'evaluasi' => nl2br(htmlspecialchars($row['evaluasi'])),
-            'bukti' => htmlspecialchars($row['bukti'])
+            'bukti' => htmlspecialchars($row['bukti']),
+            'q1' => isset($row['q1']) ? htmlspecialchars($row['q1']) : null,
+            'q2' => isset($row['q2']) ? htmlspecialchars($row['q2']) : null,
+            'q3' => isset($row['q3']) ? htmlspecialchars($row['q3']) : null,
+            'q4' => isset($row['q4']) ? nl2br(htmlspecialchars($row['q4'])) : null
         ];
     }
     header('Content-Type: application/json');
@@ -70,7 +81,7 @@ $q_sudah_isi = "
     FROM mou m
     JOIN pelaksanaan p ON m.id_mou = p.id_mou
     JOIN evaluasi_eksternal ee ON p.id_pelaksanaan = ee.id_pelaksanaan
-    WHERE 1=1
+    WHERE ee.deleted_at IS NULL
 ";
 if ($hasDeletedOnMou) $q_sudah_isi .= " AND m.deleted_at IS NULL";
 if ($hasDeletedOnPelaksanaan) $q_sudah_isi .= " AND p.deleted_at IS NULL";
@@ -81,7 +92,7 @@ $q_list_belum = "
     SELECT DISTINCT m.pihak_2 
     FROM mou m
     JOIN pelaksanaan p ON m.id_mou = p.id_mou
-    LEFT JOIN evaluasi_eksternal ee ON p.id_pelaksanaan = ee.id_pelaksanaan
+    LEFT JOIN evaluasi_eksternal ee ON p.id_pelaksanaan = ee.id_pelaksanaan AND ee.deleted_at IS NULL
     WHERE ee.id_eval_eksternal IS NULL
 ";
 if ($hasDeletedOnMou) $q_list_belum .= " AND m.deleted_at IS NULL";
@@ -99,7 +110,7 @@ $q_terlaksana = "
     SELECT COUNT(DISTINCT p.id_pelaksanaan) 
     FROM pelaksanaan p
     JOIN evaluasi_eksternal ee ON p.id_pelaksanaan = ee.id_pelaksanaan
-    WHERE ee.id_ket_evaluasi = 1
+    WHERE ee.id_ket_evaluasi = 1 AND ee.deleted_at IS NULL
 ";
 if ($hasDeletedOnPelaksanaan) $q_terlaksana .= " AND p.deleted_at IS NULL";
 $total_terlaksana = mysqli_fetch_row(mysqli_query($conn, $q_terlaksana))[0] ?? 0;
@@ -111,13 +122,44 @@ $total_kegiatan = mysqli_fetch_row(mysqli_query($conn, $q_total_kegiatan))[0] ??
 $total_belum_terlaksana = max(0, $total_kegiatan - $total_terlaksana);
 
 
+
+// --- PAGINATION SETUP ---
+$limit_options = [5, 10, 25, 50, 100];
+$limit = isset($_GET['limit']) && in_array(intval($_GET['limit']), $limit_options) ? intval($_GET['limit']) : 10;
+$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+
 // --- TABLE DATA ---
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
 
+$query_count = "
+    SELECT COUNT(*) 
+    FROM pelaksanaan p
+    JOIN mou m ON p.id_mou = m.id_mou
+    WHERE 1=1
+";
+if ($hasDeletedOnMou) $query_count .= " AND m.deleted_at IS NULL";
+if ($hasDeletedOnPelaksanaan) $query_count .= " AND p.deleted_at IS NULL";
+
+if ($search !== '') {
+    $s = mysqli_real_escape_string($conn, $search);
+    $query_count .= " AND (m.pihak_2 LIKE '%$s%' OR p.nama_pelaksanaan LIKE '%$s%')";
+}
+
+if ($filter_status === 'sudah') {
+    $query_count .= " AND EXISTS (SELECT 1 FROM evaluasi_eksternal ee WHERE ee.id_pelaksanaan = p.id_pelaksanaan AND ee.deleted_at IS NULL)";
+} elseif ($filter_status === 'belum') {
+    $query_count .= " AND NOT EXISTS (SELECT 1 FROM evaluasi_eksternal ee WHERE ee.id_pelaksanaan = p.id_pelaksanaan AND ee.deleted_at IS NULL)";
+}
+
+$total_data = mysqli_fetch_row(mysqli_query($conn, $query_count))[0] ?? 0;
+$total_pages = ($total_data > 0) ? ceil($total_data / $limit) : 1;
+if ($page > $total_pages) $page = $total_pages;
+$offset = ($page - 1) * $limit;
+
 $query_table = "
     SELECT p.id_pelaksanaan, p.nama_pelaksanaan, p.tanggal_kegiatan, p.pic_kegiatan, m.pihak_2, m.nama_mou,
-           (SELECT COUNT(*) FROM evaluasi_eksternal ee WHERE ee.id_pelaksanaan = p.id_pelaksanaan) AS sudah_mengisi
+           (SELECT COUNT(*) FROM evaluasi_eksternal ee WHERE ee.id_pelaksanaan = p.id_pelaksanaan AND ee.deleted_at IS NULL) AS sudah_mengisi
     FROM pelaksanaan p
     JOIN mou m ON p.id_mou = m.id_mou
     WHERE 1=1
@@ -131,12 +173,12 @@ if ($search !== '') {
 }
 
 if ($filter_status === 'sudah') {
-    $query_table .= " AND EXISTS (SELECT 1 FROM evaluasi_eksternal ee WHERE ee.id_pelaksanaan = p.id_pelaksanaan)";
+    $query_table .= " AND EXISTS (SELECT 1 FROM evaluasi_eksternal ee WHERE ee.id_pelaksanaan = p.id_pelaksanaan AND ee.deleted_at IS NULL)";
 } elseif ($filter_status === 'belum') {
-    $query_table .= " AND NOT EXISTS (SELECT 1 FROM evaluasi_eksternal ee WHERE ee.id_pelaksanaan = p.id_pelaksanaan)";
+    $query_table .= " AND NOT EXISTS (SELECT 1 FROM evaluasi_eksternal ee WHERE ee.id_pelaksanaan = p.id_pelaksanaan AND ee.deleted_at IS NULL)";
 }
 
-$query_table .= " ORDER BY m.pihak_2 ASC, p.tanggal_kegiatan DESC";
+$query_table .= " ORDER BY m.pihak_2 ASC, p.tanggal_kegiatan DESC LIMIT $limit OFFSET $offset";
 $result_table = mysqli_query($conn, $query_table);
 
 // Base URL detection for client forms (runs safely on both local and production server environment)
@@ -359,6 +401,12 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
             border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
+        .last-border-none:last-child {
+            border-bottom: none !important;
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
         /* Inputs & Buttons */
         .form-control, .form-select {
             background: rgba(255, 255, 255, 0.5) !important;
@@ -406,6 +454,33 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
         .btn-copy:hover {
             background: var(--primary) !important;
             color: white;
+        }
+
+        .pagination .page-link {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid var(--border);
+            color: var(--dark);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            padding: 8px 14px;
+        }
+        .pagination .page-link:hover {
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .pagination .page-item.active .page-link {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .pagination .page-item.disabled .page-link {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            border-color: var(--border);
+            pointer-events: none;
         }
 
         /* Modal styling */
@@ -504,21 +579,32 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
             <!-- Main Table Card -->
             <div class="col-lg-9">
                 <div class="card glass-panel border-0 p-4">
-                    <h3 class="card-title h5 mb-3" style="font-weight: 700; color: var(--dark);"><i class="fas fa-list-check me-2"></i>Status Kuesioner Kegiatan</h3>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="card-title h5 mb-0" style="font-weight: 700; color: var(--dark);"><i class="fas fa-list-check me-2"></i>Status Kuesioner Kegiatan</h3>
+                        <a href="evaluasi_analisis.php" class="btn btn-custom-action btn-sm"><i class="fas fa-chart-pie me-2 text-primary"></i>Lihat Analisis Kuesioner</a>
+                    </div>
                     
                     <!-- Filters -->
                     <form method="GET" class="row g-2 mb-3">
-                        <div class="col-md-5">
+                        <input type="hidden" name="page" value="1">
+                        <div class="col-md-4">
                             <div class="input-group">
                                 <span class="input-group-text bg-transparent border-end-0" style="border: 1px solid var(--border);"><i class="fas fa-search text-muted"></i></span>
                                 <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Cari Mitra atau Nama Kegiatan..." value="<?= htmlspecialchars($search) ?>">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <select name="status" class="form-select">
                                 <option value="">Semua Status Pengisian</option>
                                 <option value="sudah" <?= $filter_status === 'sudah' ? 'selected' : '' ?>>Sudah Mengisi</option>
                                 <option value="belum" <?= $filter_status === 'belum' ? 'selected' : '' ?>>Belum Mengisi</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select name="limit" class="form-select" onchange="this.form.submit()">
+                                <?php foreach ($limit_options as $opt): ?>
+                                    <option value="<?= $opt ?>" <?= $limit == $opt ? 'selected' : '' ?>><?= $opt ?> data/hal</option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-3 d-flex gap-2">
@@ -543,7 +629,7 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
                             </thead>
                             <tbody>
                                 <?php 
-                                $no = 1;
+                                $no = $offset + 1;
                                 while ($row = mysqli_fetch_assoc($result_table)): 
                                     $id_pel = $row['id_pelaksanaan'];
                                     $link_evaluasi = $base_url . $id_pel;
@@ -596,6 +682,50 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination -->
+                    <?php if ($total_pages > 1): ?>
+                        <nav class="mt-3">
+                            <ul class="pagination justify-content-center mb-0">
+                                <?php
+                                $qs = [];
+                                if ($search !== '') $qs['search'] = $search;
+                                if ($filter_status !== '') $qs['status'] = $filter_status;
+                                $qs['limit'] = $limit;
+                                $base_qs = http_build_query($qs);
+                                ?>
+                                <?php if ($page > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=<?= $page - 1 ?>&<?= $base_qs ?>" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                <?php else: ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link" aria-hidden="true">&laquo;</span>
+                                    </li>
+                                <?php endif; ?>
+                                
+                                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                    <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                                        <a class="page-link" href="?page=<?= $i ?>&<?= $base_qs ?>"><?= $i ?></a>
+                                    </li>
+                                <?php endfor; ?>
+                                
+                                <?php if ($page < $total_pages): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=<?= $page + 1 ?>&<?= $base_qs ?>" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                <?php else: ?>
+                                    <li class="page-item disabled">
+                                        <span class="page-link" aria-hidden="true">&raquo;</span>
+                                    </li>
+                                <?php endif; ?>
+                            </ul>
+                        </nav>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -709,6 +839,30 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
                             buktiLink = `<a href="mou/${row.bukti}" target="_blank" class="btn btn-link btn-sm p-0"><i class="fas fa-file-arrow-down me-1"></i>Lihat Bukti</a>`;
                         }
                         
+                        let evalContent = '';
+                        if (row.q1) {
+                            evalContent = `
+                                <div class="mb-2" style="font-size: 0.85rem; line-height: 1.4;">
+                                    <div class="fw-bold text-dark">1. Penilaian Jalannya Program:</div>
+                                    <div class="text-muted">${row.q1}</div>
+                                </div>
+                                <div class="mb-2" style="font-size: 0.85rem; line-height: 1.4;">
+                                    <div class="fw-bold text-dark">2. Komunikasi & Pelayanan Administrasi:</div>
+                                    <div class="text-muted">${row.q2}</div>
+                                </div>
+                                <div class="mb-2" style="font-size: 0.85rem; line-height: 1.4;">
+                                    <div class="fw-bold text-dark">3. Dampak Positif bagi Mitra:</div>
+                                    <div class="text-muted">${row.q3}</div>
+                                </div>
+                                <div style="font-size: 0.85rem; line-height: 1.4;">
+                                    <div class="fw-bold text-dark">4. Saran / Area Peningkatan:</div>
+                                    <div class="text-muted">${row.q4 || '-'}</div>
+                                </div>
+                            `;
+                        } else {
+                            evalContent = row.evaluasi;
+                        }
+                        
                         tableBody.innerHTML += `
                             <tr>
                                 <td class="text-center">${idx + 1}</td>
@@ -717,7 +871,7 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
                                     <div class="text-muted" style="font-size:0.75rem;">${row.tanggal}</div>
                                 </td>
                                 <td><span class="badge bg-light text-dark border">${row.status}</span></td>
-                                <td>${row.evaluasi}</td>
+                                <td>${evalContent}</td>
                                 <td>${buktiLink}</td>
                             </tr>
                         `;

@@ -9,7 +9,17 @@ define('BASE_URL', $protocol . $host . $basePath . '/inventory/inventaris-lab/pu
 
 
 // Konfigurasi Database
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root'); // Ganti dengan username database Anda
-define('DB_PASS', '');     // Ganti dengan password database Anda
-define('DB_NAME', 'fike8938_fikom_inventory'); // Ganti dengan nama database Anda
+if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/../../../.env')) {
+    if (file_exists(__DIR__ . '/../../../vendor/autoload.php')) {
+        require_once __DIR__ . '/../../../vendor/autoload.php';
+        if (class_exists('Dotenv\Dotenv')) {
+            $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../../../');
+            $dotenv->safeLoad();
+        }
+    }
+}
+
+define('DB_HOST', $_ENV['DB_HOST'] ?? '127.0.0.1');
+define('DB_USER', $_ENV['DB_USERNAME'] ?? 'root');
+define('DB_PASS', $_ENV['DB_PASSWORD'] ?? '');
+define('DB_NAME', $_ENV['DB_DATABASE_INVENTORY'] ?? 'fike8938_fikom_inventory');

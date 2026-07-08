@@ -27,10 +27,17 @@ $success = false;
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $evaluasi = mysqli_real_escape_string($conn, $_POST['evaluasi']);
     $status = intval($_POST['status']);
     $tanggal = $_POST['tanggal_evaluasi'];
     $pemberi = mysqli_real_escape_string($conn, $_POST['pemberi_evaluasi']);
+    
+    $q1 = mysqli_real_escape_string($conn, $_POST['q1']);
+    $q2 = mysqli_real_escape_string($conn, $_POST['q2']);
+    $q3 = mysqli_real_escape_string($conn, $_POST['q3']);
+    $q4 = mysqli_real_escape_string($conn, $_POST['q4']);
+    
+    // Combine for legacy 'evaluasi' column support
+    $evaluasi = mysqli_real_escape_string($conn, "Penilaian: $q1 | Komunikasi: $q2 | Dampak: $q3 | Saran: $q4");
 
     $bukti = '';
     if (!empty($_FILES['bukti']['name'])) {
@@ -45,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($error)) {
-        $insert = "INSERT INTO evaluasi_eksternal (id_pelaksanaan, evaluasi, tanggal_evaluasi, pemberi_evaluasi, id_ket_evaluasi, bukti)
-                   VALUES ($id_pelaksanaan, '$evaluasi', '$tanggal', '$pemberi', $status, '$bukti')";
+        $insert = "INSERT INTO evaluasi_eksternal (id_pelaksanaan, evaluasi, tanggal_evaluasi, pemberi_evaluasi, id_ket_evaluasi, bukti, q1, q2, q3, q4)
+                   VALUES ($id_pelaksanaan, '$evaluasi', '$tanggal', '$pemberi', $status, '$bukti', '$q1', '$q2', '$q3', '$q4')";
         if (mysqli_query($conn, $insert)) {
             $success = true;
         } else {
@@ -274,9 +281,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </select>
             </div>
 
-            <div class="mb-3">
-                <label for="evaluasi" class="form-label">Evaluasi / Feedback Pelaksanaan</label>
-                <textarea name="evaluasi" id="evaluasi" rows="4" class="form-control" placeholder="Tuliskan evaluasi, kepuasan, kritik, atau saran terkait pelaksanaan kegiatan kerja sama..." required></textarea>
+            <h4 class="mt-4 mb-3 border-bottom pb-2" style="color: var(--dark); font-weight: 700;">PERTANYAAN KUESIONER KEPUASAN KERJA SAMA</h4>
+
+            <!-- Question 1 -->
+            <div class="mb-4">
+                <label class="form-label d-block fw-bold mb-2">1. Bagaimana penilaian Bapak/Ibu secara keseluruhan terhadap jalannya program kerja sama yang telah dilakukan bersama Fakultas kami? <span class="text-muted fw-normal d-block mt-1" style="font-size: 0.85rem;">(Contoh program: Magang/KP, riset bersama, praktisi mengajar, pengabdian masyarakat, atau rekrutmen).</span></label>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q1" id="q1_sangat_puas" value="Sangat Puas" required>
+                    <label class="form-check-label" for="q1_sangat_puas">Sangat Puas</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q1" id="q1_puas" value="Puas">
+                    <label class="form-check-label" for="q1_puas">Puas</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q1" id="q1_cukup_puas" value="Cukup Puas">
+                    <label class="form-check-label" for="q1_cukup_puas">Cukup Puas</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q1" id="q1_kurang_puas" value="Kurang Puas">
+                    <label class="form-check-label" for="q1_kurang_puas">Kurang Puas</label>
+                </div>
+            </div>
+
+            <!-- Question 2 -->
+            <div class="mb-4">
+                <label class="form-label d-block fw-bold mb-2">2. Bagaimana penilaian Bapak/Ibu mengenai aspek komunikasi, responsivitas, dan pelayanan administrasi dari pihak Fakultas selama proses kerja sama berlangsung?</label>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q2" id="q2_sangat_baik" value="Sangat Baik" required>
+                    <label class="form-check-label" for="q2_sangat_baik">Sangat Baik (Cepat, tanggap, dan komunikatif)</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q2" id="q2_baik" value="Baik">
+                    <label class="form-check-label" for="q2_baik">Baik (Responsif dan lancar)</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q2" id="q2_cukup" value="Cukup">
+                    <label class="form-check-label" for="q2_cukup">Cukup (Standar namun ada beberapa kendala minor)</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q2" id="q2_kurang" value="Kurang">
+                    <label class="form-check-label" for="q2_kurang">Kurang (Lambat merespons atau koordinasi kurang jelas)</label>
+                </div>
+            </div>
+
+            <!-- Question 3 -->
+            <div class="mb-4">
+                <label class="form-label d-block fw-bold mb-2">3. Apakah program kerja sama yang telah dijalankan memberikan dampak positif atau nilai tambah yang nyata bagi instansi/perusahaan Bapak/Ibu?</label>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q3" id="q3_signifikan" value="Ya, memberikan dampak yang signifikan" required>
+                    <label class="form-check-label" for="q3_signifikan">Ya, memberikan dampak yang signifikan</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q3" id="q3_cukup" value="Ya, cukup memberikan dampak">
+                    <label class="form-check-label" for="q3_cukup">Ya, cukup memberikan dampak</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="q3" id="q3_kurang" value="Kurang memberikan dampak nyata">
+                    <label class="form-check-label" for="q3_kurang">Kurang memberikan dampak nyata</label>
+                </div>
+            </div>
+
+            <!-- Question 4 -->
+            <div class="mb-4">
+                <label class="form-label d-block fw-bold mb-2" for="q4">4. Saran singkat atau area mana yang paling perlu kami tingkatkan agar kerja sama di masa mendatang bisa berjalan lebih optimal? <span class="text-muted fw-normal d-block mt-1" style="font-size: 0.85rem;">(Contoh: Penyederhanaan birokrasi, penyesuaian waktu program, atau sinkronisasi kebutuhan teknologi/industri).</span></label>
+                <textarea name="q4" id="q4" rows="4" class="form-control" placeholder="Tuliskan saran singkat atau area peningkatan..." required></textarea>
             </div>
 
             <div class="mb-4">

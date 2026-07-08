@@ -30,11 +30,15 @@ SET time_zone = "+00:00";
 CREATE TABLE `evaluasi_eksternal` (
   `id_eval_eksternal` int(11) NOT NULL,
   `id_pelaksanaan` int(11) NOT NULL,
-  `evaluasi` varchar(100) DEFAULT NULL,
+  `evaluasi` text DEFAULT NULL,
   `tanggal_evaluasi` date DEFAULT NULL,
   `pemberi_evaluasi` varchar(100) DEFAULT NULL,
   `id_ket_evaluasi` int(11) DEFAULT NULL,
-  `bukti` text DEFAULT NULL
+  `bukti` text DEFAULT NULL,
+  `q1` varchar(255) DEFAULT NULL,
+  `q2` varchar(255) DEFAULT NULL,
+  `q3` varchar(255) DEFAULT NULL,
+  `q4` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
