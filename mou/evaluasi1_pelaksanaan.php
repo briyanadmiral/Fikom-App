@@ -12,7 +12,12 @@ include 'koneksi.php';
 
 $id_pelaksanaan = $_GET['id'] ?? 0;
 $kegiatan = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM pelaksanaan WHERE id_pelaksanaan = $id_pelaksanaan"));
-$keteranganList = mysqli_query($conn, "SELECT * FROM keterangan_evaluasi");
+// Status implementasi kegiatan - hardcoded options
+$statusImplementasi = [
+    1 => 'Sudah Selesai Terlaksana',
+    2 => 'Belum Terlaksana',
+    3 => 'Tidak Selesai Terlaksana',
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $evaluasi = mysqli_real_escape_string($conn, $_POST['evaluasi']);
@@ -35,12 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// Ambil evaluasi yang sudah ada
+// Ambil evaluasi yang sudah ada (kecuali yang sudah di-soft-delete)
 $evaluasi_tersimpan = mysqli_query($conn, "
-    SELECT ei.*, ke.ket_evaluasi 
+    SELECT ei.*
     FROM evaluasi_internal ei
-    JOIN keterangan_evaluasi ke ON ei.id_ket_evaluasi = ke.id_ket_evaluasi
     WHERE ei.id_pelaksanaan = $id_pelaksanaan
+      AND (ei.deleted_at IS NULL)
 ");
 ?>
 <!DOCTYPE html>
@@ -62,6 +67,20 @@ $evaluasi_tersimpan = mysqli_query($conn, "
         <h1 class="h2">Evaluasi Internal</h1>
         <p class="text-muted mb-0">Kegiatan: <?= htmlspecialchars($kegiatan['nama_pelaksanaan'] ?? 'Kegiatan Tidak Ditemukan') ?></p>
       </div>
+
+      <!-- Alerts -->
+      <?php if (isset($_GET['deleted_eval']) && $_GET['deleted_eval'] == 1): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <strong>Sukses!</strong> Evaluasi internal berhasil dihapus.
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <?php endif; ?>
+      <?php if (isset($_GET['error_eval'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <strong>Gagal!</strong> <?= htmlspecialchars($_GET['error_eval']) ?>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <?php endif; ?>
 
       <!-- Form Evaluasi -->
       <div class="card shadow-sm mb-4">
@@ -86,9 +105,9 @@ $evaluasi_tersimpan = mysqli_query($conn, "
               <label for="status" class="form-label">Status Implementasi</label>
               <select name="status" id="status" class="form-select" required>
                 <option value="">-- Pilih Status --</option>
-                <?php while ($row = mysqli_fetch_assoc($keteranganList)): ?>
-                  <option value="<?= $row['id_ket_evaluasi'] ?>"><?= $row['ket_evaluasi'] ?></option>
-                <?php endwhile; ?>
+                <?php foreach ($statusImplementasi as $id => $label): ?>
+                  <option value="<?= $id ?>"><?= htmlspecialchars($label) ?></option>
+                <?php endforeach; ?>
               </select>
             </div>
 
@@ -119,6 +138,7 @@ $evaluasi_tersimpan = mysqli_query($conn, "
                   <th>Pemberi</th>
                   <th>Status</th>
                   <th>Bukti</th>
+                  <th class="text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -128,7 +148,7 @@ $evaluasi_tersimpan = mysqli_query($conn, "
                     <td><?= nl2br(htmlspecialchars($row['evaluasi'])) ?></td>
                     <td><?= htmlspecialchars($row['tanggal_evaluasi']) ?></td>
                     <td><?= htmlspecialchars($row['pemberi_evaluasi']) ?></td>
-                    <td><?= $row['ket_evaluasi'] ?></td>
+                    <td><?= htmlspecialchars($statusImplementasi[$row['id_ket_evaluasi']] ?? 'Tidak Diketahui') ?></td>
                     <td>
                       <?php if ($row['bukti']): ?>
                         <a href="<?= $row['bukti'] ?>" target="_blank">Lihat Bukti</a>
@@ -136,10 +156,17 @@ $evaluasi_tersimpan = mysqli_query($conn, "
                         <span class="text-muted">Tidak Ada</span>
                       <?php endif; ?>
                     </td>
+                    <td class="text-center">
+                      <a href="hapus_evaluasi_internal.php?id=<?= $row['id_eval_internal'] ?>&id_pelaksanaan=<?= $id_pelaksanaan ?>"
+                         class="btn btn-danger btn-sm"
+                         onclick="return confirm('Yakin ingin menghapus evaluasi internal ini?')">
+                        <i class="bi bi-trash"></i> Hapus
+                      </a>
+                    </td>
                   </tr>
                 <?php endwhile; ?>
                 <?php if ($no === 1): ?>
-                  <tr><td colspan="6" class="text-center text-muted">Belum ada data evaluasi</td></tr>
+                  <tr><td colspan="7" class="text-center text-muted">Belum ada data evaluasi</td></tr>
                 <?php endif; ?>
               </tbody>
             </table>

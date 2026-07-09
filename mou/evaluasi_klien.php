@@ -21,7 +21,12 @@ if (!$kegiatan) {
     die("<div style='text-align:center; margin-top:50px; font-family:sans-serif;'><h2>Data Kegiatan tidak ditemukan atau telah dihapus!</h2></div>");
 }
 
-$keteranganList = mysqli_query($conn, "SELECT * FROM keterangan_evaluasi");
+// Status implementasi kegiatan - hardcoded options
+$statusImplementasi = [
+    1 => 'Sudah Selesai Terlaksana',
+    2 => 'Belum Terlaksana',
+    3 => 'Tidak Selesai Terlaksana',
+];
 
 $success = false;
 $error = '';
@@ -275,9 +280,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label for="status" class="form-label">Status Implementasi Kegiatan</label>
                 <select name="status" id="status" class="form-select" required>
                     <option value="">-- Pilih Status --</option>
-                    <?php while ($row = mysqli_fetch_assoc($keteranganList)): ?>
-                        <option value="<?= $row['id_ket_evaluasi'] ?>"><?= htmlspecialchars($row['ket_evaluasi']) ?></option>
-                    <?php endwhile; ?>
+                    <?php foreach ($statusImplementasi as $id => $label): ?>
+                        <option value="<?= $id ?>"><?= htmlspecialchars($label) ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
 

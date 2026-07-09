@@ -32,12 +32,12 @@ if (isset($_POST['credential'])) {
     }
 
     // Token Google VALID — proses selanjutnya
-    $email   = $token['email'];
-    $name    = $token['name'];
+    $email = $token['email'];
+    $name = $token['name'];
     $picture = $token['picture'] ?? 'assets/img/default-avatar.png';
-    $parts   = explode('@', $email);
-    $prefix  = $parts[0];
-    $domain  = $parts[1];
+    $parts = explode('@', $email);
+    $prefix = $parts[0];
+    $domain = $parts[1];
 
     // === STEP 2: Koneksi Database (TERPISAH, tidak mempengaruhi validasi token) ===
     $conn = null;
@@ -49,7 +49,7 @@ if (isset($_POST['credential'])) {
         $db_user = $_ENV['DB_USERNAME'] ?? 'root';
         $db_pass = $_ENV['DB_PASSWORD'] ?? '';
         $db_name = $_ENV['DB_DATABASE_APP'] ?? 'fike8938_fikom_app';
-        $conn    = mysqli_connect($db_host, $db_user, $db_pass, $db_name);
+        $conn = mysqli_connect($db_host, $db_user, $db_pass, $db_name);
         if (!$conn) {
             // Catat error DB tapi jangan hentikan alur login
             error_log("[FIKOM LOGIN] DB connection failed: " . mysqli_connect_error());
@@ -60,7 +60,7 @@ if (isset($_POST['credential'])) {
     }
 
     try {
-        $role    = 'user';
+        $role = 'user';
         $program = null;
         // Koneksi sudah siap di $conn (bisa null jika DB gagal)
 
@@ -74,7 +74,8 @@ if (isset($_POST['credential'])) {
             }
         }
 
-        if ($email === 'briyanadmiral@gmail.com') {
+        $superadmin_emails = ['briyanadmiral@gmail.com', 'magang.si@unika.ac.id'];
+        if (in_array($email, $superadmin_emails)) {
             $role = 'superadmin';
             $_SESSION['role'] = $role;
             $_SESSION['logged_in'] = true;
