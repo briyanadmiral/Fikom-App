@@ -74,6 +74,27 @@ if (isset($_POST['credential'])) {
             }
         }
 
+        // Cek apakah email ini terdaftar di database ruangan (baik admin atau user biasa)
+        $is_registered_ruang = false;
+        $ruang_user_role = null;
+        if ($conn) {
+            $db_host = $_ENV['DB_HOST'] ?? 'localhost';
+            $db_user = $_ENV['DB_USERNAME'] ?? 'root';
+            $db_pass = $_ENV['DB_PASSWORD'] ?? '';
+            $db_name_ruang = $_ENV['DB_DATABASE_RUANG'] ?? 'fike8938_fikom_ruang';
+            $conn_ruang = mysqli_connect($db_host, $db_user, $db_pass, $db_name_ruang);
+            if ($conn_ruang) {
+                $email_escaped = mysqli_real_escape_string($conn_ruang, $email);
+                $check_ruang = mysqli_query($conn_ruang, "SELECT * FROM users WHERE email = '$email_escaped' AND status = 'active' LIMIT 1");
+                if ($check_ruang && mysqli_num_rows($check_ruang) > 0) {
+                    $is_registered_ruang = true;
+                    $ruang_user = mysqli_fetch_assoc($check_ruang);
+                    $ruang_user_role = $ruang_user['role'];
+                }
+                mysqli_close($conn_ruang);
+            }
+        }
+
         $superadmin_emails = ['briyanadmiral@gmail.com', 'magang.si@unika.ac.id'];
         if (in_array($email, $superadmin_emails)) {
             $role = 'superadmin';
@@ -92,7 +113,16 @@ if (isset($_POST['credential'])) {
             $role = 'dosen';
         }
 
-        // C. JIKA BUKAN DOSEN TERDAFTAR, TAPI PAKAI EMAIL @unika.ac.id
+        // B2. CEK PENGGUNA SISTEM RUANGAN TERDAFTAR (Guna membolehkan login email non-unika yang sudah didaftarkan)
+        elseif ($is_registered_ruang) {
+            if ($ruang_user_role === 'admin') {
+                $role = 'admin';
+            } else {
+                $role = 'mahasiswa';
+            }
+        }
+
+        // C. JIKA BUKAN DOSEN/USER RUANGAN TERDAFTAR, TAPI PAKAI EMAIL @unika.ac.id
         elseif (strpos($domain, 'unika.ac.id') !== false && strpos($domain, 'student') === false) {
             // Berarti dia punya email kampus, tapi belum didaftarkan di sistem oleh Superadmin
             header("Location: logout.php?error=dosen_not_found");
@@ -123,9 +153,9 @@ if (isset($_POST['credential'])) {
             $_SESSION['program'] = $program;
         }
 
-        // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR
+        // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR & BUKAN USER RUANGAN TERDAFTAR
         else {
-            // Jika dia pakai email pribadi (Gmail/dll) dan TIDAK ada di tabel dosen
+            // Jika dia pakai email pribadi (Gmail/dll) dan TIDAK ada di tabel dosen/ruangan
             header("Location: logout.php?error=wrong_domain");
             exit();
         }
