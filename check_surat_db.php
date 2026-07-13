@@ -23,25 +23,25 @@ if (!$conn) {
 
 echo "Database connected successfully to $db_name_surat.\n\n";
 
-// Check table columns
-$res = mysqli_query($conn, "DESCRIBE pengguna");
-if (!$res) {
-    echo "Failed to describe table 'pengguna': " . mysqli_error($conn) . "\n";
-} else {
-    echo "Columns of table 'pengguna':\n";
-    while ($row = mysqli_fetch_assoc($res)) {
-        echo "- " . $row['Field'] . " (" . $row['Type'] . ")\n";
-    }
-    echo "\n";
-}
+// Let's attempt the INSERT query that surat.php does:
+$dummy_hash = password_hash('bypass123', PASSWORD_BCRYPT);
+$email = 'briyanadmiral@gmail.com';
 
-// Check if any user with gmail or unika exists
-echo "Users in database:\n";
-$res_users = mysqli_query($conn, "SELECT id, email, nama_lengkap, deleted_at, status FROM pengguna LIMIT 20");
-if (!$res_users) {
-    echo "Failed to select users: " . mysqli_error($conn) . "\n";
+echo "Attempting to insert test user ($email)...\n";
+$sql = "INSERT INTO pengguna (email, sandi_hash, nama_lengkap, jabatan, peran_id, status, created_at, updated_at) 
+        VALUES ('$email', '$dummy_hash', 'Super Admin (Bypass)', 'Superadmin FIKOM', 1, 'aktif', NOW(), NOW())";
+
+$res = mysqli_query($conn, $sql);
+
+if ($res) {
+    $inserted_id = mysqli_insert_id($conn);
+    echo "[✅] INSERT Successful! Inserted ID: $inserted_id\n";
+    
+    // Delete it so we don't pollute the DB
+    mysqli_query($conn, "DELETE FROM pengguna WHERE id = $inserted_id");
+    echo "Deleted test user.\n";
 } else {
-    while ($row = mysqli_fetch_assoc($res_users)) {
-        echo "ID: " . $row['id'] . " | Email: " . $row['email'] . " | Name: " . $row['nama_lengkap'] . " | Deleted: " . ($row['deleted_at'] ?? 'NULL') . " | Status: " . $row['status'] . "\n";
-    }
+    echo "[❌] INSERT Failed!\n";
+    echo "Error Code: " . mysqli_errno($conn) . "\n";
+    echo "Error Message: " . mysqli_error($conn) . "\n";
 }
