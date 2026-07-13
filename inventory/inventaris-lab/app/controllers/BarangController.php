@@ -316,4 +316,22 @@ public function uploadExcel() {
         $writer->save('php://output');
         exit;
     }
+
+    /**
+     * API untuk mendapatkan kode inventaris berikutnya.
+     */
+    public function getNextCode() {
+        $id_jenis = $_GET['id_jenis'] ?? null;
+        $bulan = $_GET['bulan'] ?? null;
+        $tahun = $_GET['tahun'] ?? null;
+
+        if (!$id_jenis || !$bulan || !$tahun) {
+            echo json_encode(['error' => 'Parameter tidak lengkap']);
+            exit;
+        }
+
+        $next_code = $this->model('Barang_model')->generateKodeInventaris($id_jenis, $bulan, $tahun);
+        echo json_encode(['kode' => $next_code]);
+        exit;
+    }
 }
