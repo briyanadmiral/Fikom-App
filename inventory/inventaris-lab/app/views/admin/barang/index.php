@@ -49,7 +49,7 @@
                                   <td><?= $no++; ?></td>
                                   <td>
                                       <?php if (!empty($barang['foto_barang'])): ?>
-                                          <img src="<?= BASE__URL; ?>/assets/uploads/barang/<?= htmlspecialchars($barang['foto_barang']); ?>" alt="Foto" width="70" class="img-thumbnail">
+                                          <img src="<?= BASE_URL; ?>/assets/uploads/barang/<?= htmlspecialchars($barang['foto_barang']); ?>" alt="Foto" width="70" class="img-thumbnail">
                                       <?php else: ?>
                                           <div class="d-flex justify-content-center align-items-center bg-light text-secondary" style="width: 70px; height: 50px;">
                                               <i class="bi bi-image-alt fs-4"></i>
