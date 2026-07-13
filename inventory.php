@@ -21,6 +21,16 @@ $db_name_inv = $_ENV['DB_DATABASE_INVENTORY'] ?? 'fike8938_fikom_inventory';
 
 $conn = mysqli_connect($db_host, $db_user, $db_pass, $db_name_inv);
 
+// Guard: Jika DB inventory tidak bisa diakses, tampilkan pesan error bukan HTTP 500
+if (!$conn) {
+    die("<div style='font-family:sans-serif;padding:30px;text-align:center;'>
+        <h2>&#9888; Database Inventory tidak dapat diakses</h2>
+        <p>Pastikan database <strong>fike8938_fikom_inventory</strong> sudah aktif di server.</p>
+        <p><small>Error: " . mysqli_connect_error() . "</small></p>
+        <a href='index.php' style='color:#4f46e5;'>&larr; Kembali ke Dashboard</a>
+    </div>");
+}
+
 $email = $_SESSION['user_email'];
 $role_global = $_SESSION['role'];
 $program = $_SESSION['program'] ?? '-';
