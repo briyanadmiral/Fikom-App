@@ -36,10 +36,13 @@ $db_pass = $_ENV['DB_PASSWORD'] ?? '';
 $db_name_app = $_ENV['DB_DATABASE_APP'] ?? 'fike8938_fikom_app';
 $db_name_surat = $_ENV['DB_DATABASE_SURAT'] ?? 'fike8938_fikom_surat';
 
-$conn_utama = mysqli_connect($db_host, $db_user, $db_pass, $db_name_app);
-$conn_surat = mysqli_connect($db_host, $db_user, $db_pass, $db_name_surat);
+        // Nonaktifkan exception mysqli agar tidak crash jika DB error
+        mysqli_report(MYSQLI_REPORT_OFF);
 
-if (!$conn_surat || !$conn_utama) {
+        $conn_utama = mysqli_connect($db_host, $db_user, $db_pass, $db_name_app);
+        $conn_surat = mysqli_connect($db_host, $db_user, $db_pass, $db_name_surat);
+
+        if (!$conn_surat || !$conn_utama) {
     die("<div style='font-family:sans-serif;padding:30px;text-align:center;'>
         <h2>&#9888; Database Surat tidak dapat diakses</h2>
         <p>Pastikan database <strong>fike8938_fikom_surat</strong> dan <strong>fike8938_fikom_app</strong> sudah aktif.</p>
