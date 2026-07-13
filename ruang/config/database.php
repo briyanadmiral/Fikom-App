@@ -28,6 +28,11 @@ class Database {
     public function getConnection() {
         $this->conn = null;
         
+        if (!class_exists('PDO')) {
+            error_log("[Ruang DB] PDO extension is not enabled on this server.");
+            return null;
+        }
+        
         try {
             $this->conn = new PDO(
                 "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8",
@@ -39,7 +44,7 @@ class Database {
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"
                 )
             );
-        } catch(PDOException $exception) {
+        } catch(Exception $exception) {
             // JANGAN echo error di sini - ini akan merusak JSON response pada API
             error_log("[Ruang DB] Connection error: " . $exception->getMessage());
         }

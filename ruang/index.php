@@ -166,6 +166,12 @@ if ($user_info['is_admin'] || $user_info['is_users']) {
   </header>
 
   <div class="container">
+    <?php if (!class_exists('PDO')): ?>
+      <div style="background:#fee2e2; border:1px solid #ef4444; color:#b91c1c; padding:15px; border-radius:8px; margin-bottom:20px; text-align:center; font-family:sans-serif; line-height:1.6;">
+        <strong>&#9888; Ekstensi PHP 'PDO' / 'pdo_mysql' Tidak Aktif di Server!</strong><br>
+        Sistem peminjaman ruangan tidak dapat memuat data jadwal. Silakan hubungi admin server atau aktifkan ekstensi <strong>pdo</strong> dan <strong>pdo_mysql</strong> melalui cPanel hosting Anda (menu <strong>Select PHP Version</strong> &rarr; tab <strong>Extensions</strong>).
+      </div>
+    <?php endif; ?>
     <div class="date-selector" style="text-align: center;">
       <h2>📅 Jadwal Penggunaan Ruangan</h2>
       <p style="margin-top: 1rem; color: #666; font-size: 0.9rem;">
