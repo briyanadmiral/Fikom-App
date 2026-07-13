@@ -3,16 +3,20 @@ header('Content-Type: text/plain');
 
 $log_paths = [
     __DIR__ . '/error_log',
-    __DIR__ . '/inventory/inventaris-lab/public/error_log',
-    __DIR__ . '/inventory/inventaris-lab/error_log'
+    __DIR__ . '/../error_log',
+    '/home/fike8938/public_html/error_log',
+    '/home/fike8938/error_log',
+    __DIR__ . '/surat_siega/public/error_log',
+    __DIR__ . '/surat_siega/error_log'
 ];
 
 foreach ($log_paths as $path) {
-    if (file_exists($path)) {
-        echo "=== Content of $path ===\n";
-        // Print the last 30 lines
-        $lines = file($path);
-        $last_lines = array_slice($lines, -30);
+    $real = realpath($path);
+    if ($real && file_exists($real)) {
+        echo "=== Content of $real ===\n";
+        // Print the last 40 lines
+        $lines = file($real);
+        $last_lines = array_slice($lines, -40);
         echo implode('', $last_lines);
         echo "\n\n";
     } else {
