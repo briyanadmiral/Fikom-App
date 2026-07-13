@@ -109,15 +109,28 @@ if ($role_global === 'superadmin') {
 
     // C. Pintu Masuk Paksa untuk Superadmin (Bypass)
     if (isset($_GET['masuk_surat'])) {
-        $q_sa = mysqli_query($conn_surat, "SELECT id FROM pengguna WHERE email = '$email' AND deleted_at IS NULL LIMIT 1");
+        $email_escaped = mysqli_real_escape_string($conn_surat, $email);
+        $q_sa = mysqli_query($conn_surat, "SELECT id, deleted_at FROM pengguna WHERE email = '$email_escaped' LIMIT 1");
         $d_sa = mysqli_fetch_assoc($q_sa);
         
         if (!$d_sa) {
             mysqli_query($conn_surat, "INSERT INTO pengguna (email, sandi_hash, nama_lengkap, jabatan, peran_id, status, created_at, updated_at) 
-                                       VALUES ('$email', '$dummy_hash', 'Super Admin (Bypass)', 'Superadmin FIKOM', 1, 'aktif', NOW(), NOW())");
+                                       VALUES ('$email_escaped', '$dummy_hash', 'Super Admin (Bypass)', 'Superadmin FIKOM', 1, 'aktif', NOW(), NOW())");
             $sa_id = mysqli_insert_id($conn_surat);
         } else {
             $sa_id = $d_sa['id'];
+            if ($d_sa['deleted_at'] !== null) {
+                mysqli_query($conn_surat, "UPDATE pengguna SET deleted_at = NULL, status = 'aktif', updated_at = NOW() WHERE id = $sa_id");
+            }
+        }
+
+        // Fallback jika karena suatu hal sa_id masih 0
+        if (!$sa_id || $sa_id == 0) {
+            $q_fallback = mysqli_query($conn_surat, "SELECT id FROM pengguna WHERE email = '$email_escaped' LIMIT 1");
+            if ($q_fallback && $row_fallback = mysqli_fetch_assoc($q_fallback)) {
+                $sa_id = $row_fallback['id'];
+                mysqli_query($conn_surat, "UPDATE pengguna SET deleted_at = NULL, status = 'aktif', updated_at = NOW() WHERE id = $sa_id");
+            }
         }
 
         $dateToday = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
