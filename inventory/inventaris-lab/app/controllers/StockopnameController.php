@@ -1,5 +1,5 @@
 <?php
-class StockOpnameController extends Controller {
+class StockopnameController extends Controller {
     public function __construct() {
         // Fitur ini hanya untuk admin
         if (!isset($_SESSION['app_user']) || $_SESSION['app_user']['role'] !== 'admin') {

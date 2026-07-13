@@ -1,9 +1,9 @@
 <?php 
-    // Logika URL
-    $uri_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    $uri_segments = explode('/', $uri_path);
-    $controller_name = $uri_segments[3] ?? 'index'; 
-    $method_name = $uri_segments[4] ?? 'index';
+    // Logika URL Aktif Dinamis
+    $url_query = isset($_GET['url']) ? rtrim($_GET['url'], '/') : '';
+    $url_segments = explode('/', $url_query);
+    $controller_name = !empty($url_segments[0]) ? strtolower($url_segments[0]) : 'index'; 
+    $method_name = !empty($url_segments[1]) ? strtolower($url_segments[1]) : 'index';
 
     // Cek apakah Login sebagai Admin (SI atau TI)
     $isAdmin = !empty($_SESSION['admin_siega']) || !empty($_SESSION['admin_ti']);

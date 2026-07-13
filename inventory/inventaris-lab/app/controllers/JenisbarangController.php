@@ -1,6 +1,6 @@
 <?php
 
-class JenisBarangController extends Controller {
+class JenisbarangController extends Controller {
     public function __construct() {
         if (!isset($_SESSION['app_user']) || $_SESSION['app_user']['role'] !== 'admin') {
             header('Location: ' . BASE_URL . '/auth/logout');
