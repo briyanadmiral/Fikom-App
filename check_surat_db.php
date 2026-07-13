@@ -23,25 +23,13 @@ if (!$conn) {
 
 echo "Database connected successfully to $db_name_surat.\n\n";
 
-// Let's attempt the INSERT query that surat.php does:
-$dummy_hash = password_hash('bypass123', PASSWORD_BCRYPT);
-$email = 'briyanadmiral@gmail.com';
-
-echo "Attempting to insert test user ($email)...\n";
-$sql = "INSERT INTO pengguna (email, sandi_hash, nama_lengkap, jabatan, peran_id, status, created_at, updated_at) 
-        VALUES ('$email', '$dummy_hash', 'Super Admin (Bypass)', 'Superadmin FIKOM', 1, 'aktif', NOW(), NOW())";
-
-$res = mysqli_query($conn, $sql);
-
-if ($res) {
-    $inserted_id = mysqli_insert_id($conn);
-    echo "[✅] INSERT Successful! Inserted ID: $inserted_id\n";
-    
-    // Delete it so we don't pollute the DB
-    mysqli_query($conn, "DELETE FROM pengguna WHERE id = $inserted_id");
-    echo "Deleted test user.\n";
+// Query the roles (peran) table
+$res = mysqli_query($conn, "SELECT id, nama FROM peran");
+if (!$res) {
+    echo "Failed to select roles: " . mysqli_error($conn) . "\n";
 } else {
-    echo "[❌] INSERT Failed!\n";
-    echo "Error Code: " . mysqli_errno($conn) . "\n";
-    echo "Error Message: " . mysqli_error($conn) . "\n";
+    echo "Available roles in 'peran' table:\n";
+    while ($row = mysqli_fetch_assoc($res)) {
+        echo "- ID: " . $row['id'] . " | Name: " . $row['nama'] . "\n";
+    }
 }
