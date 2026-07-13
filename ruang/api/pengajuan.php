@@ -14,6 +14,12 @@ if (!$user_roles) {
 $database = new Database();
 $db = $database->getConnection();
 
+// Guard: Jika koneksi DB gagal, return JSON error
+if (!$db) {
+    jsonResponse(['success' => false, 'message' => 'Database connection failed. Silakan coba lagi nanti.'], 503);
+    exit;
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true);
 

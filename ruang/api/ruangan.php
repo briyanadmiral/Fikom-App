@@ -8,6 +8,18 @@ startSession();
 $database = new Database();
 $db = $database->getConnection();
 
+// Guard: Jika koneksi DB gagal, return JSON error (bukan HTTP 500 fatal)
+if (!$db) {
+    // Action 'list' mengembalikan array kosong agar halaman publik tidak crash
+    $action = $_GET['action'] ?? '';
+    if ($action === 'list') {
+        jsonResponse(['success' => true, 'data' => []]);
+    } else {
+        jsonResponse(['success' => false, 'message' => 'Database connection failed. Silakan coba lagi nanti.'], 503);
+    }
+    exit;
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true);
 

@@ -40,7 +40,8 @@ class Database {
                 )
             );
         } catch(PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
+            // JANGAN echo error di sini - ini akan merusak JSON response pada API
+            error_log("[Ruang DB] Connection error: " . $exception->getMessage());
         }
         
         return $this->conn;
@@ -73,7 +74,27 @@ function syncUserSession() {
     // 1. Cek apakah ada session dari GIS Login utama (login.php pusat)
     if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_SESSION['user_email'])) {
         $email = $_SESSION['user_email'];
+        $orig_role = $_SESSION['role'] ?? 'mahasiswa';
         
+        // Mapping role GIS ke Enum Database: 'admin', 'dosen', 'mahasiswa'
+        $db_role = 'mahasiswa';
+        if ($orig_role === 'superadmin' || $orig_role === 'admin') {
+            $db_role = 'admin';
+        } elseif ($orig_role === 'dosen') {
+            $db_role = 'dosen';
+        }
+
+        // PENTING: Set session role terlebih dahulu SEBELUM DB operations
+        // Ini memastikan user bisa akses meski DB sedang bermasalah
+        $_SESSION['email'] = $email;
+        $_SESSION['nama'] = $_SESSION['user_name'] ?? 'Pengguna';
+        if ($db_role === 'admin') {
+            $_SESSION['admin'] = true;
+        } else {
+            $_SESSION['users'] = true;
+        }
+
+        // 2. Sync ke database ruang (untuk user_id dan auto-registrasi)
         $database = new Database();
         $db = $database->getConnection();
         
@@ -83,16 +104,6 @@ function syncUserSession() {
                 $stmt = $db->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
                 $stmt->execute([$email]);
                 $user = $stmt->fetch();
-                
-                $orig_role = $_SESSION['role'] ?? 'mahasiswa';
-                
-                // Mapping role GIS ke Enum Database: 'admin', 'dosen', 'mahasiswa'
-                $db_role = 'mahasiswa';
-                if ($orig_role === 'superadmin' || $orig_role === 'admin') {
-                    $db_role = 'admin';
-                } elseif ($orig_role === 'dosen') {
-                    $db_role = 'dosen';
-                }
 
                 if (!$user) {
                     // Jika tidak ada di tabel modul ruangan, insert (Auto-Registrasi)
@@ -102,27 +113,32 @@ function syncUserSession() {
                         $email,
                         $_SESSION['user_name'] ?? 'Guest',
                         $db_role,
-                        $_SESSION['nim'] ?? $_SESSION['nip'] ?? '-', // nim_nip
-                        $_SESSION['program'] ?? $_SESSION['jurusan'] ?? '-', // jurusan
+                        $_SESSION['nim'] ?? $_SESSION['nip'] ?? '-',
+                        $_SESSION['program'] ?? $_SESSION['jurusan'] ?? '-',
                     ]);
                     $userId = $db->lastInsertId();
                 } else {
                     $userId = $user['id'];
+                    // Update role jika berubah (misal dari user biasa jadi admin)
+                    if ($user['role'] !== $db_role) {
+                        $db->prepare("UPDATE users SET role = ? WHERE id = ?")->execute([$db_role, $userId]);
+                    }
                 }
                 
-                // Set session lokal modul ruangan agar kompatibel (FORCE OVERWRITE)
+                // Update user_id dengan ID dari database
                 $_SESSION['user_id'] = (int)$userId;
-                $_SESSION['nama'] = $_SESSION['user_name'] ?? ($user['nama'] ?? 'Pengguna');
-                $_SESSION['email'] = $email;
-                $_SESSION[$db_role === 'admin' ? 'admin' : 'users'] = true; 
                 
             } catch (PDOException $e) {
-                // Error log silently
-                error_log("Sync user error: " . $e->getMessage());
-                // Fallback jika sync gagal tapi user_id masih berupa email
-                if (!is_numeric($_SESSION['user_id'] ?? '')) {
-                    $_SESSION['user_id'] = 0; // Prevent email being used as integer
+                error_log("[Ruang] Sync user error: " . $e->getMessage());
+                // Gunakan 0 sebagai fallback user_id jika DB gagal
+                if (empty($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
+                    $_SESSION['user_id'] = 0;
                 }
+            }
+        } else {
+            // DB tidak tersedia, gunakan fallback user_id
+            if (empty($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
+                $_SESSION['user_id'] = 0;
             }
         }
     }

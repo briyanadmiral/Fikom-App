@@ -24,25 +24,27 @@ $stats = [
     'total_users' => 0
 ];
 
-try {
-    // Total ruangan
-    $stmt = $db->query("SELECT COUNT(*) as total FROM ruangan WHERE status = 'active'");
-    $stats['total_ruangan'] = $stmt->fetch()['total'];
-    
-    // Pending requests
-    $stmt = $db->query("SELECT COUNT(*) as total FROM pengajuan_peminjaman WHERE status = 'pending'");
-    $stats['pending_requests'] = $stmt->fetch()['total'];
-    
-    // Approved today
-    $stmt = $db->query("SELECT COUNT(*) as total FROM pengajuan_peminjaman WHERE status = 'approved' AND DATE(approved_at) = CURDATE()");
-    $stats['approved_today'] = $stmt->fetch()['total'];
-    
-    // Total users
-    $stmt = $db->query("SELECT COUNT(*) as total FROM users WHERE status = 'active'");
-    $stats['total_users'] = $stmt->fetch()['total'];
-    
-} catch(PDOException $e) {
-    error_log("Error getting stats: " . $e->getMessage());
+if ($db) {
+    try {
+        // Total ruangan
+        $stmt = $db->query("SELECT COUNT(*) as total FROM ruangan WHERE status = 'active'");
+        $stats['total_ruangan'] = $stmt->fetch()['total'];
+        
+        // Pending requests
+        $stmt = $db->query("SELECT COUNT(*) as total FROM pengajuan_peminjaman WHERE status = 'pending'");
+        $stats['pending_requests'] = $stmt->fetch()['total'];
+        
+        // Approved today
+        $stmt = $db->query("SELECT COUNT(*) as total FROM pengajuan_peminjaman WHERE status = 'approved' AND DATE(approved_at) = CURDATE()");
+        $stats['approved_today'] = $stmt->fetch()['total'];
+        
+        // Total users
+        $stmt = $db->query("SELECT COUNT(*) as total FROM users WHERE status = 'active'");
+        $stats['total_users'] = $stmt->fetch()['total'];
+        
+    } catch(PDOException $e) {
+        error_log("[Ruang Admin] Error getting stats: " . $e->getMessage());
+    }
 }
 ?>
 <!DOCTYPE html>
