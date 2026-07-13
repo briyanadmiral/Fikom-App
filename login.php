@@ -95,6 +95,27 @@ if (isset($_POST['credential'])) {
             }
         }
 
+        // Cek apakah email ini terdaftar di database inventory (baik admin atau user biasa)
+        $is_registered_inventory = false;
+        $inventory_user_role = null;
+        if ($conn) {
+            $db_host = $_ENV['DB_HOST'] ?? 'localhost';
+            $db_user = $_ENV['DB_USERNAME'] ?? 'root';
+            $db_pass = $_ENV['DB_PASSWORD'] ?? '';
+            $db_name_inventory = $_ENV['DB_DATABASE_INVENTORY'] ?? 'fike8938_fikom_inventory';
+            $conn_inventory = mysqli_connect($db_host, $db_user, $db_pass, $db_name_inventory);
+            if ($conn_inventory) {
+                $email_escaped = mysqli_real_escape_string($conn_inventory, $email);
+                $check_inventory = mysqli_query($conn_inventory, "SELECT * FROM users WHERE email = '$email_escaped' LIMIT 1");
+                if ($check_inventory && mysqli_num_rows($check_inventory) > 0) {
+                    $is_registered_inventory = true;
+                    $inventory_user = mysqli_fetch_assoc($check_inventory);
+                    $inventory_user_role = $inventory_user['role'];
+                }
+                mysqli_close($conn_inventory);
+            }
+        }
+
         $superadmin_emails = ['briyanadmiral@gmail.com', 'magang.si@unika.ac.id'];
         if (in_array($email, $superadmin_emails)) {
             $role = 'superadmin';
@@ -116,6 +137,15 @@ if (isset($_POST['credential'])) {
         // B2. CEK PENGGUNA SISTEM RUANGAN TERDAFTAR (Guna membolehkan login email non-unika yang sudah didaftarkan)
         elseif ($is_registered_ruang) {
             if ($ruang_user_role === 'admin') {
+                $role = 'admin';
+            } else {
+                $role = 'mahasiswa';
+            }
+        }
+
+        // B3. CEK PENGGUNA SISTEM INVENTORY TERDAFTAR (Guna membolehkan login email non-unika yang sudah didaftarkan)
+        elseif ($is_registered_inventory) {
+            if ($inventory_user_role === 'admin') {
                 $role = 'admin';
             } else {
                 $role = 'mahasiswa';
@@ -153,9 +183,9 @@ if (isset($_POST['credential'])) {
             $_SESSION['program'] = $program;
         }
 
-        // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR & BUKAN USER RUANGAN TERDAFTAR
+        // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR & BUKAN USER RUANGAN/INVENTORY TERDAFTAR
         else {
-            // Jika dia pakai email pribadi (Gmail/dll) dan TIDAK ada di tabel dosen/ruangan
+            // Jika dia pakai email pribadi (Gmail/dll) dan TIDAK ada di tabel dosen/ruangan/inventory
             header("Location: logout.php?error=wrong_domain");
             exit();
         }
