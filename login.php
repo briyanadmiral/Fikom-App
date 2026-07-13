@@ -116,6 +116,16 @@ if (isset($_POST['credential'])) {
             }
         }
 
+        // Cek apakah email ini terdaftar di database utama untuk akses MOU (t_mou)
+        $is_registered_mou = false;
+        if ($conn) {
+            $email_escaped = mysqli_real_escape_string($conn, $email);
+            $check_mou = mysqli_query($conn, "SELECT * FROM t_mou WHERE email = '$email_escaped' AND deleted_at IS NULL LIMIT 1");
+            if ($check_mou && mysqli_num_rows($check_mou) > 0) {
+                $is_registered_mou = true;
+            }
+        }
+
         $superadmin_emails = ['briyanadmiral@gmail.com', 'magang.si@unika.ac.id'];
         if (in_array($email, $superadmin_emails)) {
             $role = 'superadmin';
@@ -152,6 +162,11 @@ if (isset($_POST['credential'])) {
             }
         }
 
+        // B4. CEK PENGGUNA SISTEM MOU TERDAFTAR (Guna membolehkan login email non-unika yang sudah didaftarkan)
+        elseif ($is_registered_mou) {
+            $role = 'dosen'; // Agar mereka bisa melihat menu "Arsip MOU" di dashboard utama
+        }
+
         // C. JIKA BUKAN DOSEN/USER RUANGAN TERDAFTAR, TAPI PAKAI EMAIL @unika.ac.id
         elseif (strpos($domain, 'unika.ac.id') !== false && strpos($domain, 'student') === false) {
             // Berarti dia punya email kampus, tapi belum didaftarkan di sistem oleh Superadmin
@@ -183,9 +198,9 @@ if (isset($_POST['credential'])) {
             $_SESSION['program'] = $program;
         }
 
-        // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR & BUKAN USER RUANGAN/INVENTORY TERDAFTAR
+        // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR & BUKAN USER RUANGAN/INVENTORY/MOU TERDAFTAR
         else {
-            // Jika dia pakai email pribadi (Gmail/dll) dan TIDAK ada di tabel dosen/ruangan/inventory
+            // Jika dia pakai email pribadi (Gmail/dll) dan TIDAK ada di tabel dosen/ruangan/inventory/mou
             header("Location: logout.php?error=wrong_domain");
             exit();
         }
