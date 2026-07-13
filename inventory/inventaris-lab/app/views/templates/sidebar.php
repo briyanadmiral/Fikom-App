@@ -17,11 +17,16 @@
     $prodiUser = $data['user']['nama_prodi'] ?? 'Inventaris Lab';
 
     // --- LOGIKA URL KEMBALI DINAMIS ---
-    // Menentukan arah tombol keluar berdasarkan role dari Main App
-    $url_keluar = '/fikomapp/index.php'; // Default untuk Dosen / Mahasiswa
+    $protocol_keluar = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+    $host_keluar = $_SERVER['HTTP_HOST'];
+    $script_keluar = $_SERVER['SCRIPT_NAME'];
+    $pos_keluar = strpos($script_keluar, '/inventory/inventaris-lab/public');
+    $basePath_keluar = ($pos_keluar !== false) ? substr($script_keluar, 0, $pos_keluar) : '';
+
+    $url_keluar = $protocol_keluar . $host_keluar . $basePath_keluar . '/index.php';
 
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin') {
-        $url_keluar = '/fikomapp/superadmin/superadmin_home.php'; // Khusus Superadmin
+        $url_keluar = $protocol_keluar . $host_keluar . $basePath_keluar . '/superadmin/superadmin_home.php'; // Khusus Superadmin
     }
 ?>
 
