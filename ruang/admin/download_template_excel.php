@@ -13,8 +13,10 @@ $db = $database->getConnection();
 // Fetch ruangan
 $ruangan_list = [];
 try {
-    $stmt_ruangan = $db->query("SELECT id, nama_ruangan FROM ruangan WHERE status = 'active'");
-    $ruangan_list = $stmt_ruangan->fetchAll(PDO::FETCH_ASSOC);
+    if ($db) {
+        $stmt_ruangan = $db->query("SELECT id, nama_ruangan FROM ruangan WHERE status = 'active'");
+        $ruangan_list = $stmt_ruangan->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (Exception $e) {}
 
 $spreadsheet = new Spreadsheet();

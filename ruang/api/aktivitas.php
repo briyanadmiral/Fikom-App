@@ -14,6 +14,11 @@ if (!$user_info['user_id']) {
 $database = new Database();
 $db = $database->getConnection();
 
+if (!$db) {
+    jsonResponse(['success' => false, 'message' => 'Database connection failed. Silakan coba lagi nanti.'], 503);
+    exit;
+}
+
 try {
     $action = $_GET['action'] ?? 'recent';
     

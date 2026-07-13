@@ -20,80 +20,84 @@ $message = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($action === 'add_room') {
-        try {
-            // ... (Logika 'add_room' Anda) ...
-            $stmt = $db->prepare("INSERT INTO ruangan (kode_ruangan, nama_ruangan, kapasitas, lokasi, deskripsi) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $_POST['kode_ruangan'],
-                $_POST['nama_ruangan'],
-                $_POST['kapasitas'],
-                $_POST['lokasi'],
-                $_POST['deskripsi']
-            ]);
-            $room_id = $db->lastInsertId();
-            if (!empty($_POST['facilities'])) {
-                $facilities = explode(',', $_POST['facilities']);
-                $stmt = $db->prepare("INSERT INTO fasilitas_ruangan (ruangan_id, nama_fasilitas) VALUES (?, ?)");
-                foreach ($facilities as $facility) {
-                    $stmt->execute([$room_id, trim($facility)]);
-                }
-            }
-            logActivity($_SESSION['user_id'], 'Add Room', "Added room: " . $_POST['nama_ruangan'], $room_id);
-            $message = 'Ruangan berhasil ditambahkan!';
-        } catch (Exception $e) {
-            $error = 'Error: ' . $e->getMessage();
-        }
-    }
-    
-    elseif ($action === 'edit_room') {
-        try {
-            // ... (Logika 'edit_room' Anda) ...
-            $room_id = $_POST['room_id'];
-            $kode = $_POST['kode_ruangan'];
-            $nama = $_POST['nama_ruangan'];
-            $kapasitas = $_POST['kapasitas'];
-            $lokasi = $_POST['lokasi'];
-            $deskripsi = $_POST['deskripsi'];
-            $facilities_string = $_POST['facilities'];
-
-            $stmt = $db->prepare("UPDATE ruangan SET 
-                                    kode_ruangan = ?, nama_ruangan = ?, kapasitas = ?, 
-                                    lokasi = ?, deskripsi = ?
-                                  WHERE id = ?");
-            $stmt->execute([$kode, $nama, $kapasitas, $lokasi, $deskripsi, $room_id]);
-
-            $stmt_del = $db->prepare("DELETE FROM fasilitas_ruangan WHERE ruangan_id = ?");
-            $stmt_del->execute([$room_id]);
-
-            if (!empty($facilities_string)) {
-                $facilities = explode(',', $facilities_string);
-                $stmt_ins = $db->prepare("INSERT INTO fasilitas_ruangan (ruangan_id, nama_fasilitas) VALUES (?, ?)");
-                foreach ($facilities as $facility) {
-                    if (!empty(trim($facility))) {
-                        $stmt_ins->execute([$room_id, trim($facility)]);
+    if (!$db) {
+        $error = 'Koneksi database tidak tersedia.';
+    } else {
+        if ($action === 'add_room') {
+            try {
+                // ... (Logika 'add_room' Anda) ...
+                $stmt = $db->prepare("INSERT INTO ruangan (kode_ruangan, nama_ruangan, kapasitas, lokasi, deskripsi) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $_POST['kode_ruangan'],
+                    $_POST['nama_ruangan'],
+                    $_POST['kapasitas'],
+                    $_POST['lokasi'],
+                    $_POST['deskripsi']
+                ]);
+                $room_id = $db->lastInsertId();
+                if (!empty($_POST['facilities'])) {
+                    $facilities = explode(',', $_POST['facilities']);
+                    $stmt = $db->prepare("INSERT INTO fasilitas_ruangan (ruangan_id, nama_fasilitas) VALUES (?, ?)");
+                    foreach ($facilities as $facility) {
+                        $stmt->execute([$room_id, trim($facility)]);
                     }
                 }
+                logActivity($_SESSION['user_id'], 'Add Room', "Added room: " . $_POST['nama_ruangan'], $room_id);
+                $message = 'Ruangan berhasil ditambahkan!';
+            } catch (Exception $e) {
+                $error = 'Error: ' . $e->getMessage();
             }
-            logActivity($_SESSION['user_id'], 'Edit Room', "Edited room: " . $nama, $room_id);
-            $message = 'Ruangan berhasil diperbarui!';
-        } catch (Exception $e) {
-            $error = 'Error: ' . $e->getMessage();
         }
-    }
-    
-    elseif ($action === 'approve_booking') {
-        try {
-            // ... (Logika 'approve_booking' Anda) ...
-            $booking_id = $_POST['booking_id'];
-            $status = $_POST['status'];
-            $keterangan = $_POST['keterangan'] ?? '';
-            $stmt = $db->prepare("UPDATE pengajuan_peminjaman SET status = ?, keterangan_admin = ?, approved_by = ?, approved_at = NOW() WHERE id = ?");
-            $stmt->execute([$status, $keterangan, $_SESSION['user_id'], $booking_id]);
-            logActivity($_SESSION['user_id'], 'Approve Booking', "Booking ID $booking_id: $status", null);
-            $message = 'Status pengajuan berhasil diupdate!';
-        } catch (Exception $e) {
-            $error = 'Error: ' . $e->getMessage();
+        
+        elseif ($action === 'edit_room') {
+            try {
+                // ... (Logika 'edit_room' Anda) ...
+                $room_id = $_POST['room_id'];
+                $kode = $_POST['kode_ruangan'];
+                $nama = $_POST['nama_ruangan'];
+                $kapasitas = $_POST['kapasitas'];
+                $lokasi = $_POST['lokasi'];
+                $deskripsi = $_POST['deskripsi'];
+                $facilities_string = $_POST['facilities'];
+
+                $stmt = $db->prepare("UPDATE ruangan SET 
+                                        kode_ruangan = ?, nama_ruangan = ?, kapasitas = ?, 
+                                        lokasi = ?, deskripsi = ?
+                                      WHERE id = ?");
+                $stmt->execute([$kode, $nama, $kapasitas, $lokasi, $deskripsi, $room_id]);
+
+                $stmt_del = $db->prepare("DELETE FROM fasilitas_ruangan WHERE ruangan_id = ?");
+                $stmt_del->execute([$room_id]);
+
+                if (!empty($facilities_string)) {
+                    $facilities = explode(',', $facilities_string);
+                    $stmt_ins = $db->prepare("INSERT INTO fasilitas_ruangan (ruangan_id, nama_fasilitas) VALUES (?, ?)");
+                    foreach ($facilities as $facility) {
+                        if (!empty(trim($facility))) {
+                            $stmt_ins->execute([$room_id, trim($facility)]);
+                        }
+                    }
+                }
+                logActivity($_SESSION['user_id'], 'Edit Room', "Edited room: " . $nama, $room_id);
+                $message = 'Ruangan berhasil diperbarui!';
+            } catch (Exception $e) {
+                $error = 'Error: ' . $e->getMessage();
+            }
+        }
+        
+        elseif ($action === 'approve_booking') {
+            try {
+                // ... (Logika 'approve_booking' Anda) ...
+                $booking_id = $_POST['booking_id'];
+                $status = $_POST['status'];
+                $keterangan = $_POST['keterangan'] ?? '';
+                $stmt = $db->prepare("UPDATE pengajuan_peminjaman SET status = ?, keterangan_admin = ?, approved_by = ?, approved_at = NOW() WHERE id = ?");
+                $stmt->execute([$status, $keterangan, $_SESSION['user_id'], $booking_id]);
+                logActivity($_SESSION['user_id'], 'Approve Booking', "Booking ID $booking_id: $status", null);
+                $message = 'Status pengajuan berhasil diupdate!';
+            } catch (Exception $e) {
+                $error = 'Error: ' . $e->getMessage();
+            }
         }
     }
 }
@@ -101,16 +105,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get rooms
 $rooms = [];
 try {
-    // Query untuk mengambil ruangan + fasilitas
-    $stmt = $db->query("SELECT r.*, 
-                            COUNT(fr.id) as facility_count,
-                            GROUP_CONCAT(fr.nama_fasilitas SEPARATOR ', ') as facilities_string
-                         FROM ruangan r 
-                         LEFT JOIN fasilitas_ruangan fr ON r.id = fr.ruangan_id 
-                         WHERE r.status = 'active' 
-                         GROUP BY r.id 
-                         ORDER BY r.nama_ruangan");
-    $rooms = $stmt->fetchAll();
+    if ($db) {
+        // Query untuk mengambil ruangan + fasilitas
+        $stmt = $db->query("SELECT r.*, 
+                                COUNT(fr.id) as facility_count,
+                                GROUP_CONCAT(fr.nama_fasilitas SEPARATOR ', ') as facilities_string
+                             FROM ruangan r 
+                             LEFT JOIN fasilitas_ruangan fr ON r.id = fr.ruangan_id 
+                             WHERE r.status = 'active' 
+                             GROUP BY r.id 
+                             ORDER BY r.nama_ruangan");
+        $rooms = $stmt->fetchAll();
+    } else {
+        $error = 'Koneksi database tidak tersedia.';
+    }
 } catch (Exception $e) {
     $error = 'Error loading rooms: ' . $e->getMessage();
 }
@@ -118,9 +126,11 @@ try {
 // Get pending bookings
 $pending_bookings = [];
 try {
-    // Query untuk mengambil pengajuan pending
-    $stmt = $db->query("SELECT pp.*, u.nama, u.email, r.nama_ruangan FROM pengajuan_peminjaman pp JOIN users u ON pp.user_id = u.id JOIN ruangan r ON pp.ruangan_id = r.id WHERE pp.status = 'pending' ORDER BY pp.created_at DESC");
-    $pending_bookings = $stmt->fetchAll();
+    if ($db) {
+        // Query untuk mengambil pengajuan pending
+        $stmt = $db->query("SELECT pp.*, u.nama, u.email, r.nama_ruangan FROM pengajuan_peminjaman pp JOIN users u ON pp.user_id = u.id JOIN ruangan r ON pp.ruangan_id = r.id WHERE pp.status = 'pending' ORDER BY pp.created_at DESC");
+        $pending_bookings = $stmt->fetchAll();
+    }
 } catch (Exception $e) {
     $error = 'Error loading bookings: ' . $e->getMessage();
 }

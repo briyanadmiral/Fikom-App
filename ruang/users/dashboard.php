@@ -24,7 +24,7 @@ $stats = [
 ];
 
 try {
-    if (isset($_SESSION['user_id'])) {
+    if ($db && isset($_SESSION['user_id'])) {
         $user_id = $_SESSION['user_id'];
         
         // Total pengajuan
@@ -47,7 +47,7 @@ try {
         $stmt->execute([$user_id]);
         $stats['rejected'] = $stmt->fetch()['total'];
     }
-} catch(PDOException $e) {
+} catch(Exception $e) {
     error_log("Error getting stats: " . $e->getMessage());
 }
 ?>

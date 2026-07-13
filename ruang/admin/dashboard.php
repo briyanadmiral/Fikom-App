@@ -42,7 +42,7 @@ if ($db) {
         $stmt = $db->query("SELECT COUNT(*) as total FROM users WHERE status = 'active'");
         $stats['total_users'] = $stmt->fetch()['total'];
         
-    } catch(PDOException $e) {
+    } catch(Exception $e) {
         error_log("[Ruang Admin] Error getting stats: " . $e->getMessage());
     }
 }

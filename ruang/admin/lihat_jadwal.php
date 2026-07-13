@@ -17,6 +17,9 @@ $db = $database->getConnection();
 // --- LOGIKA PROSES TAMBAH MANUAL ---
 if (isset($_POST["add_manual"])) {
     try {
+        if (!$db) {
+            throw new Exception("Koneksi database tidak tersedia.");
+        }
         $sql = "INSERT INTO jadwal_matkul 
                 (ruangan_id, kode_matkul, nama_matkul, dosen, kelas, hari, tanggal_mulai, tanggal_selesai, jam_mulai, jam_selesai, semester, tahun_ajaran) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -45,8 +48,10 @@ if (isset($_POST["add_manual"])) {
 // Ambil daftar ruangan untuk dropdown form manual
 $ruangan_list = [];
 try {
-    $stmt_ruangan = $db->query("SELECT id, nama_ruangan FROM ruangan WHERE status = 'active'");
-    $ruangan_list = $stmt_ruangan->fetchAll(PDO::FETCH_ASSOC);
+    if ($db) {
+        $stmt_ruangan = $db->query("SELECT id, nama_ruangan FROM ruangan WHERE status = 'active'");
+        $ruangan_list = $stmt_ruangan->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (Exception $e) {}
 ?>
 <!DOCTYPE html>

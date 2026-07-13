@@ -20,6 +20,9 @@ $error = '';
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
     try {
+        if (!$db) {
+            throw new Exception("Koneksi database tidak tersedia.");
+        }
         // Validate required fields
         $required_fields = ['ruangan_id', 'keperluan', 'tanggal_pinjam', 'jam_mulai', 'jam_selesai'];
         foreach ($required_fields as $field) {
@@ -108,8 +111,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
 // Get rooms list
 $rooms = [];
 try {
-    $stmt = $db->query("SELECT * FROM ruangan WHERE status = 'active' ORDER BY nama_ruangan");
-    $rooms = $stmt->fetchAll();
+    if ($db) {
+        $stmt = $db->query("SELECT * FROM ruangan WHERE status = 'active' ORDER BY nama_ruangan");
+        $rooms = $stmt->fetchAll();
+    } else {
+        $error = 'Koneksi database tidak tersedia.';
+    }
 } catch (Exception $e) {
     $error = 'Error loading rooms: ' . $e->getMessage();
 }
@@ -117,7 +124,7 @@ try {
 // Get user's booking history
 $bookings = [];
 try {
-    if (isset($_SESSION['user_id'])) {
+    if ($db && isset($_SESSION['user_id'])) {
         $stmt = $db->prepare("SELECT pp.*, r.nama_ruangan FROM pengajuan_peminjaman pp JOIN ruangan r ON pp.ruangan_id = r.id WHERE pp.user_id = ? ORDER BY pp.created_at DESC");
         $stmt->execute([$_SESSION['user_id']]);
         $bookings = $stmt->fetchAll();
