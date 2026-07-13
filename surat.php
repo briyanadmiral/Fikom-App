@@ -51,6 +51,21 @@ $db_name_surat = $_ENV['DB_DATABASE_SURAT'] ?? 'fike8938_fikom_surat';
     </div>");
 }
 
+// Auto-seed table peran jika kosong untuk mencegah error Foreign Key
+$q_check_peran = mysqli_query($conn_surat, "SELECT COUNT(*) as total FROM peran");
+if ($q_check_peran) {
+    $d_check_peran = mysqli_fetch_assoc($q_check_peran);
+    if ($d_check_peran['total'] == 0) {
+        mysqli_query($conn_surat, "INSERT INTO peran (id, nama, deskripsi, dibuat_pada) VALUES
+            (1, 'admin_tu', 'Administrator Tata Usaha Fakultas', NOW()),
+            (2, 'dekan', 'Dekan Fakultas', NOW()),
+            (3, 'wakil_dekan', 'Wakil Dekan Fakultas', NOW()),
+            (4, 'kaprodi', 'Kepala Program Studi', NOW()),
+            (5, 'dosen', 'Dosen Pengajar', NOW()),
+            (6, 'tendik', 'Tenaga Kependidikan', NOW())");
+    }
+}
+
 // Rahasia Jembatan Laravel
 $sharedSecret = '7bf5429f72beebd2f98b046e4527d46e83ba56f161e0508fb97fa33615b413f1';
 
