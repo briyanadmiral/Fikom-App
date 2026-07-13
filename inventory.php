@@ -49,6 +49,7 @@ $program = $_SESSION['program'] ?? '-';
    BAGIAN 1: LOGIKA KHUSUS SUPERADMIN (CRUD & MODE BUNGLON)
    ================================================================================= */
 if ($role_global === 'superadmin') {
+    $error_msg = '';
 
     // A. Hapus User
     if (isset($_GET['hapus_id'])) {
@@ -65,9 +66,13 @@ if ($role_global === 'superadmin') {
         $n_role = mysqli_real_escape_string($conn, $_POST['role']);
         $n_prodi = (int) $_POST['id_prodi'];
 
-        mysqli_query($conn, "INSERT INTO users (email, nama, role, id_prodi) VALUES ('$n_email', '$n_nama', '$n_role', $n_prodi)");
-        header("Location: inventory.php");
-        exit;
+        try {
+            mysqli_query($conn, "INSERT INTO users (email, nama, role, id_prodi) VALUES ('$n_email', '$n_nama', '$n_role', $n_prodi)");
+            header("Location: inventory.php");
+            exit;
+        } catch (Exception $e) {
+            $error_msg = $e->getMessage();
+        }
     }
 
     // C. Mode Bunglon (Pilih Lab)
@@ -427,6 +432,12 @@ if ($role_global === 'superadmin') {
 
             <div class="card">
                 <h2 class="card-title">Tambah Akses Pengguna</h2>
+                <?php if (!empty($error_msg)): ?>
+                    <div style="background: rgba(239, 68, 68, 0.15); color: #b91c1c; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; font-weight: 500; border: 1px solid rgba(239, 68, 68, 0.3);">
+                        <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
+                        Gagal menambahkan pengguna: <?= htmlspecialchars($error_msg) ?>
+                    </div>
+                <?php endif; ?>
                 <form method="POST">
                     <div class="form-grid">
                         <div class="form-group">
