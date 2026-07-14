@@ -7,10 +7,23 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'superadmin') {
 }
 
 include '../koneksi.php';
-$koneksi = $conn;
+$koneksi = $conn ?? null;
 
-$query_dosen = "SELECT * FROM dosen ORDER BY nama ASC";
-$tampil_dosen = mysqli_query($koneksi, $query_dosen);
+$tampil_dosen = null;
+$db_error = null;
+
+if ($koneksi) {
+    $query_dosen = "SELECT * FROM dosen ORDER BY nama ASC";
+    $tampil_dosen = mysqli_query($koneksi, $query_dosen);
+    if (!$tampil_dosen) {
+        $db_error = mysqli_error($koneksi);
+    }
+} else {
+    $db_error = 'Koneksi database gagal.';
+}
+
+$user_picture = $_SESSION['user_picture'] ?? '';
+$user_name    = $_SESSION['user_name'] ?? 'Superadmin';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -319,8 +332,12 @@ $tampil_dosen = mysqli_query($koneksi, $query_dosen);
         <header class="header">
             <h1>Selamat Datang, Superadmin!</h1>
             <div class="user-info">
-                <span><?php echo htmlspecialchars($_SESSION['user_name']); ?></span>
-                <img src="<?php echo htmlspecialchars($_SESSION['user_picture']); ?>" alt="Admin Avatar">
+                <span><?php echo htmlspecialchars($user_name); ?></span>
+                <?php if ($user_picture): ?>
+                <img src="<?php echo htmlspecialchars($user_picture); ?>" alt="Admin Avatar">
+                <?php else: ?>
+                <span style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:inline-flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.9rem"><?php echo strtoupper(substr($user_name, 0, 1)); ?></span>
+                <?php endif; ?>
             </div>
         </header>
 
@@ -329,6 +346,12 @@ $tampil_dosen = mysqli_query($koneksi, $query_dosen);
                 <h2>Manajemen User Dosen</h2>
                 <a href="tambah_user.php" class="btn btn-primary"><i class="fas fa-plus"></i> Tambah Dosen</a>
             </div>
+
+            <?php if ($db_error): ?>
+            <div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:16px;border-radius:10px;margin-bottom:16px;">
+                <strong>⚠ Error Database:</strong> <?php echo htmlspecialchars($db_error); ?>
+            </div>
+            <?php endif; ?>
             
             <table id="userTable">
                 <thead>
@@ -341,12 +364,13 @@ $tampil_dosen = mysqli_query($koneksi, $query_dosen);
                     </tr>
                 </thead>
                 <tbody>
+                <?php if ($tampil_dosen && mysqli_num_rows($tampil_dosen) > 0): ?>
                 <?php while($td = mysqli_fetch_assoc($tampil_dosen)) : ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($td['nip']); ?></td>
-                        <td><strong><?php echo htmlspecialchars($td['nama']); ?></strong></td>
-                        <td><?php echo htmlspecialchars($td['jurusan']); ?></td>
-                        <td><?php echo htmlspecialchars($td['email']); ?></td>
+                        <td><?php echo htmlspecialchars($td['nip'] ?? ''); ?></td>
+                        <td><strong><?php echo htmlspecialchars($td['nama'] ?? ''); ?></strong></td>
+                        <td><?php echo htmlspecialchars($td['jurusan'] ?? ''); ?></td>
+                        <td><?php echo htmlspecialchars($td['email'] ?? ''); ?></td>
                         <td class="actions-cell">
                             <a href="impersonate.php?id_dosen=<?php echo $td['id_dosen']; ?>" class="btn btn-action btn-impersonate" title="Login sebagai user ini">
                                 <i class="fas fa-user-secret"></i>
@@ -354,12 +378,15 @@ $tampil_dosen = mysqli_query($koneksi, $query_dosen);
                             <a href="edit_dosen.php?id_dosen=<?php echo $td['id_dosen']; ?>" class="btn btn-action btn-edit" title="Edit user">
                                 <i class="fas fa-pencil-alt"></i>
                             </a>
-                            <a href="hapus_dosen.php?id_dosen=<?php echo $td['id_dosen']; ?>" class="btn btn-action btn-delete" title="Hapus user" onclick="return confirm('Yakin ingin menghapus data <?php echo htmlspecialchars($td['nama']); ?>?')">
+                            <a href="hapus_dosen.php?id_dosen=<?php echo $td['id_dosen']; ?>" class="btn btn-action btn-delete" title="Hapus user" onclick="return confirm('Yakin ingin menghapus data <?php echo htmlspecialchars($td['nama'] ?? ''); ?>?')">
                                 <i class="fas fa-trash-alt"></i>
                             </a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
+                <?php else: ?>
+                    <tr><td colspan="5" style="text-align:center;color:#888;padding:30px;">Belum ada data dosen.</td></tr>
+                <?php endif; ?>
                 </tbody>
             </table>
         </div>

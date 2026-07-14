@@ -21,32 +21,20 @@ $role_global = $_SESSION['role'];
 $nama_user   = $_SESSION['user_name']; 
 
 // 2. Koneksi ke Database Utama & Database Surat
-if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/.env')) {
-    if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-        require_once __DIR__ . '/vendor/autoload.php';
-        if (class_exists('Dotenv\Dotenv')) {
-            $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-            $dotenv->safeLoad();
-        }
-    }
-}
-$db_host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$db_user = $_ENV['DB_USERNAME'] ?? 'root';
-$db_pass = $_ENV['DB_PASSWORD'] ?? '';
-$db_name_app = $_ENV['DB_DATABASE_APP'] ?? 'fike8938_fikom_app';
-$db_name_surat = $_ENV['DB_DATABASE_SURAT'] ?? 'fike8938_fikom_surat';
+if (!defined('FIKOM_ROOT')) define('FIKOM_ROOT', __DIR__);
+require_once __DIR__ . '/db.php';
 
-        // Nonaktifkan exception mysqli agar tidak crash jika DB error
-        mysqli_report(MYSQLI_REPORT_OFF);
+// Nonaktifkan exception mysqli (sudah dilakukan di db.php, tapi eksplisit di sini untuk kejelasan)
+mysqli_report(MYSQLI_REPORT_OFF);
 
-        $conn_utama = mysqli_connect($db_host, $db_user, $db_pass, $db_name_app);
-        $conn_surat = mysqli_connect($db_host, $db_user, $db_pass, $db_name_surat);
+$conn_utama = fikom_db('app');   // DB: fike8938_fikom_app
+$conn_surat = fikom_db('surat'); // DB: fike8938_fikom_surat
 
-        if (!$conn_surat || !$conn_utama) {
+if (!$conn_surat || !$conn_utama) {
     die("<div style='font-family:sans-serif;padding:30px;text-align:center;'>
         <h2>&#9888; Database Surat tidak dapat diakses</h2>
         <p>Pastikan database <strong>fike8938_fikom_surat</strong> dan <strong>fike8938_fikom_app</strong> sudah aktif.</p>
-        <p><small>Error: " . mysqli_connect_error() . "</small></p>
+        <p><small>Cek cPanel → MySQL Databases → pastikan user sudah di-assign ke kedua database tersebut.</small></p>
         <a href='index.php' style='color:#4f46e5;'>&larr; Kembali ke Dashboard</a>
     </div>");
 }

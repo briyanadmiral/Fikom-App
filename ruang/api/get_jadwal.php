@@ -49,7 +49,8 @@ try {
             'start' => $booking['tanggal_pinjam'] . ' ' . $booking['jam_mulai'], 
             'end'   => $booking['tanggal_pinjam'] . ' ' . $booking['jam_selesai'], 
             'color' => $color,
-            'allDay'=> false 
+            'allDay'=> false,
+            'status'=> $booking['status']
         ];
     }
 

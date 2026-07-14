@@ -32,6 +32,7 @@ try {
         $query = "SELECT l.*, u.nama as user_name 
                   FROM log_aktivitas l 
                   LEFT JOIN users u ON l.user_id = u.id 
+                  WHERE l.aktivitas NOT IN ('Exit Module', 'Demo Login', 'Logout', 'Login')
                   ORDER BY l.created_at DESC 
                   LIMIT 10";
         

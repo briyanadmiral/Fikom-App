@@ -17,19 +17,9 @@ if (!isset($_SESSION['logged_in'])) {
     exit;
 }
 
-if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/.env')) {
-    require_once __DIR__ . '/vendor/autoload.php';
-    if (class_exists('Dotenv\Dotenv')) {
-        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-        $dotenv->safeLoad();
-    }
-}
-$db_host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$db_user = $_ENV['DB_USERNAME'] ?? 'root';
-$db_pass = $_ENV['DB_PASSWORD'] ?? '';
-$db_name_inv = $_ENV['DB_DATABASE_INVENTORY'] ?? 'fike8938_fikom_inventory';
-
-$conn = mysqli_connect($db_host, $db_user, $db_pass, $db_name_inv);
+if (!defined('FIKOM_ROOT')) define('FIKOM_ROOT', __DIR__);
+require_once __DIR__ . '/db.php';
+$conn = fikom_db('inventory'); // DB: fike8938_fikom_inventory
 
 // Guard: Jika DB inventory tidak bisa diakses, tampilkan pesan error bukan HTTP 500
 if (!$conn) {
@@ -554,8 +544,7 @@ if ($data_inv) {
     }
 } else {
     // 2. LAPIS KEDUA: Tidak ketemu di Inventory, Cek di Database Utama (Tabel Dosen)
-    $db_name_app = $_ENV['DB_DATABASE_APP'] ?? 'fike8938_fikom_app';
-    $conn_main = mysqli_connect($db_host, $db_user, $db_pass, $db_name_app);
+    $conn_main = fikom_db('app'); // gunakan koneksi cached ke DB utama
     $query_dosen = "SELECT jurusan FROM dosen WHERE email = '$email' LIMIT 1";
     $result_dosen = mysqli_query($conn_main, $query_dosen);
     $data_dosen = mysqli_fetch_assoc($result_dosen);

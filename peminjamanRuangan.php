@@ -8,19 +8,9 @@ $email   = $_SESSION['user_email'];
 $role    = $_SESSION['role']; 
 $name    = $_SESSION['user_name'];
 
-if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/.env')) {
-    require_once __DIR__ . '/vendor/autoload.php';
-    if (class_exists('Dotenv\Dotenv')) {
-        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-        $dotenv->safeLoad();
-    }
-}
-$db_host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$db_user = $_ENV['DB_USERNAME'] ?? 'root';
-$db_pass = $_ENV['DB_PASSWORD'] ?? '';
-$db_name_ruang = $_ENV['DB_DATABASE_RUANG'] ?? 'fike8938_fikom_ruang';
-
-$koneksi_ruang = mysqli_connect($db_host, $db_user, $db_pass, $db_name_ruang);
+if (!defined('FIKOM_ROOT')) define('FIKOM_ROOT', __DIR__);
+require_once __DIR__ . '/db.php';
+$koneksi_ruang = fikom_db('ruang'); // DB: fike8938_fikom_ruang
 
 /* =================================================================================
    BAGIAN 1: LOGIKA KHUSUS SUPERADMIN (CRUD & MODE BUNGLON)

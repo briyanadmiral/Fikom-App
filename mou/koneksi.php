@@ -1,21 +1,21 @@
 <?php
-// Jika $_ENV belum dimuat (misalnya saat file ini dipanggil langsung)
-if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/../.env')) {
-    require_once __DIR__ . '/../vendor/autoload.php';
-    if (class_exists('Dotenv\Dotenv')) {
-        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
-        $dotenv->safeLoad();
-    }
+/**
+ * mou/koneksi.php — Koneksi database untuk modul MOU
+ * Menggunakan mysqli via fikom_db() dari db.php terpusat.
+ */
+
+if (!defined('FIKOM_ROOT')) {
+    define('FIKOM_ROOT', __DIR__ . '/..');
 }
 
-$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$user = $_ENV['DB_USERNAME'] ?? 'root';
-$pass = $_ENV['DB_PASSWORD'] ?? '';
-$db   = $_ENV['DB_DATABASE_MOU'] ?? 'fike8938_fikom_mou';
+require_once __DIR__ . '/../db.php';
 
-$conn = mysqli_connect($host, $user, $pass, $db);
+// Variabel $conn diarahkan ke database MOU
+$conn = fikom_db('mou');
 
-if (!$conn) {
-    die("Koneksi gagal: " . mysqli_connect_error());
-}
+// Alias variabel untuk kompatibilitas file-file lama di folder mou/
+$host = 'localhost';
+$user = 'fike8938_fikom_app';
+$pass = 'fikom#12345';
+$db   = 'fike8938_fikom_mou';
 ?>

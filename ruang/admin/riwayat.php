@@ -34,7 +34,7 @@ try {
                             WHERE 
                                 pp.status IN ('approved', 'rejected') 
                             ORDER BY 
-                                pp.created_at DESC");
+                                pp.updated_at DESC, pp.created_at DESC");
         $history_bookings = $stmt->fetchAll();
     } else {
         $error = 'Koneksi database tidak tersedia.';
@@ -77,6 +77,10 @@ try {
                 
                 <a href="riwayat.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'riwayat.php') ? 'active' : '' ?>">
                     <i class="bi bi-clock-history me-2"></i> Riwayat Pengajuan
+                </a>
+                
+                <a href="laporan.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'laporan.php') ? 'active' : '' ?>">
+                    <i class="bi bi-file-earmark-pdf me-2"></i> Laporan Peminjaman
                 </a>
 
                 <hr class="mx-3 opacity-25">
@@ -124,6 +128,7 @@ try {
                                 <div class="booking-details">
                                     <div class="detail-grid">
                                         <div><strong>Pemohon:</strong> <?php echo htmlspecialchars($booking['nama_peminjam']); ?></div>
+                                        <div><strong>WhatsApp:</strong> <?php echo !empty($booking['no_wa']) ? htmlspecialchars($booking['no_wa']) : '-'; ?></div>
                                         <div><strong>Ruangan:</strong> <?php echo htmlspecialchars($booking['nama_ruangan']); ?></div>
                                         <div><strong>Tanggal:</strong> <?php echo date('d/m/Y', strtotime($booking['tanggal_pinjam'])); ?></div>
                                         <div><strong>Waktu:</strong> <?php echo substr($booking['jam_mulai'], 0, 5) . ' - ' . substr($booking['jam_selesai'], 0, 5); ?></div>
@@ -154,6 +159,6 @@ try {
         </main>
     </div>
 
-    <script src="../assets/js/script.js"></script>
+    <script src="../assets/js/script.js?v=<?= time() ?>"></script>
 </body>
 </html>

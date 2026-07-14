@@ -73,7 +73,7 @@ function getBookings($db) {
                   FROM pengajuan_peminjaman pp 
                   JOIN users u ON pp.user_id = u.id 
                   JOIN ruangan r ON pp.ruangan_id = r.id 
-                  ORDER BY pp.created_at DESC";
+                  ORDER BY pp.updated_at DESC, pp.created_at DESC";
         $stmt = $db->prepare($query);
         $stmt->execute();
     } else {
@@ -81,7 +81,7 @@ function getBookings($db) {
                   FROM pengajuan_peminjaman pp 
                   JOIN ruangan r ON pp.ruangan_id = r.id 
                   WHERE pp.user_id = ? 
-                  ORDER BY pp.created_at DESC";
+                  ORDER BY pp.updated_at DESC, pp.created_at DESC";
         $stmt = $db->prepare($query);
         $stmt->execute([$_SESSION['user_id'] ?? 0]);
     }
@@ -104,7 +104,7 @@ function getUserBookings($db, $user_id) {
               FROM pengajuan_peminjaman pp 
               JOIN ruangan r ON pp.ruangan_id = r.id 
               WHERE pp.user_id = ? 
-              ORDER BY pp.created_at DESC";
+              ORDER BY pp.updated_at DESC, pp.created_at DESC";
     
     $stmt = $db->prepare($query);
     $stmt->execute([$target_user_id]);
@@ -156,7 +156,7 @@ function handlePost($db, $input) {
 }
 
 function createBooking($db, $input) {
-    $required_fields = ['ruangan_id', 'keperluan', 'tanggal_pinjam', 'jam_mulai', 'jam_selesai'];
+    $required_fields = ['ruangan_id', 'keperluan', 'tanggal_pinjam', 'jam_mulai', 'jam_selesai', 'no_wa'];
     
     foreach ($required_fields as $field) {
         if (!isset($input[$field]) || empty($input[$field])) {
@@ -186,8 +186,8 @@ function createBooking($db, $input) {
     
     try {
         $query = "INSERT INTO pengajuan_peminjaman 
-                  (user_id, ruangan_id, keperluan, deskripsi, tanggal_pinjam, jam_mulai, jam_selesai, jumlah_peserta) 
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                  (user_id, ruangan_id, keperluan, deskripsi, tanggal_pinjam, jam_mulai, jam_selesai, jumlah_peserta, no_wa) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $stmt = $db->prepare($query);
         $stmt->execute([
@@ -198,7 +198,8 @@ function createBooking($db, $input) {
             $input['tanggal_pinjam'],
             $input['jam_mulai'],
             $input['jam_selesai'],
-            $input['jumlah_peserta'] ?? null
+            $input['jumlah_peserta'] ?? null,
+            $input['no_wa']
         ]);
         
         $booking_id = $db->lastInsertId();
@@ -242,7 +243,7 @@ function updateBookingStatus($db, $input) {
     
     try {
         $query = "UPDATE pengajuan_peminjaman 
-                  SET status = ?, keterangan_admin = ?, approved_by = ?, approved_at = NOW() 
+                  SET status = ?, keterangan_admin = ?, approved_by = ?, approved_at = NOW(), updated_at = NOW() 
                   WHERE id = ?";
         
         $stmt = $db->prepare($query);

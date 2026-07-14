@@ -219,13 +219,14 @@ if ($user_info['is_admin'] || $user_info['is_users']) {
         <p><strong>Kegiatan:</strong> <span id="modal-title"></span></p>
         <p><strong>Tanggal:</strong> <span id="modal-date"></span></p>
         <p><strong>Jam:</strong> <span id="modal-time"></span></p>
+        <p><strong>Status:</strong> <span id="modal-status"></span></p>
       </div>
     </div>
   </div>
 
   <script src='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/main.min.js'></script>
   <script src='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/index.global.min.js'></script>
-  <script src="assets/js/script.js"></script>
+  <script src="assets/js/script.js?v=<?= time() ?>"></script>
 
   <script>
     // [BARU] Fungsi untuk menutup modal
@@ -302,6 +303,18 @@ if ($user_info['is_admin'] || $user_info['is_users']) {
             document.getElementById('modal-title').textContent = event.title;
             document.getElementById('modal-date').textContent = date;
             document.getElementById('modal-time').textContent = startTime + ' - ' + endTime;
+
+            var statusText = 'Mata Kuliah Tetap';
+            if (event.extendedProps.status) {
+              if (event.extendedProps.status === 'approved') {
+                statusText = 'Disetujui';
+              } else if (event.extendedProps.status === 'pending') {
+                statusText = 'Pending';
+              } else {
+                statusText = event.extendedProps.status;
+              }
+            }
+            document.getElementById('modal-status').textContent = statusText;
 
             document.getElementById('event-detail-modal').style.display = 'block';
           }

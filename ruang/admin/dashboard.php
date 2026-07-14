@@ -73,9 +73,7 @@ if ($db) {
                 
                 <a href="kelola-ruangan.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'kelola-ruangan.php') ? 'active' : '' ?>">
                     <i class="bi bi-building me-2"></i> Kelola Ruangan
-                    <?php if ($stats['pending_requests'] > 0): ?>
-                        <span class="badge"><?php echo $stats['pending_requests']; ?></span>
-                    <?php endif; ?>
+                    <span class="badge" id="nav-badge-pending-admin" style="<?= ($stats['pending_requests'] > 0) ? '' : 'display: none;' ?>"><?php echo $stats['pending_requests']; ?></span>
                 </a>
                 
                 <a href="lihat_jadwal.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'lihat_jadwal.php') ? 'active' : '' ?>">
@@ -84,6 +82,10 @@ if ($db) {
                 
                 <a href="riwayat.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'riwayat.php') ? 'active' : '' ?>">
                     <i class="bi bi-clock-history me-2"></i> Riwayat Pengajuan
+                </a>
+                
+                <a href="laporan.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'laporan.php') ? 'active' : '' ?>">
+                    <i class="bi bi-file-earmark-pdf me-2"></i> Laporan Peminjaman
                 </a>
 
                 <hr class="mx-3 opacity-25">
@@ -115,7 +117,7 @@ if ($db) {
                 <div class="stat-card orange">
                     <div class="stat-icon">⏳</div>
                     <div class="stat-content">
-                        <h3><?php echo $stats['pending_requests']; ?></h3>
+                        <h3 id="stat-pending-requests"><?php echo $stats['pending_requests']; ?></h3>
                         <p>Pending Requests</p>
                     </div>
                 </div>
@@ -160,7 +162,7 @@ if ($db) {
                     
                     <a href="kelola-ruangan.php" class="action-card">
                         <div class="action-icon">📈</div>
-                        <h3>Kelola Sistem</h3>
+                        <h3>Kelola Ruang</h3>
                         <p>Manajemen ruangan dan pengajuan</p>
                     </a>
                 </div>
@@ -182,6 +184,6 @@ if ($db) {
         </main>
     </div>
 
-    <script src="../assets/js/script.js"></script>
+    <script src="../assets/js/script.js?v=<?= time() ?>"></script>
 </body>
 </html>

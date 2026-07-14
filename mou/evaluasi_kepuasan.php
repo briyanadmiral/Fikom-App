@@ -1,33 +1,17 @@
 <?php
 session_start();
-if (!isset($_SESSION['logged_in'])) {
-    header('Location: login.php');
+if (!isset($_SESSION['mou_admin']) && !isset($_SESSION['mou_user'])) {
+    header("Location: ../mou.php");
     exit;
 }
 
-$role = $_SESSION['role'];
+$role = $_SESSION['role'] ?? '';
 if ($role !== 'dosen' && $role !== 'superadmin') {
-    header('Location: index.php');
+    header('Location: ../index.php');
     exit;
 }
 
-// Database Connection
-if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/.env')) {
-    require_once __DIR__ . '/vendor/autoload.php';
-    if (class_exists('Dotenv\Dotenv')) {
-        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-        $dotenv->safeLoad();
-    }
-}
-$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$user = $_ENV['DB_USERNAME'] ?? 'root';
-$pass = $_ENV['DB_PASSWORD'] ?? '';
-$db   = $_ENV['DB_DATABASE_MOU'] ?? 'fike8938_fikom_mou';
-
-$conn = mysqli_connect($host, $user, $pass, $db);
-if (!$conn) {
-    die("Koneksi database MOU gagal: " . mysqli_connect_error());
-}
+include 'koneksi.php';
 
 // helper: check if column exists
 function columnExists($conn, $table, $column) {
@@ -121,8 +105,6 @@ if ($hasDeletedOnPelaksanaan) $q_total_kegiatan .= " AND deleted_at IS NULL";
 $total_kegiatan = mysqli_fetch_row(mysqli_query($conn, $q_total_kegiatan))[0] ?? 0;
 $total_belum_terlaksana = max(0, $total_kegiatan - $total_terlaksana);
 
-
-
 // --- PAGINATION SETUP ---
 $limit_options = [5, 10, 25, 50, 100];
 $limit = isset($_GET['limit']) && in_array(intval($_GET['limit']), $limit_options) ? intval($_GET['limit']) : 10;
@@ -184,12 +166,11 @@ $result_table = mysqli_query($conn, $query_table);
 // Base URL detection for client forms (runs safely on both local and production server environment)
 $http_protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') ? "https" : "http";
 $domain = $_SERVER['HTTP_HOST'];
-// Get current folder path safely using SCRIPT_NAME to prevent query params from contaminating dirname
 $dir_path = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
 if ($dir_path === '/') {
     $dir_path = '';
 }
-$base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.php?id=";
+$base_url = $http_protocol . "://" . $domain . $dir_path . "/evaluasi_klien.php?id=";
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -233,12 +214,6 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
             line-height: 1.6;
         }
 
-        .dashboard-container {
-            max-width: 1300px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
-        }
-
         .glass-panel {
             background: var(--bg-card);
             backdrop-filter: var(--glass-blur);
@@ -246,53 +221,6 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
             border: 1px solid var(--border);
             box-shadow: var(--shadow);
             border-radius: 16px;
-        }
-
-        /* Top Navigation / Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            border-radius: 16px;
-            margin-bottom: 2rem;
-        }
-
-        .header .logo img {
-            height: 40px;
-            width: auto;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-        }
-
-        .btn-back {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            padding: 8px 16px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.4);
-            border: 1px solid var(--border);
-        }
-
-        .btn-back:hover {
-            color: var(--dark);
-            background: rgba(255, 255, 255, 0.7);
-            transform: translateX(-3px);
-        }
-
-        /* Title block */
-        .title-block {
-            margin-bottom: 2rem;
-        }
-
-        .title-block h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--dark);
         }
 
         /* Stats Cards */
@@ -497,261 +425,278 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
         .modal-footer {
             border-top: 1px solid var(--border);
         }
+        
+        /* Sidebar styling override to match MoU design */
+        .mou-sidebar {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid rgba(255, 255, 255, 0.7);
+        }
+        .mou-sidebar .nav-link {
+            color: var(--dark);
+            font-weight: 500;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+        }
+        .mou-sidebar .nav-link:hover, .mou-sidebar .nav-link.active {
+            background: var(--primary-soft);
+            color: var(--dark);
+        }
     </style>
 </head>
 <body>
 
-    <div class="dashboard-container">
-        <!-- Header -->
-        <header class="header glass-panel">
-            <div class="logo">
-                <img src="assets/img/fikom.png" alt="Logo Fikom">
-            </div>
-            <div>
-                <a href="index.php" class="btn-back">
-                    <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
-                </a>
-            </div>
-        </header>
-
-        <!-- Title Block -->
-        <div class="title-block">
-            <h1>Evaluasi Kepuasan Mitra & Klien</h1>
-            <p class="text-muted mb-0">Dashboard pemantauan kuesioner evaluasi kepuasan eksternal dari arsip MOU FIKOM UNIKA.</p>
-        </div>
-
-        <!-- Analisa Dashboard (Statistik) -->
-        <div class="row g-3 mb-4">
-            <!-- Jumlah Perusahaan -->
-            <div class="col-md-3">
-                <div class="stat-card glass-panel blue">
-                    <div class="stat-icon">
-                        <i class="fas fa-building"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h5>Total Perusahaan Mitra</h5>
-                        <div class="stat-number"><?= $total_perusahaan ?></div>
-                    </div>
-                </div>
-            </div>
+    <div class="container-fluid">
+        <div class="row min-vh-100">
+            <?php include 'sidebar.php'; ?>
             
-            <!-- Sudah Mengisi -->
-            <div class="col-md-3">
-                <div class="stat-card glass-panel green">
-                    <div class="stat-icon">
-                        <i class="fas fa-file-signature"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h5>Sudah Isi Evaluasi</h5>
-                        <div class="stat-number"><?= $total_sudah_isi ?> <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-muted);">perusahaan</span></div>
-                    </div>
+            <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+                
+                <!-- Title Block -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Evaluasi Kepuasan Mitra & Klien</h1>
                 </div>
-            </div>
-
-            <!-- Belum Mengisi -->
-            <div class="col-md-3">
-                <div class="stat-card glass-panel red">
-                    <div class="stat-icon">
-                        <i class="fas fa-hourglass-half"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h5>Belum Isi Evaluasi</h5>
-                        <div class="stat-number"><?= $total_belum_isi ?> <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-muted);">perusahaan</span></div>
-                    </div>
+                <div class="mb-4">
+                    <p class="text-muted mb-0">Dashboard pemantauan kuesioner evaluasi kepuasan eksternal dari arsip MOU FIKOM UNIKA.</p>
                 </div>
-            </div>
 
-            <!-- Status Kegiatan -->
-            <div class="col-md-3">
-                <div class="stat-card glass-panel orange">
-                    <div class="stat-icon">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h5>Kegiatan Terlaksana</h5>
-                        <div class="stat-number"><?= $total_terlaksana ?> / <?= $total_kegiatan ?></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4">
-            <!-- Main Table Card -->
-            <div class="col-lg-9">
-                <div class="card glass-panel border-0 p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h3 class="card-title h5 mb-0" style="font-weight: 700; color: var(--dark);"><i class="fas fa-list-check me-2"></i>Status Kuesioner Kegiatan</h3>
-                        <a href="evaluasi_analisis.php" class="btn btn-custom-action btn-sm"><i class="fas fa-chart-pie me-2 text-primary"></i>Lihat Analisis Kuesioner</a>
-                    </div>
-                    
-                    <!-- Filters -->
-                    <form method="GET" class="row g-2 mb-3">
-                        <input type="hidden" name="page" value="1">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <span class="input-group-text bg-transparent border-end-0" style="border: 1px solid var(--border);"><i class="fas fa-search text-muted"></i></span>
-                                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Cari Mitra atau Nama Kegiatan..." value="<?= htmlspecialchars($search) ?>">
+                <!-- Analisa Dashboard (Statistik) -->
+                <div class="row g-3 mb-4">
+                    <!-- Jumlah Perusahaan -->
+                    <div class="col-md-3">
+                        <div class="stat-card glass-panel blue">
+                            <div class="stat-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h5>Total Perusahaan Mitra</h5>
+                                <div class="stat-number"><?= $total_perusahaan ?></div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <select name="status" class="form-select">
-                                <option value="">Semua Status Pengisian</option>
-                                <option value="sudah" <?= $filter_status === 'sudah' ? 'selected' : '' ?>>Sudah Mengisi</option>
-                                <option value="belum" <?= $filter_status === 'belum' ? 'selected' : '' ?>>Belum Mengisi</option>
-                            </select>
+                    </div>
+                    
+                    <!-- Sudah Mengisi -->
+                    <div class="col-md-3">
+                        <div class="stat-card glass-panel green">
+                            <div class="stat-icon">
+                                <i class="fas fa-file-signature"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h5>Sudah Isi Evaluasi</h5>
+                                <div class="stat-number"><?= $total_sudah_isi ?> <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-muted);">perusahaan</span></div>
+                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <select name="limit" class="form-select" onchange="this.form.submit()">
-                                <?php foreach ($limit_options as $opt): ?>
-                                    <option value="<?= $opt ?>" <?= $limit == $opt ? 'selected' : '' ?>><?= $opt ?> data/hal</option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-3 d-flex gap-2">
-                            <button type="submit" class="btn btn-custom-action flex-grow-1"><i class="fas fa-filter me-2"></i>Filter</button>
-                            <a href="evaluasi_kepuasan.php" class="btn btn-custom-action"><i class="fas fa-rotate-left"></i></a>
-                        </div>
-                    </form>
-
-                    <!-- Table -->
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px;">No</th>
-                                    <th>Mitra / Perusahaan</th>
-                                    <th>Kegiatan</th>
-                                    <th>PIC</th>
-                                    <th style="width: 150px;">Status Kuesioner</th>
-                                    <th>Link Evaluasi Klien</th>
-                                    <th style="width: 120px;" class="text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php 
-                                $no = $offset + 1;
-                                while ($row = mysqli_fetch_assoc($result_table)): 
-                                    $id_pel = $row['id_pelaksanaan'];
-                                    $link_evaluasi = $base_url . $id_pel;
-                                ?>
-                                    <tr>
-                                        <td><?= $no++ ?></td>
-                                        <td>
-                                            <strong style="color: var(--dark);"><?= htmlspecialchars($row['pihak_2']) ?></strong>
-                                            <div style="font-size: 0.75rem; color: var(--text-muted);"><?= htmlspecialchars($row['nama_mou']) ?></div>
-                                        </td>
-                                        <td><?= htmlspecialchars($row['nama_pelaksanaan']) ?></td>
-                                        <td><span class="text-muted" style="font-size: 0.9rem;"><?= htmlspecialchars($row['pic_kegiatan']) ?></span></td>
-                                        <td>
-                                            <?php if ($row['sudah_mengisi'] > 0): ?>
-                                                <span class="badge-custom badge-success-custom">
-                                                    <i class="fas fa-check-circle"></i> Sudah Mengisi
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="badge-custom badge-danger-custom">
-                                                    <i class="fas fa-times-circle"></i> Belum Mengisi
-                                                </span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <div class="input-group copy-input-group">
-                                                <input type="text" class="form-control form-control-sm text-truncate bg-white" id="link-<?= $id_pel ?>" value="<?= $link_evaluasi ?>" readonly style="font-size: 0.8rem;">
-                                                <button class="btn btn-copy btn-sm" type="button" onclick="copyLink(<?= $id_pel ?>)" title="Salin Link">
-                                                    <i class="fas fa-copy"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            <?php if ($row['sudah_mengisi'] > 0): ?>
-                                                <button class="btn btn-custom-action btn-sm" onclick="showEvaluationDetails(<?= $id_pel ?>, '<?= htmlspecialchars(addslashes($row['pihak_2'])) ?>', '<?= htmlspecialchars(addslashes($row['nama_pelaksanaan'])) ?>')">
-                                                    <i class="fas fa-eye me-1"></i> Detail
-                                                </button>
-                                            <?php else: ?>
-                                                <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5;">
-                                                    <i class="fas fa-eye-slash me-1"></i> Detail
-                                                </button>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endwhile; ?>
-                                <?php if (mysqli_num_rows($result_table) === 0): ?>
-                                    <tr>
-                                        <td colspan="7" class="text-center text-muted py-4">Tidak ada data evaluasi kegiatan yang ditemukan.</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
                     </div>
 
-                    <!-- Pagination -->
-                    <?php if ($total_pages > 1): ?>
-                        <nav class="mt-3">
-                            <ul class="pagination justify-content-center mb-0">
-                                <?php
-                                $qs = [];
-                                if ($search !== '') $qs['search'] = $search;
-                                if ($filter_status !== '') $qs['status'] = $filter_status;
-                                $qs['limit'] = $limit;
-                                $base_qs = http_build_query($qs);
-                                ?>
-                                <?php if ($page > 1): ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page=<?= $page - 1 ?>&<?= $base_qs ?>" aria-label="Previous">
-                                            <span aria-hidden="true">&laquo;</span>
-                                        </a>
-                                    </li>
-                                <?php else: ?>
-                                    <li class="page-item disabled">
-                                        <span class="page-link" aria-hidden="true">&laquo;</span>
-                                    </li>
-                                <?php endif; ?>
-                                
-                                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                    <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
-                                        <a class="page-link" href="?page=<?= $i ?>&<?= $base_qs ?>"><?= $i ?></a>
-                                    </li>
-                                <?php endfor; ?>
-                                
-                                <?php if ($page < $total_pages): ?>
-                                    <li class="page-item">
-                                        <a class="page-link" href="?page=<?= $page + 1 ?>&<?= $base_qs ?>" aria-label="Next">
-                                            <span aria-hidden="true">&raquo;</span>
-                                        </a>
-                                    </li>
-                                <?php else: ?>
-                                    <li class="page-item disabled">
-                                        <span class="page-link" aria-hidden="true">&raquo;</span>
-                                    </li>
-                                <?php endif; ?>
-                            </ul>
-                        </nav>
-                    <?php endif; ?>
-                </div>
-            </div>
+                    <!-- Belum Mengisi -->
+                    <div class="col-md-3">
+                        <div class="stat-card glass-panel red">
+                            <div class="stat-icon">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h5>Belum Isi Evaluasi</h5>
+                                <div class="stat-number"><?= $total_belum_isi ?> <span style="font-size: 0.9rem; font-weight: normal; color: var(--text-muted);">perusahaan</span></div>
+                            </div>
+                        </div>
+                    </div>
 
-            <!-- Sidebar / Who has not filled yet card -->
-            <div class="col-lg-3">
-                <div class="card glass-panel border-0 p-4 h-100">
-                    <h3 class="card-title h5 mb-3" style="font-weight: 700; color: var(--dark);"><i class="fas fa-exclamation-triangle text-warning me-2"></i>Belum Mengisi</h3>
-                    <p class="text-muted" style="font-size: 0.85rem;">Berikut adalah mitra yang belum mengisi kuesioner evaluasi kepuasan untuk kegiatannya:</p>
-                    
-                    <div class="list-group list-group-flush border-0 bg-transparent overflow-auto" style="max-height: 400px;">
-                        <?php if (count($list_belum) > 0): ?>
-                            <?php foreach ($list_belum as $mitra): ?>
-                                <div class="list-group-item bg-transparent border-0 px-0 py-2 d-flex align-items-center gap-2">
-                                    <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--danger); display: inline-block; flex-shrink:0;"></span>
-                                    <span style="font-size: 0.9rem; font-weight: 500; color: var(--dark);"><?= htmlspecialchars($mitra) ?></span>
+                    <!-- Status Kegiatan -->
+                    <div class="col-md-3">
+                        <div class="stat-card glass-panel orange">
+                            <div class="stat-icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h5>Kegiatan Terlaksana</h5>
+                                <div class="stat-number"><?= $total_terlaksana ?> / <?= $total_kegiatan ?></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Main Table Card -->
+                    <div class="col-lg-9">
+                        <div class="card glass-panel border-0 p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h3 class="card-title h5 mb-0" style="font-weight: 700; color: var(--dark);"><i class="fas fa-list-check me-2"></i>Status Kuesioner Kegiatan</h3>
+                                <a href="evaluasi_analisis.php" class="btn btn-custom-action btn-sm"><i class="fas fa-chart-pie me-2 text-primary"></i>Lihat Analisis Kuesioner</a>
+                            </div>
+                            
+                            <!-- Filters -->
+                            <form method="GET" class="row g-2 mb-3">
+                                <input type="hidden" name="page" value="1">
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent border-end-0" style="border: 1px solid var(--border);"><i class="fas fa-search text-muted"></i></span>
+                                        <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Cari Mitra atau Nama Kegiatan..." value="<?= htmlspecialchars($search) ?>">
+                                    </div>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <div class="text-center text-muted py-4" style="font-size: 0.85rem;">
-                                <i class="fas fa-check-double text-success d-block fs-3 mb-2"></i>
-                                Semua mitra sudah mengisi kuesioner!
+                                <div class="col-md-3">
+                                    <select name="status" class="form-select">
+                                        <option value="">Semua Status Pengisian</option>
+                                        <option value="sudah" <?= $filter_status === 'sudah' ? 'selected' : '' ?>>Sudah Mengisi</option>
+                                        <option value="belum" <?= $filter_status === 'belum' ? 'selected' : '' ?>>Belum Mengisi</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <select name="limit" class="form-select" onchange="this.form.submit()">
+                                        <?php foreach ($limit_options as $opt): ?>
+                                            <option value="<?= $opt ?>" <?= $limit == $opt ? 'selected' : '' ?>><?= $opt ?> data/hal</option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 d-flex gap-2">
+                                    <button type="submit" class="btn btn-custom-action flex-grow-1"><i class="fas fa-filter me-2"></i>Filter</button>
+                                    <a href="evaluasi_kepuasan.php" class="btn btn-custom-action"><i class="fas fa-rotate-left"></i></a>
+                                </div>
+                            </form>
+
+                            <!-- Table -->
+                            <div class="table-responsive">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50px;">No</th>
+                                            <th>Mitra / Perusahaan</th>
+                                            <th>Kegiatan</th>
+                                            <th>PIC</th>
+                                            <th style="width: 150px;">Status Kuesioner</th>
+                                            <th>Link Evaluasi Klien</th>
+                                            <th style="width: 120px;" class="text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php 
+                                        $no = $offset + 1;
+                                        while ($row = mysqli_fetch_assoc($result_table)): 
+                                            $id_pel = $row['id_pelaksanaan'];
+                                            $link_evaluasi = $base_url . $id_pel;
+                                        ?>
+                                            <tr>
+                                                <td><?= $no++ ?></td>
+                                                <td>
+                                                    <strong style="color: var(--dark);"><?= htmlspecialchars($row['pihak_2']) ?></strong>
+                                                    <div style="font-size: 0.75rem; color: var(--text-muted);"><?= htmlspecialchars($row['nama_mou']) ?></div>
+                                                </td>
+                                                <td><?= htmlspecialchars($row['nama_pelaksanaan']) ?></td>
+                                                <td><span class="text-muted" style="font-size: 0.9rem;"><?= htmlspecialchars($row['pic_kegiatan']) ?></span></td>
+                                                <td>
+                                                    <?php if ($row['sudah_mengisi'] > 0): ?>
+                                                        <span class="badge-custom badge-success-custom">
+                                                            <i class="fas fa-check-circle"></i> Sudah Mengisi
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span class="badge-custom badge-danger-custom">
+                                                            <i class="fas fa-times-circle"></i> Belum Mengisi
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <div class="input-group copy-input-group">
+                                                        <input type="text" class="form-control form-control-sm text-truncate bg-white" id="link-<?= $id_pel ?>" value="<?= $link_evaluasi ?>" readonly style="font-size: 0.8rem;">
+                                                        <button class="btn btn-copy btn-sm" type="button" onclick="copyLink(<?= $id_pel ?>)" title="Salin Link">
+                                                            <i class="fas fa-copy"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <?php if ($row['sudah_mengisi'] > 0): ?>
+                                                        <button class="btn btn-custom-action btn-sm" onclick="showEvaluationDetails(<?= $id_pel ?>, '<?= htmlspecialchars(addslashes($row['pihak_2'])) ?>', '<?= htmlspecialchars(addslashes($row['nama_pelaksanaan'])) ?>')">
+                                                            <i class="fas fa-eye me-1"></i> Detail
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5;">
+                                                            <i class="fas fa-eye-slash me-1"></i> Detail
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endwhile; ?>
+                                        <?php if (mysqli_num_rows($result_table) === 0): ?>
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted py-4">Tidak ada data evaluasi kegiatan yang ditemukan.</td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
                             </div>
-                        <?php endif; ?>
+
+                            <!-- Pagination -->
+                            <?php if ($total_pages > 1): ?>
+                                <nav class="mt-3">
+                                    <ul class="pagination justify-content-center mb-0">
+                                        <?php
+                                        $qs = [];
+                                        if ($search !== '') $qs['search'] = $search;
+                                        if ($filter_status !== '') $qs['status'] = $filter_status;
+                                        $qs['limit'] = $limit;
+                                        $base_qs = http_build_query($qs);
+                                        ?>
+                                        <?php if ($page > 1): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page=<?= $page - 1 ?>&<?= $base_qs ?>" aria-label="Previous">
+                                                    <span aria-hidden="true">&laquo;</span>
+                                                </a>
+                                            </li>
+                                        <?php else: ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link" aria-hidden="true">&laquo;</span>
+                                            </li>
+                                        <?php endif; ?>
+                                        
+                                        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                            <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
+                                                <a class="page-link" href="?page=<?= $i ?>&<?= $base_qs ?>"><?= $i ?></a>
+                                            </li>
+                                        <?php endfor; ?>
+                                        
+                                        <?php if ($page < $total_pages): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page=<?= $page + 1 ?>&<?= $base_qs ?>" aria-label="Next">
+                                                    <span aria-hidden="true">&raquo;</span>
+                                                </a>
+                                            </li>
+                                        <?php else: ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link" aria-hidden="true">&raquo;</span>
+                                            </li>
+                                        <?php endif; ?>
+                                    </ul>
+                                </nav>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar / Who has not filled yet card -->
+                    <div class="col-lg-3">
+                        <div class="card glass-panel border-0 p-4 h-100">
+                            <h3 class="card-title h5 mb-3" style="font-weight: 700; color: var(--dark);"><i class="fas fa-exclamation-triangle text-warning me-2"></i>Belum Mengisi</h3>
+                            <p class="text-muted" style="font-size: 0.85rem;">Berikut adalah mitra yang belum mengisi kuesioner evaluasi kepuasan untuk kegiatannya:</p>
+                            
+                            <div class="list-group list-group-flush border-0 bg-transparent overflow-auto" style="max-height: 400px;">
+                                <?php if (count($list_belum) > 0): ?>
+                                    <?php foreach ($list_belum as $mitra): ?>
+                                        <div class="list-group-item bg-transparent border-0 px-0 py-2 d-flex align-items-center gap-2">
+                                            <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--danger); display: inline-block; flex-shrink:0;"></span>
+                                            <span style="font-size: 0.9rem; font-weight: 500; color: var(--dark);"><?= htmlspecialchars($mitra) ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="text-center text-muted py-4" style="font-size: 0.85rem;">
+                                        <i class="fas fa-check-double text-success d-block fs-3 mb-2"></i>
+                                        Semua mitra sudah mengisi kuesioner!
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+                
+            </main>
         </div>
     </div>
 
@@ -798,59 +743,54 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/mou/evaluasi_klien.
         function copyLink(id) {
             const copyText = document.getElementById("link-" + id);
             copyText.select();
-            copyText.setSelectionRange(0, 99999); // For mobile devices
+            copyText.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(copyText.value);
-
-            // Change tooltip or icon state briefly
+            
             const btn = copyText.nextElementSibling;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check text-success"></i>';
-            btn.setAttribute('title', 'Tersalin!');
+            const icon = btn.querySelector('i');
+            icon.className = 'fas fa-check text-success';
+            btn.title = 'Tautan Disalin!';
             
             setTimeout(() => {
-                btn.innerHTML = originalHTML;
-                btn.setAttribute('title', 'Salin Link');
+                icon.className = 'fas fa-copy';
+                btn.title = 'Salin Link';
             }, 2000);
         }
 
-        function showEvaluationDetails(id, perusahaan, kegiatan) {
-            document.getElementById('modal-subtitle').innerText = perusahaan + ' - ' + kegiatan;
+        function showEvaluationDetails(id_pel, mitraName, kegiatanName) {
+            document.getElementById('modal-subtitle').innerText = `${mitraName} - ${kegiatanName}`;
             const tableBody = document.getElementById('modal-table-body');
-            tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Mengambil data...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Memuat...</td></tr>';
             
-            // Open modal first
-            const myModal = new bootstrap.Modal(document.getElementById('detailModal'));
-            myModal.show();
+            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+            modal.show();
 
-            // Fetch data
-            fetch('evaluasi_kepuasan.php?ajax_detail_id=' + id)
-                .then(response => response.json())
+            fetch(`evaluasi_kepuasan.php?ajax_detail_id=${id_pel}`)
+                .then(res => res.json())
                 .then(data => {
                     tableBody.innerHTML = '';
                     if (data.length === 0) {
-                        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Belum ada evaluasi tersimpan.</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Belum ada evaluasi untuk kegiatan ini.</td></tr>';
                         return;
                     }
-                    
                     data.forEach((row, idx) => {
-                        let buktiLink = '<span class="text-muted">Tidak ada</span>';
+                        let buktiLink = '-';
                         if (row.bukti) {
-                            // Link is relative to mou folder
-                            buktiLink = `<a href="mou/${row.bukti}" target="_blank" class="btn btn-link btn-sm p-0"><i class="fas fa-file-arrow-down me-1"></i>Lihat Bukti</a>`;
+                            buktiLink = `<a href="uploads/${row.bukti}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-download"></i> Unduh</a>`;
                         }
                         
                         let evalContent = '';
                         if (row.q1) {
                             evalContent = `
-                                <div class="mb-2" style="font-size: 0.85rem; line-height: 1.4;">
-                                    <div class="fw-bold text-dark">1. Penilaian Jalannya Program:</div>
+                                <div class="mb-2 pb-2 border-bottom" style="font-size: 0.85rem; line-height: 1.4;">
+                                    <div class="fw-bold text-dark">1. Penilaian Keseluruhan Jalannya Kerja Sama:</div>
                                     <div class="text-muted">${row.q1}</div>
                                 </div>
-                                <div class="mb-2" style="font-size: 0.85rem; line-height: 1.4;">
+                                <div class="mb-2 pb-2 border-bottom" style="font-size: 0.85rem; line-height: 1.4;">
                                     <div class="fw-bold text-dark">2. Komunikasi & Pelayanan Administrasi:</div>
                                     <div class="text-muted">${row.q2}</div>
                                 </div>
-                                <div class="mb-2" style="font-size: 0.85rem; line-height: 1.4;">
+                                <div class="mb-2 pb-2 border-bottom" style="font-size: 0.85rem; line-height: 1.4;">
                                     <div class="fw-bold text-dark">3. Dampak Positif bagi Mitra:</div>
                                     <div class="text-muted">${row.q3}</div>
                                 </div>

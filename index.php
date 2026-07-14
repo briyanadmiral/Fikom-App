@@ -366,11 +366,6 @@ $status_peminjaman = [
                     <i class="fas fa-file-contract"></i>
                     <h3>Arsip MOU</h3>
                 </a>
-
-                <a href="evaluasi_kepuasan.php" class="action-card">
-                    <i class="fas fa-square-poll-vertical"></i>
-                    <h3>Evaluasi Kepuasan</h3>
-                </a>
                 <?php
             endif; ?>
         </div>

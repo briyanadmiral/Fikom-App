@@ -7,19 +7,9 @@ if(!isset($_SESSION['logged_in'])){
 }
 
 // Koneksi ke Database Utama (FIKOMAPP)
-if (!isset($_ENV['DB_HOST']) && file_exists(__DIR__ . '/.env')) {
-    require_once __DIR__ . '/vendor/autoload.php';
-    if (class_exists('Dotenv\Dotenv')) {
-        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-        $dotenv->safeLoad();
-    }
-}
-$db_host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$db_user = $_ENV['DB_USERNAME'] ?? 'root';
-$db_pass = $_ENV['DB_PASSWORD'] ?? '';
-$db_name = $_ENV['DB_DATABASE_APP'] ?? 'fike8938_fikom_app';
-
-$conn = mysqli_connect($db_host, $db_user, $db_pass, $db_name);
+if (!defined('FIKOM_ROOT')) define('FIKOM_ROOT', __DIR__);
+require_once __DIR__ . '/db.php';
+$conn = fikom_db('app'); // DB: fike8938_fikom_app
 
 $email       = $_SESSION['user_email'];
 $role_global = $_SESSION['role']; 

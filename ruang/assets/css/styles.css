@@ -1321,3 +1321,126 @@ body {
 .d-block { display: block; }
 .d-flex { display: flex; }
 .d-grid { display: grid; }
+
+/* =============================================================================
+   SHARED TABLE STYLES
+   ============================================================================= */
+.rooms-table-wrapper {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.7);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+.rooms-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.95rem;
+}
+.rooms-table th {
+    background: rgba(255, 255, 255, 0.5);
+    color: #333;
+    font-weight: 600;
+    padding: 15px;
+    border-bottom: 2px solid rgba(255,255,255,0.7);
+}
+.rooms-table td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+    color: #333;
+    vertical-align: middle;
+}
+.rooms-table tr:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+.rooms-table .actions-cell {
+    white-space: nowrap;
+}
+.facility-tag {
+    display: inline-block;
+    background: rgba(138, 156, 204, 0.2);
+    color: #3b4e78;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin: 2px;
+}
+
+/* =============================================================================
+   PRINT STYLES FOR REPORTS
+   ============================================================================= */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt !important;
+    }
+    
+    .sidebar,
+    .top-bar,
+    .report-filter-card,
+    .btn,
+    hr,
+    .logo,
+    .user-info,
+    .alert {
+        display: none !important;
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    
+    .section-card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    
+    .report-table-wrapper {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        overflow: visible !important;
+    }
+    
+    .report-table {
+        border: 1px solid #111111 !important;
+        width: 100% !important;
+    }
+    
+    .report-table th, 
+    .report-table td {
+        border: 1px solid #111111 !important;
+        padding: 8px !important;
+        color: #000000 !important;
+    }
+    
+    .report-table th {
+        background-color: #eaeaea !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .status-badge {
+        background: transparent !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        font-weight: bold !important;
+        border: none !important;
+    }
+    
+    @page {
+        size: landscape;
+        margin: 1.5cm;
+    }
+}

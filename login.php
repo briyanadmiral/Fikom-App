@@ -44,15 +44,12 @@ if (isset($_POST['credential'])) {
     try {
         // Nonaktifkan exception mysqli agar tidak crash jika DB error
         mysqli_report(MYSQLI_REPORT_OFF);
-        require_once __DIR__ . '/config.php'; // pastikan .env sudah dimuat
-        $db_host = $_ENV['DB_HOST'] ?? 'localhost';
-        $db_user = $_ENV['DB_USERNAME'] ?? 'root';
-        $db_pass = $_ENV['DB_PASSWORD'] ?? '';
-        $db_name = $_ENV['DB_DATABASE_APP'] ?? 'fike8938_fikom_app';
-        $conn = mysqli_connect($db_host, $db_user, $db_pass, $db_name);
+        if (!defined('FIKOM_ROOT')) define('FIKOM_ROOT', __DIR__);
+        require_once __DIR__ . '/db.php';
+        $conn = fikom_db('app');
         if (!$conn) {
             // Catat error DB tapi jangan hentikan alur login
-            error_log("[FIKOM LOGIN] DB connection failed: " . mysqli_connect_error());
+            error_log("[FIKOM LOGIN] DB connection failed (app)");
         }
     } catch (Throwable $db_err) {
         error_log("[FIKOM LOGIN] DB exception: " . $db_err->getMessage());
@@ -78,11 +75,7 @@ if (isset($_POST['credential'])) {
         $is_registered_ruang = false;
         $ruang_user_role = null;
         if ($conn) {
-            $db_host = $_ENV['DB_HOST'] ?? 'localhost';
-            $db_user = $_ENV['DB_USERNAME'] ?? 'root';
-            $db_pass = $_ENV['DB_PASSWORD'] ?? '';
-            $db_name_ruang = $_ENV['DB_DATABASE_RUANG'] ?? 'fike8938_fikom_ruang';
-            $conn_ruang = mysqli_connect($db_host, $db_user, $db_pass, $db_name_ruang);
+            $conn_ruang = fikom_db('ruang'); // koneksi cached ke DB ruang
             if ($conn_ruang) {
                 $email_escaped = mysqli_real_escape_string($conn_ruang, $email);
                 $check_ruang = mysqli_query($conn_ruang, "SELECT * FROM users WHERE email = '$email_escaped' AND status = 'active' LIMIT 1");
@@ -91,7 +84,6 @@ if (isset($_POST['credential'])) {
                     $ruang_user = mysqli_fetch_assoc($check_ruang);
                     $ruang_user_role = $ruang_user['role'];
                 }
-                mysqli_close($conn_ruang);
             }
         }
 
@@ -99,11 +91,7 @@ if (isset($_POST['credential'])) {
         $is_registered_inventory = false;
         $inventory_user_role = null;
         if ($conn) {
-            $db_host = $_ENV['DB_HOST'] ?? 'localhost';
-            $db_user = $_ENV['DB_USERNAME'] ?? 'root';
-            $db_pass = $_ENV['DB_PASSWORD'] ?? '';
-            $db_name_inventory = $_ENV['DB_DATABASE_INVENTORY'] ?? 'fike8938_fikom_inventory';
-            $conn_inventory = mysqli_connect($db_host, $db_user, $db_pass, $db_name_inventory);
+            $conn_inventory = fikom_db('inventory'); // koneksi cached ke DB inventory
             if ($conn_inventory) {
                 $email_escaped = mysqli_real_escape_string($conn_inventory, $email);
                 $check_inventory = mysqli_query($conn_inventory, "SELECT * FROM users WHERE email = '$email_escaped' LIMIT 1");
@@ -112,7 +100,6 @@ if (isset($_POST['credential'])) {
                     $inventory_user = mysqli_fetch_assoc($check_inventory);
                     $inventory_user_role = $inventory_user['role'];
                 }
-                mysqli_close($conn_inventory);
             }
         }
 
@@ -129,18 +116,13 @@ if (isset($_POST['credential'])) {
         // Cek apakah email ini terdaftar di database surat (pengguna)
         $is_registered_surat = false;
         if ($conn) {
-            $db_host = $_ENV['DB_HOST'] ?? 'localhost';
-            $db_user = $_ENV['DB_USERNAME'] ?? 'root';
-            $db_pass = $_ENV['DB_PASSWORD'] ?? '';
-            $db_name_surat = $_ENV['DB_DATABASE_SURAT'] ?? 'fike8938_fikom_surat';
-            $conn_surat = mysqli_connect($db_host, $db_user, $db_pass, $db_name_surat);
+            $conn_surat = fikom_db('surat'); // koneksi cached ke DB surat
             if ($conn_surat) {
                 $email_escaped = mysqli_real_escape_string($conn_surat, $email);
                 $check_surat = mysqli_query($conn_surat, "SELECT * FROM pengguna WHERE email = '$email_escaped' AND deleted_at IS NULL LIMIT 1");
                 if ($check_surat && mysqli_num_rows($check_surat) > 0) {
                     $is_registered_surat = true;
                 }
-                mysqli_close($conn_surat);
             }
         }
 

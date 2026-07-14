@@ -36,6 +36,11 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin') {
       <i class="bi bi-play-circle me-2"></i> Pelaksanaan
     </a>
     <?php endif; ?>
+    <?php if (isset($_SESSION['role']) && ($_SESSION['role'] === 'dosen' || $_SESSION['role'] === 'superadmin')): ?>
+    <a href="evaluasi_kepuasan.php" class="nav-link <?= (in_array(basename($_SERVER['PHP_SELF']), ['evaluasi_kepuasan.php', 'evaluasi_analisis.php'])) ? 'active' : '' ?>">
+      <i class="bi bi-patch-check me-2"></i> Evaluasi Kepuasan
+    </a>
+    <?php endif; ?>
 
     <hr class="my-3 border-secondary opacity-25">
 
