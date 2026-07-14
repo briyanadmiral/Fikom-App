@@ -25,12 +25,25 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Redirect unauthenticated guests to the main bridge login
         $middleware->redirectTo(
-            guests: function() {
-                return 'http://localhost/fikomapp/index.php';
+            guests: function($request) {
+                throw new \Exception("GUEST REDIRECT TRIGGERED FOR: " . $request->fullUrl());
+                $base = $request->getSchemeAndHttpHost() . $request->getBaseUrl();
+                $pos = strpos($base, '/surat_siega/public');
+                $main_url = ($pos !== false) ? substr($base, 0, $pos) : $base;
+                return $main_url . '/index.php';
             }
         );
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->report(function (\Throwable $e) {
+            $log_file = storage_path('logs/surat_debug_laravel.log');
+            $log_data = "=========================================\n";
+            $log_data .= "TIME: " . date('Y-m-d H:i:s') . "\n";
+            $log_data .= "URL: " . request()->fullUrl() . "\n";
+            $log_data .= "EXCEPTION: " . $e->getMessage() . "\n";
+            $log_data .= "FILE: " . $e->getFile() . " (Line " . $e->getLine() . ")\n";
+            $log_data .= "TRACE: " . $e->getTraceAsString() . "\n";
+            file_put_contents($log_file, $log_data, FILE_APPEND);
+        });
     })
     ->create();

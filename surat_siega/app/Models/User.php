@@ -23,7 +23,7 @@ class User extends Authenticatable
     /**
      * Atribut yang dapat diisi mass-assignment.
      */
-    protected $fillable = ['email', 'sandi_hash', 'nama_lengkap', 'npp', 'jabatan', 'peran_id', 'status', 'last_activity', 'foto_path'];
+    protected $fillable = ['email', 'sandi_hash', 'nama_lengkap', 'npp', 'jabatan', 'peran_id', 'status', 'last_activity', 'foto_path', 'nim', 'whatsapp', 'approval_status'];
 
     /**
      * Guarded protection.
@@ -204,7 +204,7 @@ class User extends Authenticatable
      */
     public function getRoleNameAttribute(): string
     {
-        if ($this->peran) {
+        if ($this->relationLoaded('peran') && $this->peran) {
             return $this->peran->nama;
         }
 
@@ -503,11 +503,26 @@ class User extends Authenticatable
             }
         });
 
-        // Prevent deletion of admin
+        // Prevent deletion of admin and free unique constraints
         static::deleting(function ($model) {
             if ($model->isAdmin()) {
                 throw new \RuntimeException('User admin tidak dapat dihapus');
             }
+
+            $suffix = '.deleted.' . time();
+            $email = $model->email . $suffix;
+            $npp = $model->npp ? $model->npp . $suffix : null;
+
+            // Direct update to database to bypass mass assignment and save instantly
+            \DB::table($model->getTable())
+                ->where($model->getKeyName(), $model->getKey())
+                ->update([
+                    'email' => $email,
+                    'npp' => $npp,
+                ]);
+
+            $model->email = $email;
+            $model->npp = $npp;
         });
     }
 }

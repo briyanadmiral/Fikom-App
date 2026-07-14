@@ -27,18 +27,29 @@
 @endphp
 
 <div class="container-fluid py-3">
-  @include('surat_keputusan.partials._core', [
-    'context'      => $context,
-    'keputusan'    => $keputusan,
-    'kop'          => $kop ?? null,
-    // preferensi ukuran/opacity
-    'ttdW'         => $ttdW,
-    'capW'         => $capW,
-    'capOpacity'   => $capOpacity,
-    // aset gambar
-    'ttdImageB64'  => $ttdImageB64,
-    'capImageB64'  => $capImageB64,
-    // kontrol visibilitas
-    'showSigns'    => $showSigns,
-  ])
+  @if ($keputusan && $keputusan->signed_pdf_path && Storage::disk('local')->exists($keputusan->signed_pdf_path))
+    @php
+      $friendlyName = 'SuratKeputusan_' . (preg_replace('/[^a-zA-Z0-9_-]/', '_', $keputusan->nomor) ?? 'TanpaNomor') . '.pdf';
+      $downloadUrl = route('surat_keputusan.downloadPdf', [$keputusan->id, $friendlyName]);
+    @endphp
+    <div style="height: 750px;">
+        <iframe src="{{ $downloadUrl }}?t={{ time() }}" class="w-100 h-100" style="border: none;"></iframe>
+    </div>
+  @else
+    @include('surat_keputusan.partials._core', [
+      'context'      => $context,
+      'keputusan'    => $keputusan,
+      'kop'          => $kop ?? null,
+      // preferensi ukuran/opacity
+      'ttdW'         => $ttdW,
+      'capW'         => $capW,
+      'capOpacity'   => $capOpacity,
+      // aset gambar
+      'ttdImageB64'  => $ttdImageB64,
+      'capImageB64'  => $capImageB64,
+      // kontrol visibilitas
+      'showSigns'    => $showSigns,
+      'showNamaPenandatangan' => $showNamaPenandatangan ?? true,
+    ])
+  @endif
 </div>

@@ -187,23 +187,34 @@
     <div class="row">
         {{-- KIRI: PREVIEW DOKUMEN --}}
         <div class="col-lg-8">
-            <div id="preview-canvas">
-                <div id="preview-document">
-                    @include('surat_keputusan.partials._core', [
-                        'context' => 'web',
-                        'keputusan' => $keputusan,
-                        'kop' => $kop ?? null,
-                        // preferensi ukuran/opacity (opsional; fallback di _core)
-                        'ttdW' => $ttdW ?? ($preview['ttd_w_mm'] ?? null),
-                        'capW' => $capW ?? ($preview['cap_w_mm'] ?? null),
-                        'capOpacity' => $capOpacity ?? ($preview['cap_opacity'] ?? null),
-                        // aset TTD/Cap hanya bila boleh tampil
-                        'ttdImageB64' => $showSigns ? ($ttdImageB64 ?? ($preview['ttd_image_b64'] ?? null)) : null,
-                        'capImageB64' => $showSigns ? ($capImageB64 ?? ($preview['cap_image_b64'] ?? null)) : null,
-                        'showSigns' => $showSigns,
-                    ])
+            @if ($keputusan->signed_pdf_path && \Storage::disk('local')->exists($keputusan->signed_pdf_path))
+                <div id="preview-canvas" style="padding: 0; overflow: hidden; background: none;">
+                    <div class="w-100" style="height: 800px;">
+                        @php
+                            $friendlyName = 'SuratKeputusan_' . (preg_replace('/[^a-zA-Z0-9_-]/', '_', $keputusan->nomor) ?? 'TanpaNomor') . '.pdf';
+                        @endphp
+                        <iframe src="{{ route('surat_keputusan.downloadPdf', [$keputusan->id, $friendlyName]) }}?t={{ time() }}" class="w-100 h-100" style="border: none; border-radius: .8rem; box-shadow: 0 5px 25px rgba(0, 0, 0, .1);"></iframe>
+                    </div>
                 </div>
-            </div>
+            @else
+                <div id="preview-canvas">
+                    <div id="preview-document">
+                        @include('surat_keputusan.partials._core', [
+                            'context' => 'web',
+                            'keputusan' => $keputusan,
+                            'kop' => $kop ?? null,
+                            // preferensi ukuran/opacity (opsional; fallback di _core)
+                            'ttdW' => $ttdW ?? ($preview['ttd_w_mm'] ?? null),
+                            'capW' => $capW ?? ($preview['cap_w_mm'] ?? null),
+                            'capOpacity' => $capOpacity ?? ($preview['cap_opacity'] ?? null),
+                            // aset TTD/Cap hanya bila boleh tampil
+                            'ttdImageB64' => $showSigns ? ($ttdImageB64 ?? ($preview['ttd_image_b64'] ?? null)) : null,
+                            'capImageB64' => $showSigns ? ($capImageB64 ?? ($preview['cap_image_b64'] ?? null)) : null,
+                            'showSigns' => $showSigns,
+                        ])
+                    </div>
+                </div>
+            @endif
         </div>
 
         {{-- KANAN: INFO & AKSI --}}
@@ -230,10 +241,17 @@
                             </a>
                         @endcan
 
-                        <a href="{{ route('surat_keputusan.downloadPdf', $keputusan->id) }}"
-                           class="btn btn-danger btn-block" target="_blank">
+                        <a href="{{ route('surat_keputusan.downloadForm', $keputusan->id) }}"
+                           class="btn btn-danger btn-block">
                             <i class="fas fa-file-pdf mr-2"></i>Download PDF
                         </a>
+
+                        {{-- Import PDF Bertanda Tangan --}}
+                        @if (in_array($keputusan->status_surat, ['disetujui', 'terbit', 'arsip']))
+                            <button type="button" class="btn btn-outline-success btn-block" data-toggle="modal" data-target="#importSignedModal">
+                                <i class="fas fa-file-import mr-2"></i>Import PDF Bertanda Tangan
+                            </button>
+                        @endif
 
                         {{-- Duplicate SK Button --}}
                         @can('create', App\Models\KeputusanHeader::class)
@@ -462,3 +480,41 @@
         </div>
     @endif
 @endsection
+
+{{-- Modal Import PDF Bertanda Tangan --}}
+@push('scripts')
+<div class="modal fade" id="importSignedModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <form action="{{ route('surat_keputusan.uploadSignedPdf', $keputusan->id) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-import mr-2"></i>Import PDF Bertanda Tangan</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Upload scan PDF yang sudah ditandatangani oleh petinggi luar. PDF yang diupload akan <strong>menggantikan</strong> PDF sebelumnya (PDF lama akan dibackup otomatis).</p>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Pilih File PDF <span class="text-danger">*</span></label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="fileSignedPdf" name="signed_pdf" accept=".pdf" required>
+                            <label class="custom-file-label" for="fileSignedPdf">Pilih file PDF...</label>
+                        </div>
+                        <small class="form-text text-muted">Format: PDF, Maks: 10 MB</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-upload mr-1"></i>Import PDF</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    document.querySelector('#fileSignedPdf').addEventListener('change', function(e) {
+        var fileName = e.target.files[0]?.name || 'Pilih file PDF...';
+        e.target.nextElementSibling.textContent = fileName;
+    });
+</script>
+@endpush

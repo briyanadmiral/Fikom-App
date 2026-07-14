@@ -608,6 +608,19 @@
                                                     {{ old('tugas', $isEdit ? $tugas->tugas ?? null : null) ? '' : '-- Pilih Tugas... --' }}
                                                 </option>
                                             </select>
+                                            <div id="subtugas-warning" class="mt-2" style="display: none;">
+                                                <div class="alert alert-warning p-2 mb-0" style="font-size: 0.85rem; border-left: 4px solid #ffc107;">
+                                                    <i class="fas fa-exclamation-triangle mr-1 text-danger"></i>
+                                                    <span>Sub-tugas kosong untuk jenis tugas ini.</span>
+                                                    @if(Auth::user()->peran_id === 1)
+                                                        <a href="{{ route('jenis_surat_tugas.index') }}" class="alert-link ml-1" target="_blank">
+                                                            Kelola & Buat Sub-Tugas <i class="bi bi-box-arrow-up-right ml-1" style="font-size: 0.75rem;"></i>
+                                                        </a>
+                                                    @else
+                                                        <span class="text-muted ml-1">(Silakan hubungi Admin TU untuk membuat sub-tugas).</span>
+                                                    @endif
+                                                </div>
+                                            </div>
                                         @endif
                                     </div>
                                 </div>

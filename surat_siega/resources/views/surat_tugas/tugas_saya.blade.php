@@ -450,7 +450,7 @@
                                                 @if ($h->status_surat == 'disetujui')
                                                     <div class="dropdown-divider"></div>
                                                     <a class="dropdown-item text-danger"
-                                                       href="{{ route('surat_tugas.downloadPdf', $h->id) }}"
+                                                       href="{{ route('surat_tugas.downloadForm', $h->id) }}"
                                                        target="_blank">
                                                         <i class="fas fa-file-pdf mr-2"></i> Download PDF
                                                     </a>
@@ -524,7 +524,6 @@
         'enableQuickView' => true,
         'quickView' => ['modalId' => '#quickViewModal', 'triggerSelector' => '.quick-view'],
         'enableDelete' => false,
-        'i18nUrl' => '/assets/datatables/i18n/id.json',
         'emptyDefaultMsg' => 'Tidak ada surat tugas untuk Anda.',
         'moduleName' => 'Surat Tugas',
     ])

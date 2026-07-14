@@ -93,67 +93,68 @@
             </div>
         </div>
         <div class="card-body table-responsive p-0">
-            <table id="table-mengingat" class="table table-hover table-striped mb-0">
-                <thead>
-                    <tr>
-                        <th style="width: 40px">#</th>
-                        <th>Dasar Hukum</th>
-                        <th style="width: 120px">Kategori</th>
-                        <th style="width: 150px">Nomor</th>
-                        <th style="width: 80px" class="text-center">Dipakai</th>
-                        <th style="width: 150px">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($items as $index => $item)
+            @if($items->isEmpty())
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-3x mb-3 text-secondary" style="opacity: 0.5;"></i>
+                    <h5>Belum Ada Data</h5>
+                    <p class="mb-0 small">Belum ada data dasar hukum.</p>
+                </div>
+            @else
+                <table id="table-mengingat" class="table table-hover table-striped mb-0">
+                    <thead>
                         <tr>
-                            <td>{{ $index + 1 }}</td>
-                            <td>
-                                <strong>{{ $item->judul }}</strong>
-                                <br><small class="text-muted">{{ Str::limit(strip_tags($item->isi), 80) }}</small>
-                            </td>
-                            <td>
-                                @if($item->kategori)
-                                    <span class="badge badge-{{ in_array($item->kategori, ['UU', 'PP', 'Permen']) ? 'primary' : 'secondary' }}">
-                                        {{ $item->kategori }}
-                                    </span>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($item->nomor_referensi)
-                                    <code>{{ $item->nomor_referensi }}</code>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <span class="badge badge-secondary">{{ $item->usage_count }}</span>
-                            </td>
-                            <td>
-                                <a href="{{ route('mengingat_library.edit', $item->id) }}" class="btn btn-xs btn-warning" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('mengingat_library.destroy', $item->id) }}" method="POST" class="d-inline form-delete-mengingat">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-xs btn-danger" title="Hapus">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
+                            <th style="width: 40px">#</th>
+                            <th>Dasar Hukum</th>
+                            <th style="width: 120px">Kategori</th>
+                            <th style="width: 150px">Nomor</th>
+                            <th style="width: 80px" class="text-center">Dipakai</th>
+                            <th style="width: 150px">Aksi</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
-                                <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                                Belum ada data dasar hukum.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach($items as $index => $item)
+                            <tr>
+                                <td>{{ $index + 1 }}</td>
+                                <td>
+                                    <strong>{{ $item->judul }}</strong>
+                                    <br><small class="text-muted">{{ Str::limit(strip_tags($item->isi), 80) }}</small>
+                                </td>
+                                <td>
+                                    @if($item->kategori)
+                                        <span class="badge badge-{{ in_array($item->kategori, ['UU', 'PP', 'Permen']) ? 'primary' : 'secondary' }}">
+                                            {{ $item->kategori }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($item->nomor_referensi)
+                                        <code>{{ $item->nomor_referensi }}</code>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge badge-secondary">{{ $item->usage_count }}</span>
+                                </td>
+                                <td>
+                                    <a href="{{ route('mengingat_library.edit', $item->id) }}" class="btn btn-xs btn-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="{{ route('mengingat_library.destroy', $item->id) }}" method="POST" class="d-inline form-delete-mengingat">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-xs btn-danger" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
         </div>
     </div>
 </div>
@@ -172,8 +173,25 @@ $(function() {
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'Semua']],
         dom: 't<"row align-items-center px-3 py-2"<"col-sm-6"i><"col-sm-6 text-sm-right"p>>',
         language: {
-            url: '/assets/datatables/i18n/id.json',
-            emptyTable: 'Belum ada data dasar hukum.'
+            "emptyTable": "Belum ada data dasar hukum.",
+            "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+            "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+            "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+            "lengthMenu": "Tampilkan _MENU_ entri",
+            "loadingRecords": "Sedang memuat...",
+            "processing": "Sedang memproses...",
+            "search": "Cari:",
+            "zeroRecords": "Tidak ditemukan data yang sesuai",
+            "paginate": {
+                "first": "Pertama",
+                "last": "Terakhir",
+                "next": "Selanjutnya",
+                "previous": "Sebelumnya"
+            },
+            "aria": {
+                "sortAscending": ": aktifkan untuk mengurutkan kolom ke atas",
+                "sortDescending": ": aktifkan untuk mengurutkan kolom ke bawah"
+            }
         },
         columnDefs: [
             { targets: [0, -1], orderable: false, searchable: false }

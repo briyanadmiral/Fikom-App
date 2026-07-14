@@ -130,6 +130,7 @@ $isPending = $isEdit && $keputusan && $keputusan->status_surat === 'pending';
 <form id="skForm" action="{{ $formAction }}" method="POST" autocomplete="off">
     @csrf
     @if($isEdit) @method($formMethod) @endif
+    <input type="hidden" name="mode" id="mode-input" value="">
 
     <div class="row">
         {{-- ============ KIRI: FORM CONTENT ============ --}}

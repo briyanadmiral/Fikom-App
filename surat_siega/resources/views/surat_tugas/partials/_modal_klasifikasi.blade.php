@@ -261,8 +261,6 @@ $letters = range('A','Z');
     var lbl  = $btn.data('label');
     var kode = $btn.data('kode');
 
-    console.log('Klasifikasi dipilih:', {id, lbl, kode});
-
     if ($hidden.length)  $hidden.val(id).trigger('change');
     if ($display.length) $display.val(lbl);
     if ($kodeT.length)   $kodeT.val(kode).trigger('change'); 

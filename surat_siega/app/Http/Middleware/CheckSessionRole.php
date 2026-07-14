@@ -22,6 +22,10 @@ class CheckSessionRole
     {
         // Sudah ada user yang ter-login dari session Laravel
         if (Auth::check()) {
+            $redirect = $this->checkUserApproval(Auth::user(), $request);
+            if ($redirect) {
+                return $redirect;
+            }
             return $next($request);
         }
 
@@ -65,6 +69,51 @@ class CheckSessionRole
             'entry_time' => now(),
         ]);
 
+        $redirect = $this->checkUserApproval($user, $request);
+        if ($redirect) {
+            return $redirect;
+        }
+
         return $next($request);
+    }
+
+    /**
+     * Check if a student or staff user has been approved and has completed profile.
+     */
+    private function checkUserApproval($user, Request $request)
+    {
+        // Periksa untuk peran Dosen (5), Tendik (6), dan Mahasiswa (7)
+        if (in_array((int) $user->peran_id, [5, 6, 7], true)) {
+            $currentRoute = $request->route() ? $request->route()->getName() : null;
+            $allowedRoutes = [
+                'profile.complete',
+                'profile.complete.store',
+                'profile.pending',
+                'profile.rejected',
+                'logout',
+                'external.exit',
+            ];
+
+            if (! in_array($currentRoute, $allowedRoutes)) {
+                // 1. Cek kelengkapan data (NIM/WhatsApp untuk Mahasiswa, NPP/Email untuk Dosen/Tendik)
+                if ((int) $user->peran_id === 7) {
+                    if (empty($user->nim) || empty($user->whatsapp)) {
+                        return redirect()->route('profile.complete');
+                    }
+                } else {
+                    if (empty($user->npp) || empty($user->email)) {
+                        return redirect()->route('profile.complete');
+                    }
+                }
+
+                // 2. Cek status approval setelah data lengkap
+                if ($user->approval_status === 'pending') {
+                    return redirect()->route('profile.pending');
+                } elseif ($user->approval_status === 'rejected') {
+                    return redirect()->route('profile.rejected');
+                }
+            }
+        }
+        return null;
     }
 }

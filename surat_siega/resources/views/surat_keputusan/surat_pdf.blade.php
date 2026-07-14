@@ -50,6 +50,7 @@
 
   // patuhi guard
   'showSigns'    => $showSigns,
+  'showNamaPenandatangan' => $showNamaPenandatangan ?? true,
 
   // PENTING: kop sudah ada di header layout → jangan render kop di konten
   'showKopInContent' => false,

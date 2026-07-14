@@ -66,8 +66,8 @@ class StoreTugasRequest extends FormRequest
             'bulan' => [$isDraft ? 'nullable' : 'required', 'string', 'regex:/^(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)$/i'],
 
             // === Nomor Surat ===
-            'nomor' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->whereNull('deleted_at')],
-            'no_surat_manual' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->whereNull('deleted_at')],
+            'nomor' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')],
+            'no_surat_manual' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')],
             'tahun_nomor' => ['sometimes', 'integer', 'digits:4'],
             'nomor_urut' => ['nullable', 'string', 'max:10', 'regex:/^[0-9]+$/'],
 

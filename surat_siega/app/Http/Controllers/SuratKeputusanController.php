@@ -56,6 +56,24 @@ class SuratKeputusanController extends Controller
         return in_array($sk->status_surat, ['disetujui', 'terbit', 'arsip'], true) && ! empty($sk->signed_at);
     }
 
+    /**
+     * Resolve mode dari request (hidden input + button value).
+     * Normalisasi: 'terkirim' → 'pending', lainnya → fallback ke 'draft'.
+     */
+    private function resolveSubmitMode(Request $request): string
+    {
+        $raw = $request->input('mode');
+        // Handle jika ada multiple values (hidden input + button name collision)
+        if (is_array($raw)) {
+            $raw = end($raw);
+        }
+        if (in_array($raw, ['pending', 'terkirim'], true)) {
+            return 'pending';
+        }
+
+        return 'draft';
+    }
+
     /* ==================== Daftar / List ==================== */
 
     public function index(Request $request)
@@ -78,7 +96,6 @@ class SuratKeputusanController extends Controller
         $query = KeputusanHeader::with([
             'pembuat:id,nama_lengkap',
             'penandatanganUser:id,nama_lengkap',
-            'penerima:id,nama_lengkap',
             'penerbit:id,nama_lengkap',
             'pengarsip:id,nama_lengkap',
         ]);
@@ -167,7 +184,6 @@ class SuratKeputusanController extends Controller
         $list = KeputusanHeader::with([
             'pembuat:id,nama_lengkap',
             'penandatanganUser:id,nama_lengkap',
-            'penerima:id,nama_lengkap',
             'penerbit:id,nama_lengkap',
         ])
             ->where('status_surat', 'terbit')
@@ -189,7 +205,6 @@ class SuratKeputusanController extends Controller
         $list = KeputusanHeader::with([
             'pembuat:id,nama_lengkap',
             'penandatanganUser:id,nama_lengkap',
-            'penerima:id,nama_lengkap',
             'penerbit:id,nama_lengkap',
             'pengarsip:id,nama_lengkap',
         ])
@@ -209,7 +224,7 @@ class SuratKeputusanController extends Controller
 
     public function approveList()
     {
-        $list = KeputusanHeader::with(['pembuat', 'penerima:id,nama_lengkap', 'penandatanganUser:id,nama_lengkap'])
+        $list = KeputusanHeader::with(['pembuat', 'penandatanganUser:id,nama_lengkap'])
             ->where('status_surat', 'pending')
             ->where('penandatangan', Auth::id())
             ->orderByDesc('created_at')
@@ -221,14 +236,14 @@ class SuratKeputusanController extends Controller
         return view('surat_keputusan.index', compact('list', 'stats', 'mode'));
     }
 
-    /** Keputusan saya = SK yang saya buat atau yang mencantumkan saya sebagai penerima */
+    /** Keputusan saya = SK yang saya buat atau SK terbit yang berlaku untuk seluruh fakultas */
     public function mine()
     {
         $userId = Auth::id();
-        $list = KeputusanHeader::with(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap'])
+        $list = KeputusanHeader::with(['pembuat', 'penandatanganUser'])
             ->where(function ($query) use ($userId) {
-                $query->whereHas('penerima', fn ($q) => $q->whereKey($userId))
-                    ->orWhere('dibuat_oleh', $userId);
+                $query->where('dibuat_oleh', $userId)
+                    ->orWhereIn('status_surat', ['terbit', 'arsip']);
             })
             ->orderByDesc('created_at')
             ->get();
@@ -237,6 +252,7 @@ class SuratKeputusanController extends Controller
             'draft' => $list->where('status_surat', 'draft')->count(),
             'pending' => $list->where('status_surat', 'pending')->count(),
             'disetujui' => $list->where('status_surat', 'disetujui')->count(),
+            'terbit' => $list->whereIn('status_surat', ['terbit', 'arsip'])->count(),
         ];
 
         return view('surat_keputusan.keputusan_saya', compact('list', 'stats'));
@@ -272,8 +288,7 @@ class SuratKeputusanController extends Controller
         $this->authorize('create', KeputusanHeader::class);
 
         $validatedData = $request->validated();
-        $mode = $request->input('mode');
-        $status = ($mode === 'pending' || $mode === 'terkirim') ? 'pending' : 'draft';
+        $status = $this->resolveSubmitMode($request);
 
         // Validasi conditional penandatangan/penerima sudah dihandle oleh StoreKeputusanRequest
 
@@ -301,9 +316,9 @@ class SuratKeputusanController extends Controller
         // Ambil dependency form (admins, pejabat, users) + peran
         $deps = $this->getFormDependencies();
 
-        // Eager load relasi yang dipakai di view
+        // Eager load relasi yang dipakai di view. SK berlaku untuk seluruh fakultas,
+        // sehingga tidak bergantung pada tabel penerima individual.
         $surat_keputusan->load([
-            'penerima:id,nama_lengkap', // untuk daftar penerima
             'attachments.uploader', // untuk attachments_section (uploader nama dsb)
             'pembuat.peran', // kalau di view butuh peran pembuat
             'penandatanganUser.peran', // kalau di view butuh peran penandatangan
@@ -364,10 +379,10 @@ class SuratKeputusanController extends Controller
         }
 
         $validatedData = $request->validated();
-        $mode = $request->input('mode');
+        $mode = $this->resolveSubmitMode($request);
 
 
-        if ($mode === 'pending' || $mode === 'terkirim') {
+        if ($mode === 'pending') {
             // Hanya draft atau ditolak yang bisa diajukan
             if (! in_array($surat_keputusan->status_surat, ['draft', 'ditolak'], true)) {
                 \Log::warning('Update SK gagal: Status tidak valid untuk pengajuan', [
@@ -484,7 +499,7 @@ class SuratKeputusanController extends Controller
         ];
 
         return view('surat_keputusan.approve', [
-            'sk' => $surat_keputusan->load(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap']),
+            'sk' => $surat_keputusan->load(['pembuat', 'penandatanganUser']),
             'kop' => $assets['kop'],
             'preview' => $preview,
             'ttdW' => $preview['ttd_w_mm'],
@@ -517,12 +532,16 @@ class SuratKeputusanController extends Controller
         $capX = (int) $request->input('cap_x_mm', $surat_keputusan->cap_config['x'] ?? 0);
         $capY = (int) $request->input('cap_y_mm', $surat_keputusan->cap_config['y'] ?? 0);
 
+        $showTtd = $request->input('show_ttd', '1') === '1';
+        $showNama = $request->input('show_nama', '1') === '1';
+        $showCap = $request->input('show_cap', '1') === '1';
+
         return view('surat_keputusan.partials._approve_preview', [
             'sk' => $surat_keputusan,
             'kop' => $assets['kop'],
             'showSigns' => true,
-            'ttdImageB64' => $assets['ttdImageB64'],
-            'capImageB64' => $assets['capImageB64'],
+            'ttdImageB64' => $showTtd ? $assets['ttdImageB64'] : null,
+            'capImageB64' => $showCap ? $assets['capImageB64'] : null,
             'ttdW' => $ttdW,
             'capW' => $capW,
             'capOpacity' => $capOpacity,
@@ -530,6 +549,7 @@ class SuratKeputusanController extends Controller
             'ttdY' => $ttdY,
             'capX' => $capX,
             'capY' => $capY,
+            'showNamaPenandatangan' => $showNama,
         ]);
     }
 
@@ -569,7 +589,10 @@ class SuratKeputusanController extends Controller
 
             $sk = $this->skService->approveAndGenerateNumber($surat_keputusan, $validated);
 
-            $pdfBytes = $this->renderSkPdfWithSign($sk);
+            $showTtd = $request->has('show_ttd');
+            $showNama = $request->has('show_nama');
+            $showCap = $request->has('show_cap');
+            $pdfBytes = $this->renderSkPdfWithSign($sk, $showTtd, $showNama, $showCap);
             $pdfPath = "private/surat_keputusan/signed/{$sk->id}_".md5((string) ($sk->nomor ?? '')).'.pdf';
             Storage::disk('local')->put($pdfPath, $pdfBytes);
             $sk->update(['signed_pdf_path' => $pdfPath]);
@@ -673,22 +696,21 @@ class SuratKeputusanController extends Controller
                     'terbitkan_oleh' => auth()->id(),
                 ]);
 
-                foreach ($surat_keputusan->penerima as $penerima) {
-                    \App\Models\Notifikasi::create([
-                        'pengguna_id' => $penerima->id,
-                        'tipe' => 'surat_keputusan',
-                        'referensi_id' => $surat_keputusan->id,
-                        'pesan' => 'SK "'.$surat_keputusan->tentang.'" telah diterbitkan dan berlaku efektif.',
-                        'dibaca' => false,
-                        'dibuat_pada' => now(),
-                    ]);
-                }
-
-                if (! empty($surat_keputusan->penerima_eksternal)) {
-                    foreach ($surat_keputusan->penerima_eksternal as $emailEksternal) {
-                        \App\Jobs\SendSkEmail::dispatch($surat_keputusan->id, $emailEksternal)->delay(now()->addSeconds(5));
-                    }
-                }
+                User::query()
+                    ->where('status', 'aktif')
+                    ->select('id')
+                    ->chunkById(100, function ($users) use ($surat_keputusan) {
+                        foreach ($users as $user) {
+                            \App\Models\Notifikasi::create([
+                                'pengguna_id' => $user->id,
+                                'tipe' => 'surat_keputusan',
+                                'referensi_id' => $surat_keputusan->id,
+                                'pesan' => 'SK «'.$surat_keputusan->tentang.'» telah diterbitkan dan berlaku untuk seluruh anggota fakultas.',
+                                'dibaca' => false,
+                                'dibuat_pada' => now(),
+                            ]);
+                        }
+                    });
             });
 
             return redirect()
@@ -861,10 +883,6 @@ class SuratKeputusanController extends Controller
 
         try {
             DB::transaction(function () use ($surat_keputusan) {
-                if (method_exists($surat_keputusan, 'penerima')) {
-                    $surat_keputusan->penerima()->detach();
-                }
-
                 if ($surat_keputusan->signed_pdf_path) {
                     $validPath = validate_file_path($surat_keputusan->signed_pdf_path);
                     if ($validPath && Storage::disk('local')->exists($validPath)) {
@@ -922,11 +940,6 @@ class SuratKeputusanController extends Controller
                 $new->tahun = now()->year;
                 $new->save();
 
-                // Copy penerima
-                foreach ($surat_keputusan->penerima as $penerima) {
-                    $new->penerima()->attach($penerima->id);
-                }
-
                 return $new;
             });
 
@@ -945,34 +958,123 @@ class SuratKeputusanController extends Controller
 
     /* ==================== PDF & Preview ==================== */
 
-    public function downloadPdf(KeputusanHeader $surat_keputusan)
+    public function uploadSignedPdf(Request $request, KeputusanHeader $surat_keputusan)
     {
-        $surat_keputusan->load(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap']);
+        $this->authorize('view', $surat_keputusan);
 
-        $safeNomor = sanitize_alphanumeric($surat_keputusan->nomor, '_-') ?? 'TanpaNomor';
-
-        if ($this->shouldShowSignatures($surat_keputusan)) {
-            $bytes = $this->renderSkPdfWithSign($surat_keputusan);
-
-            return response($bytes, 200, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="SuratKeputusan_'.$safeNomor.'.pdf"',
-                'X-Content-Type-Options' => 'nosniff',
-            ]);
+        if (!in_array($surat_keputusan->status_surat, ['disetujui', 'terbit', 'arsip'], true)) {
+            return back()->with('error', 'Hanya SK yang sudah disetujui/terbit yang bisa diimpor PDF bertanda tangan.');
         }
 
+        $request->validate([
+            'signed_pdf' => 'required|file|mimes:pdf|max:10240',
+        ], [
+            'signed_pdf.required' => 'File PDF wajib dipilih.',
+            'signed_pdf.mimes' => 'File harus berformat PDF.',
+            'signed_pdf.max' => 'Ukuran file maksimal 10 MB.',
+        ]);
+
+        try {
+            $file = $request->file('signed_pdf');
+            $safeNomor = sanitize_alphanumeric($surat_keputusan->nomor, '_-') ?? 'NoNomor';
+            $filename = sprintf('%d_%s_imported_%s.pdf', $surat_keputusan->id, $safeNomor, now()->format('YmdHis'));
+            $path = 'private/surat_keputusan/signed/' . $filename;
+
+            Storage::disk('local')->put($path, $file->get());
+
+            // Backup PDF lama jika ada
+            if ($surat_keputusan->signed_pdf_path && Storage::disk('local')->exists($surat_keputusan->signed_pdf_path)) {
+                $backupPath = preg_replace('/\.pdf$/', '_backup_' . now()->format('YmdHis') . '.pdf', $surat_keputusan->signed_pdf_path);
+                Storage::disk('local')->copy($surat_keputusan->signed_pdf_path, $backupPath);
+            }
+
+            $surat_keputusan->update([
+                'signed_pdf_path' => $path,
+                'signed_at' => $surat_keputusan->signed_at ?? now(),
+            ]);
+
+            \Log::info('Signed PDF imported for SK', [
+                'sk_id' => $surat_keputusan->id,
+                'nomor' => sanitize_log_message($surat_keputusan->nomor),
+                'uploaded_by' => Auth::id(),
+            ]);
+
+            return back()->with('success', 'PDF bertanda tangan berhasil diimpor. SK ' . $surat_keputusan->nomor . ' telah diperbarui.');
+        } catch (\Exception $e) {
+            \Log::error('Gagal impor signed PDF SK', [
+                'sk_id' => $surat_keputusan->id,
+                'error' => sanitize_log_message($e->getMessage()),
+            ]);
+
+            return back()->with('error', 'Gagal mengimpor PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function downloadForm(KeputusanHeader $surat_keputusan)
+    {
+        $this->authorize('view', $surat_keputusan);
+
+        $surat_keputusan->load(['pembuat', 'penandatanganUser']);
+        $assets = $this->pdfService->getSigningAssets($surat_keputusan);
+        $showSigns = $this->shouldShowSignatures($surat_keputusan);
+
+        return view(
+            'surat_keputusan.download_form',
+            array_merge(
+                ['sk' => $surat_keputusan, 'showSigns' => $showSigns],
+                $assets,
+            ),
+        );
+    }
+
+    public function downloadPdf(Request $request, KeputusanHeader $surat_keputusan)
+    {
+        $safeNomor = sanitize_alphanumeric($surat_keputusan->nomor, '_-') ?? 'TanpaNomor';
+        $filename = 'SuratKeputusan_' . $safeNomor . '.pdf';
+
+        // Opsi kustomisasi download PDF
+        $showTtd = $request->query('ttd', '1') !== '0';
+        $showNama = $request->query('nama', '1') !== '0';
+        $showCap = $request->query('cap', '1') !== '0';
+        $allDefault = !$request->has('ttd') && !$request->has('nama') && !$request->has('cap');
+
+        // Mode disposition: attachment jika download=1, selain itu inline untuk preview/iframe
+        $disposition = $request->query('download') === '1' ? 'attachment' : 'inline';
+
+        // Header cache-control untuk menghindari caching PDF oleh browser/server
+        $headers = [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => 'Sat, 26 Jul 1997 05:00:00 GMT',
+        ];
+
+        // Jika ada signed_pdf_path dan tidak ada kustomisasi → serve file langsung
+        if ($allDefault && $surat_keputusan->signed_pdf_path && Storage::disk('local')->exists($surat_keputusan->signed_pdf_path)) {
+            return response()->file(Storage::disk('local')->path($surat_keputusan->signed_pdf_path), $headers);
+        }
+
+        if ($this->shouldShowSignatures($surat_keputusan)) {
+            $surat_keputusan->load(['pembuat', 'penandatanganUser']);
+            $bytes = $this->renderSkPdfWithSign($surat_keputusan, $showTtd, $showNama, $showCap);
+
+            return response($bytes, 200, $headers);
+        }
+
+        $surat_keputusan->load(['pembuat', 'penandatanganUser']);
         $bytes = $this->renderSkPdfDraft($surat_keputusan);
 
-        return response($bytes, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="SuratKeputusan_DRAFT_'.$safeNomor.'.pdf"',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        // Ubah filename untuk draft
+        $headers['Content-Disposition'] = $disposition . '; filename="SuratKeputusan_DRAFT_' . $safeNomor . '.pdf"';
+
+        return response($bytes, 200, $headers);
     }
 
     public function preview(KeputusanHeader $surat_keputusan, Request $request)
     {
-        $surat_keputusan->load(['pembuat', 'penandatanganUser', 'penerima:id,nama_lengkap']);
+        $surat_keputusan->load(['pembuat', 'penandatanganUser']);
         $assets = $this->pdfService->getSigningAssets($surat_keputusan);
         $showSigns = $this->shouldShowSignatures($surat_keputusan);
 
@@ -985,11 +1087,22 @@ class SuratKeputusanController extends Controller
     // NOTE: getSigningAssets() dan b64FromStorage() sudah dipindahkan ke SkPdfService
     // Controller menggunakan $this->pdfService->getSigningAssets() sekarang
 
-    private function renderSkPdfWithSign(KeputusanHeader $sk): string
+    private function renderSkPdfWithSign(KeputusanHeader $sk, bool $showTtd = true, bool $showNama = true, bool $showCap = true): string
     {
         $assets = $this->pdfService->getSigningAssets($sk);
 
-        $html = view('surat_keputusan.surat_pdf', array_merge(['sk' => $sk, 'showSigns' => true, 'isDraft' => false], $assets))->render();
+        // Terapkan opsi kustomisasi
+        if (!$showTtd) {
+            $assets['ttdImageB64'] = null;
+        }
+        if (!$showCap) {
+            $assets['capImageB64'] = null;
+        }
+
+        $html = view('surat_keputusan.surat_pdf', array_merge(
+            ['sk' => $sk, 'showSigns' => true, 'isDraft' => false, 'showNamaPenandatangan' => $showNama],
+            $assets,
+        ))->render();
 
         return Pdf::loadHTML($html)
             ->setPaper('A4', 'portrait')
@@ -1004,18 +1117,19 @@ class SuratKeputusanController extends Controller
 
     private function renderSkPdfDraft(KeputusanHeader $sk): string
     {
-        $kop = MasterKopSurat::getInstance();
+        $assets = $this->pdfService->getSigningAssets($sk);
 
         $html = view('surat_keputusan.surat_pdf', [
             'sk' => $sk,
-            'kop' => $kop,
-            'showSigns' => false,
+            'kop' => $assets['kop'] ?? null,
+            'showSigns' => true,
             'isDraft' => true,
             'ttdImageB64' => null,
-            'capImageB64' => null,
+            'capImageB64' => $assets['capImageB64'] ?? null,
             'ttdW' => null,
-            'capW' => null,
-            'capOpacity' => null,
+            'capW' => $assets['capW'] ?? 35,
+            'capOpacity' => $assets['capOpacity'] ?? 0.95,
+            'showNamaPenandatangan' => false,
         ])->render();
 
         return Pdf::loadHTML($html)

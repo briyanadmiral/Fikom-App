@@ -155,7 +155,44 @@
 
 @once
 @push('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css">
 <style>
+    /* Form controls border fix (prevent transparent/invisible borders on white bg) */
+    body .form-control, body .form-control-lg, body select.form-control, body textarea.form-control {
+        border: 1px solid #cbd5e1 !important;
+        background-color: #ffffff !important;
+        color: #333333 !important;
+    }
+    
+    body .form-control:focus, body .form-control-lg:focus, body select.form-control:focus, body textarea.form-control:focus {
+        border-color: #fd7e14 !important;
+        box-shadow: 0 0 0 0.2rem rgba(253, 126, 20, 0.15) !important;
+        background-color: #ffffff !important;
+    }
+
+    /* Select2 custom styles to fit the design */
+    body .select2-container--bootstrap4 .select2-selection--single {
+        border: 1px solid #cbd5e1 !important;
+        background-color: #ffffff !important;
+        height: calc(2.25rem + 2px) !important;
+        display: flex;
+        align-items: center;
+    }
+    body .select2-container--bootstrap4 .select2-selection--single .select2-selection__rendered {
+        color: #333333 !important;
+        line-height: calc(2.25rem + 2px) !important;
+        padding-left: 0.75rem;
+    }
+    body .select2-container--bootstrap4 .select2-selection--single .select2-selection__arrow {
+        height: calc(2.25rem + 2px) !important;
+        top: 0;
+    }
+    body .select2-container--bootstrap4.select2-container--focus .select2-selection {
+        border-color: #fd7e14 !important;
+        box-shadow: 0 0 0 0.2rem rgba(253, 126, 20, 0.15) !important;
+    }
+
     .ck-editor__editable_inline {
         min-height: 280px;
         border: none !important;
@@ -174,10 +211,6 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,123,255,0.25) !important;
     }
-    .form-control:focus {
-        border-color: #4e73df;
-        box-shadow: 0 0 0 0.2rem rgba(78,115,223,.15);
-    }
     .gap-2 > * {
         margin: 0.25rem;
     }
@@ -186,6 +219,7 @@
 @endonce
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 {{-- CKEditor 5 CDN --}}
 <script src="https://cdn.ckeditor.com/ckeditor5/41.1.0/classic/ckeditor.js"></script>
 <script>

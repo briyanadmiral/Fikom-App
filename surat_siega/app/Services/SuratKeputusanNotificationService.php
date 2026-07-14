@@ -286,36 +286,28 @@ class SuratKeputusanNotificationService extends BaseNotificationService
 
             $nomor = sanitize_output($sk->nomor) ?: '(tanpa nomor)';
 
-            $penerima = $sk->penerima;
-            if (! $penerima || $penerima->isEmpty()) {
-                Log::info('No recipients for SK', ['sk_id' => $skId]);
-
-                return;
-            }
-
             $successCount = 0;
             $failedCount = 0;
+            $totalCount = 0;
 
-            foreach ($penerima as $p) {
-                $userId = validate_integer_id($p->pengguna_id);
+            \App\Models\User::query()
+                ->where('status', 'aktif')
+                ->select('id')
+                ->chunkById(100, function ($users) use ($skId, $nomor, &$successCount, &$failedCount, &$totalCount) {
+                    foreach ($users as $user) {
+                        $totalCount++;
+                        $success = $this->createNotification($user->id, $skId, "Surat Keputusan {$nomor} telah diterbitkan dan berlaku untuk seluruh anggota fakultas.");
 
-                if ($userId === null) {
-                    $failedCount++;
-
-                    continue;
-                }
-
-                $success = $this->createNotification($userId, $skId, "Anda tercantum dalam Surat Keputusan {$nomor}.");
-
-                if ($success) {
-                    $successCount++;
-                } else {
-                    $failedCount++;
-                }
-            }
+                        if ($success) {
+                            $successCount++;
+                        } else {
+                            $failedCount++;
+                        }
+                    }
+                });
 
             $this->logNotificationActivity('recipients_notified', $skId, [
-                'total' => $penerima->count(),
+                'total' => $totalCount,
                 'success' => $successCount,
                 'failed' => $failedCount,
             ]);

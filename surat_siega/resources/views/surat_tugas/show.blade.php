@@ -347,23 +347,32 @@
         {{-- ==================== KOLOM KIRI ==================== --}}
         <div class="col-lg-8">
             {{-- PREVIEW SURAT --}}
-            <div class="preview-wrap">
-                <div class="paper-shell">
-                    <div class="paper-shell-inner">
-                        @include('surat_tugas.partials._core', [
-                            'context' => 'web',
-                            'tugas' => $tugas,
-                            'kop' => $kop ?? null,
-                            'ttdW' => $pv['ttd_w_mm'] ?? ($tugas->ttd_w_mm ?? 42),
-                            'capW' => $pv['cap_w_mm'] ?? ($tugas->cap_w_mm ?? 35),
-                            'capOpacity' => $pv['cap_opacity'] ?? ($tugas->cap_opacity ?? 0.95),
-                            'ttdImageB64' => $showSigns ? $pv['ttd_image_b64'] ?? null : null,
-                            'capImageB64' => $showSigns ? $pv['cap_image_b64'] ?? null : null,
-                            'showSigns' => $showSigns,
-                            'showKopInContent' => true,
-                        ])
+            <div class="preview-wrap" style="padding: 0; overflow: hidden; background: none; border: none;">
+                @if ($tugas->signed_pdf_path && \Storage::disk('local')->exists($tugas->signed_pdf_path))
+                    <div class="w-100" style="height: 800px;">
+                        @php
+                            $friendlyName = 'SuratTugas_' . (preg_replace('/[^a-zA-Z0-9_-]/', '_', $tugas->nomor) ?? 'TanpaNomor') . '.pdf';
+                        @endphp
+                        <iframe src="{{ route('surat_tugas.downloadPdf', [$tugas->id, $friendlyName]) }}?t={{ time() }}" class="w-100 h-100" style="border: none; border-radius: 1rem; box-shadow: 0 5px 25px rgba(0, 0, 0, .1);"></iframe>
                     </div>
-                </div>
+                @else
+                    <div class="paper-shell">
+                        <div class="paper-shell-inner">
+                            @include('surat_tugas.partials._core', [
+                                'context' => 'web',
+                                'tugas' => $tugas,
+                                'kop' => $kop ?? null,
+                                'ttdW' => $pv['ttd_w_mm'] ?? ($tugas->ttd_w_mm ?? 42),
+                                'capW' => $pv['cap_w_mm'] ?? ($tugas->cap_w_mm ?? 35),
+                                'capOpacity' => $pv['cap_opacity'] ?? ($tugas->cap_opacity ?? 0.95),
+                                'ttdImageB64' => $showSigns ? $pv['ttd_image_b64'] ?? null : null,
+                                'capImageB64' => $showSigns ? $pv['cap_image_b64'] ?? null : null,
+                                'showSigns' => $showSigns,
+                                'showKopInContent' => true,
+                            ])
+                        </div>
+                    </div>
+                @endif
             </div>
 
             {{-- RANGKUMAN ISI --}}
@@ -374,7 +383,7 @@
                         <div class="section-label"><i class="fas fa-paragraph mr-1"></i> Redaksi Pembuka</div>
                         <div class="section-content">
                             @if ($tugas->redaksi_pembuka)
-                                <div class="preline">{{ $tugas->redaksi_pembuka }}</div>
+                                <div class="preline">{!! $tugas->redaksi_pembuka !!}</div>
                             @else
                                 <span class="empty-state">Tidak ada redaksi pembuka.</span>
                             @endif
@@ -385,7 +394,7 @@
                         <div class="section-label"><i class="fas fa-tasks mr-1"></i> Detail Tugas (Uraian)</div>
                         <div class="section-content">
                             @if ($tugas->detail_tugas)
-                                <div class="preline">{!! nl2br(e($tugas->detail_tugas)) !!}</div>
+                                <div class="preline">{!! $tugas->detail_tugas !!}</div>
                             @else
                                 <span class="empty-state">Belum ada detail tugas.</span>
                             @endif
@@ -396,7 +405,7 @@
                         <div class="section-label"><i class="fas fa-check-circle mr-1"></i> Penutup</div>
                         <div class="section-content">
                             @if ($tugas->penutup)
-                                <div class="preline">{{ $tugas->penutup }}</div>
+                                <div class="preline">{!! $tugas->penutup !!}</div>
                             @else
                                 <span class="empty-state">Tidak ada penutup.</span>
                             @endif
@@ -455,6 +464,20 @@
                             @endcan
                         @endif
 
+                        {{-- ✅ Tombol Tarik ke Draft — untuk pending/ditolak --}}
+                        @if (in_array($tugas->status_surat ?? '', ['pending', 'ditolak']) && Gate::allows('reopen', $tugas))
+                            <form action="{{ route('surat_tugas.reopen', $tugas->id) }}" method="POST" class="mb-2">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-warning btn-block"
+                                    data-confirm-message="Apakah Anda yakin ingin menarik surat ini kembali ke Draft? Surat harus diajukan ulang setelah diperbaiki."
+                                    data-confirm-title="Konfirmasi Tarik ke Draft"
+                                    data-confirm-text="Ya, Tarik!"
+                                    data-confirm-icon="warning">
+                                    <i class="fas fa-undo mr-2"></i>Tarik ke Draft
+                                </button>
+                            </form>
+                        @endif
+
                         {{-- ✅ FIXED: Hide edit button jika sudah disetujui --}}
                         @if ($tugas->status_surat !== 'disetujui')
                             @can('update', $tugas)
@@ -464,10 +487,16 @@
                             @endcan
                         @endif
 
-                        <a href="{{ route('surat_tugas.downloadPdf', $tugas->id) }}" class="btn btn-danger btn-block"
-                            target="_blank">
+                        <a href="{{ route('surat_tugas.downloadForm', $tugas->id) }}" class="btn btn-danger btn-block">
                             <i class="fas fa-file-pdf mr-2"></i>Download PDF
                         </a>
+
+                        {{-- Import PDF Bertanda Tangan (scan fisik dari petinggi luar) --}}
+                        @if (in_array($tugas->status_surat, ['disetujui', 'arsip']))
+                            <button type="button" class="btn btn-outline-success btn-block" data-toggle="modal" data-target="#importSignedModal">
+                                <i class="fas fa-file-import mr-2"></i>Import PDF Bertanda Tangan
+                            </button>
+                        @endif
 
                         {{-- Buat Nomor Turunan (Suffix) --}}
                         @if (!$tugas->isTurunan() && !empty($tugas->nomor) && !str_starts_with($tugas->nomor ?? '', 'DRAFT-'))
@@ -568,7 +597,7 @@
                                 </div>
                                 <ul class="penerima-list">
                                     @foreach ($tugas->penerima->take(6) as $p)
-                                        <li>{{ optional($p->pengguna)->nama_lengkap ?? 'Nama tidak tersedia' }}</li>
+                                        <li>{{ optional($p->pengguna)->nama_lengkap ?? $p->nama_penerima ?? 'Nama tidak tersedia' }}</li>
                                     @endforeach
                                     @if ($tugas->penerima->count() > 6)
                                         <li class="text-muted font-italic">+ {{ $tugas->penerima->count() - 6 }} orang
@@ -630,3 +659,41 @@
 
                 {{-- METADATA --}}
 @endsection
+
+{{-- Modal Import PDF Bertanda Tangan --}}
+@push('scripts')
+<div class="modal fade" id="importSignedModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <form action="{{ route('surat_tugas.uploadSignedPdf', $tugas->id) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-import mr-2"></i>Import PDF Bertanda Tangan</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Upload scan PDF yang sudah ditandatangani oleh petinggi luar. PDF yang diupload akan <strong>menggantikan</strong> PDF sebelumnya (PDF lama akan dibackup otomatis).</p>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Pilih File PDF <span class="text-danger">*</span></label>
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="fileSignedPdf" name="signed_pdf" accept=".pdf" required>
+                            <label class="custom-file-label" for="fileSignedPdf">Pilih file PDF...</label>
+                        </div>
+                        <small class="form-text text-muted">Format: PDF, Maks: 10 MB</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-upload mr-1"></i>Import PDF</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+        var fileName = e.target.files[0]?.name || 'Pilih file PDF...';
+        e.target.nextElementSibling.textContent = fileName;
+    });
+</script>
+@endpush

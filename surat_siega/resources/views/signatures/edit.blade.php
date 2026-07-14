@@ -56,11 +56,18 @@
     }
     .method-tabs .nav-link {
         border-radius: 0.5rem 0.5rem 0 0;
+        color: #495057 !important; /* warna abu-abu gelap untuk tab tidak aktif */
+        font-weight: 500;
+    }
+    .method-tabs .nav-link:hover {
+        color: #667eea !important;
+        background-color: rgba(102, 126, 234, 0.05);
     }
     .method-tabs .nav-link.active {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
+        color: #fff !important; /* warna putih untuk tab aktif */
         border-color: transparent;
+        font-weight: 600;
     }
     .card { border-radius: 1rem; }
     @media (max-width: 575.98px) {

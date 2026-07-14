@@ -46,9 +46,9 @@ class SkPdfService
             }
 
             // Validate dimensions
-            $ttdW = $this->validateDimension($sk->ttd_w_mm ?? ($penandatangan?->signature?->default_width_mm ?? 42), 20, 80);
+            $ttdW = $this->validateDimension($sk->ttd_w_mm ?? ($penandatangan?->signature?->default_width_mm ?? 42), 10, 150);
 
-            $capW = $this->validateDimension($sk->cap_w_mm ?? 35, 20, 80);
+            $capW = $this->validateDimension($sk->cap_w_mm ?? 35, 10, 100);
 
             // Validate opacity
             $capOpacity = $this->validateOpacity($sk->cap_opacity ?? 0.95);

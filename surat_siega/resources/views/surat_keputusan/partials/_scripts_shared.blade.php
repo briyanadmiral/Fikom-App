@@ -8,8 +8,19 @@ $(function(){
     responsive: true,
     autoWidth: false,
     language: {
-      url: "/assets/datatables/i18n/id.json",
-      emptyTable: "{{ $emptyMsg ?? 'Tidak ada data.' }}"
+      search: 'Cari:',
+      lengthMenu: 'Tampilkan _MENU_ entri',
+      info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ entri',
+      infoEmpty: 'Menampilkan 0 sampai 0 dari 0 entri',
+      infoFiltered: '(disaring dari _MAX_ entri keseluruhan)',
+      zeroRecords: 'Tidak ditemukan data yang sesuai',
+      emptyTable: "{{ $emptyMsg ?? 'Tidak ada data.' }}",
+      paginate: {
+        first: 'Pertama',
+        last: 'Terakhir',
+        next: 'Berikutnya',
+        previous: 'Sebelumnya'
+      }
     },
     columnDefs: [{ targets: [-1], orderable: false, searchable: false }]
   });

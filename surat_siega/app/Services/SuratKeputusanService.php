@@ -6,7 +6,6 @@ use App\Models\KeputusanHeader;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Mews\Purifier\Facades\Purifier;
 
 /**
@@ -51,17 +50,7 @@ class SuratKeputusanService
 
                 $data['dibuat_oleh'] = $userId;
 
-                $penerimaInternalIds = $data['penerima_internal'] ?? [];
-                unset($data['penerima_internal']);
-
-                // Validate penerima IDs
-                $validatedIds = $this->validatePenerimaIds($penerimaInternalIds);
-
                 $sk = KeputusanHeader::create($data);
-
-                if (method_exists($sk, 'penerima') && ! empty($validatedIds)) {
-                    $sk->penerima()->sync($validatedIds);
-                }
 
                 // Log creation
                 Log::info('Surat Keputusan created', [
@@ -113,17 +102,7 @@ class SuratKeputusanService
                     $data['status_surat'] = $newStatus;
                 }
 
-                $penerimaInternalIds = $data['penerima_internal'] ?? [];
-                unset($data['penerima_internal']);
-
-                // Validate penerima IDs
-                $validatedIds = $this->validatePenerimaIds($penerimaInternalIds);
-
                 $sk->update($data);
-
-                if (method_exists($sk, 'penerima')) {
-                    $sk->penerima()->sync($validatedIds);
-                }
 
                 $sk->refresh();
 
@@ -189,8 +168,8 @@ class SuratKeputusanService
                 }
 
                 // Validate dimensions & opacity
-                $ttdW = $this->validateDimension($approvalData['ttd_w_mm'] ?? 42, 20, 80);
-                $capW = $this->validateDimension($approvalData['cap_w_mm'] ?? 35, 20, 80);
+                $ttdW = $this->validateDimension($approvalData['ttd_w_mm'] ?? 42, 10, 150);
+                $capW = $this->validateDimension($approvalData['cap_w_mm'] ?? 35, 10, 100);
                 $capOpacity = $this->validateOpacity($approvalData['cap_opacity'] ?? 0.95);
 
                 $sk->fill([
@@ -242,13 +221,6 @@ class SuratKeputusanService
         // Cleanup: hapus field yang tidak perlu
         unset($data['mode'], $data['tembusan_formatted']);
 
-        // Handle penerima_eksternal (jika kolom ada di DB)
-        if (Schema::hasColumn('keputusan_header', 'penerima_eksternal') && isset($data['penerima_eksternal'])) {
-            $data['penerima_eksternal'] = sanitize_input($data['penerima_eksternal'], 1000);
-        } else {
-            unset($data['penerima_eksternal']);
-        }
-
         // Validate penandatangan ID
         if (isset($data['penandatangan'])) {
             $data['penandatangan'] = validate_integer_id($data['penandatangan']);
@@ -268,7 +240,7 @@ class SuratKeputusanService
         ];
 
         // Only include array fields if they are present to avoid overwriting with empty arrays
-        $arrayFields = ['menimbang', 'mengingat', 'menetapkan', 'penerima_internal', 'penerima_eksternal'];
+        $arrayFields = ['menimbang', 'mengingat', 'menetapkan'];
         foreach ($arrayFields as $field) {
             if (array_key_exists($field, $data)) {
                 $result[$field] = $data[$field];

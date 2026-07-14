@@ -462,7 +462,10 @@
                 ttd_w_mm: controls.ttd_w_mm.num.value,
                 cap_w_mm: controls.cap_w_mm.num.value,
                 cap_opacity: controls.cap_opacity.num.value,
-                ttd_x_mm: ttdX, ttd_y_mm: ttdY, cap_x_mm: capX, cap_y_mm: capY
+                ttd_x_mm: ttdX, ttd_y_mm: ttdY, cap_x_mm: capX, cap_y_mm: capY,
+                show_ttd: document.getElementById('show_ttd')?.checked ? '1' : '0',
+                show_nama: document.getElementById('show_nama')?.checked ? '1' : '0',
+                show_cap: document.getElementById('show_cap')?.checked ? '1' : '0',
             });
 
             spinner.style.display = 'block';
@@ -496,6 +499,10 @@
                     debouncedLoadPreview();
                 });
             }
+        });
+
+        ['show_ttd', 'show_nama', 'show_cap'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', debouncedLoadPreview);
         });
 
         btnReset.addEventListener('click', function() {

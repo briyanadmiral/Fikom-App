@@ -19,6 +19,10 @@ class TugasPenerima extends Model
     protected $fillable = [
         'tugas_id',
         'pengguna_id',
+        'nama_penerima',
+        'jabatan_penerima',
+        'instansi',
+        'penerima_key',
         'nama_eksternal',
         'email_eksternal',
         'jabatan_eksternal',
@@ -66,11 +70,11 @@ class TugasPenerima extends Model
     {
         return Attribute::make(
             get: function () {
-                if ($this->is_internal && $this->pengguna) {
+                if ($this->pengguna_id !== null && $this->pengguna) {
                     return sanitize_output($this->pengguna->nama_lengkap ?? $this->pengguna->name);
                 }
 
-                return sanitize_output($this->nama_eksternal ?? 'Unknown');
+                return sanitize_output($this->nama_penerima ?? 'Unknown');
             },
         );
     }
@@ -82,67 +86,81 @@ class TugasPenerima extends Model
     {
         return Attribute::make(
             get: function () {
-                if ($this->is_internal && $this->pengguna) {
+                if ($this->pengguna_id !== null && $this->pengguna) {
                     return sanitize_email($this->pengguna->email) ?: '';
                 }
 
-                return sanitize_email($this->email_eksternal) ?: '';
+                return '';
             },
         );
     }
 
-    /**
-     * Mutator untuk nama_eksternal.
-     */
-    protected function namaEksternal(): Attribute
+    /* Mapping virtual attributes to actual DB columns */
+    public function getIsInternalAttribute()
     {
-        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
+        return $this->pengguna_id !== null;
     }
 
-    /**
-     * Mutator untuk email_eksternal.
-     */
-    protected function emailEksternal(): Attribute
+    public function getIsReadAttribute()
     {
-        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_email($value));
+        return (bool) $this->dibaca;
     }
 
-    /**
-     * Mutator untuk jabatan_eksternal.
-     */
-    protected function jabatanEksternal(): Attribute
+    public function setIsReadAttribute($value)
     {
-        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
+        $this->attributes['dibaca'] = $value;
     }
 
-    /**
-     * Mutator untuk instansi_eksternal.
-     */
-    protected function instansiEksternal(): Attribute
+    public function getNamaEksternalAttribute()
     {
-        return Attribute::make(get: fn (?string $value) => sanitize_output($value), set: fn (?string $value) => sanitize_input($value, 255));
+        return $this->nama_penerima;
+    }
+
+    public function setNamaEksternalAttribute($value)
+    {
+        $this->attributes['nama_penerima'] = sanitize_input($value, 255);
+    }
+
+    public function getJabatanEksternalAttribute()
+    {
+        return $this->jabatan_penerima;
+    }
+
+    public function setJabatanEksternalAttribute($value)
+    {
+        $this->attributes['jabatan_penerima'] = sanitize_input($value, 255);
+    }
+
+    public function getInstansiEksternalAttribute()
+    {
+        return $this->instansi;
+    }
+
+    public function setInstansiEksternalAttribute($value)
+    {
+        $this->attributes['instansi'] = sanitize_input($value, 255);
     }
 
     // ==================== SCOPES =========================
 
     public function scopeInternal($query)
     {
-        return $query->where('is_internal', true);
+        return $query->whereNotNull('pengguna_id');
     }
 
     public function scopeExternal($query)
     {
-        return $query->where('is_internal', false);
+        return $query->whereNull('pengguna_id');
     }
 
     public function scopeUnread($query)
     {
-        return $query->where('is_read', false);
+        return $query->where('dibaca', false);
     }
 
     public function scopeRead($query)
     {
-        return $query->where('is_read', true);
+        return $query->where('dibaca', true);
     }
 
     /**

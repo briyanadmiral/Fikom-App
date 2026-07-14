@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\KlasifikasiSurat;
 use App\Models\TugasHeader;
 use App\Models\TugasPenerima;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -361,7 +362,7 @@ class SuratTugasService
 
         // Internal (Ambil data user untuk memenuhi NOT NULL constraint nama_penerima di DB)
         if (!empty($internalIds)) {
-            $users = \App\Models\User::whereIn('id', $internalIds)->get()->keyBy('id');
+            $users = User::with('peran')->whereIn('id', $internalIds)->get()->keyBy('id');
             foreach ($internalIds as $uid) {
                 $userId = validate_integer_id($uid);
                 $u = $users->get($userId);
@@ -370,7 +371,7 @@ class SuratTugasService
                         'tugas_id' => $tugas->id,
                         'pengguna_id' => $userId,
                         'nama_penerima' => $u->nama_lengkap, // ✅ Penting: DB mengharuskan kolom ini terisi
-                        'jabatan_penerima' => $u->jabatan ?: $u->peran->deskripsi ?? null,
+                        'jabatan_penerima' => $u->jabatan ?: optional($u->peran)->deskripsi,
                     ]);
                 }
             }

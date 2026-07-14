@@ -31,4 +31,5 @@
   'capImageB64' => $capImageB64,
 
   'showSigns'   => $showSigns,
+  'showNamaPenandatangan' => $showNamaPenandatangan ?? true,
 ])

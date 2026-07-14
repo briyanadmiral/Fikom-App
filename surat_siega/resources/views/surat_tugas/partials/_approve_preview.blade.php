@@ -46,4 +46,5 @@
 
     // kunci: TTD/Cap HARUS tampak di halaman approve
     'showSigns' => $showSigns,
+    'showNamaPenandatangan' => $preview['show_nama'] ?? true,
 ])

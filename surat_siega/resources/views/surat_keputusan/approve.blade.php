@@ -178,16 +178,15 @@
                             @endif
 
                             {{-- Grup tombol aksi --}}
-                            <div class="mt-4 d-grid gap-2">
-                                <button type="submit" class="btn btn-success btn-lg" id="btn-approve">
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-success btn-lg btn-block" id="btn-approve">
                                     <i class="fas fa-check-double mr-2"></i>Setujui & Tandatangani
                                 </button>
-                                <button type="button" id="btn-reset" class="btn btn-outline-secondary">
+                                <button type="button" id="btn-reset" class="btn btn-outline-secondary btn-block mt-2">
                                     <i class="fas fa-redo mr-1"></i> Reset Ukuran
                                 </button>
-                                {{-- Tombol Tolak/Revisi hanya muncul jika pengguna adalah penandatangan yang ditunjuk --}}
                                 @can('reject', $sk)
-                                <button type="button" class="btn btn-danger mt-2" data-toggle="modal" data-target="#rejectModal">
+                                <button type="button" class="btn btn-danger btn-block mt-2" data-toggle="modal" data-target="#rejectModal">
                                     <i class="fas fa-times mr-1"></i> Tolak / Minta Revisi
                                 </button>
                                 @endcan
@@ -492,6 +491,9 @@
                 ttd_y_mm: document.getElementById('ttd_y_mm')?.value ?? 0,
                 cap_x_mm: document.getElementById('cap_x_mm')?.value ?? 0,
                 cap_y_mm: document.getElementById('cap_y_mm')?.value ?? 0,
+                show_ttd: document.getElementById('show_ttd')?.checked ? '1' : '0',
+                show_nama: document.getElementById('show_nama')?.checked ? '1' : '0',
+                show_cap: document.getElementById('show_cap')?.checked ? '1' : '0',
             });
 
             spinner.style.display = 'block';
@@ -526,6 +528,10 @@
                     debouncedLoad();
                 });
             }
+        });
+
+        ['show_ttd', 'show_nama', 'show_cap'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', debouncedLoad);
         });
 
         document.getElementById('btn-reset')?.addEventListener('click', () => {

@@ -5,217 +5,73 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
 <style>
-    /* [STYLE HEADER TETAP SAMA KARENA ANDA MENYUKAINYA] */
-    .page-header {
-        background: #f3f6fa;
-        padding: 1.3rem 2.2rem 1.3rem 1.8rem;
-        border-radius: 1.1rem;
-        margin-bottom: 2.2rem;
-        border: 1px solid #e0e6ed;
-        display: flex; align-items: center; gap: 1.3rem;
+    .nav-tabs-custom {
+        border-bottom: 2px solid #e0e6ed;
+        margin-bottom: 2rem;
     }
-    .page-header .icon {
-        background: linear-gradient(135deg,#1498ff 0,#1fc8ff 100%);
-        width: 54px; height: 54px;
-        display: flex; align-items: center; justify-content: center;
-        border-radius: 50%;
-        box-shadow: 0 1px 10px #1498ff30;
-        font-size: 2rem;
-    }
-    .page-header-title {
-        font-weight: bold;
-        color: #0056b3;
-        font-size: 1.85rem;
-        margin-bottom: 0.13rem;
-        letter-spacing: -1px;
-    }
-    .page-header-desc { color: #636e7b; font-size: 1.03rem; }
-    @media (max-width: 767.98px) {
-        .page-header { flex-direction: column; align-items: flex-start; padding: 1.2rem 1rem; gap: .7rem; }
-        .page-header-title { font-size: 1.18rem; }
-        .page-header-desc { font-size: .99rem; }
-    }
-    /* [AKHIR DARI STYLE HEADER] */
-
-    /* [STYLE BARU UNTUK KONTEN] */
-    .metric-card {
-        background: #fff;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-        border: 1px solid #f0f0f0;
-        transition: transform 0.2s, box-shadow 0.2s;
-        height: 100%;
-        position: relative;
-        overflow: hidden;
-    }
-    .metric-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    }
-    .metric-card::before {
-        content: '';
-        position: absolute;
-        left: 0; top: 0; bottom: 0;
-        width: 4px;
-        background: #ccc;
-    }
-    .metric-card.role-1::before { background: #dc3545; } /* Admin */
-    .metric-card.role-2::before { background: #007bff; } /* Dekan */
-    .metric-card.role-3::before { background: #17a2b8; } /* Wakil Dekan */
-    .metric-card.role-4::before { background: #6610f2; } /* Kaprodi */
-    .metric-card.role-5::before { background: #28a745; } /* Dosen */
-    .metric-card.role-6::before { background: #6c757d; } /* Tendik */
-
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #333;
-        line-height: 1.2;
-        margin-bottom: 0.2rem;
-    }
-    .metric-label {
-        color: #6c757d;
-        font-size: 0.9rem;
+    .nav-tabs-custom .nav-link {
+        border: none;
+        color: #636e7b;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        padding: 1rem 1.5rem;
+        position: relative;
     }
-    .metric-icon {
-        position: absolute;
-        right: 1.5rem;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 2.5rem;
-        color: #f8f9fa;
-        z-index: 0;
+    .nav-tabs-custom .nav-link.active {
+        color: #0056b3;
+        background: transparent;
+        border-bottom: 3px solid #1498ff;
     }
-
+    .nav-tabs-custom .badge {
+        margin-left: 0.5rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 12px;
+    }
     .card-users {
         border-radius: 12px;
         border: none;
         box-shadow: 0 4px 25px rgba(0,0,0, .05);
-        overflow: hidden;
-    }
-    .card-users .card-header {
-        background-color: #fff;
-        border-bottom: 1px solid #f0f0f0;
-        padding: 1.5rem;
-    }
-    .table-users {
-        border-collapse: separate;
-        border-spacing: 0;
-        width: 100%;
-        margin-bottom: 0 !important;
     }
     .table-users thead th {
         background: #fcfcfc;
         color: #6c757d;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.8px;
         font-size: 0.75rem;
-        border-bottom: 2px solid #edf2f7 !important;
+        border-bottom: 2px solid #edf2f7;
         padding: 1rem 1.5rem;
-        vertical-align: middle;
     }
     .table-users tbody td {
         vertical-align: middle;
-        font-size: 0.95rem;
-        color: #495057;
         padding: 1rem 1.5rem;
         border-bottom: 1px solid #f8f9fa;
-    }
-    .table-users tbody tr:last-child td {
-        border-bottom: none;
     }
     .table-users tbody tr:hover {
         background-color: #fafbfd;
     }
-    .user-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        color: #fff;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 1.25rem;
-        box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
-        transition: transform .2s;
-    }
-    .user-avatar:hover { transform: scale(1.05); }
-    
-    .user-info .user-name {
-        font-weight: 600;
-        color: #343a40;
-        font-size: 1rem;
-        margin-bottom: 2px;
-    }
-    .user-info .user-email {
-        font-size: 0.85rem;
-        color: #8898aa;
-    }
-    .btn-action {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        display: inline-flex;
-        align-items: center; justify-content: center;
-        transition: all 0.2s ease;
+    .btn-verify {
+        background: #28a745;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
         border: none;
     }
-    .btn-action-edit { background: #fff3cd; color: #856404; }
-    .btn-action-edit:hover { background: #ffeeba; color: #533f03; }
-    .btn-action-delete { background: #f8d7da; color: #721c24; }
-    .btn-action-delete:hover { background: #f5c6cb; color: #491217; }
-    
-    .badge-peran {
-        padding: 0.5em 0.9em;
+    .btn-verify:hover {
+        background: #218838;
+        color: white;
+    }
+    .btn-reject {
+        background: #dc3545;
+        color: white;
+        padding: 0.5rem 1rem;
         border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
+        font-size: 0.875rem;
+        border: none;
     }
-    .badge-status {
-        padding: .5em .9em;
-        font-size: .75rem;
-        border-radius: 2rem;
-        font-weight: 600;
-    }
-
-    /* Custom DataTables Styling to match */
-    div.dataTables_wrapper div.dataTables_length select {
-        width: auto;
-        display: inline-block;
-        border-radius: 8px;
-        padding: 0.3rem 2rem 0.3rem 0.75rem;
-    }
-    div.dataTables_wrapper div.dataTables_filter input {
-        border-radius: 8px;
-        padding: 0.3rem 0.75rem;
-        margin-left: 0.5rem;
-    }
-    div.dataTables_wrapper div.dataTables_info {
-        padding-top: 1rem;
-        font-size: 0.9rem;
-        color: #6c757d;
-        font-weight: 600;
-    }
-    div.dataTables_wrapper div.dataTables_paginate {
-        margin: 0;
-        white-space: nowrap;
-        text-align: right;
-        padding-top: 1rem;
-    }
-    div.dataTables_wrapper div.dataTables_paginate ul.pagination {
-        margin: 2px 0;
-        white-space: nowrap;
-        justify-content: flex-end;
+    .btn-reject:hover {
+        background: #c82333;
+        color: white;
     }
 </style>
 @endpush
@@ -224,116 +80,223 @@
 <div class="row align-items-center mb-4">
     <div class="col-md-6">
         <h1 class="m-0 text-dark font-weight-bold" style="font-size: 1.75rem;">Manajemen Pengguna</h1>
-        <p class="text-muted mb-0">Kelola data pengguna, peran akses, dan statistik akun.</p>
+        <p class="text-muted mb-0">Kelola akses pengguna (Staff/Dosen & Mahasiswa) sistem surat SIEGA.</p>
     </div>
     <div class="col-md-6 text-md-right mt-3 mt-md-0">
-        <a href="{{ route('users.create') }}" class="btn btn-primary shadow-sm px-4 py-2" style="border-radius: 8px;">
+        <a href="{{ route('users.create') }}" class="btn btn-primary shadow-sm px-4 py-2">
             <i class="fas fa-plus mr-2"></i> Tambah Pengguna
         </a>
-        <button class="btn btn-white shadow-sm px-3 py-2 ml-2" data-toggle="modal" data-target="#modal-peran" style="border-radius: 8px; border: 1px solid #e0e0e0;">
-            <i class="fas fa-cog text-secondary mr-1"></i> Peran
-        </button>
     </div>
 </div>
 @endsection
 
 @section('content')
 <div class="container-fluid">
-    @include('users.peran.modal')
-
-    {{-- [BARU] Role Metrics Row --}}
-    <div class="row mb-4">
-        @foreach($roles as $role)
-        <div class="col-xl-2 col-md-4 col-sm-6 mb-3 mb-xl-0">
-            <div class="metric-card role-{{ $role->id }}">
-                <div class="metric-value">{{ $role->users_count }}</div>
-                <div class="metric-label">{{ $role->nama }}</div>
-                <div class="metric-icon">
-                    @switch($role->id)
-                        @case(1) <i class="fas fa-user-shield text-danger" style="opacity:0.1"></i> @break
-                        @case(2) <i class="fas fa-user-tie text-primary" style="opacity:0.1"></i> @break
-                        @case(3) <i class="fas fa-user-tie text-info" style="opacity:0.1"></i> @break
-                        @case(4) <i class="fas fa-chalkboard-teacher text-purple" style="color:#6f42c1; opacity:0.1"></i> @break
-                        @case(5) <i class="fas fa-chalkboard-teacher text-success" style="opacity:0.1"></i> @break
-                        @default <i class="fas fa-user text-secondary" style="opacity:0.1"></i>
-                    @endswitch
-                </div>
-            </div>
-        </div>
-        @endforeach
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
     </div>
+    @endif
 
-    <div class="card card-users">
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle mr-2"></i>{{ session('error') }}
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+    </div>
+    @endif
+
+    {{-- Tabs status verifikasi --}}
+    <ul class="nav nav-tabs nav-tabs-custom" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link {{ $tab === 'pending' ? 'active' : '' }}" href="{{ route('users.index', ['tab' => 'pending']) }}">
+                Pending
+                <span class="badge badge-warning">{{ $pendingCount }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ $tab === 'approved' ? 'active' : '' }}" href="{{ route('users.index', ['tab' => 'approved']) }}">
+                Approved
+                <span class="badge badge-success">{{ $approvedCount }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ $tab === 'rejected' ? 'active' : '' }}" href="{{ route('users.index', ['tab' => 'rejected']) }}">
+                Rejected
+                <span class="badge badge-danger">{{ $rejectedCount }}</span>
+            </a>
+        </li>
+    </ul>
+
+    @php
+        $staffUsers = $users->filter(fn($u) => (int)$u->peran_id !== 7);
+        $studentUsers = $users->filter(fn($u) => (int)$u->peran_id === 7);
+    @endphp
+
+    <!-- WADAH 1: DOSEN & TENAGA KEPENDIDIKAN (STAFF) -->
+    <div class="card card-users mb-4">
+        <div class="card-header bg-light py-3">
+            <h5 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-user-tie mr-2"></i>Daftar Dosen & Staff (NPP)
+            </h5>
+        </div>
         <div class="card-body p-4">
             <div class="table-responsive">
-                <table class="table table-users" id="table-users" style="width:100%">
+                <table class="table table-users" id="table-staff">
                     <thead>
                         <tr>
-                            <th class="pl-4">Pengguna</th>
+                            <th>Nama</th>
                             <th>NPP</th>
-                            <th>Jabatan</th>
+                            <th>Email</th>
+                            @if($tab === 'approved')
                             <th>Peran</th>
-                            <th class="text-center">Status</th>
-                            <th>Bergabung</th>
-                            <th class="text-center pr-4">Aksi</th>
+                            @endif
+                            <th class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                    @forelse ($users as $u)
+                    @foreach ($staffUsers as $u)
                         <tr>
-                            <td class="pl-4">
-                                <div class="d-flex align-items-center">
-                                    {{-- Avatar dengan inisial nama --}}
-                                    <div class="user-avatar mr-3" style="background-color: {{ generate_color_from_string($u->nama_lengkap) }}; box-shadow: 0 3px 6px {{ generate_color_from_string($u->nama_lengkap) }}40;">
-                                        {{ get_initials($u->nama_lengkap) }}
-                                    </div>
-                                    <div class="user-info">
-                                        <div class="user-name">{{ $u->nama_lengkap }}</div>
-                                        <div class="user-email">{{ $u->email }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="font-weight-bold text-secondary">{{ $u->npp ? $u->npp : '—' }}</td>
-                            <td>{{ $u->jabatan ?? '—' }}</td>
+                            <td>{{ $u->nama_lengkap }}</td>
                             <td>
-                                @php
-                                    $badgeClass = match($u->peran_id) {
-                                        1 => 'badge-danger',
-                                        2 => 'badge-primary',
-                                        3 => 'badge-info',
-                                        4 => 'badge-warning', // Kaprodi
-                                        5 => 'badge-success', // Dosen
-                                        default => 'badge-secondary'
-                                    };
-                                @endphp
-                                <span class="badge {{ $badgeClass }} badge-peran shadow-sm">
-                                    {{ optional($u->peran)->nama ?? 'N/A' }}
-                                </span>
+                                <span class="badge badge-success font-weight-normal" style="font-size: 0.85rem; padding: 4px 8px;">NPP: {{ $u->npp ?? '—' }}</span>
                             </td>
+                            <td>{{ $u->email }}</td>
+                            @if($tab === 'approved')
+                            <td>{{ optional($u->peran)->nama ?? 'N/A' }}</td>
+                            @endif
                             <td class="text-center">
-                                @if($u->status == 'aktif')
-                                    <span class="badge badge-success badge-status bg-success-soft text-success border border-success" style="background: #e6fffa;">Aktif</span>
+                                @if($tab === 'pending')
+                                    @if(auth()->check() && auth()->user()->peran_id === 1)
+                                        <form action="{{ route('users.approve', $u->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-verify">
+                                                <i class="fas fa-check mr-1"></i>Verify
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('users.reject', $u->id) }}" method="POST" class="d-inline ml-2">
+                                            @csrf
+                                            <button type="submit" class="btn btn-reject">
+                                                <i class="fas fa-times mr-1"></i>Reject
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="badge badge-secondary">Pending Review</span>
+                                    @endif
+                                @elseif($tab === 'rejected')
+                                    @if(auth()->check() && auth()->user()->peran_id === 1)
+                                        <form action="{{ route('users.approve', $u->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-verify">
+                                                <i class="fas fa-check mr-1"></i>Verify
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger ml-2 btn-hapus-user" data-id="{{ $u->id }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                        <form id="form-hapus-{{ $u->id }}" action="{{ route('users.destroy', $u->id) }}" method="POST" style="display:none">
+                                            @csrf @method('DELETE')
+                                        </form>
+                                    @else
+                                        <span class="badge badge-danger">Rejected</span>
+                                    @endif
                                 @else
-                                    <span class="badge badge-secondary badge-status bg-secondary-soft text-secondary border">Tidak Aktif</span>
+                                    <a href="{{ route('users.edit', $u->id) }}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger ml-2 btn-hapus-user" data-id="{{ $u->id }}">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                    <form id="form-hapus-{{ $u->id }}" action="{{ route('users.destroy', $u->id) }}" method="POST" style="display:none">
+                                        @csrf @method('DELETE')
+                                    </form>
                                 @endif
                             </td>
-                            <td class="text-muted small font-weight-bold" data-sort="{{ $u->created_at ? $u->created_at->timestamp : 0 }}">{{ $u->created_at ? $u->created_at->isoFormat('D MMM YYYY') : '—' }}</td>
-                            <td class="text-center pr-4">
-                                <div class="btn-group shadow-sm" style="border-radius: 8px;">
-                                    <a href="{{ route('users.edit', $u->id) }}" class="btn btn-action-edit btn-action" data-toggle="tooltip" title="Edit">
-                                        <i class="fas fa-pencil-alt" style="font-size: 0.9rem;"></i>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- WADAH 2: MAHASISWA -->
+    <div class="card card-users">
+        <div class="card-header bg-light py-3">
+            <h5 class="m-0 font-weight-bold text-info">
+                <i class="fas fa-graduation-cap mr-2"></i>Daftar Mahasiswa (NIM)
+            </h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table table-users" id="table-mahasiswa">
+                    <thead>
+                        <tr>
+                            <th>Nama</th>
+                            <th>NIM</th>
+                            <th>Email</th>
+                            <th>WhatsApp</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach ($studentUsers as $u)
+                        <tr>
+                            <td>{{ $u->nama_lengkap }}</td>
+                            <td>
+                                <span class="badge badge-info font-weight-normal" style="font-size: 0.85rem; padding: 4px 8px;">NIM: {{ $u->nim ?? '—' }}</span>
+                            </td>
+                            <td>{{ $u->email }}</td>
+                            <td>{{ $u->whatsapp ?? '—' }}</td>
+                            <td class="text-center">
+                                @if($tab === 'pending')
+                                    @if(auth()->check() && auth()->user()->peran_id === 1)
+                                        <form action="{{ route('users.approve', $u->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-verify">
+                                                <i class="fas fa-check mr-1"></i>Verify
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('users.reject', $u->id) }}" method="POST" class="d-inline ml-2">
+                                            @csrf
+                                            <button type="submit" class="btn btn-reject">
+                                                <i class="fas fa-times mr-1"></i>Reject
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="badge badge-secondary">Pending Review</span>
+                                    @endif
+                                @elseif($tab === 'rejected')
+                                    @if(auth()->check() && auth()->user()->peran_id === 1)
+                                        <form action="{{ route('users.approve', $u->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-verify">
+                                                <i class="fas fa-check mr-1"></i>Verify
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-danger ml-2 btn-hapus-user" data-id="{{ $u->id }}">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                        <form id="form-hapus-{{ $u->id }}" action="{{ route('users.destroy', $u->id) }}" method="POST" style="display:none">
+                                            @csrf @method('DELETE')
+                                        </form>
+                                    @else
+                                        <span class="badge badge-danger">Rejected</span>
+                                    @endif
+                                @else
+                                    <a href="{{ route('users.edit', $u->id) }}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-pencil-alt"></i>
                                     </a>
-                                    <button type="button" class="btn btn-action-delete btn-action btn-hapus-user ml-2" data-id="{{ $u->id }}" data-toggle="tooltip" title="Hapus">
-                                        <i class="fas fa-trash-alt" style="font-size: 0.9rem;"></i>
+                                    <button type="button" class="btn btn-sm btn-danger ml-2 btn-hapus-user" data-id="{{ $u->id }}">
+                                        <i class="fas fa-trash-alt"></i>
                                     </button>
-                                </div>
-                                <form id="form-hapus-{{ $u->id }}" action="{{ route('users.destroy', $u->id) }}" method="POST" style="display:none">
-                                    @csrf @method('DELETE')
-                                </form>
+                                    <form id="form-hapus-{{ $u->id }}" action="{{ route('users.destroy', $u->id) }}" method="POST" style="display:none">
+                                        @csrf @method('DELETE')
+                                    </form>
+                                @endif
                             </td>
                         </tr>
-                    @empty
-                    @endforelse
+                    @endforeach
                     </tbody>
                 </table>
             </div>
@@ -345,67 +308,37 @@
 @push('scripts')
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-
 <script>
 $(function () {
-    // Inisialisasi Tooltip dari Bootstrap
-    $('[data-toggle="tooltip"]').tooltip();
-
-    // Inisialisasi DataTables
-    var table = $('#table-users').DataTable({
-        responsive: true,
+    const dataTableOptions = {
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json',
-            emptyTable: "Tidak ada data pengguna yang ditemukan.",
-            zeroRecords: "Tidak ada data yang cocok dengan pencarian",
-            infoEmpty: "Menampilkan 0 sampai 0 dari 0 data",
-            infoFiltered: "(disaring dari _MAX_ total data)"
-        },
-        columnDefs: [
-            { orderable: false, targets: 6 } // Kolom Aksi tidak bisa disort
-        ],
-        drawCallback: function(settings) {
-            $('[data-toggle="tooltip"]').tooltip();
+            search: 'Cari:',
+            lengthMenu: 'Show _MENU_ entries',
+            info: 'Showing _START_ to _END_ of _TOTAL_ entries',
+            zeroRecords: 'Tidak ditemukan data yang sesuai',
+            emptyTable: "Tidak ada data.",
+            paginate: { next: 'Next', previous: 'Previous' }
         }
-    });
+    };
 
-    // Notifikasi sukses pakai SweetAlert2
-    @if(session('success'))
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: "{{ session('success') }}",
-            showConfirmButton: false,
-            timer: 2000,
-            toast: true,
-            position: 'top-end'
-        });
-    @endif
+    // Inisialisasi 2 wadah tabel
+    $('#table-staff').DataTable(dataTableOptions);
+    $('#table-mahasiswa').DataTable(dataTableOptions);
 
-    @if(session('error'))
+    $('.btn-hapus-user').on('click', function() {
+        const id = $(this).data('id');
         Swal.fire({
-            icon: 'error',
-            title: 'Gagal!',
-            text: "{{ session('error') }}",
-        });
-    @endif
-
-    // Hapus User pakai SweetAlert2
-    $(document).on('click', '.btn-hapus-user', function(){
-        var id = $(this).data('id');
-        Swal.fire({
-            title: 'Anda Yakin?',
-            text: 'Pengguna akan dihapus (soft delete) dan tidak dapat dikembalikan.',
+            title: 'Hapus User?',
+            text: "Data akan dihapus permanen!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Ya, hapus!',
+            confirmButtonText: 'Ya, Hapus!',
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
-                $('#form-hapus-'+id).submit();
+                $('#form-hapus-' + id).submit();
             }
         });
     });

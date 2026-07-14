@@ -279,8 +279,7 @@
         
         <!-- Description -->
         <p class="description">
-            Anda tidak memiliki izin untuk mengakses halaman ini.
-            <br>Silakan login terlebih dahulu atau hubungi administrator.
+            {{ $exception->getMessage() ?: 'Anda tidak memiliki izin untuk mengakses halaman ini. Silakan login terlebih dahulu atau hubungi administrator.' }}
         </p>
         
         <!-- Action Buttons -->

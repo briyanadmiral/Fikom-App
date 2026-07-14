@@ -22,19 +22,28 @@
         $penerimaList = array_map(fn($n) => sanitize_output($n), $penerimaList);
     } else {
         $penerimaList = ($tugas->penerima ?? collect())
-            ->pluck('pengguna.nama_lengkap')
+            ->map(function ($p) {
+                // Internal: ambil dari relasi User; Eksternal: ambil dari nama_penerima langsung
+                return $p->pengguna
+                    ? sanitize_output($p->pengguna->nama_lengkap)
+                    : sanitize_output($p->nama_penerima);
+            })
             ->filter()
-            ->map(fn($n) => sanitize_output($n))
             ->values()
             ->all();
     }
 
     // ✅ Status penerima dengan sanitasi
     $roleNames = collect($tugas->penerima ?? [])
-        ->map(fn($p) => optional(optional($p->pengguna)->peran)->deskripsi)
+        ->map(function ($p) {
+            // Internal: ambil dari peran; Eksternal: ambil dari jabatan_penerima
+            if ($p->pengguna) {
+                return sanitize_output(optional($p->pengguna->peran)->deskripsi);
+            }
+            return sanitize_output($p->jabatan_penerima);
+        })
         ->filter()
         ->unique()
-        ->map(fn($d) => sanitize_output($d))
         ->values()
         ->all();
 
@@ -318,44 +327,12 @@
             height: 35mm;
             margin-top: 6mm;
         }
-
-        .ttd-area-sign .ttd,
-        .ttd-area-sign .cap {
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-        }
-
-        .ttd-area-sign .ttd {
-            transform: translateX(calc(-50% + var(--ttd-x, 0mm)));
-            bottom: var(--ttd-y, 0mm); 
-            width: var(--ttd-w, 42mm);
-        }
         
         .ttd-area-sign .ttd img, .ttd-area-sign .cap img {
             width: 100%; 
             height: auto !important; 
             display: block;
             object-fit: contain;
-        }
-        .resize-handle {
-            width: 12px; height: 12px;
-            background: #ffffff;
-            border: 1px solid #007bff;
-            border-radius: 50%;
-            position: absolute;
-            bottom: -6px; right: -6px;
-            cursor: nwse-resize;
-            z-index: 100;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .ttd-area-sign .cap {
-            transform: translateX(calc(-25% + var(--cap-x, 0mm)));
-            bottom: var(--cap-y, 0mm);
-            width: var(--cap-w, 35mm);
-            opacity: var(--cap-opacity, .95);
-            z-index: 2;
         }
     </style>
     <div class="sheet">
@@ -378,7 +355,13 @@
 <div class="nomor">Nomor : {{ $tugas->nomor ?? '-' }}</div>
 
 <div class="isi-surat">
-    Dekan Fakultas Ilmu Komputer Universitas Katolik Soegijapranata dengan ini memberikan tugas kepada:
+    {{-- REDAKSI PEMBUKA: dari user, fallback ke teks default --}}
+    @if (!empty($tugas->redaksi_pembuka))
+        {!! $tugas->redaksi_pembuka !!}
+    @else
+        Dekan Fakultas Ilmu Komputer Universitas Katolik Soegijapranata dengan ini memberikan tugas kepada:
+    @endif
+
     <div class="detail-tugas">
         <table>
             <tr>
@@ -409,25 +392,70 @@
                 <td>:</td>
                 <td>
                     @php
-                        $waktuList = [];
+                        $waktuDisplay = [];
+
+                        // Tampilkan rentang tanggal pelaksanaan (prioritas utama)
+                        $tglMulai = $tugas->waktu_mulai ?? null;
+                        $tglSelesai = $tugas->waktu_selesai ?? null;
+
+                        if ($tglMulai && $tglSelesai) {
+                            $fmtMulai = $tglMulai->translatedFormat('d F Y');
+                            $fmtSelesai = $tglSelesai->translatedFormat('d F Y');
+
+                            if ($fmtMulai === $fmtSelesai) {
+                                // Satu hari: "14 Juli 2026, 09:00 - 12:00 WIB"
+                                $waktuDisplay[] = $tglMulai->translatedFormat('d F Y, H:i')
+                                    . ' s.d. '
+                                    . $tglSelesai->translatedFormat('H:i')
+                                    . ' WIB';
+                            } else {
+                                // Lebih dari satu hari: "14 Juli 2026 s.d. 16 Juli 2026"
+                                $waktuDisplay[] = $fmtMulai . ' s.d. ' . $fmtSelesai;
+                            }
+                        } elseif ($tglMulai) {
+                            $waktuDisplay[] = $tglMulai->translatedFormat('d F Y, H:i') . ' WIB';
+                        }
+
+                        // Tambahkan periode akademik sebagai konteks
+                        $periodeParts = [];
                         if (!empty($tugas->semester)) {
-                            $waktuList[] = sanitize_output($tugas->semester);
+                            $periodeParts[] = sanitize_output($tugas->semester);
                         }
                         if (!empty($tugas->tahun)) {
-                            $tahun = filter_var($tugas->tahun, FILTER_VALIDATE_INT);
-                            if ($tahun !== false) {
-                                $waktuList[] = $tahun;
+                            $thn = filter_var($tugas->tahun, FILTER_VALIDATE_INT);
+                            if ($thn !== false) {
+                                $periodeParts[] = $thn;
                             }
                         }
-                        echo !empty($waktuList) ? implode(' ', $waktuList) : '-';
+                        $periode = !empty($periodeParts) ? implode(' ', $periodeParts) : '';
+
+                        if (!empty($waktuDisplay) && $periode) {
+                            $waktuDisplay[] = '(' . $periode . ')';
+                        } elseif (empty($waktuDisplay) && $periode) {
+                            $waktuDisplay[] = $periode;
+                        }
+
+                        echo !empty($waktuDisplay) ? implode(' ', $waktuDisplay) : '-';
                     @endphp
                 </td>
             </tr>
         </table>
     </div>
 
-    Harap melaksanakan tugas dengan sebaik-baiknya dan penuh tanggung jawab serta memberikan laporan setelah selesai
-    melaksanakan tugas.
+    {{-- DETAIL RINCIAN TUGAS: dari user (opsional, rich text) --}}
+    @if (!empty($tugas->detail_tugas))
+        <div style="margin: 6mm 0;">
+            {!! $tugas->detail_tugas !!}
+        </div>
+    @endif
+
+    {{-- PENUTUP: dari user, fallback ke teks default --}}
+    @if (!empty($tugas->penutup))
+        {!! $tugas->penutup !!}
+    @else
+        Harap melaksanakan tugas dengan sebaik-baiknya dan penuh tanggung jawab serta memberikan laporan setelah selesai
+        melaksanakan tugas.
+    @endif
 </div>
 
 <div class="ttd-wrapper avoid-break">
@@ -506,10 +534,13 @@
 
         {{-- AREA TTD & CAP --}}
         <div class="ttd-area-sign"
-            style="--ttd-w: {{ $ttdW_final }}mm; --cap-w: {{ $capW_final }}mm; --cap-opacity: {{ $capOpacity_final }}; --ttd-x: {{ $ttdX_final }}mm; --ttd-y: {{ $ttdY_final }}mm; --cap-x: {{ $capX_final }}mm; --cap-y: {{ $capY_final }}mm;">
+            style="--ttd-w: {{ $ttdW_final }}mm; --cap-w: {{ $capW_final }}mm; --cap-opacity: {{ $capOpacity_final }}; --ttd-x: {{ $ttdX_final ?? 0 }}mm; --ttd-y: {{ $ttdY_final ?? 0 }}mm; --cap-x: {{ $capX_final ?? 0 }}mm; --cap-y: {{ $capY_final ?? 0 }}mm;">
             @if ($showSigns)
                 @if (!empty($ttdImageB64))
-                    <div class="ttd-draggable ttd">
+                    <div class="ttd-draggable ttd"
+                         @if($context === 'pdf')
+                         style="position: absolute; left: 50%; margin-left: {{ -((int)$ttdW_final / 2) + (int)($ttdX_final ?? 0) }}mm; bottom: {{ (int)($ttdY_final ?? 0) }}mm; width: {{ (int)$ttdW_final }}mm;"
+                         @endif>
                         <img src="{{ $ttdImageB64 }}" alt="TTD">
                         @if ($context === 'web' && $allowResize)
                             <div class="resize-handle ttd-handle"></div>
@@ -517,7 +548,10 @@
                     </div>
                 @endif
                 @if (!empty($capImageB64))
-                    <div class="cap-draggable cap">
+                    <div class="cap-draggable cap"
+                         @if($context === 'pdf')
+                         style="position: absolute; left: 50%; margin-left: {{ -((int)$capW_final / 4) + (int)($capX_final ?? 0) }}mm; bottom: {{ (int)($capY_final ?? 0) }}mm; width: {{ (int)$capW_final }}mm; opacity: {{ $capOpacity_final }};"
+                         @endif>
                         <img src="{{ $capImageB64 }}" alt="Cap">
                         @if ($context === 'web' && $allowResize)
                             <div class="resize-handle cap-handle"></div>
@@ -528,8 +562,10 @@
         </div>
 
         <div class="ttd-teks avoid-break">
+            @if ($showNamaPenandatangan ?? true)
             <strong>{{ optional($tugas->penandatanganUser)->nama_lengkap ?? '-' }}</strong><br>
             NPP. {{ optional($tugas->penandatanganUser)->npp ?? '-' }}
+            @endif
         </div>
     </div>
 </div>

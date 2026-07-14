@@ -68,8 +68,8 @@ class UpdateTugasRequest extends FormRequest
             'bulan' => ['required', 'string', 'regex:/^(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII)$/i'],
 
             // === Nomor Surat (with unique ignore) ===
-            'nomor' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->ignore($tugasId)->whereNull('deleted_at')],
-            'no_surat_manual' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->ignore($tugasId)->whereNull('deleted_at')],
+            'nomor' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->ignore($tugasId)],
+            'no_surat_manual' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('tugas_header', 'nomor')->ignore($tugasId)],
             'tahun_nomor' => ['sometimes', 'integer', 'digits:4'],
             'nomor_urut' => ['nullable', 'string', 'max:10', 'regex:/^[0-9]+$/'],
 

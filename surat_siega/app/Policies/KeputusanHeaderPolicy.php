@@ -45,9 +45,9 @@ class KeputusanHeaderPolicy
             return true;
         }
 
-        // Penerima (many-to-many)
-        if ($userId !== null) {
-            return $sk->penerima()->where('pengguna_id', $userId)->exists();
+        // SK yang sudah terbit/diarsipkan berlaku untuk seluruh anggota fakultas.
+        if ($userId !== null && in_array($sk->status_surat, ['terbit', 'arsip'], true)) {
+            return true;
         }
 
         return false;
@@ -198,11 +198,15 @@ class KeputusanHeaderPolicy
             return false;
         }
 
-        // Validate user peran_id
+        // Validate user peran_id & penandatangan
         $userPeranId = validate_integer_id($user->peran_id);
+        $userId = validate_integer_id($user->id);
+        $penandatanganId = validate_integer_id($sk->penandatangan);
 
-        // Dekan (2) atau WD (3) bisa approve pending
-        if ($userPeranId !== null && in_array($userPeranId, [2, 3], true)) {
+        // Hanya Dekan (2) atau WD (3) yang DITUNJUK sebagai penandatangan
+        if ($userPeranId !== null && in_array($userPeranId, [2, 3], true)
+            && $userId !== null && $penandatanganId !== null
+            && $userId === $penandatanganId) {
             return true;
         }
 
@@ -220,11 +224,15 @@ class KeputusanHeaderPolicy
             return false;
         }
 
-        // Validate user peran_id
+        // Validate user peran_id & penandatangan
         $userPeranId = validate_integer_id($user->peran_id);
+        $userId = validate_integer_id($user->id);
+        $penandatanganId = validate_integer_id($sk->penandatangan);
 
-        // Dekan (2) atau WD (3) bisa reject
-        if ($userPeranId !== null && in_array($userPeranId, [2, 3], true)) {
+        // Hanya Dekan (2) atau WD (3) yang DITUNJUK sebagai penandatangan
+        if ($userPeranId !== null && in_array($userPeranId, [2, 3], true)
+            && $userId !== null && $penandatanganId !== null
+            && $userId === $penandatanganId) {
             return true;
         }
 
@@ -273,8 +281,8 @@ class KeputusanHeaderPolicy
         $userId = validate_integer_id($user->id);
         $penandatanganId = validate_integer_id($keputusan->penandatangan);
 
-        // Admin/TU (peran_id=1) atau Penandatangan bisa menerbitkan
-        if ($userPeranId === 1) {
+        // Admin/TU (1), Dekan (2), WD (3) atau Penandatangan bisa menerbitkan
+        if ($userPeranId !== null && in_array($userPeranId, [1, 2, 3], true)) {
             return true;
         }
 

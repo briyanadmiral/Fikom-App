@@ -7,7 +7,6 @@
         const tableId = @json($tableId ?? '#table-tugas');
 
         // i18n & empty messages
-        const i18nUrl = @json($i18nUrl ?? '/assets/datatables/i18n/id.json');
         const emptyDefaultMsg = @json($emptyDefaultMsg ?? 'Tidak ada data surat tugas.');
         const emptyApproveMsg = @json($emptyApproveMsg ?? 'Tidak ada surat yang perlu Anda setujui.');
         const moduleName = @json($moduleName ?? 'Surat Tugas'); // untuk teks konfirmasi
@@ -81,8 +80,19 @@
             responsive: true,
             autoWidth: false,
             language: {
-                url: i18nUrl,
-                emptyTable: emptyMsg
+                search: 'Cari:',
+                lengthMenu: 'Tampilkan _MENU_ entri',
+                info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ entri',
+                infoEmpty: 'Menampilkan 0 sampai 0 dari 0 entri',
+                infoFiltered: '(disaring dari _MAX_ entri keseluruhan)',
+                zeroRecords: 'Tidak ditemukan data yang sesuai',
+                emptyTable: emptyMsg,
+                paginate: {
+                    first: 'Pertama',
+                    last: 'Terakhir',
+                    next: 'Berikutnya',
+                    previous: 'Sebelumnya'
+                }
             },
             order: [
                 [dateColIdx >= 0 ? dateColIdx : 0, 'desc']

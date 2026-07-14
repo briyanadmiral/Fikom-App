@@ -191,17 +191,7 @@
     const bulan = ($('#bulan').val() || '').toUpperCase() || '...';
     const tahun = $('#tahun-nomor').val() || '....';
     
-    // ✅ DEBUG
-    console.log('=== BUILD NOMOR ===');
-    console.log('No Urut:', noUrut);
-    console.log('Kode dari #klasifikasi_kode:', kode);
-    console.log('Bulan:', bulan);
-    console.log('Tahun:', tahun);
-    
-    const result = `${noUrut}/${kode}/ST.IKOM/UNIKA/${bulan}/${tahun}`;
-    console.log('Nomor final:', result);
-    
-    return result;
+    return `${noUrut}/${kode}/ST.IKOM/UNIKA/${bulan}/${tahun}`;
 }
 
 
@@ -226,13 +216,6 @@
     const bulan = ($('#bulan').val() || '').toUpperCase();
     const tahun = parseInt($('#tahun-nomor').val(), 10) || new Date().getFullYear();
     
-    // ✅ DEBUG
-    console.log('=== DATA YANG DIKIRIM KE SERVER ===');
-    console.log('kode_klasifikasi:', kodeKlas);
-    console.log('Apakah ada titik?', kodeKlas.includes('.'));
-    console.log('bulan_romawi:', bulan);
-    console.log('tahun:', tahun);
-    
     if (!kodeKlas || !bulan || !tahun) {
         Swal.fire('Lengkapi Kode/Bulan/Tahun dahulu', '', 'info');
         return null;
@@ -250,8 +233,6 @@
             tahun
         };
         
-        console.log('Payload JSON:', JSON.stringify(payload));
-        
         const res = await fetch(@json(route('ajax.nomor.reserve')), {
             method: 'POST',
             headers: {
@@ -264,8 +245,6 @@
         
         if (!res.ok) throw new Error('Reserve nomor gagal');
         const data = await res.json();
-        
-        console.log('Response dari server:', data);
         
         $disp.val(data.nomor);
         $hidden.val(data.nomor);
@@ -322,7 +301,18 @@
                     $hidden.val(v);
                     $urut.val(extractNoUrut(v));
                 });
-                markNomorStale();
+                
+                // Preserve old inputs (e.g. from redirect back after failed save)
+                if ($hidden.val()) {
+                    $disp.val($hidden.val());
+                } else if ($manual.val().trim()) {
+                    const v = $manual.val().trim();
+                    $disp.val(v);
+                    $hidden.val(v);
+                    $urut.val(extractNoUrut(v));
+                } else {
+                    markNomorStale();
+                }
             }
 
             function toggleReserveBtn() {
@@ -366,8 +356,14 @@
                         $tugasSelect.append(new Option(st.nama, st.nama, selected, selected));
                     });
                     $tugasSelect.prop('disabled', false);
+                    $('#subtugas-warning').hide();
                 } else {
                     $tugasSelect.prop('disabled', true);
+                    if (selectedKategori) {
+                        $('#subtugas-warning').show();
+                    } else {
+                        $('#subtugas-warning').hide();
+                    }
                 }
                 $tugasSelect.trigger('change.select2');
                 updateTaskPreview();
@@ -542,7 +538,6 @@
 
             $('#simpanPenerima').on('click', function(e) {
                 e.preventDefault();
-                console.log('Simpan Penerima Internal diklik');
                 
                 penerimaState.internal = {};
                 // ✅ Gunakan table.rows().nodes() agar semua data di semua halaman terbaca
@@ -557,7 +552,6 @@
                     };
                 });
                 
-                console.log('Total internal terpilih:', Object.keys(penerimaState.internal).length);
                 renderPenerimaList();
                 $('#penerimaModal').modal('hide');
                 Swal.fire({
@@ -1028,7 +1022,6 @@
                                     if (typeof refreshNomorPreview === 'function') {
                                         refreshNomorPreview();
                                     }
-                                    console.log('Klasifikasi auto-filled:', pd.klasifikasi_surat_id, pd.klasifikasi_label);
                                 }
                                 if (pd.asal_surat_id) {
                                     $('#asal_surat_id').val(pd.asal_surat_id).trigger('change');
@@ -1064,11 +1057,9 @@
                                 
                                 // Penerima Internal & Eksternal
                                 // FIXED: Use penerimaState structure (internal is object, not array)
-                                console.log('Auto-filling penerima...', pd);
                                 
                                 // Check if penerimaState and allUsersData exist (defined in form script)
                                 if (typeof penerimaState !== 'undefined' && typeof allUsersData !== 'undefined') {
-                                    console.log('penerimaState found, updating...');
                                     
                                     // Clear existing
                                     penerimaState.internal = {};
@@ -1076,7 +1067,6 @@
                                     
                                     // Add internal penerima - MUST match penerimaState structure
                                     if (pd.penerima_internal && pd.penerima_internal.length > 0) {
-                                        console.log('Adding internal penerima:', pd.penerima_internal);
                                         pd.penerima_internal.forEach(function(userId) {
                                             const u = allUsersData[userId];
                                             if (u) {
@@ -1096,7 +1086,6 @@
                                     
                                     // Add external penerima
                                     if (pd.penerima_eksternal && pd.penerima_eksternal.length > 0) {
-                                        console.log('Adding external penerima:', pd.penerima_eksternal);
                                         pd.penerima_eksternal.forEach(function(penerima) {
                                             penerimaState.eksternal.push({
                                                 nama: penerima.nama || '',
@@ -1106,12 +1095,9 @@
                                         });
                                     }
                                     
-                                    console.log('Final penerimaState:', penerimaState);
-                                    
                                     // Trigger render - function is in same scope
                                     setTimeout(function() {
                                         if (typeof renderPenerimaList === 'function') {
-                                            console.log('Calling renderPenerimaList()...');
                                             renderPenerimaList();
                                             updateStatusPenerima();
                                         } else {

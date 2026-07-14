@@ -1,5 +1,30 @@
 <?php
 
+header_register_callback(function() {
+    $headers = headers_list();
+    $redirect = null;
+    foreach ($headers as $header) {
+        if (stripos($header, 'Location:') === 0) {
+            $redirect = $header;
+            break;
+        }
+    }
+    if ($redirect) {
+        $log_file = __DIR__ . '/../../surat_debug_redirect.txt';
+        $log_data = "=========================================\n";
+        $log_data .= "TIME: " . date('Y-m-d H:i:s') . "\n";
+        $log_data .= "URL: " . ($_SERVER['REQUEST_URI'] ?? 'unknown') . "\n";
+        $log_data .= "REDIRECT HEADER: " . $redirect . "\n";
+        
+        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+        $log_data .= "TRACE:\n";
+        foreach ($trace as $i => $step) {
+            $log_data .= "#$i " . ($step['file'] ?? 'unknown') . " line " . ($step['line'] ?? 'unknown') . " in " . ($step['function'] ?? 'unknown') . "\n";
+        }
+        file_put_contents($log_file, $log_data, FILE_APPEND);
+    }
+});
+
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 

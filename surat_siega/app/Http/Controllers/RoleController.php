@@ -22,8 +22,10 @@ class RoleController extends Controller
             return response()->json(Peran::orderBy('nama')->get());
         }
 
-        // Jika akses biasa, return view (opsional)
-        return view('roles.index', ['roles' => Peran::orderBy('nama')->get()]);
+        // Jika akses biasa, tampilkan halaman master data peran.
+        return view('roles.index', [
+            'roles' => Peran::withCount('users')->orderBy('nama')->get(),
+        ]);
     }
 
     // Store peran baru

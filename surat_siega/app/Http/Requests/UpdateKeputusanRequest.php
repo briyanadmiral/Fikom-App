@@ -24,7 +24,7 @@ class UpdateKeputusanRequest extends FormRequest
 
         return [
             // === Nomor & Tanggal ===
-            'nomor' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('keputusan_header', 'nomor')->ignore($keputusanId)->whereNull('deleted_at')],
+            'nomor' => ['nullable', 'string', 'max:100', 'regex:/^[0-9A-Z\/\-\.]+$/', Rule::unique('keputusan_header', 'nomor')->ignore($keputusanId)],
             'tanggal_surat' => ['required', 'date', 'before_or_equal:today'],
 
             // === Kota & Tahun ===
@@ -59,38 +59,12 @@ class UpdateKeputusanRequest extends FormRequest
             'menetapkan.*.judul' => ['required', 'string', 'max:200', 'regex:/^[\p{L}\p{N}\s\-\.,;:()\/"\'\[\]]+$/u'],
             'menetapkan.*.isi' => ['required', 'string', 'max:65000'],
 
-            // === Penerima Internal ===
-            'penerima_internal' => ['nullable', 'array'],
-            'penerima_internal.*' => ['integer', 'exists:pengguna,id', 'distinct'],
-
-            // === Penerima Eksternal ===
-            'penerima_eksternal' => ['nullable', 'array'],
-            'penerima_eksternal.*' => ['string', 'max:255', 'regex:/^[\p{L}\s\-\.,()]+$/u'],
-
             // === Tembusan ===
             'tembusan' => ['nullable', 'string', 'max:5000'],
 
             // === Mode/Status ===
             'mode' => ['nullable', 'string', 'in:draft,pending,terkirim'],
         ];
-    }
-
-    /**
-     * Validate logic cross-fields (Penerima required if pending).
-     */
-    public function withValidator($validator)
-    {
-        $validator->after(function ($validator) {
-            $mode = $this->input('mode');
-            if (in_array($mode, ['pending', 'terkirim'])) {
-                $hasInternal = count($this->input('penerima_internal', [])) > 0;
-                $hasEksternal = count($this->input('penerima_eksternal', [])) > 0;
-
-                if (! $hasInternal && ! $hasEksternal) {
-                    $validator->errors()->add('penerima_internal', 'Minimal satu penerima (internal atau eksternal) wajib diisi saat pengajuan.');
-                }
-            }
-        });
     }
 
     /**
@@ -308,54 +282,12 @@ class UpdateKeputusanRequest extends FormRequest
         $this->merge(['menetapkan' => $menetapkan]);
 
         // ====================================================================
-        // STEP 8: Sanitize PENERIMA EKSTERNAL
-        // ====================================================================
-        $penerimaEksternal = array_values(
-            array_filter(
-                array_map(function ($item) {
-                    if (is_array($item)) {
-                        $val = trim((string) ($item['value'] ?? ($item['name'] ?? ($item['text'] ?? ''))));
-                    } else {
-                        $val = trim((string) $item);
-                    }
-
-
-                    $val = strip_tags(sanitize_input($val, 255));
-
-                    return $val === '' || $val === null ? null : $val;
-                }, (array) $this->input('penerima_eksternal', [])),
-            ),
-        );
-
-        $this->merge(['penerima_eksternal' => $penerimaEksternal]);
-
-        // ====================================================================
-        // STEP 9: Validate PENERIMA INTERNAL
-        // ====================================================================
-        $penerimaInternal = array_values(
-            array_unique(
-                array_filter(
-                    array_map(function ($id) {
-                        return validate_integer_id($id);
-                    }, (array) $this->input('penerima_internal', [])),
-                ),
-            ),
-        );
-
-        $this->merge(['penerima_internal' => $penerimaInternal]);
-
-        // ====================================================================
-        // STEP 10: Validate PENANDATANGAN
+        // STEP 8: Validate PENANDATANGAN
         // ====================================================================
         if ($this->filled('penandatangan')) {
             $validated = validate_integer_id($this->input('penandatangan'));
             $this->merge(['penandatangan' => $validated]);
         }
-
-        // ====================================================================
-        // STEP 11: Validate at least one penerima exists
-        // ====================================================================
-        $this->validatePenerimaExists();
     }
 
     /**
@@ -400,31 +332,6 @@ class UpdateKeputusanRequest extends FormRequest
         $value = preg_replace('/javascript:/i', '', $value);
 
         return $value;
-    }
-
-    /**
-     * Ensure at least one penerima exists.
-     */
-    private function validatePenerimaExists(): void
-    {
-        $mode = $this->input('mode'); // draft / pending / terkirim / null
-
-        // Hanya warning kalau mau kirim/pending
-        if (! in_array($mode, ['pending', 'terkirim'], true)) {
-            return;
-        }
-
-        $hasInternal = is_array($this->input('penerima_internal')) && count($this->input('penerima_internal')) > 0;
-        $hasEksternal = is_array($this->input('penerima_eksternal')) && count($this->input('penerima_eksternal')) > 0;
-
-        if (! $hasInternal && ! $hasEksternal) {
-            Log::warning('UpdateKeputusanRequest: No penerima provided', [
-                'keputusan_id' => $this->getKeputusanIdForLog(),
-                'user_id' => auth()->id(),
-                'ip' => request()->ip(),
-                'tentang' => substr($this->input('tentang', ''), 0, 50),
-            ]);
-        }
     }
 
     /**
@@ -484,12 +391,6 @@ class UpdateKeputusanRequest extends FormRequest
             'menetapkan.*.isi.required' => 'Isi diktum harus diisi',
             'menetapkan.*.isi.max' => 'Isi diktum terlalu panjang',
 
-            // Penerima
-            'penerima_internal.*.exists' => 'Salah satu penerima internal tidak ditemukan',
-            'penerima_internal.*.distinct' => 'Penerima internal tidak boleh duplikat',
-            'penerima_eksternal.*.max' => 'Nama penerima eksternal maksimal 255 karakter',
-            'penerima_eksternal.*.regex' => 'Nama penerima eksternal mengandung karakter tidak valid',
-
             // Mode
             'mode.in' => 'Status harus salah satu: draft, pending, atau terkirim',
         ];
@@ -512,8 +413,6 @@ class UpdateKeputusanRequest extends FormRequest
             'menimbang' => 'konsideran menimbang',
             'mengingat' => 'konsideran mengingat',
             'menetapkan' => 'diktum',
-            'penerima_internal' => 'penerima internal',
-            'penerima_eksternal' => 'penerima eksternal',
             'tembusan' => 'tembusan',
         ];
     }
@@ -532,8 +431,6 @@ class UpdateKeputusanRequest extends FormRequest
                 'has_menimbang' => count($this->input('menimbang', [])),
                 'has_mengingat' => count($this->input('mengingat', [])),
                 'has_menetapkan' => count($this->input('menetapkan', [])),
-                'has_penerima_internal' => count($this->input('penerima_internal', [])),
-                'has_penerima_eksternal' => count($this->input('penerima_eksternal', [])),
             ],
         ]);
 

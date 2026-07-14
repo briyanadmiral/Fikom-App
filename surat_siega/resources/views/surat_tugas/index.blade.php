@@ -547,6 +547,22 @@
                                                     <div class="dropdown-divider"></div>
                                                 @endif
 
+                                                {{-- 4b. Tarik ke Draft (Admin TU, status pending/ditolak) --}}
+                                                @if (in_array($h->status_surat, ['pending', 'ditolak']) && auth()->user()->peran_id === 1)
+                                                    <form action="{{ route('surat_tugas.reopen', $h->id) }}" method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item text-warning w-100 text-left"
+                                                            data-confirm-message="Apakah Anda yakin ingin menarik surat ini kembali ke Draft?"
+                                                            data-confirm-title="Konfirmasi Tarik ke Draft"
+                                                            data-confirm-text="Ya, Tarik!"
+                                                            data-confirm-icon="warning"
+                                                            style="border:none;background:transparent;cursor:pointer">
+                                                            <i class="fas fa-undo"></i> Tarik ke Draft
+                                                        </button>
+                                                    </form>
+                                                    <div class="dropdown-divider"></div>
+                                                @endif
+
                                                 {{-- 5. Edit/Koreksi (HANYA untuk peran_id 2 dan 3 = Dekan/Wakil Dekan) --}}
                                                 @if (in_array((int) auth()->user()->peran_id, [2, 3], true) && $h->status_surat === 'pending' && (int) $h->next_approver === (int) auth()->id())
                                                     <a class="dropdown-item text-warning"
@@ -560,7 +576,7 @@
                                                 {{-- 6. Download PDF dari menu (kalau sudah disetujui atau arsip) --}}
                                                 @if (($h->status_surat == 'disetujui' || $h->status_surat == 'arsip') && $h->signed_pdf_path)
                                                     <a class="dropdown-item text-danger"
-                                                       href="{{ route('surat_tugas.downloadPdf', $h->id) }}"
+                                                       href="{{ route('surat_tugas.downloadForm', $h->id) }}"
                                                        target="_blank">
                                                         <i class="fas fa-file-pdf"></i> Download PDF
                                                     </a>
@@ -669,7 +685,6 @@
         'enableDelete'    => true,
 
         // i18n & pesan kosong
-        'i18nUrl'         => '/assets/datatables/i18n/id.json',
         'emptyDefaultMsg' => 'Tidak ada data surat tugas.',
         'emptyApproveMsg' => 'Tidak ada surat yang perlu Anda setujui.',
 

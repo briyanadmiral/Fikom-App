@@ -20,8 +20,6 @@ class SendSkEmail implements ShouldQueue
 
     public ?string $recipientEmail;
 
-    public bool $afterCommit = true; // pastikan kirim setelah commit DB
-
     public $tries = 3;
 
     public $backoff = 30;
@@ -34,6 +32,7 @@ class SendSkEmail implements ShouldQueue
     {
         $this->skId = $skId;
         $this->recipientEmail = $recipientEmail;
+        $this->afterCommit();
     }
 
     public function handle(): void

@@ -40,7 +40,7 @@ CREATE TABLE `audit_logs` (
   `ip_address` varchar(45) DEFAULT NULL COMMENT 'IP address user',
   `user_agent` varchar(255) DEFAULT NULL COMMENT 'Browser user agent',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Log aktivitas user untuk audit trail';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Log aktivitas user untuk audit trail';
 
 --
 -- Dumping data for table `audit_logs`
@@ -62,7 +62,7 @@ CREATE TABLE `cache` (
   `key` varchar(255) NOT NULL,
   `value` mediumtext NOT NULL,
   `expiration` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `cache`
@@ -83,7 +83,7 @@ CREATE TABLE `cache_locks` (
   `key` varchar(255) NOT NULL,
   `owner` varchar(255) NOT NULL,
   `expiration` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -99,7 +99,7 @@ CREATE TABLE `failed_jobs` (
   `payload` longtext NOT NULL,
   `exception` longtext NOT NULL,
   `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -113,7 +113,7 @@ CREATE TABLE `jenis_tugas` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `jenis_tugas`
@@ -144,7 +144,7 @@ CREATE TABLE `jobs` (
   `reserved_at` int UNSIGNED DEFAULT NULL,
   `available_at` int UNSIGNED NOT NULL,
   `created_at` int UNSIGNED NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `jobs`
@@ -228,7 +228,7 @@ CREATE TABLE `keputusan_header` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `keputusan_header`
@@ -243,37 +243,6 @@ INSERT INTO `keputusan_header` (`id`, `nomor`, `tanggal_surat`, `tahun`, `kota_p
 (6, NULL, '2026-01-05', 2026, 'Semarang', '2026-01-08 09:00:00', 'Penetapan Dosen Wali Akademik Semester Genap 2025/2026', NULL, '[\"bahwa setiap mahasiswa memerlukan pendampingan akademik melalui dosen wali\"]', '[\"Pedoman Akademik UNIKA\", \"Statuta Universitas\"]', '[{\"isi\": \"<p>Menetapkan dosen wali akademik semester genap 2025/2026 sesuai lampiran.</p>\", \"judul\": \"KESATU\"}]', '<p><strong>KESATU:</strong> Menetapkan dosen wali akademik.</p>', NULL, 'Arsip', NULL, '[]', 'arsip', 1, 10, '058.1.2002.255', 10, '2026-01-08 09:00:00', '2026-01-09 10:00:00', 1, '2026-02-10 10:00:00', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-01-05 08:00:00', '2026-02-10 10:00:00', NULL);
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `keputusan_penerima`
---
-
-CREATE TABLE `keputusan_penerima` (
-  `id` bigint UNSIGNED NOT NULL,
-  `keputusan_id` bigint UNSIGNED NOT NULL,
-  `pengguna_id` bigint UNSIGNED NOT NULL,
-  `read_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `dibaca` tinyint(1) NOT NULL DEFAULT '0',
-  `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `keputusan_penerima`
---
-
-INSERT INTO `keputusan_penerima` (`id`, `keputusan_id`, `pengguna_id`, `read_at`, `created_at`, `updated_at`, `dibaca`, `deleted_at`) VALUES
-(1, 2, 7, NULL, '2026-02-05 08:00:00', '2026-02-05 08:00:00', 0, NULL),
-(2, 2, 8, NULL, '2026-02-05 08:00:00', '2026-02-05 08:00:00', 0, NULL),
-(3, 2, 13, NULL, '2026-02-05 08:00:00', '2026-02-05 08:00:00', 0, NULL),
-(4, 3, 11, NULL, '2026-02-01 08:00:00', '2026-02-01 08:00:00', 0, NULL),
-(5, 3, 16, NULL, '2026-02-01 08:00:00', '2026-02-01 08:00:00', 0, NULL),
-(6, 5, 7, NULL, '2026-01-10 08:00:00', '2026-01-10 08:00:00', 0, NULL),
-(7, 5, 8, NULL, '2026-01-10 08:00:00', '2026-01-10 08:00:00', 0, NULL),
-(8, 5, 9, NULL, '2026-01-10 08:00:00', '2026-01-10 08:00:00', 0, NULL),
-(9, 5, 12, NULL, '2026-01-10 08:00:00', '2026-01-10 08:00:00', 0, NULL),
-(10, 6, 11, NULL, '2026-01-05 08:00:00', '2026-01-05 08:00:00', 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -324,7 +293,7 @@ CREATE TABLE `klasifikasi_surat` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `klasifikasi_surat`
@@ -510,7 +479,7 @@ CREATE TABLE `master_kop_surat` (
   `logo_kanan_path` varchar(255) DEFAULT NULL,
   `tampilkan_logo_kanan` tinyint(1) NOT NULL DEFAULT '1',
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `master_kop_surat`
@@ -538,7 +507,7 @@ CREATE TABLE `mengingat_library` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Library dasar hukum untuk SK';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Library dasar hukum untuk SK';
 
 --
 -- Dumping data for table `mengingat_library`
@@ -571,7 +540,7 @@ CREATE TABLE `menimbang_library` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Library poin menimbang untuk SK';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Library poin menimbang untuk SK';
 
 --
 -- Dumping data for table `menimbang_library`
@@ -595,7 +564,7 @@ CREATE TABLE `migrations` (
   `id` int UNSIGNED NOT NULL,
   `migration` varchar(255) NOT NULL,
   `batch` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `migrations`
@@ -614,7 +583,6 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (10, '2025_06_02_054840_create_cache_table', 1),
 (14, '2025_06_05_132456_create_keputusan_header_table', 2),
 (15, '2025_06_05_132500_create_keputusan_versi_table', 2),
-(16, '2025_06_05_132504_create_keputusan_penerima_table', 2),
 (17, '2025_07_31_093533_create_jenis_tugas_table', 3),
 (18, '2025_08_01_060824_create_sub_tugas_table', 4),
 (19, '2025_08_01_061002_create_tugas_detail_table', 4),
@@ -676,7 +644,7 @@ CREATE TABLE `nomor_counters` (
   `last_number` int NOT NULL DEFAULT '0',
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `nomor_counters`
@@ -701,7 +669,7 @@ CREATE TABLE `nomor_surat_counters` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `nomor_surat_counters`
@@ -732,7 +700,7 @@ CREATE TABLE `notification_preferences` (
   `inapp_notifications` tinyint(1) DEFAULT '1' COMMENT 'Notifikasi in-app',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Preferensi notifikasi per user';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Preferensi notifikasi per user';
 
 --
 -- Dumping data for table `notification_preferences`
@@ -760,7 +728,7 @@ CREATE TABLE `notifikasi` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `dibuat_pada` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `notifikasi`
@@ -820,7 +788,7 @@ CREATE TABLE `pengguna` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `remember_token` varchar(100) DEFAULT NULL,
   `foto_path` varchar(255) DEFAULT NULL COMMENT 'Path foto profile user di storage'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `pengguna`
@@ -862,7 +830,7 @@ CREATE TABLE `peran` (
   `deskripsi` varchar(255) DEFAULT NULL,
   `dibuat_pada` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `peran`
@@ -894,7 +862,7 @@ CREATE TABLE `recipient_imports` (
   `errors` json DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Tracking bulk recipient import jobs';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Tracking bulk recipient import jobs';
 
 -- --------------------------------------------------------
 
@@ -909,7 +877,7 @@ CREATE TABLE `sessions` (
   `user_agent` text,
   `payload` longtext NOT NULL,
   `last_activity` int NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `sessions`
@@ -932,7 +900,7 @@ CREATE TABLE `sub_tugas` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `sub_tugas`
@@ -999,7 +967,7 @@ CREATE TABLE `surat_templates` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Template surat tugas untuk reuse';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Template surat tugas untuk reuse';
 
 --
 -- Dumping data for table `surat_templates`
@@ -1094,7 +1062,7 @@ CREATE TABLE `tugas_header` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `tanggal_arsip` timestamp NULL DEFAULT NULL,
   `arsipkan_oleh` bigint UNSIGNED DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `tugas_header`
@@ -1128,7 +1096,7 @@ CREATE TABLE `tugas_log` (
   `user_agent` text,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `tugas_log`
@@ -1200,7 +1168,7 @@ CREATE TABLE `tugas_penerima` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `tugas_penerima`
@@ -1250,7 +1218,7 @@ CREATE TABLE `user_signatures` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `user_signatures`
@@ -1335,20 +1303,6 @@ ALTER TABLE `keputusan_header`
   ADD KEY `fk_keputusan_terbitkan_oleh` (`terbitkan_oleh`),
   ADD KEY `fk_keputusan_arsipkan_oleh` (`arsipkan_oleh`);
 ALTER TABLE `keputusan_header` ADD FULLTEXT KEY `idx_keph_fulltext_search` (`tentang`,`nomor`);
-
---
--- Indexes for table `keputusan_penerima`
---
-ALTER TABLE `keputusan_penerima`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `ux_kepp_unique` (`keputusan_id`,`pengguna_id`,`deleted_at`),
-  ADD KEY `keputusan_penerima_keputusan_id_foreign` (`keputusan_id`),
-  ADD KEY `keputusan_penerima_pengguna_id_foreign` (`pengguna_id`),
-  ADD KEY `idx_keputusan_id` (`keputusan_id`),
-  ADD KEY `idx_pengguna_id` (`pengguna_id`),
-  ADD KEY `idx_kepp__keputusan` (`keputusan_id`),
-  ADD KEY `idx_kepp__pengguna` (`pengguna_id`),
-  ADD KEY `idx_deleted_at` (`deleted_at`);
 
 --
 -- Indexes for table `keputusan_status_logs`
@@ -1601,12 +1555,6 @@ ALTER TABLE `keputusan_header`
   MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
--- AUTO_INCREMENT for table `keputusan_penerima`
---
-ALTER TABLE `keputusan_penerima`
-  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
-
---
 -- AUTO_INCREMENT for table `keputusan_status_logs`
 --
 ALTER TABLE `keputusan_status_logs`
@@ -1765,15 +1713,6 @@ ALTER TABLE `keputusan_header`
   ADD CONSTRAINT `fk_keputusan_terbitkan_oleh` FOREIGN KEY (`terbitkan_oleh`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `keputusan_header_dibuat_oleh_foreign` FOREIGN KEY (`dibuat_oleh`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `keputusan_header_penandatangan_foreign` FOREIGN KEY (`penandatangan`) REFERENCES `pengguna` (`id`) ON DELETE SET NULL;
-
---
--- Constraints for table `keputusan_penerima`
---
-ALTER TABLE `keputusan_penerima`
-  ADD CONSTRAINT `fk_kepp__header` FOREIGN KEY (`keputusan_id`) REFERENCES `keputusan_header` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_kepp__user` FOREIGN KEY (`pengguna_id`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `keputusan_penerima_keputusan_id_foreign` FOREIGN KEY (`keputusan_id`) REFERENCES `keputusan_header` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `keputusan_penerima_pengguna_id_foreign` FOREIGN KEY (`pengguna_id`) REFERENCES `pengguna` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `keputusan_status_logs`

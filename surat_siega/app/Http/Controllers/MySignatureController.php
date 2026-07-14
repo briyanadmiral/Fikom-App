@@ -52,17 +52,9 @@ class MySignatureController extends Controller
             return back()->withErrors(['file' => 'Gagal memvalidasi gambar.']);
         }
 
-        $existingSig = $user->signature;
-        if ($existingSig && $existingSig->ttd_path) {
-            $oldPath = validate_file_path($existingSig->ttd_path);
-            if ($oldPath && Storage::disk('local')->exists($oldPath)) {
-                try {
-                    Storage::disk('local')->delete($oldPath);
-                } catch (\Throwable $e) {
-                    Log::warning('Failed to delete old signature: '.sanitize_log_message($e->getMessage()));
-                }
-            }
-        }
+        // Get existing signature record (including soft-deleted ones)
+        $existingSig = UserSignature::withTrashed()->where('pengguna_id', $userId)->first();
+        $oldPath = $existingSig ? $existingSig->ttd_path : null;
 
         // Simpan privat dengan user ID yang sudah divalidasi
         $path = "private/ttd/{$userId}.png";
@@ -75,14 +67,36 @@ class MySignatureController extends Controller
             return back()->withErrors(['file' => 'Gagal menyimpan tanda tangan.']);
         }
 
-        UserSignature::updateOrCreate(
-            ['pengguna_id' => $userId],
-            [
+        // Update or create signature record, restoring if soft-deleted
+        if ($existingSig) {
+            if ($existingSig->trashed()) {
+                $existingSig->restore();
+            }
+            $existingSig->update([
                 'ttd_path' => $path,
                 'default_width_mm' => $data['default_width_mm'] ?? 35,
                 'default_height_mm' => $data['default_height_mm'] ?? 15,
-            ],
-        );
+            ]);
+        } else {
+            UserSignature::create([
+                'pengguna_id' => $userId,
+                'ttd_path' => $path,
+                'default_width_mm' => $data['default_width_mm'] ?? 35,
+                'default_height_mm' => $data['default_height_mm'] ?? 15,
+            ]);
+        }
+
+        // Delete old file if exists and is different from the new path
+        if ($oldPath && $oldPath !== $path) {
+            $oldPathClean = validate_file_path($oldPath);
+            if ($oldPathClean && Storage::disk('local')->exists($oldPathClean)) {
+                try {
+                    Storage::disk('local')->delete($oldPathClean);
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to delete old signature: '.sanitize_log_message($e->getMessage()));
+                }
+            }
+        }
 
         return back()->with('ok', 'TTD berhasil diperbarui.');
     }

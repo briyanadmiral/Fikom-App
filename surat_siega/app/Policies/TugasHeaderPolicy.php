@@ -187,6 +187,23 @@ class TugasHeaderPolicy
     }
 
     /**
+     * Determine whether the user can reopen (tarik ke draft) the model.
+     */
+    public function reopen(User $user, TugasHeader $tugas): bool
+    {
+        // Status harus pending atau ditolak
+        $status = validate_status($tugas->status_surat, ['pending', 'ditolak']);
+        if (! in_array($status, ['pending', 'ditolak'], true)) {
+            return false;
+        }
+
+        // Hanya Admin TU (peran_id 1) yang bisa reopen
+        $userPeranId = validate_integer_id($user->peran_id);
+
+        return $userPeranId === 1;
+    }
+
+    /**
      * Determine whether the user can add recipients to the model.
      */
     public function addRecipient(User $user, TugasHeader $tugas): bool
@@ -333,7 +350,7 @@ class TugasHeaderPolicy
     {
         // Jangan bypass policy untuk 'update' dan 'approve'
         // Biarkan method-specific policy yang handle
-        if (in_array($ability, ['update', 'approve', 'reject', 'delete'], true)) {
+        if (in_array($ability, ['update', 'approve', 'reject', 'delete', 'reopen'], true)) {
             return null; // Continue ke method spesifik
         }
 

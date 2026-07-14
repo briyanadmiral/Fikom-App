@@ -327,80 +327,78 @@
         </div>
 
         <div class="card-body">
-            <div class="table-responsive">
-                <table id="klasifikasiTable" class="table table-hover align-middle w-100">
-                    <thead>
-                        <tr>
-                            <th width="60">No</th>
-                            <th width="120">Kode</th>
-                            <th>Deskripsi</th>
-                            <th width="150" class="text-center">Penggunaan</th>
-                            <th width="150" class="text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($list as $i => $item)
+            @if($list->isEmpty())
+                <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
+                    <i class="fas {{ $searchTerm ? 'fa-search' : 'fa-folder-open' }} fa-3x mb-3 text-secondary" style="opacity: 0.5;"></i>
+                    <h5 class="font-weight-normal">
+                        @if ($searchTerm)
+                            Tidak Ada Hasil untuk "{{ $searchTerm }}"
+                        @elseif($activePrefix)
+                            Belum Ada Klasifikasi dengan Prefix "{{ $activePrefix }}"
+                        @else
+                            Belum Ada Klasifikasi
+                        @endif
+                    </h5>
+                    <p class="mb-0 small">
+                        @if ($searchTerm)
+                            Coba kata kunci lain atau <a href="{{ route('klasifikasi_surat.index', ['prefix' => $activePrefix]) }}">reset pencarian</a>
+                        @else
+                            Klik tombol "Tambah Klasifikasi" untuk menambahkan data baru
+                        @endif
+                    </p>
+                </div>
+            @else
+                <div class="table-responsive">
+                    <table id="klasifikasiTable" class="table table-hover align-middle w-100">
+                        <thead>
                             <tr>
-                                <td class="font-weight-bold">{{ $i + 1 }}</td>
-                                <td>
-                                    <span class="badge-kode">{{ $item->kode }}</span>
-                                </td>
-                                <td>{{ $item->deskripsi }}</td>
-                                <td class="text-center">
-                                    <div class="btn-view-usage" 
-                                         data-id="{{ $item->id }}"
-                                         data-kode="{{ $item->kode }}"
-                                         data-usage="{{ $item->tugas_headers_count ?? 0 }}">
-                                        <span class="badge-usage" title="Klik untuk lihat riwayat penggunaan">
-                                            <i class="fas fa-history mr-1"></i>
-                                            {{ $item->tugas_headers_count ?? 0 }} Surat
-                                        </span>
-                                    </div>
-                                </td>
-                                <td class="text-center">
-                                    <button class="btn btn-action btn-edit btn-edit-klasifikasi"
-                                        data-id="{{ $item->id }}" 
-                                        data-kode="{{ $item->kode }}"
-                                        data-deskripsi="{{ $item->deskripsi }}" 
-                                        title="Edit Klasifikasi">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
+                                <th width="60">No</th>
+                                <th width="120">Kode</th>
+                                <th>Deskripsi</th>
+                                <th width="150" class="text-center">Penggunaan</th>
+                                <th width="150" class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($list as $i => $item)
+                                <tr>
+                                    <td class="font-weight-bold">{{ $i + 1 }}</td>
+                                    <td>
+                                        <span class="badge-kode">{{ $item->kode }}</span>
+                                    </td>
+                                    <td>{{ $item->deskripsi }}</td>
+                                    <td class="text-center">
+                                        <div class="btn-view-usage" 
+                                             data-id="{{ $item->id }}"
+                                             data-kode="{{ $item->kode }}"
+                                             data-usage="{{ $item->tugas_headers_count ?? 0 }}">
+                                            <span class="badge-usage" title="Klik untuk lihat riwayat penggunaan">
+                                                <i class="fas fa-history mr-1"></i>
+                                                {{ $item->tugas_headers_count ?? 0 }} Surat
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-action btn-edit btn-edit-klasifikasi"
+                                            data-id="{{ $item->id }}" 
+                                            data-kode="{{ $item->kode }}"
+                                            data-deskripsi="{{ $item->deskripsi }}" 
+                                            title="Edit Klasifikasi">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
 
-                                    <button data-url="{{ route('klasifikasi_surat.destroy', $item->id) }}"
-                                        class="btn btn-action btn-delete" 
-                                        title="Hapus Klasifikasi">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="p-0">
-                                    <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
-                                        <i class="fas {{ $searchTerm ? 'fa-search' : 'fa-folder-open' }} fa-3x mb-3 text-secondary" style="opacity: 0.5;"></i>
-                                        <h5 class="font-weight-normal">
-                                            @if ($searchTerm)
-                                                Tidak Ada Hasil untuk "{{ $searchTerm }}"
-                                            @elseif($activePrefix)
-                                                Belum Ada Klasifikasi dengan Prefix "{{ $activePrefix }}"
-                                            @else
-                                                Belum Ada Klasifikasi
-                                            @endif
-                                        </h5>
-                                        <p class="mb-0 small">
-                                            @if ($searchTerm)
-                                                Coba kata kunci lain atau <a href="{{ route('klasifikasi_surat.index', ['prefix' => $activePrefix]) }}">reset pencarian</a>
-                                            @else
-                                                Klik tombol "Tambah Klasifikasi" untuk menambahkan data baru
-                                            @endif
-                                        </p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                        <button data-url="{{ route('klasifikasi_surat.destroy', $item->id) }}"
+                                            class="btn btn-action btn-delete" 
+                                            title="Hapus Klasifikasi">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -536,7 +534,25 @@
         $('#klasifikasiTable').DataTable({
             responsive: true,
             language: {
-                url: "//cdn.datatables.net/plug-ins/1.10.25/i18n/Indonesian.json"
+                "emptyTable": "Tidak ada data yang tersedia pada tabel ini",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "loadingRecords": "Sedang memuat...",
+                "processing": "Sedang memproses...",
+                "search": "Cari:",
+                "zeroRecords": "Tidak ditemukan data yang sesuai",
+                "paginate": {
+                    "first": "Pertama",
+                    "last": "Terakhir",
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                },
+                "aria": {
+                    "sortAscending": ": aktifkan untuk mengurutkan kolom ke atas",
+                    "sortDescending": ": aktifkan untuk mengurutkan kolom ke bawah"
+                }
             }
         });
 

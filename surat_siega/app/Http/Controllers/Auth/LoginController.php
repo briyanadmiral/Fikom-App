@@ -32,15 +32,15 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string',
             'password' => 'required',
         ]);
 
-        $email = strtolower(trim($credentials['email']));
+        $loginInput = trim($credentials['email']);
 
-        if (! $email) {
+        if (empty($loginInput)) {
             return back()
-                ->withErrors(['email' => 'Format email tidak valid.'])
+                ->withErrors(['email' => 'Email atau NPP wajib diisi.'])
                 ->withInput($request->only('email'));
         }
 
@@ -54,14 +54,29 @@ class LoginController extends Controller
                 ->withInput($request->only('email'));
         }
 
-        $user = User::where('email', $email)->first();
+        // Format NPP jika berupa 11 digit angka
+        $nppFormatted = null;
+        $digits = preg_replace('/\D+/', '', $loginInput);
+        if (strlen($digits) === 11) {
+            $nppFormatted = substr($digits, 0, 3).'.'.substr($digits, 3, 1).'.'.substr($digits, 4, 4).'.'.substr($digits, 8, 3);
+        }
+
+        $user = User::with('peran')
+            ->where(function ($query) use ($loginInput, $nppFormatted) {
+                $query->where('email', strtolower($loginInput))
+                      ->orWhere('npp', $loginInput);
+                if ($nppFormatted) {
+                    $query->orWhere('npp', $nppFormatted);
+                }
+            })
+            ->first();
 
         if (! $user) {
             $attempts = cache()->get($key, 0) + 1;
             cache()->put($key, $attempts, now()->addMinutes($decayMinutes));
 
             return back()
-                ->withErrors(['email' => 'Email atau password salah.'])
+                ->withErrors(['email' => 'Email/NPP atau password salah.'])
                 ->withInput($request->only('email'));
         }
 

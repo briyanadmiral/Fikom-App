@@ -33,6 +33,7 @@ class SendSuratTugasEmail implements ShouldQueue
         $this->tugasId = $tugasId;
         $this->mode = $mode;
         $this->specificRecipientId = $specificRecipientId;
+        $this->afterCommit();
     }
 
     public function handle(): void

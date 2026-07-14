@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AccountSettingsController;
+use App\Http\Controllers\DevAuthController;
+use App\Http\Controllers\DevLoginController;
 use App\Http\Controllers\ExternalEntryController;
 use App\Http\Controllers\JenisTugasController;
 use App\Http\Controllers\KlasifikasiSuratController;
@@ -14,10 +16,18 @@ use App\Http\Controllers\SuratKeputusan\NomorSuratController;
 use App\Http\Controllers\SuratKeputusanController;
 use App\Http\Controllers\TugasController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ProfileController;
 use App\Jobs\SendSuratTugasEmail;
 use App\Models\KeputusanHeader;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+// === DEV-ONLY ROUTES (localhost bypass) ===
+if (config('app.env') === 'local') {
+    Route::get('/dev/login', [DevAuthController::class, 'showDevLogin'])->name('dev.login');
+    Route::post('/dev/login-as', [DevAuthController::class, 'loginAs'])->name('dev.loginAs');
+    Route::get('/dev/quick/{peran_id?}', [DevAuthController::class, 'quickLogin'])->name('dev.quick');
+}
 
 // ❌ HAPUS: Redirect ke login (sistem eksternal yang handle)
 // Route::redirect('/', '/login');
@@ -26,16 +36,28 @@ use Illuminate\Support\Facades\Route;
 // External dashboard entry (/entry?user_id=X) tetap berfungsi untuk integrasi
 Auth::routes(['register' => false, 'reset' => false, 'verify' => false]);
 
-// ✅ FIX: Redirect 'login' route to main bridge index
-Route::get('/login', function () {
-    return redirect('http://localhost/fikomapp/index.php');
-})->name('login');
+
 
 // ✅ TAMBAH: Entry point dari Dashboard Menu eksternal
 Route::get('/entry', [ExternalEntryController::class, 'entry'])->name('external.entry');
 
 // ✅ TAMBAH: Exit point kembali ke Dashboard Menu
 Route::post('/exit', [ExternalEntryController::class, 'exit'])->name('external.exit');
+
+// ✅ DEV-ONLY: Auth bypass untuk AI screenshot agent & local testing.
+// Controller akan abort(404) kalau APP_ENV bukan local|testing — aman di production.
+if (app()->environment(['local', 'testing'])) {
+    Route::prefix('dev-login')->name('dev.login.')->group(function () {
+        Route::get('/', [DevLoginController::class, 'index'])->name('index');
+        Route::get('/logout', [DevLoginController::class, 'logout'])->name('logout');
+        Route::get('/role/{role}', [DevLoginController::class, 'loginByRole'])
+            ->name('role')
+            ->where('role', '[a-z_]+');
+        Route::get('/user/{id}', [DevLoginController::class, 'loginByUser'])
+            ->name('user')
+            ->whereNumber('id');
+    });
+}
 
 // ✅ TAMBAH: Landing page redirect ke /home
 Route::get('/', function () {
@@ -51,7 +73,15 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])
 Route::middleware('check.session.role')->group(function () {
     // 1) Users & Roles
     Route::resource('users', UserController::class);
+    Route::post('users/{user}/approve', [UserController::class, 'approve'])->name('users.approve');
+    Route::post('users/{user}/reject', [UserController::class, 'reject'])->name('users.reject');
     Route::resource('roles', RoleController::class);
+
+    // Profile Completion & Approval Status
+    Route::get('profile/complete', [ProfileController::class, 'showCompleteForm'])->name('profile.complete');
+    Route::post('profile/complete', [ProfileController::class, 'storeCompleteForm'])->name('profile.complete.store');
+    Route::get('profile/pending', [ProfileController::class, 'showPendingPage'])->name('profile.pending');
+    Route::get('profile/rejected', [ProfileController::class, 'showRejectedPage'])->name('profile.rejected');
 
     // 2) Jenis Surat Tugas
     Route::resource('jenis_surat_tugas', JenisTugasController::class)->except(['show']);
@@ -126,6 +156,12 @@ Route::middleware('check.session.role')->group(function () {
                 ->whereNumber('tugas')
                 ->middleware('can:reject,tugas');
 
+            // ✅ Action reopen (tarik ke draft) — Admin TU only
+            Route::post('{tugas}/reopen', [TugasController::class, 'reopen'])
+                ->name('reopen')
+                ->whereNumber('tugas')
+                ->middleware('can:reopen,tugas');
+
             // ✅ Legacy
             Route::get('{tugas}/review-approve', [TugasController::class, 'approveForm'])
                 ->name('approveForm')
@@ -148,8 +184,18 @@ Route::middleware('check.session.role')->group(function () {
                 ->whereNumber('tugas')
                 ->middleware('can:viewAny,App\Models\TugasHeader');
 
-            Route::get('{tugas}/download-pdf', [TugasController::class, 'downloadPdf'])
+            Route::get('{tugas}/download-pdf/{filename?}', [TugasController::class, 'downloadPdf'])
                 ->name('downloadPdf')
+                ->whereNumber('tugas')
+                ->middleware('can:view,tugas');
+
+            Route::get('{tugas}/download-form', [TugasController::class, 'downloadForm'])
+                ->name('downloadForm')
+                ->whereNumber('tugas')
+                ->middleware('can:view,tugas');
+
+            Route::post('{tugas}/upload-signed', [TugasController::class, 'uploadSignedPdf'])
+                ->name('uploadSignedPdf')
                 ->whereNumber('tugas')
                 ->middleware('can:view,tugas');
 
@@ -382,8 +428,18 @@ Route::middleware('check.session.role')->group(function () {
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:view,surat_keputusan');
 
-            Route::get('/{surat_keputusan}/download', [SuratKeputusanController::class, 'downloadPdf'])
+            Route::get('/{surat_keputusan}/download/{filename?}', [SuratKeputusanController::class, 'downloadPdf'])
                 ->name('downloadPdf')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:view,surat_keputusan');
+
+            Route::get('/{surat_keputusan}/download-form', [SuratKeputusanController::class, 'downloadForm'])
+                ->name('downloadForm')
+                ->whereNumber('surat_keputusan')
+                ->middleware('can:view,surat_keputusan');
+
+            Route::post('/{surat_keputusan}/upload-signed', [SuratKeputusanController::class, 'uploadSignedPdf'])
+                ->name('uploadSignedPdf')
                 ->whereNumber('surat_keputusan')
                 ->middleware('can:view,surat_keputusan');
 
@@ -551,3 +607,21 @@ Route::middleware('check.session.role')->group(function () {
         Route::put('/pengaturan/kop-surat', [MasterKopSuratController::class, 'update'])->name('kop.update');
     });
 });
+
+// Temporary route to clear Laravel caches and PHP OPcache
+Route::get('/clear-all-system-cache', function() {
+    \Artisan::call('view:clear');
+    \Artisan::call('cache:clear');
+    
+    $opcacheReset = 'Tidak Aktif / Tidak Didukung';
+    if (function_exists('opcache_reset')) {
+        $opcacheReset = opcache_reset() ? 'Berhasil Direset!' : 'Gagal Direset';
+    }
+    
+    return [
+        'laravel_view_cache' => 'Cleared',
+        'laravel_app_cache' => 'Cleared',
+        'php_opcache' => $opcacheReset
+    ];
+});
+

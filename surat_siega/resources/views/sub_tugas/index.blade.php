@@ -218,53 +218,51 @@
             </div>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table id="table-subtugas" class="table table-hover align-middle w-100">
-                    <thead>
-                        <tr>
-                            <th width="50">No</th>
-                            <th>Nama Sub Tugas</th>
-                            <th width="150" class="text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($list as $i => $item)
+            @if($list->isEmpty())
+                <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
+                    <i class="fas fa-tasks fa-3x mb-3 text-secondary" style="opacity: 0.5;"></i>
+                    <h5 class="font-weight-normal">Belum Ada Sub Tugas</h5>
+                    <p class="mb-0 small">Klik tombol "Tambah Sub Tugas" untuk menambahkan data baru</p>
+                </div>
+            @else
+                <div class="table-responsive">
+                    <table id="table-subtugas" class="table table-hover align-middle w-100">
+                        <thead>
                             <tr>
-                                <td class="font-weight-bold">{{ $i+1 }}</td>
-                                <td><strong>{{ $item->nama }}</strong></td>
-                                <td class="text-center">
-                                    <button class="btn btn-action btn-edit btn-edit-subtugas"
-                                            data-id="{{ $item->id }}"
-                                            data-nama="{{ $item->nama }}"
-                                            title="Edit Sub Tugas">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    
-                                    <form action="{{ route('sub_tugas.destroy', [$jenistugas->id, $item->id]) }}" 
-                                          method="POST" 
-                                          class="d-inline form-delete">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="button" class="btn btn-action btn-delete btn-delete-subtugas" title="Hapus Sub Tugas">
-                                            <i class="fas fa-trash"></i>
+                                <th width="50">No</th>
+                                <th>Nama Sub Tugas</th>
+                                <th width="150" class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($list as $i => $item)
+                                <tr>
+                                    <td class="font-weight-bold">{{ $i+1 }}</td>
+                                    <td><strong>{{ $item->nama }}</strong></td>
+                                    <td class="text-center">
+                                        <button class="btn btn-action btn-edit btn-edit-subtugas"
+                                                data-id="{{ $item->id }}"
+                                                data-nama="{{ $item->nama }}"
+                                                title="Edit Sub Tugas">
+                                            <i class="fas fa-edit"></i>
                                         </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="p-0">
-                                    <div class="d-flex flex-column align-items-center justify-content-center py-5 text-muted">
-                                        <i class="fas fa-tasks fa-3x mb-3 text-secondary"></i>
-                                        <h5 class="font-weight-normal">Belum Ada Sub Tugas</h5>
-                                        <p class="mb-0">Klik tombol "Tambah Sub Tugas" untuk menambahkan data baru</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                        
+                                        <form action="{{ route('sub_tugas.destroy', [$jenistugas->id, $item->id]) }}" 
+                                              method="POST" 
+                                              class="d-inline form-delete">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="button" class="btn btn-action btn-delete btn-delete-subtugas" title="Hapus Sub Tugas">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -344,7 +342,25 @@
         $('#table-subtugas').DataTable({
             responsive: true,
             language: {
-                url: "//cdn.datatables.net/plug-ins/1.10.25/i18n/Indonesian.json"
+                "emptyTable": "Tidak ada data yang tersedia pada tabel ini",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "loadingRecords": "Sedang memuat...",
+                "processing": "Sedang memproses...",
+                "search": "Cari:",
+                "zeroRecords": "Tidak ditemukan data yang sesuai",
+                "paginate": {
+                    "first": "Pertama",
+                    "last": "Terakhir",
+                    "next": "Selanjutnya",
+                    "previous": "Sebelumnya"
+                },
+                "aria": {
+                    "sortAscending": ": aktifkan untuk mengurutkan kolom ke atas",
+                    "sortDescending": ": aktifkan untuk mengurutkan kolom ke bawah"
+                }
             }
         });
 

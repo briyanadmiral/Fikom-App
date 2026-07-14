@@ -237,9 +237,14 @@ class TugasController extends Controller
                 'user_id' => auth()->id(),
             ]);
 
+            $errorMessage = 'Terjadi kesalahan saat menyimpan surat tugas. Silakan coba lagi.';
+            if (config('app.debug')) {
+                $errorMessage .= ' (Debug: ' . $e->getMessage() . ' in ' . basename($e->getFile()) . ':' . $e->getLine() . ')';
+            }
+
             return back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan saat menyimpan surat tugas. Silakan coba lagi.');
+                ->with('error', $errorMessage);
         }
     }
 
@@ -305,12 +310,16 @@ class TugasController extends Controller
         $capXMm = filter_var($request->input('cap_x_mm'), FILTER_VALIDATE_INT);
         $capYMm = filter_var($request->input('cap_y_mm'), FILTER_VALIDATE_INT);
 
+        $showTtd = $request->input('show_ttd', '1') === '1';
+        $showNama = $request->input('show_nama', '1') === '1';
+        $showCap = $request->input('show_cap', '1') === '1';
+
         $assets = $this->getSigningAssets($tugas);
 
         // Prepare preview settings with overrides
         $preview = [
-            'ttd_image_b64' => $assets['ttdImageB64'],
-            'cap_image_b64' => $assets['capImageB64'],
+            'ttd_image_b64' => $showTtd ? $assets['ttdImageB64'] : null,
+            'cap_image_b64' => $showCap ? $assets['capImageB64'] : null,
             'ttd_w_mm' => $ttdWMm !== false ? $ttdWMm : $assets['ttdW'],
             'cap_w_mm' => $capWMm !== false ? $capWMm : $assets['capW'],
             'cap_opacity' => $capOpacity !== false ? $capOpacity : $assets['capOpacity'],
@@ -319,6 +328,7 @@ class TugasController extends Controller
             'ttd_y_mm' => $ttdYMm !== false ? $ttdYMm : 0,
             'cap_x_mm' => $capXMm !== false ? $capXMm : 0,
             'cap_y_mm' => $capYMm !== false ? $capYMm : 0,
+            'show_nama' => $showNama,
         ];
 
         return view('surat_tugas.partials._approve_preview', [
@@ -364,7 +374,10 @@ class TugasController extends Controller
             $tugas = $this->tugasService->approveTugas($tugas, []);
 
             // Generate Signed PDF dengan setting terbaru
-            $pdfBytes = $this->renderTugasPdfWithSign($tugas);
+            $showTtd = $request->has('show_ttd');
+            $showNama = $request->has('show_nama');
+            $showCap = $request->has('show_cap');
+            $pdfBytes = $this->renderTugasPdfWithSign($tugas, $showTtd, $showNama, $showCap);
             $safeNomor = sanitize_alphanumeric($tugas->nomor, '_-') ?? 'NoNomor';
             $pdfPath = sprintf('private/surat_tugas/signed/%d_%s_%s.pdf', $tugas->id, $safeNomor, md5((string) $tugas->nomor));
             Storage::disk('local')->put($pdfPath, $pdfBytes);
@@ -379,7 +392,12 @@ class TugasController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
-            return back()->with('error', 'Terjadi kesalahan saat menyetujui surat. Silakan coba lagi.');
+            $errorMessage = 'Terjadi kesalahan saat menyetujui surat. Silakan coba lagi.';
+            if (config('app.debug')) {
+                $errorMessage .= ' (Debug: ' . $e->getMessage() . ' in ' . basename($e->getFile()) . ':' . $e->getLine() . ')';
+            }
+
+            return back()->with('error', $errorMessage);
         }
     }
 
@@ -402,8 +420,42 @@ class TugasController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
-            return back()->with('error', 'Terjadi kesalahan saat menolak surat. Silakan coba lagi.');
+            $errorMessage = 'Terjadi kesalahan saat menolak surat. Silakan coba lagi.';
+            if (config('app.debug')) {
+                $errorMessage .= ' (Debug: ' . $e->getMessage() . ' in ' . basename($e->getFile()) . ':' . $e->getLine() . ')';
+            }
+
+            return back()->with('error', $errorMessage);
         }
+    }
+
+    public function reopen(TugasHeader $tugas)
+    {
+        $this->authorize('reopen', $tugas);
+
+        DB::transaction(function () use ($tugas) {
+            $tugas->update([
+                'status_surat' => 'draft',
+                'next_approver' => null,
+                'alasan_penolakan' => null,
+                'signed_at' => null,
+                'signed_pdf_path' => null,
+                'submitted_at' => null,
+            ]);
+
+            if ($tugas->penandatangan) {
+                \App\Models\Notifikasi::create([
+                    'pengguna_id' => (int) $tugas->penandatangan,
+                    'tipe' => 'surat_tugas',
+                    'referensi_id' => (int) $tugas->id,
+                    'pesan' => 'Surat Tugas '.($tugas->nomor ?? '(tanpa nomor)').' ditarik ke Draft oleh '.auth()->user()->nama_lengkap.'.',
+                    'dibaca' => false,
+                    'dibuat_pada' => now(),
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Surat Tugas ditarik ke Draft untuk direvisi.');
     }
 
     public function destroy(TugasHeader $tugas)
@@ -471,11 +523,19 @@ class TugasController extends Controller
         return null;
     }
 
-    private function renderTugasPdfWithSign(TugasHeader $tugas): string
+    private function renderTugasPdfWithSign(TugasHeader $tugas, bool $showTtd = true, bool $showNama = true, bool $showCap = true): string
     {
         $tugas->loadMissing('penerima.pengguna.peran');
         $signAssets = $this->getSigningAssets($tugas);
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
+
+        // Terapkan opsi kustomisasi
+        if (!$showTtd) {
+            $signAssets['ttdImageB64'] = null;
+        }
+        if (!$showCap) {
+            $signAssets['capImageB64'] = null;
+        }
 
         $html = view(
             'surat_tugas.surat_pdf',
@@ -485,6 +545,7 @@ class TugasController extends Controller
                     'penerimaList' => $penerimaList,
                     'showSigns' => true,
                     'isDraft' => false,
+                    'showNamaPenandatangan' => $showNama,
                 ],
                 $signAssets,
             ),
@@ -505,19 +566,21 @@ class TugasController extends Controller
     {
         $tugas->loadMissing('penerima.pengguna.peran');
         $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
-        $kop = MasterKopSurat::getInstance();
+        
+        $assets = $this->getSigningAssets($tugas);
 
         $html = view('surat_tugas.surat_pdf', [
             'tugas' => $tugas,
             'penerimaList' => $penerimaList,
-            'kop' => $kop,
-            'showSigns' => false,
+            'kop' => $assets['kop'] ?? null,
+            'showSigns' => true,
             'isDraft' => true,
             'ttdImageB64' => null,
-            'capImageB64' => null,
+            'capImageB64' => $assets['capImageB64'] ?? null,
             'ttdW' => null,
-            'capW' => null,
-            'capOpacity' => null,
+            'capW' => $assets['capW'] ?? 35,
+            'capOpacity' => $assets['capOpacity'] ?? 0.95,
+            'showNamaPenandatangan' => false,
         ])->render();
 
         return Pdf::loadHTML($html)
@@ -534,7 +597,7 @@ class TugasController extends Controller
     public function show(TugasHeader $tugas)
     {
         // Load relasi yang dibutuhkan
-        $tugas->load(['pembuat:id,nama_lengkap,email', 'penandatanganUser:id,nama_lengkap,email,peran_id,jabatan,npp', 'penandatanganUser.peran:id,nama', 'klasifikasi:id,kode,deskripsi', 'penerima.pengguna:id,nama_lengkap', 'children', 'parent:id,nomor']);
+        $tugas->load(['pembuat:id,nama_lengkap,email', 'penandatanganUser:id,nama_lengkap,email,peran_id,jabatan,npp', 'penandatanganUser.peran:id,nama', 'klasifikasi:id,kode,deskripsi', 'penerima.pengguna:id,nama_lengkap,peran_id', 'children', 'parent:id,nomor']);
 
         // Get signing assets (TTD & Cap)
         $assets = $this->getSigningAssets($tugas);
@@ -647,7 +710,12 @@ class TugasController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
-            return back()->withInput()->with('error', 'Terjadi kesalahan saat memperbarui surat tugas.');
+            $errorMessage = 'Terjadi kesalahan saat memperbarui surat tugas.';
+            if (config('app.debug')) {
+                $errorMessage .= ' (Debug: ' . $e->getMessage() . ' in ' . basename($e->getFile()) . ':' . $e->getLine() . ')';
+            }
+
+            return back()->withInput()->with('error', $errorMessage);
         }
     }
 
@@ -717,7 +785,12 @@ class TugasController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
-            return back()->with('error', 'Terjadi kesalahan saat mengajukan surat. Silakan coba lagi.');
+            $errorMessage = 'Terjadi kesalahan saat mengajukan surat. Silakan coba lagi.';
+            if (config('app.debug')) {
+                $errorMessage .= ' (Debug: ' . $e->getMessage() . ' in ' . basename($e->getFile()) . ':' . $e->getLine() . ')';
+            }
+
+            return back()->with('error', $errorMessage);
         }
     }
 
@@ -730,27 +803,120 @@ class TugasController extends Controller
         return response()->view('surat_tugas.highlight', compact('tugas', 'penerimaList', 'showSigns'))->header('X-Frame-Options', 'SAMEORIGIN');
     }
 
-    public function downloadPdf(TugasHeader $tugas)
+    public function downloadForm(TugasHeader $tugas)
     {
-        $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran']);
-        $safeNomor = sanitize_alphanumeric($tugas->nomor, '_-') ?? 'TanpaNomor';
-        try {
-            if ($this->shouldShowSignatures($tugas)) {
-                $bytes = $this->renderTugasPdfWithSign($tugas);
+        $tugas->load(['pembuat:id,nama_lengkap,email', 'penandatanganUser:id,nama_lengkap,email,peran_id,jabatan,npp', 'penandatanganUser.peran:id,nama', 'klasifikasi:id,kode,deskripsi', 'penerima.pengguna:id,nama_lengkap,peran_id', 'children', 'parent:id,nomor']);
 
-                return response($bytes, 200, [
-                    'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => sprintf('inline; filename="SuratTugas_%s.pdf"', $safeNomor),
-                    'X-Content-Type-Options' => 'nosniff',
-                ]);
+        $assets = $this->getSigningAssets($tugas);
+        $showSigns = $this->shouldShowSignatures($tugas);
+        $penerimaList = $tugas->penerima->pluck('pengguna.nama_lengkap')->filter()->values()->all();
+
+        return view('surat_tugas.download_form', array_merge(
+            [
+                'tugas' => $tugas,
+                'penerimaList' => $penerimaList,
+                'showSigns' => $showSigns,
+            ],
+            $assets,
+        ));
+    }
+
+    public function uploadSignedPdf(Request $request, TugasHeader $tugas)
+    {
+        $this->authorize('view', $tugas);
+
+        if (!in_array($tugas->status_surat, ['disetujui', 'arsip'], true)) {
+            return back()->with('error', 'Hanya surat yang sudah disetujui yang bisa diimpor PDF bertanda tangan.');
+        }
+
+        $request->validate([
+            'signed_pdf' => 'required|file|mimes:pdf|max:10240',
+        ], [
+            'signed_pdf.required' => 'File PDF wajib dipilih.',
+            'signed_pdf.mimes' => 'File harus berformat PDF.',
+            'signed_pdf.max' => 'Ukuran file maksimal 10 MB.',
+        ]);
+
+        try {
+            $file = $request->file('signed_pdf');
+            $safeNomor = sanitize_alphanumeric($tugas->nomor, '_-') ?? 'NoNomor';
+            $filename = sprintf('%d_%s_imported_%s.pdf', $tugas->id, $safeNomor, now()->format('YmdHis'));
+            $path = 'private/surat_tugas/signed/' . $filename;
+
+            Storage::disk('local')->put($path, $file->get());
+
+            // Backup PDF lama jika ada
+            if ($tugas->signed_pdf_path && Storage::disk('local')->exists($tugas->signed_pdf_path)) {
+                $backupPath = preg_replace('/\.pdf$/', '_backup_' . now()->format('YmdHis') . '.pdf', $tugas->signed_pdf_path);
+                Storage::disk('local')->copy($tugas->signed_pdf_path, $backupPath);
             }
+
+            $tugas->update([
+                'signed_pdf_path' => $path,
+                'signed_at' => $tugas->signed_at ?? now(),
+            ]);
+
+            \Log::info('Signed PDF imported for Surat Tugas', [
+                'tugas_id' => $tugas->id,
+                'nomor' => sanitize_log_message($tugas->nomor),
+                'uploaded_by' => Auth::id(),
+            ]);
+
+            return back()->with('success', 'PDF bertanda tangan berhasil diimpor. Surat ' . $tugas->nomor . ' telah diperbarui.');
+        } catch (\Exception $e) {
+            \Log::error('Gagal impor signed PDF surat tugas', [
+                'tugas_id' => $tugas->id,
+                'error' => sanitize_log_message($e->getMessage()),
+            ]);
+
+            return back()->with('error', 'Gagal mengimpor PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function downloadPdf(Request $request, TugasHeader $tugas)
+    {
+        $safeNomor = sanitize_alphanumeric($tugas->nomor, '_-') ?? 'TanpaNomor';
+        $filename = 'SuratTugas_' . $safeNomor . '.pdf';
+
+        // Opsi kustomisasi download PDF
+        $showTtd = $request->query('ttd', '1') !== '0';
+        $showNama = $request->query('nama', '1') !== '0';
+        $showCap = $request->query('cap', '1') !== '0';
+        $allDefault = !$request->has('ttd') && !$request->has('nama') && !$request->has('cap');
+
+        // Mode disposition: attachment jika download=1, selain itu inline untuk preview/iframe
+        $disposition = $request->query('download') === '1' ? 'attachment' : 'inline';
+
+        // Header cache-control untuk menghindari caching PDF oleh browser/server
+        $headers = [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => 'Sat, 26 Jul 1997 05:00:00 GMT',
+        ];
+
+        try {
+            // Jika ada signed_pdf_path dan tidak ada kustomisasi → serve file langsung
+            if ($allDefault && $tugas->signed_pdf_path && Storage::disk('local')->exists($tugas->signed_pdf_path)) {
+                return response()->file(Storage::disk('local')->path($tugas->signed_pdf_path), $headers);
+            }
+
+            if ($this->shouldShowSignatures($tugas)) {
+                $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran']);
+                $bytes = $this->renderTugasPdfWithSign($tugas, $showTtd, $showNama, $showCap);
+
+                return response($bytes, 200, $headers);
+            }
+
+            $tugas->load(['pembuat', 'penandatanganUser', 'penerima.pengguna.peran']);
             $bytes = $this->renderTugasPdfDraft($tugas);
 
-            return response($bytes, 200, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => sprintf('inline; filename="SuratTugas_DRAFT_%s.pdf"', $safeNomor),
-                'X-Content-Type-Options' => 'nosniff',
-            ]);
+            // Ubah filename untuk draft
+            $headers['Content-Disposition'] = $disposition . '; filename="SuratTugas_DRAFT_' . $safeNomor . '.pdf"';
+
+            return response($bytes, 200, $headers);
         } catch (\Exception $e) {
             \Log::error('Gagal generate PDF surat tugas', [
                 'tugas_id' => $tugas->id,

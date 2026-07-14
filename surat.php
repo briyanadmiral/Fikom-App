@@ -1,8 +1,23 @@
 <?php
 session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+set_exception_handler(function ($e) {
+    echo "<h1>Debug Exception: " . htmlspecialchars($e->getMessage()) . "</h1>";
+    echo "<p>File: " . htmlspecialchars($e->getFile()) . " on line " . $e->getLine() . "</p>";
+    echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
+    exit;
+});
+
 require __DIR__ . '/config.php';
 
-$appBaseUrl = rtrim($_ENV['APP_BASE_URL'] ?? 'http://localhost/Fikom-App', '/');
+// Deteksi base URL secara dinamis dari request saat ini (menghindari salah redirect antara lokal dan hosting)
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+$host = $_SERVER['HTTP_HOST'];
+$current_dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+$base_path = rtrim($current_dir, '/');
+$appBaseUrl = $protocol . $host . $base_path;
 
 // 1. Cek Login Utama dari Main App
 if(!isset($_SESSION['logged_in'])){
@@ -13,9 +28,50 @@ $email       = $_SESSION['user_email'];
 $role_global = $_SESSION['role']; 
 $nama_user   = $_SESSION['user_name']; 
 
-// 2. Koneksi ke Database Utama & Database Surat
-$conn_utama = mysqli_connect('localhost', 'root', '', 'fikomapp');
-$conn_surat = mysqli_connect('localhost', 'root', '', 'surat_fikom'); 
+// 2. Koneksi ke Database Utama & Database Surat (Membaca kredensial dari .env secara dinamis)
+$db_host = 'localhost';
+$db_user = 'root';
+$db_pass = '';
+$db_surat = 'surat_fikom';
+$db_utama = 'fikomapp';
+
+$env_file = __DIR__ . '/surat_siega/.env';
+if (file_exists($env_file)) {
+    $lines = file($env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || strpos($line, '#') === 0 || strpos($line, '=') === false) {
+            continue;
+        }
+        list($name, $value) = explode('=', $line, 2);
+        $name = trim($name);
+        $value = trim($value);
+        if (
+            (substr($value, 0, 1) === '"' && substr($value, -1) === '"') ||
+            (substr($value, 0, 1) === "'" && substr($value, -1) === "'")
+        ) {
+            $value = substr($value, 1, -1);
+        }
+        if ($name === 'DB_HOST') $db_host = $value;
+        if ($name === 'DB_USERNAME') $db_user = $value;
+        if ($name === 'DB_PASSWORD') $db_pass = $value;
+        if ($name === 'DB_DATABASE') $db_surat = $value;
+    }
+}
+
+// Menangani pemetaan database utama (baik lokal maupun cPanel server)
+if ($db_surat === 'surat_fikom') {
+    $db_utama = 'fikomapp';
+} elseif (strpos($db_surat, 'fikom_surat') !== false) {
+    $db_utama = str_replace('fikom_surat', 'fikom_app', $db_surat);
+} elseif (strpos($db_surat, 'surat_fikom') !== false) {
+    $db_utama = str_replace('surat_fikom', 'fikomapp', $db_surat);
+} else {
+    $db_utama = 'fikomapp';
+}
+
+$conn_utama = mysqli_connect($db_host, $db_user, $db_pass, $db_utama);
+$conn_surat = mysqli_connect($db_host, $db_user, $db_pass, $db_surat);
 
 if (!$conn_surat || !$conn_utama) {
     die("Koneksi database gagal. Pastikan database fikomapp dan surat_fikom aktif.");
@@ -269,54 +325,116 @@ if ($role_global === 'superadmin') {
    BAGIAN 2: LOGIKA PENGECEKAN BERUNTUN (WATERFALL AUTO-REGISTER & AUTO-RESTORE LARAVEL)
    ================================================================================= */
 
+// Mulai logging debug untuk mendiagnosis masalah redirect
+$log_file = __DIR__ . '/surat_debug.txt';
+$log_data = "=========================================\n";
+$log_data .= "TIME: " . date('Y-m-d H:i:s') . "\n";
+$log_data .= "SESSION: " . print_r($_SESSION, true) . "\n";
+$log_data .= "EMAIL: " . $email . "\n";
+$log_data .= "ROLE_GLOBAL: " . $role_global . "\n";
+$log_data .= "BASE_URL: " . $appBaseUrl . "\n";
+
 $userId_laravel = null;
 
 // LAPIS 1: Cek langsung di tabel pengguna Surat (Admin / User yang sudah ada)
 // Perhatikan: Kita hapus "AND deleted_at IS NULL" agar bisa mendeteksi akun yang terhapus (Soft Deleted)
-$query_surat = mysqli_query($conn_surat, "SELECT id, deleted_at FROM pengguna WHERE email = '$email' LIMIT 1");
-$data_surat = mysqli_fetch_assoc($query_surat);
+$query_surat = mysqli_query($conn_surat, "SELECT id, deleted_at, sandi_hash, npp, peran_id FROM pengguna WHERE email = '$email' LIMIT 1");
+if ($query_surat) {
+    $data_surat = mysqli_fetch_assoc($query_surat);
+    $log_data .= "LAPIS 1 RESULT: " . print_r($data_surat, true) . "\n";
+} else {
+    $log_data .= "LAPIS 1 QUERY FAILED: " . mysqli_error($conn_surat) . "\n";
+}
 
 if ($data_surat) {
     $userId_laravel = $data_surat['id'];
 
     // Jika akunnya ternyata sedang dalam status "Dihapus" (Soft Deleted), kita aktifkan kembali (Restore)!
     if ($data_surat['deleted_at'] !== null) {
+        $log_data .= "LAPIS 1: User is soft-deleted, restoring...\n";
         mysqli_query($conn_surat, "UPDATE pengguna SET deleted_at = NULL, status = 'aktif', updated_at = NOW() WHERE id = $userId_laravel");
+    }
+
+    // Jika NPP kosong (belum melengkapi pendaftaran), pastikan statusnya 'pending' agar tidak terjebak redirect loop
+    if (empty($data_surat['npp'])) {
+        $log_data .= "LAPIS 1: NPP is empty, resetting approval_status to pending\n";
+        mysqli_query($conn_surat, "UPDATE pengguna SET approval_status = 'pending' WHERE id = $userId_laravel");
     }
 } 
 else {
-    // LAPIS 2: Tidak ada di Surat, Cek di DB Utama (Dosen)
+    $log_data .= "LAPIS 1: User not found. Checking LAPIS 2...\n";
+    // LAPIS 2: Tidak ada di Surat, Cek di DB Utama (Dosen) atau domain student.unika.ac.id (dideteksi sebagai dosen khusus modul surat)
     $query_dosen = mysqli_query($conn_utama, "SELECT * FROM dosen WHERE email = '$email' LIMIT 1");
-    if (mysqli_num_rows($query_dosen) > 0) {
-        // Karena dia Dosen Resmi, kita BUATKAN akun dengan peran_id = 5 (Dosen)
-        $insert = mysqli_query($conn_surat, "INSERT INTO pengguna (email, sandi_hash, nama_lengkap, jabatan, peran_id, status, created_at, updated_at) 
-                                             VALUES ('$email', '$dummy_hash', '$nama_user', 'Dosen', 5, 'aktif', NOW(), NOW())");
+    if (mysqli_num_rows($query_dosen) > 0 || strpos($email, 'student.unika.ac.id') !== false) {
+        $log_data .= "LAPIS 2: Found in dosen or student domain. Inserting as pending...\n";
+        // Karena dia Dosen Resmi / domain student, kita BUATKAN akun dengan peran_id = 5 (Dosen) dan status pending
+        $insert = mysqli_query($conn_surat, "INSERT INTO pengguna (email, sandi_hash, nama_lengkap, jabatan, peran_id, status, approval_status, created_at, updated_at) 
+                                             VALUES ('$email', '$dummy_hash', '$nama_user', 'Dosen', 5, 'aktif', 'pending', NOW(), NOW())");
         if ($insert) {
             $userId_laravel = mysqli_insert_id($conn_surat);
+            $log_data .= "LAPIS 2: Inserted successfully, new user ID: " . $userId_laravel . "\n";
+        } else {
+            $log_data .= "LAPIS 2: Insert failed: " . mysqli_error($conn_surat) . "\n";
         }
     } 
     else {
-        // LAPIS 3: Bukan Dosen, Cek apakah Mahasiswa
-        if ($role_global === 'mahasiswa' || strpos($email, 'student.unika.ac.id') !== false) {
-            // Karena belum ada Peran Mahasiswa di tabel peran, kita gunakan angka 7 sebagai penanda sementara
-            $insert = mysqli_query($conn_surat, "INSERT INTO pengguna (email, sandi_hash, nama_lengkap, jabatan, peran_id, status, created_at, updated_at) 
-                                                 VALUES ('$email', '$dummy_hash', '$nama_user', 'Mahasiswa', 7, 'aktif', NOW(), NOW())");
+        $log_data .= "LAPIS 2: Not found in dosen. Checking LAPIS 3...\n";
+        // LAPIS 3: Bukan Dosen, Cek apakah Mahasiswa (domain unika.ac.id dideteksi sebagai mahasiswa khusus modul surat)
+        if (strpos($email, 'unika.ac.id') !== false && strpos($email, 'student') === false) {
+            $log_data .= "LAPIS 3: Domain unika.ac.id detected. Inserting as pending...\n";
+            // Karena belum ada Peran Mahasiswa di tabel peran, kita gunakan angka 7 sebagai penanda sementara, status pending
+            $insert = mysqli_query($conn_surat, "INSERT INTO pengguna (email, sandi_hash, nama_lengkap, jabatan, peran_id, status, approval_status, created_at, updated_at) 
+                                                 VALUES ('$email', '$dummy_hash', '$nama_user', 'Mahasiswa', 7, 'aktif', 'pending', NOW(), NOW())");
             if ($insert) {
                 $userId_laravel = mysqli_insert_id($conn_surat);
+                $log_data .= "LAPIS 3: Inserted successfully, new user ID: " . $userId_laravel . "\n";
+            } else {
+                $log_data .= "LAPIS 3: Insert failed: " . mysqli_error($conn_surat) . "\n";
             }
+        } else {
+            $log_data .= "LAPIS 3: Domain mismatch, not inserting.\n";
         }
     }
 }
 
+$log_data .= "USER_ID_LARAVEL DETERMINED: " . var_export($userId_laravel, true) . "\n";
+
 // VALIDASI AKHIR & REDIRECT KE LARAVEL
-if ($userId_laravel !== null) {
-    // Generate Token
+if (!empty($userId_laravel)) {
+    // Cek apakah pengguna adalah USER YANG SUDAH MENDAFTAR (memiliki custom password & identitas)
+    $q_check = mysqli_query($conn_surat, "SELECT sandi_hash, npp, nim, peran_id FROM pengguna WHERE id = " . (int)$userId_laravel . " LIMIT 1");
+    
+    if ($q_check) {
+        $d_check = mysqli_fetch_assoc($q_check);
+        $log_data .= "FINAL CHECK RESULT: " . print_r($d_check, true) . "\n";
+
+        if ($d_check) {
+            $is_dummy_password = password_verify('bypass123', $d_check['sandi_hash']);
+            $has_identifier = !empty($d_check['npp']) || !empty($d_check['nim']);
+            $log_data .= "DECISION: is_dummy_password=" . var_export($is_dummy_password, true) . ", has_identifier=" . var_export($has_identifier, true) . "\n";
+
+            // Jika mereka sudah mengganti password (bukan dummy password) dan memiliki identitas (NPP/NIM), maka harus login secara manual
+            if (!$is_dummy_password && $has_identifier) {
+                $url_tujuan = "{$appBaseUrl}/surat_siega/public/login";
+                $log_data .= "REDIRECTING TO MANUAL LOGIN: " . $url_tujuan . "\n";
+                file_put_contents($log_file, $log_data . "\n", FILE_APPEND);
+                header("Location: " . $url_tujuan);
+                exit;
+            }
+        }
+    }
+
+    // Generate Token (Untuk auto-login terintegrasi bagi pengguna baru/pending)
     $token = hash_hmac('sha256', $userId_laravel . date('Y-m-d'), $sharedSecret);
     $url_tujuan = "{$appBaseUrl}/surat_siega/public/entry?user_id=" . $userId_laravel . "&token=" . $token;
+    $log_data .= "REDIRECTING VIA TOKEN ENTRY: " . $url_tujuan . "\n";
+    file_put_contents($log_file, $log_data . "\n", FILE_APPEND);
     
     header("Location: " . $url_tujuan);
     exit;
 } else {
+    $log_data .= "ACCESS DENIED: userId_laravel is empty.\n";
+    file_put_contents($log_file, $log_data . "\n", FILE_APPEND);
     echo "<script>alert('Akses Ditolak. Anda tidak terdaftar sebagai pengguna sistem ini.'); window.location='index.php';</script>";
 }
 ?>

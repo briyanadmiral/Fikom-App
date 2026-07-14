@@ -215,6 +215,7 @@ class Notifikasi extends Model
             'approval' => 'fas fa-check-circle text-success',
             'rejection' => 'fas fa-times-circle text-danger',
             'info' => 'fas fa-info-circle text-secondary',
+            'user_registration' => 'fas fa-user-plus text-primary',
             default => 'fas fa-bell text-warning',
         };
     }
@@ -233,6 +234,7 @@ class Notifikasi extends Model
             'surat_keputusan', 'sk' => route('surat_keputusan.show', $this->referensi_id),
             'approval_st' => route('surat_tugas.approve.form', $this->referensi_id),
             'approval_sk' => route('surat_keputusan.approveForm', $this->referensi_id),
+            'user_registration' => route('users.index', ['tab' => 'pending']),
             default => null,
         };
     }

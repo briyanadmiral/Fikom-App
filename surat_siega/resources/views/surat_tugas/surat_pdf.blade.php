@@ -39,6 +39,7 @@
 
     // flag kepatuhan
     'showSigns'        => $showSigns,
+    'showNamaPenandatangan' => $showNamaPenandatangan ?? true,
 
     // kop sudah ada di layout pdf -> matikan kop di konten
     'showKopInContent' => false,

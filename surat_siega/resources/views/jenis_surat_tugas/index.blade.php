@@ -187,6 +187,16 @@
     }
 
     /* Professional Button Colors */
+    .btn-subtugas {
+        color: #fff !important;
+        background-color: #17a2b8 !important;
+        border-color: #17a2b8 !important;
+    }
+    .btn-subtugas:hover {
+        background-color: #138496 !important;
+        border-color: #117a8b !important;
+        color: #fff !important;
+    }
     .btn-edit {
         color: #212529 !important;
         background-color: #ffc107 !important;
@@ -257,69 +267,93 @@
             </div>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table id="table-jenis" class="table table-hover align-middle w-100">
-                    <thead>
-                        <tr>
-                            <th width="80">No</th>
-                            <th>Nama Jenis Surat Tugas</th>
-                            <th width="150" class="text-center">Sub Tugas</th>
-                            <th width="220" class="text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($list as $i => $item)
-                            <tr>
-                                <td class="font-weight-bold">{{ $i+1 }}</td>
-                                <td>{{ $item->nama }}</td>
-                                <td class="text-center">
-                                    <div class="btn-view-subtugas" 
-                                         data-nama="{{ $item->nama }}"
-                                         data-subtugas='@json($item->subTugas)'>
-                                        <span class="badge-sub-tugas" title="Klik untuk lihat detail" style="cursor: pointer;">
-                                            <i class="fas fa-eye mr-1"></i>
-                                            {{ $item->subTugas->count() }} Sub
-                                        </span>
-                                    </div>
-                                </td>
-                                <td class="text-center">
-                                    {{-- Tombol Kelola Sub Tugas --}}
-                                    <a href="{{ route('sub_tugas.index', $item->id) }}"
-                                       class="btn btn-action btn-subtugas"
-                                       title="Kelola Sub Tugas">
-                                        <i class="fas fa-list-ul"></i>
-                                    </a>
-                                    
-                                    {{-- Tombol Edit --}}
-                                    <button class="btn btn-action btn-edit btn-edit-jenis"
-                                            data-id="{{ $item->id }}"
-                                            data-nama="{{ $item->nama }}"
-                                            title="Edit Data">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    
-                                    {{-- Tombol Hapus --}}
-                                    <button data-url="{{ route('jenis_surat_tugas.destroy', $item->id) }}"
-                                            class="btn btn-action btn-delete"
-                                            title="Hapus Data">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="p-0">
-                                    <div class="empty-state">
-                                        <i class="far fa-folder-open"></i>
-                                        <h5>Belum Ada Data</h5>
-                                        <p>Data jenis surat tugas akan muncul di sini</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            {{-- Info Alert Helper --}}
+            <div class="alert alert-info shadow-sm border-0 mb-4 d-flex align-items-start" role="alert" style="border-left: 4px solid #17a2b8 !important; background-color: #f4f6f9;">
+                <div class="mr-3 mt-1">
+                    <i class="fas fa-info-circle fa-lg text-info"></i>
+                </div>
+                <div>
+                    <h6 class="font-weight-bold mb-1" style="color: #0f3d4c;">Bagaimana Cara Membuat / Mengelola Sub-Tugas?</h6>
+                    <p class="mb-0 text-sm text-secondary">
+                        Setiap <strong>Jenis Surat Tugas</strong> harus memiliki minimal satu <strong>Sub-Tugas</strong> agar dapat dipilih saat menginput Surat Tugas. 
+                        Untuk mengelola sub-tugas:
+                    </p>
+                    <ul class="pl-3 mb-0 mt-1 text-sm text-secondary">
+                        <li>Klik badge status di kolom Sub Tugas, terutama yang bertanda <span class="badge badge-warning text-dark"><i class="fas fa-exclamation-triangle text-danger"></i> 0 Sub (Klik untuk buat)</span> untuk langsung membuka detail.</li>
+                        <li>Atau klik tombol biru <span class="badge badge-info"><i class="fas fa-list-ul"></i> Kelola Sub Tugas</span> pada kolom Aksi di sebelah kanan.</li>
+                    </ul>
+                </div>
             </div>
+
+            @if($list->isEmpty())
+                <div class="text-center p-5 text-muted">
+                    <i class="far fa-folder-open fa-3x mb-3 text-secondary" style="opacity: 0.5;"></i>
+                    <h5>Belum Ada Data</h5>
+                    <p>Data jenis surat tugas akan muncul di sini</p>
+                </div>
+            @else
+                <div class="table-responsive">
+                    <table id="table-jenis" class="table table-hover align-middle w-100">
+                        <thead>
+                            <tr>
+                                <th width="80">No</th>
+                                <th>Nama Jenis Surat Tugas</th>
+                                <th width="180" class="text-center">Sub Tugas</th>
+                                <th width="220" class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($list as $i => $item)
+                                <tr>
+                                    <td class="font-weight-bold">{{ $i+1 }}</td>
+                                    <td>{{ $item->nama }}</td>
+                                    <td class="text-center">
+                                        <div class="btn-view-subtugas" 
+                                             data-nama="{{ $item->nama }}"
+                                             data-subtugas='@json($item->subTugas)'
+                                             style="cursor: pointer;">
+                                            @if($item->subTugas->count() > 0)
+                                                <span class="badge badge-pill badge-info py-2 px-3" style="font-size: 0.85rem; font-weight: 500;" title="Klik untuk lihat detail">
+                                                    <i class="fas fa-list-ul mr-1"></i>
+                                                    {{ $item->subTugas->count() }} Sub-Tugas
+                                                </span>
+                                            @else
+                                                <span class="badge badge-pill badge-warning text-dark py-2 px-3" style="font-size: 0.85rem; font-weight: 500; border: 1px dashed #e0a800;" title="Klik untuk tambah">
+                                                    <i class="fas fa-exclamation-triangle text-danger mr-1"></i>
+                                                    0 Sub (Klik untuk buat)
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        {{-- Tombol Kelola Sub Tugas --}}
+                                        <a href="{{ route('sub_tugas.index', $item->id) }}"
+                                           class="btn btn-action btn-subtugas"
+                                           title="Kelola Sub Tugas">
+                                            <i class="fas fa-list-ul"></i>
+                                        </a>
+                                        
+                                        {{-- Tombol Edit --}}
+                                        <button class="btn btn-action btn-edit btn-edit-jenis"
+                                                data-id="{{ $item->id }}"
+                                                data-nama="{{ $item->nama }}"
+                                                title="Edit Data">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        
+                                        {{-- Tombol Hapus --}}
+                                        <button data-url="{{ route('jenis_surat_tugas.destroy', $item->id) }}"
+                                                class="btn btn-action btn-delete"
+                                                title="Hapus Data">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -421,6 +455,10 @@
 
 <script>
 $(function() {
+    // URL Templates to handle subfolder hosting correctly
+    const editUrlTemplate = "{{ route('jenis_surat_tugas.update', ':id') }}";
+    const manageUrlTemplate = "{{ route('sub_tugas.index', ':id') }}";
+
     // ========================================
     // Initialize DataTables
     // ========================================
@@ -472,7 +510,7 @@ $(function() {
         const nama = $(this).data('nama');
         
         // Set form action
-        const actionUrl = `/jenis_surat_tugas/${id}`;
+        const actionUrl = editUrlTemplate.replace(':id', id);
         $('#formEditJenis').attr('action', actionUrl);
         
         // Fill input
@@ -489,10 +527,11 @@ $(function() {
         const nama = $(this).data('nama');
         const subTugas = $(this).data('subtugas'); // Auto-parsed from JSON
         const id = $(this).closest('tr').find('.btn-edit-jenis').data('id'); // Get ID for link
+        const manageUrl = manageUrlTemplate.replace(':id', id);
         
         // Update modal content
         $('#modalViewSubTugas .modal-title').html(`<i class="fas fa-tasks mr-2"></i> ${nama}`);
-        $('#btnManageSubTugas').attr('href', `/jenis_surat_tugas/${id}/sub_tugas`);
+        $('#btnManageSubTugas').attr('href', manageUrl);
         
         let html = '';
         
@@ -513,9 +552,12 @@ $(function() {
         } else {
             html = `
                 <div class="text-center p-5 text-muted">
-                    <i class="fas fa-folder-open fa-3x mb-3 text-light-gray"></i>
+                    <i class="fas fa-tasks fa-3x mb-3 text-warning" style="opacity: 0.7;"></i>
                     <h5>Belum ada Sub Tugas</h5>
-                    <p class="mb-0">Silakan tambahkan sub tugas baru.</p>
+                    <p class="mb-3 text-sm">Sub-tugas kosong untuk jenis tugas ini. Anda perlu membuatnya terlebih dahulu agar jenis tugas ini dapat digunakan saat input Surat Tugas.</p>
+                    <a href="${manageUrl}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus-circle mr-1"></i> Buat Sub-Tugas Sekarang
+                    </a>
                 </div>
             `;
         }
@@ -537,9 +579,6 @@ $(function() {
         
         const url = $(this).data('url');
         
-        console.log('🔴 DELETE BUTTON CLICKED');
-        console.log('URL:', url);
-        
         Swal.fire({
             title: 'Hapus Data?',
             text: "Jenis Tugas beserta SUB TUGAS nya akan dihapus permanen!",
@@ -551,18 +590,12 @@ $(function() {
             cancelButtonText: '<i class="fas fa-times mr-1"></i>Batal',
             reverseButtons: true
         }).then((result) => {
-            console.log('🟡 SWAL RESULT:', result);
-            
             if (result.isConfirmed) {
-                console.log('✅ USER CONFIRMED DELETE');
-                
                 try {
                     // Create form using native DOM to bypass anti-injection.js interference
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.action = url;
-                    
-                    console.log('📝 Form created:', form);
                     
                     // Add CSRF token
                     const tokenInput = document.createElement('input');
@@ -571,8 +604,6 @@ $(function() {
                     tokenInput.value = '{{ csrf_token() }}';
                     form.appendChild(tokenInput);
                     
-                    console.log('🔐 CSRF token added');
-                    
                     // Add DELETE method
                     const methodInput = document.createElement('input');
                     methodInput.type = 'hidden';
@@ -580,19 +611,13 @@ $(function() {
                     methodInput.value = 'DELETE';
                     form.appendChild(methodInput);
                     
-                    console.log('🔧 Method DELETE added');
-                    
                     // Append to body and submit
                     document.body.appendChild(form);
-                    console.log('📤 Form appended to body, submitting...');
                     
                     form.submit();
-                    console.log('✅ Form.submit() called - should redirect now!');
                 } catch (error) {
                     console.error('❌ ERROR during form submission:', error);
                 }
-            } else {
-                console.log('❌ USER CANCELLED DELETE');
             }
         });
     });

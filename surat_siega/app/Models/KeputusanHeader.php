@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -30,7 +29,6 @@ class KeputusanHeader extends Model
         'signed_pdf_path',
         'tembusan',
         'tembusan_formatted',
-        'penerima_eksternal',
         'status_surat',
         'dibuat_oleh',
         'penandatangan',
@@ -66,7 +64,6 @@ class KeputusanHeader extends Model
         'menimbang' => 'array',
         'mengingat' => 'array',
         'menetapkan' => 'array',
-        'penerima_eksternal' => 'array',
         'tembusan' => 'string',
         'ttd_config' => 'array',
         'cap_config' => 'array',
@@ -146,23 +143,6 @@ class KeputusanHeader extends Model
             set: function ($value) {
                 if (is_array($value)) {
                     return json_encode(array_map(fn ($item) => sanitize_input($item, 1000), $value));
-                }
-
-                return $value;
-            }
-        );
-    }
-
-    /**
-     * Sanitize penerima_eksternal array.
-     */
-    protected function penerimaEksternal(): Attribute
-    {
-        return Attribute::make(
-            get: fn ($value) => is_string($value) ? json_decode($value, true) : $value,
-            set: function ($value) {
-                if (is_array($value)) {
-                    return json_encode(array_map(fn ($nama) => sanitize_input($nama, 255), $value));
                 }
 
                 return $value;
@@ -419,13 +399,6 @@ class KeputusanHeader extends Model
     public function pengarsip(): BelongsTo
     {
         return $this->belongsTo(User::class, 'arsipkan_oleh');
-    }
-
-    public function penerima(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'keputusan_penerima', 'keputusan_id', 'pengguna_id')
-            ->withPivot(['read_at', 'dibaca'])
-            ->withTimestamps();
     }
 
     // ==================== HELPER METHODS =========================

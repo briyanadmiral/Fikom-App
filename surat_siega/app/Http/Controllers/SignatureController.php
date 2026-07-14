@@ -65,18 +65,27 @@ class SignatureController extends Controller
             $path = $file->storeAs('private/ttd', $filename, 'local');
         }
 
-        // Update or create signature record
-        $signature = UserSignature::updateOrCreate(
-            ['pengguna_id' => $user->id],
-            [
-                'ttd_path' => $path,
-            ]
-        );
+        // Get existing signature record (including soft-deleted ones)
+        $signature = UserSignature::withTrashed()->where('pengguna_id', $user->id)->first();
+        $oldPath = $signature ? $signature->ttd_path : null;
 
-        // Delete old file if exists and different
-        if ($signature->wasRecentlyCreated === false && $signature->getOriginal('ttd_path') !== $path) {
-            $oldPath = $signature->getOriginal('ttd_path');
-            if ($oldPath && Storage::disk('local')->exists($oldPath)) {
+        if ($signature) {
+            if ($signature->trashed()) {
+                $signature->restore();
+            }
+            $signature->update([
+                'ttd_path' => $path,
+            ]);
+        } else {
+            $signature = UserSignature::create([
+                'pengguna_id' => $user->id,
+                'ttd_path' => $path,
+            ]);
+        }
+
+        // Delete old file if exists and is different from the new path
+        if ($oldPath && $oldPath !== $path) {
+            if (Storage::disk('local')->exists($oldPath)) {
                 Storage::disk('local')->delete($oldPath);
             }
         }

@@ -206,9 +206,51 @@
         if (!isManual) updateNomorField();
     }
 
+    function parseNomorToBuilder() {
+        if (!nomorField || !nomorField.value) return;
+        const val = nomorField.value.trim();
+        if (val === '' || val === '...') return;
+        const parts = val.split('/');
+        if (parts.length >= 6) {
+            const urutEl = qs('#nourut');
+            const klasEl = qs('#noklasifikasi');
+            const unitEl = qs('#nounit');
+            const romaEl = qs('#noromawi');
+            const thnEl = qs('#notahun');
+            
+            if (urutEl) urutEl.value = parts[0];
+            if (klasEl) klasEl.value = parts[1];
+            if (unitEl) unitEl.value = parts[2];
+            if (romaEl) {
+                if (parts[3] === 'UNIKA') {
+                    romaEl.value = parts[4];
+                    if (thnEl) thnEl.value = parts[5];
+                } else {
+                    romaEl.value = parts[3];
+                    if (thnEl) thnEl.value = parts[4];
+                }
+            }
+        }
+    }
+
     if (toggleManual) {
-        toggleManual.checked = !!IS_EDIT;
-        setNomorMode(!!IS_EDIT);
+        const defaultAutoNomor = buildNomorString();
+        const currentNomor = nomorField ? nomorField.value.trim() : '';
+        let shouldBeManual = !!IS_EDIT;
+        
+        if (currentNomor && currentNomor !== '...' && currentNomor !== defaultAutoNomor) {
+            const parts = currentNomor.split('/');
+            if (parts.length >= 6) {
+                parseNomorToBuilder();
+            } else {
+                shouldBeManual = true;
+            }
+        } else if (currentNomor && currentNomor !== '...') {
+            parseNomorToBuilder();
+        }
+        
+        toggleManual.checked = shouldBeManual;
+        setNomorMode(shouldBeManual);
         on(toggleManual, 'change', () => setNomorMode(toggleManual.checked));
     }
 
@@ -244,7 +286,7 @@
             if (!res.ok) throw new Error(`Gagal menghubungi server (${res.status})`);
             const data = await res.json();
             const urutEl = qs('#nourut');
-            if (urutEl) urutEl.value = data.nourut || data.nomor_urut || '001';
+            if (urutEl) urutEl.value = data.no_urut || data.nomor_urut_int || '001';
             updateNomorField();
             Swal.fire({ icon: 'success', title: 'Nomor Disiapkan', text: `${data.nomor}\nNomor berhasil diambil.` });
         } catch(err) {
@@ -406,22 +448,49 @@
     skForm.addEventListener('change', updateUI, true);
     updateUI();
 
-    // ============ Submit Guard + Shortcuts ============
-    function validateAndSubmit(e, mode) {
+    // ============ Submit Guard: CKEditor Sync + Mode Handling ============
+    const modeInput = qs('#mode-input');
+
+    function syncCkEditors() {
+        // Sinkronkan SEMUA CKEditor instance ke textarea sebelum form submit
+        // Ini mencegah data kosong karena CKEditor belum update textarea
+        for (const key in window.editors) {
+            const editor = window.editors[key];
+            if (editor && typeof editor.updateSourceElement === 'function') {
+                try { editor.updateSourceElement(); } catch (e) { /* ignore */ }
+            }
+        }
+    }
+
+    function handleSubmit(e, mode) {
+        // Pastikan hidden mode input selalu terisi (backup jika button value hilang)
+        if (modeInput) modeInput.value = mode;
+
+        // Sinkronkan CKEditor → textarea sebelum browser mengirim data form
+        syncCkEditors();
+
         if (mode === 'pending') {
             const signer = skForm.querySelector('select[name="penandatangan"]');
             if (!signer || !signer.value) {
                 e.preventDefault();
                 Swal.fire({ icon: 'warning', title: 'Penandatangan Belum Dipilih', text: 'Silakan pilih penandatangan terlebih dahulu untuk mengajukan.' });
                 if (signer) $('#penandatangan').select2('open');
+                return;
             }
         }
+        // Form submits via browser native — mode dari hidden input + button value
     }
 
-    on(qs('#btn-submit-approve'), 'click', e => validateAndSubmit(e, 'pending'));
-    on(qs('#mb-approve'), 'click', e => validateAndSubmit(e, 'pending'));
-    on(qs('#btn-submit-draft'), 'click', e => validateAndSubmit(e, 'draft'));
-    on(qs('#mb-draft'), 'click', e => validateAndSubmit(e, 'draft'));
+    on(qs('#btn-submit-approve'), 'click', e => handleSubmit(e, 'pending'));
+    on(qs('#mb-approve'), 'click', e => handleSubmit(e, 'pending'));
+    on(qs('#btn-submit-draft'), 'click', e => handleSubmit(e, 'draft'));
+    on(qs('#mb-draft'), 'click', e => handleSubmit(e, 'draft'));
+
+    // Belt-and-suspenders: sync CKEditor juga di event submit form
+    skForm.addEventListener('submit', function() {
+        syncCkEditors();
+        isDirty = false;
+    });
 
     let isDirty = false;
     skForm.addEventListener('input', () => isDirty = true);
@@ -431,15 +500,18 @@
             e.returnValue = 'Perubahan belum disimpan. Yakin keluar?';
         }
     });
-    skForm.addEventListener('submit', () => isDirty = false);
 
     document.addEventListener('keydown', function(e) {
         if (e.ctrlKey || e.metaKey) {
             if (e.key === 's' || e.key === 'S') {
                 e.preventDefault();
+                if (modeInput) modeInput.value = 'draft';
+                syncCkEditors();
                 qs('#btn-submit-draft')?.click();
             } else if (e.key === 'Enter') {
                 e.preventDefault();
+                if (modeInput) modeInput.value = 'pending';
+                syncCkEditors();
                 qs('#btn-submit-approve')?.click();
             }
         }

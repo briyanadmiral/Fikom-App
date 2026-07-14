@@ -666,7 +666,7 @@
                                                 {{-- 4. Download PDF --}}
                                                 @if (in_array($h->status_surat, ['disetujui', 'terbit', 'arsip']) && $h->signed_pdf_path)
                                                     <a class="dropdown-item text-danger"
-                                                       href="{{ route('surat_keputusan.downloadPdf', $h->id) }}"
+                                                       href="{{ route('surat_keputusan.downloadForm', $h->id) }}"
                                                        target="_blank">
                                                         <i class="fas fa-file-pdf"></i> Download PDF
                                                     </a>
@@ -845,8 +845,19 @@
                 responsive: true,
                 autoWidth: false,
                 language: {
-                    url: "/assets/datatables/i18n/id.json",
-                    emptyTable: emptyMsg
+                    search: 'Cari:',
+                    lengthMenu: 'Tampilkan _MENU_ entri',
+                    info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ entri',
+                    infoEmpty: 'Menampilkan 0 sampai 0 dari 0 entri',
+                    infoFiltered: '(disaring dari _MAX_ entri keseluruhan)',
+                    zeroRecords: 'Tidak ditemukan data yang sesuai',
+                    emptyTable: emptyMsg,
+                    paginate: {
+                        first: 'Pertama',
+                        last: 'Terakhir',
+                        next: 'Berikutnya',
+                        previous: 'Sebelumnya'
+                    }
                 },
                 order: [
                     [headers.indexOf('tgl surat') !== -1 ? headers.indexOf('tgl surat') : 0, 'desc']
@@ -900,7 +911,7 @@
                 const nomor = $(this).data('nomor') || '—';
                 const ok = await confirmAction({
                     title: 'Terbitkan SK?',
-                    html: `SK <b>${nomor}</b> akan diterbitkan dan dibagikan ke penerima.`,
+                    html: `SK <b>${nomor}</b> akan diterbitkan dan berlaku untuk seluruh anggota fakultas.`,
                     icon: 'info',
                     confirmButtonColor: '#007bff',
                     confirmButtonText: '<i class="fas fa-share-square"></i> Ya, Terbitkan'

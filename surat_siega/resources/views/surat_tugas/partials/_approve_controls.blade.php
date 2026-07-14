@@ -47,5 +47,21 @@
   <input type="hidden" name="ttd_y_mm" value="{{ $preview['ttd_y_mm'] ?? 0 }}">
   <input type="hidden" name="cap_x_mm" value="{{ $preview['cap_x_mm'] ?? 0 }}">
   <input type="hidden" name="cap_y_mm" value="{{ $preview['cap_y_mm'] ?? 0 }}">
+
+  {{-- Tampilkan di PDF --}}
+  <hr class="my-3">
+  <label class="form-label fw-semibold mb-2"><i class="fas fa-eye mr-1"></i> Tampilkan di PDF</label>
+  <div class="custom-control custom-switch mb-2">
+    <input type="checkbox" class="custom-control-input" id="show_ttd" name="show_ttd" value="1" checked>
+    <label class="custom-control-label" for="show_ttd">Tanda Tangan (Gambar)</label>
+  </div>
+  <div class="custom-control custom-switch mb-2">
+    <input type="checkbox" class="custom-control-input" id="show_nama" name="show_nama" value="1" checked>
+    <label class="custom-control-label" for="show_nama">Nama & NPP Penandatangan</label>
+  </div>
+  <div class="custom-control custom-switch mb-2">
+    <input type="checkbox" class="custom-control-input" id="show_cap" name="show_cap" value="1" checked>
+    <label class="custom-control-label" for="show_cap">Cap / Stempel</label>
+  </div>
 </div>
 

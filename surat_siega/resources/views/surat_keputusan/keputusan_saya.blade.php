@@ -364,14 +364,18 @@
                                                 <a class="dropdown-item text-info quick-view"
                                                     href="{{ route('surat_keputusan.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}"
                                                     data-url="{{ route('surat_keputusan.preview', $h->id) }}?v={{ optional($h->updated_at)->timestamp }}">
-                                                    <i class="fas fa-eye"></i> Lihat Detail
+                                                    <i class="fas fa-eye"></i> Lihat Pratinjau
+                                                </a>
+                                                <a class="dropdown-item text-primary"
+                                                    href="{{ route('surat_keputusan.show', $h->id) }}">
+                                                    <i class="fas fa-info-circle"></i> Halaman Detail
                                                 </a>
 
                                                 {{-- Download PDF --}}
                                                 @if (in_array($h->status_surat, ['disetujui', 'terbit', 'arsip']) && $h->signed_pdf_path)
                                                     <div class="dropdown-divider"></div>
                                                     <a class="dropdown-item text-danger"
-                                                        href="{{ route('surat_keputusan.downloadPdf', $h->id) }}"
+                                                        href="{{ route('surat_keputusan.downloadForm', $h->id) }}"
                                                         target="_blank">
                                                         <i class="fas fa-download"></i> Download PDF
                                                     </a>
@@ -432,8 +436,19 @@
                 responsive: true,
                 autoWidth: false,
                 language: {
-                    url: "/assets/datatables/i18n/id.json",
-                    emptyTable: "Tidak ada Surat Keputusan untuk Anda."
+                    search: 'Cari:',
+                    lengthMenu: 'Tampilkan _MENU_ entri',
+                    info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ entri',
+                    infoEmpty: 'Menampilkan 0 sampai 0 dari 0 entri',
+                    infoFiltered: '(disaring dari _MAX_ entri keseluruhan)',
+                    zeroRecords: 'Tidak ditemukan data yang sesuai',
+                    emptyTable: "Tidak ada Surat Keputusan untuk Anda.",
+                    paginate: {
+                        first: 'Pertama',
+                        last: 'Terakhir',
+                        next: 'Berikutnya',
+                        previous: 'Sebelumnya'
+                    }
                 },
                 order: [
                     [th.indexOf('tgl surat') !== -1 ? th.indexOf('tgl surat') : 0, 'desc']

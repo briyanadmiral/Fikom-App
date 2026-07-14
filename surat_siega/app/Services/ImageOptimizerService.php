@@ -98,7 +98,15 @@ class ImageOptimizerService
             ]);
 
             // Fallback: store without optimization
-            return $file->store($directory, 'public');
+            try {
+                return $file->store($directory, 'public');
+            } catch (Exception $fallbackError) {
+                Log::error('Image fallback store also failed', [
+                    'error' => $fallbackError->getMessage(),
+                    'file' => $file->getClientOriginalName(),
+                ]);
+                return null;
+            }
         }
     }
 

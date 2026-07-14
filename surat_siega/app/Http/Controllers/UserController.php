@@ -19,33 +19,55 @@ class UserController extends Controller
     }
 
     /**
-     * Tampilkan daftar semua pengguna beserta peran.
+     * Tampilkan daftar pengguna dengan tabs Pending/Approved.
      * SUDAH TERMASUK FITUR PENCARIAN
      */
     public function index(Request $request)
     {
-        $query = User::with('peran')->latest();
+        $tab = $request->get('tab', 'approved');
+
+        $query = User::with('peran');
+
+        if ($tab === 'pending') {
+            $query->where('approval_status', 'pending')
+                  ->where(function ($q) {
+                      $q->whereNotNull('npp')->orWhereNotNull('nim');
+                  });
+        } elseif ($tab === 'approved') {
+            $query->where('approval_status', 'approved');
+        } elseif ($tab === 'rejected') {
+            $query->where('approval_status', 'rejected');
+        }
+
+        $query->latest();
 
         if ($request->filled('search')) {
             $searchTerm = sanitize_input($request->search, 100);
 
             if ($searchTerm) {
-                // Escape LIKE wildcards
                 $searchEscaped = str_replace(['%', '_'], ['\%', '\_'], $searchTerm);
 
                 $query->where(function ($q) use ($searchEscaped) {
                     $q->where('nama_lengkap', 'like', "%{$searchEscaped}%")
                         ->orWhere('email', 'like', "%{$searchEscaped}%")
-                        ->orWhere('npp', 'like', "%{$searchEscaped}%");
+                        ->orWhere('npp', 'like', "%{$searchEscaped}%")
+                        ->orWhere('nim', 'like', "%{$searchEscaped}%");
                 });
             }
         }
 
         $users = $query->get();
 
+        $pendingCount = User::where('approval_status', 'pending')
+                            ->where(function ($q) {
+                                $q->whereNotNull('npp')->orWhereNotNull('nim');
+                            })->count();
+        $approvedCount = User::where('approval_status', 'approved')->count();
+        $rejectedCount = User::where('approval_status', 'rejected')->count();
+
         $roles = Peran::withCount('users')->get();
 
-        return view('users.index', compact('users', 'roles'));
+        return view('users.index', compact('users', 'roles', 'tab', 'pendingCount', 'approvedCount', 'rejectedCount'));
     }
 
     /**
@@ -199,6 +221,84 @@ class UserController extends Controller
             ]);
 
             return back()->with('error', 'Terjadi kesalahan saat menghapus user.');
+        }
+    }
+
+    /**
+     * Approve pending user (admin_tu only).
+     */
+    public function approve($id)
+    {
+        // Authorization: hanya admin_tu (peran_id 1)
+        if (!auth()->check() || auth()->user()->peran_id !== 1) {
+            abort(403, 'Akses ditolak. Hanya Admin TU yang dapat memverifikasi user.');
+        }
+
+        $userId = validate_integer_id($id);
+        if ($userId === null) {
+            abort(404, 'ID tidak valid');
+        }
+
+        $user = User::findOrFail($userId);
+
+        if ($user->approval_status !== 'pending') {
+            return back()->with('error', 'User sudah diproses sebelumnya.');
+        }
+
+        try {
+            $user->approval_status = 'approved';
+            $user->save();
+
+            // TODO: Send email notification to user
+
+            return redirect()->route('users.index', ['tab' => 'approved'])
+                ->with('success', 'User berhasil diverifikasi dan email notifikasi telah dikirim.');
+        } catch (\Throwable $e) {
+            Log::error('Gagal approve user', [
+                'id' => $user->id,
+                'error' => sanitize_log_message($e->getMessage()),
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->with('error', 'Terjadi kesalahan saat memverifikasi user.');
+        }
+    }
+
+    /**
+     * Reject pending user (admin_tu only).
+     */
+    public function reject($id)
+    {
+        // Authorization: hanya admin_tu (peran_id 1)
+        if (!auth()->check() || auth()->user()->peran_id !== 1) {
+            abort(403, 'Akses ditolak. Hanya Admin TU yang dapat menolak user.');
+        }
+
+        $userId = validate_integer_id($id);
+        if ($userId === null) {
+            abort(404, 'ID tidak valid');
+        }
+
+        $user = User::findOrFail($userId);
+
+        if ($user->approval_status !== 'pending') {
+            return back()->with('error', 'User sudah diproses sebelumnya.');
+        }
+
+        try {
+            $user->approval_status = 'rejected';
+            $user->save();
+
+            return redirect()->route('users.index', ['tab' => 'pending'])
+                ->with('success', 'User berhasil ditolak.');
+        } catch (\Throwable $e) {
+            Log::error('Gagal reject user', [
+                'id' => $user->id,
+                'error' => sanitize_log_message($e->getMessage()),
+                'user_id' => auth()->id(),
+            ]);
+
+            return back()->with('error', 'Terjadi kesalahan saat menolak user.');
         }
     }
 

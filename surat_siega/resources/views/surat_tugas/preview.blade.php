@@ -19,17 +19,28 @@
 @endphp
 
 <div class="container-fluid py-3">
-  @include('surat_tugas.partials._core', [
-    'context'          => $context,
-    'tugas'            => $tugas,
-    'kop'              => $kop ?? null,
-    'penerimaList'     => $penerimaList ?? null,
-    'ttdW'             => $ttdW,
-    'capW'             => $capW,
-    'capOpacity'       => $capOpacity,
-    'ttdImageB64'      => $ttdB64,
-    'capImageB64'      => $capB64,
-    'showSigns'        => $showSigns,
-    'showKopInContent' => true,   // kop tampil di konten saat preview web
-  ])
+  @if ($tugas && $tugas->signed_pdf_path && Storage::disk('local')->exists($tugas->signed_pdf_path))
+    @php
+      $friendlyName = 'SuratTugas_' . (preg_replace('/[^a-zA-Z0-9_-]/', '_', $tugas->nomor) ?? 'TanpaNomor') . '.pdf';
+      $downloadUrl = route('surat_tugas.downloadPdf', [$tugas->id, $friendlyName]);
+    @endphp
+    <div style="height: 750px;">
+        <iframe src="{{ $downloadUrl }}?t={{ time() }}" class="w-100 h-100" style="border: none;"></iframe>
+    </div>
+  @else
+    @include('surat_tugas.partials._core', [
+      'context'          => $context,
+      'tugas'            => $tugas,
+      'kop'              => $kop ?? null,
+      'penerimaList'     => $penerimaList ?? null,
+      'ttdW'             => $ttdW,
+      'capW'             => $capW,
+      'capOpacity'       => $capOpacity,
+      'ttdImageB64'      => $ttdB64,
+      'capImageB64'      => $capB64,
+      'showSigns'        => $showSigns,
+      'showNamaPenandatangan' => $showNamaPenandatangan ?? ($preview['show_nama'] ?? true),
+      'showKopInContent' => true,   // kop tampil di konten saat preview web
+    ])
+  @endif
 </div>

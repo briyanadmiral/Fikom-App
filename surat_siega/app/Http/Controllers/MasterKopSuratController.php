@@ -104,15 +104,18 @@ class MasterKopSuratController extends Controller
                 $columnName = $config['column'];
                 $optimizeMethod = $config['method'];
 
-                if (! empty($kop->$columnName)) {
-                    $oldPath = $kop->$columnName;
-                    if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-                        Storage::disk('public')->delete($oldPath);
-                    }
-                }
-
                 $path = $this->imageOptimizer->$optimizeMethod($r->file($inputName));
-                $data[$columnName] = $path;
+
+                // Hanya overwrite jika path valid (optimasi berhasil)
+                if (! empty($path)) {
+                    if (! empty($kop->$columnName)) {
+                        $oldPath = $kop->$columnName;
+                        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                            Storage::disk('public')->delete($oldPath);
+                        }
+                    }
+                    $data[$columnName] = $path;
+                }
             }
         }
 
@@ -124,15 +127,18 @@ class MasterKopSuratController extends Controller
         }
 
         if ($backgroundFile) {
-            if (! empty($kop->background_path)) {
-                $oldPath = $kop->background_path;
-                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
-                }
-            }
-
             $path = $this->imageOptimizer->optimizeBackground($backgroundFile);
-            $data['background_path'] = $path;
+
+            // Hanya overwrite jika path valid
+            if (! empty($path)) {
+                if (! empty($kop->background_path)) {
+                    $oldPath = $kop->background_path;
+                    if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                }
+                $data['background_path'] = $path;
+            }
         }
 
         unset($data['logo_kanan'], $data['logo_kiri'], $data['background_custom'], $data['background_upload'], $data['cap']);

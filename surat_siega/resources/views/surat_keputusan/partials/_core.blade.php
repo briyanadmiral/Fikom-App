@@ -9,12 +9,12 @@
   // Konsolidasi objek
   $sk = $keputusan ?? $sk ?? null;
 
-  // Data list
-  $menimbang = is_array($sk?->menimbang) ? $sk->menimbang : (json_decode($sk->menimbang ?? '[]', true) ?: []);
-  $mengingat = is_array($sk?->mengingat) ? $sk->mengingat : (json_decode($sk->mengingat ?? '[]', true) ?: []);
+  // Data list (force cast to array to prevent TypeError in count/foreach)
+  $menimbang = (array) (is_array($sk?->menimbang) ? $sk->menimbang : (json_decode($sk->menimbang ?? '[]', true) ?: []));
+  $mengingat = (array) (is_array($sk?->mengingat) ? $sk->mengingat : (json_decode($sk->mengingat ?? '[]', true) ?: []));
 
   // 'menetapkan' sebagai array terstruktur
-  $menetapkanItems = is_array($sk?->menetapkan) ? $sk->menetapkan : (json_decode($sk?->menetapkan ?? '[]', true) ?: []);
+  $menetapkanItems = (array) (is_array($sk?->menetapkan) ? $sk->menetapkan : (json_decode($sk?->menetapkan ?? '[]', true) ?: []));
   // Pastikan indeks berurutan agar aman dipakai $index
   $menetapkanItems = array_values($menetapkanItems);
   $ordinalWords = ['KESATU','KEDUA','KETIGA','KEEMPAT','KELIMA','KEENAM','KETUJUH','KEDELAPAN','KESEMBILAN','KESEPULUH'];
@@ -48,7 +48,14 @@
   // Penandatangan & meta
   $pen = $sk->penandatanganUser ?? null;
   $kotaPenetapan = $sk->kota_penetapan ?? 'Semarang';
-  $tglTampil = \Carbon\Carbon::parse($sk->tanggal_surat ?? $sk->tanggal_asli ?? now())->translatedFormat('d F Y');
+  
+  // Safe date parsing to prevent Carbon crash
+  try {
+      $tglTampil = \Carbon\Carbon::parse($sk->tanggal_surat ?? $sk->tanggal_asli ?? now())->translatedFormat('d F Y');
+  } catch (\Exception $e) {
+      $tglTampil = now()->translatedFormat('d F Y');
+  }
+
   $jabatanPrefix = '';
   $jabatanBaris1 = 'Dekan,';
   if ($pen && (int)$pen->peran_id === 3) {
@@ -98,30 +105,42 @@
     margin: .4cm 0 .35cm; page-break-after: avoid;
   }
 
-  /* Struktur blok */
+  /* Struktur blok — pakai display:table untuk DOMPDF (tidak support flex) */
   .section, .diktum-item {
-    display: flex; align-items: flex-start; margin-bottom: 3mm; text-align: justify;
+    display: table; width: 100%; margin-bottom: 3mm; text-align: justify;
     page-break-inside: avoid;
   }
   .section .label, .diktum-item .label {
-    flex-shrink: 0; width: 3.2cm; font-weight: 700;
+    display: table-cell; width: 3.2cm; font-weight: 700; vertical-align: top;
   }
   .diktum-item .label { text-transform: uppercase; }
   .section .colon, .diktum-item .colon {
-    flex-shrink: 0; font-weight: 700; margin: 0 0.15cm;
+    display: table-cell; width: 0.55cm; font-weight: 700; vertical-align: top;
   }
-  .section .content, .diktum-item .content { flex-grow: 1; }
+  .section .content, .diktum-item .content { display: table-cell; vertical-align: top; }
   .section .content ol, .section .content ul,
-  .diktum-item .content ol, .diktum-item .content ul { margin: 0; padding-left: 1cm; }
-  ol { margin: 0; padding-left: 1.1cm; }
+  .diktum-item .content ol, .diktum-item .content ul { 
+    margin: 0; 
+    padding-left: 0.8cm; /* Jarak list dari titik dua */
+    list-style-position: outside !important; /* Memaksa hanging indent */
+  }
+  ol { 
+    margin: 0; 
+    padding-left: 0.8cm; 
+    list-style-position: outside !important;
+  }
   .alpha { list-style: lower-alpha; }
-  /* Hindari pecah item list */
-  li { page-break-inside: avoid; }
+  /* Hindari pecah item list dan tambah sedikit padding */
+  li { 
+    padding-left: 0.15cm; 
+    page-break-inside: avoid; 
+  }
 
   .memutuskan-title {
     text-align: center; font-weight: 700; letter-spacing: .2em;
     margin: .6cm 0 .2cm; page-break-after: avoid;
   }
+  .menetapkan-header { margin-bottom: 2mm; }
   .menetapkan-label {
     font-weight: 700; margin-bottom: 2mm; page-break-after: avoid;
   }
@@ -139,7 +158,7 @@
   .ttd-area-sign {
     position: relative; min-height: 28mm; margin-top: 6mm; text-align: center;
   }
-  .ttd-area-sign .ttd, .ttd-area-sign .cap { display: inline-block; vertical-align: bottom; }
+  .ttd-area-sign .ttd, .ttd-area-sign .cap { position: absolute; bottom: 0; left: 50%; }
 
   .ttd-area-sign .ttd {
     /* translateX(-50%) keeps it centered, then we add X offset */
@@ -180,7 +199,7 @@
 {{-- ====================== CSS UNTUK WEB PREVIEW ====================== --}}
 <style>
   .sheet {
-    width: 210mm; min-height: auto; height: auto; margin: 8mm auto;
+    width: 210mm; min-height: 297mm; height: auto; margin: 8mm auto;
     background: #fff; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,.08);
     padding: 55mm 16mm 24mm 16mm; /* ruang kop & footer web preview */
     font-family: "Times New Roman", Times, serif; font-size: 12pt; line-height: 1.35;
@@ -209,6 +228,7 @@
   .alpha { list-style: lower-alpha; }
 
   .memutuskan-title { text-align: center; font-weight: 700; letter-spacing: .2em; margin: .6cm 0 .2cm; }
+  .menetapkan-header { margin-bottom: 2mm; }
   .menetapkan-label { font-weight: 700; margin-bottom: 2mm; }
 
   .ttd-wrapper { display: table; width: 100%; margin-top: 25px; }
@@ -217,38 +237,8 @@
   .ttd-teks { text-align: left; line-height: 1.5; }
 
   .ttd-area-sign { position: relative; min-height: 28mm; margin-top: 6mm; text-align: center; }
-  .ttd-area-sign .ttd, .ttd-area-sign .cap { display: inline-block; vertical-align: bottom; }
-  .ttd-area-sign .ttd {
-    transform: translateX(calc(-50% + var(--ttd-x, 0mm)));
-    bottom: var(--ttd-y, 0mm); 
-    width: var(--ttd-w, 42mm);
-    left: 50%;
-    margin-bottom: 0; margin-left: 0;
-  }
-
   .ttd-area-sign .ttd img, .ttd-area-sign .cap img {
     width: 100%; height: auto; display: block;
-  }
-  .resize-handle {
-    width: 12px; height: 12px;
-    background: #ffffff;
-    border: 1px solid #007bff;
-    border-radius: 50%;
-    position: absolute;
-    bottom: -6px; right: -6px;
-    cursor: nwse-resize;
-    z-index: 100;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  }
-
-  .ttd-area-sign .cap {
-    transform: translateX(calc(-25% + var(--cap-x, 0mm)));
-    bottom: var(--cap-y, 0mm);
-    width: var(--cap-w, 35mm);
-    opacity: var(--cap-opacity, .95);
-    z-index: 2;
-    left: 50%;
-    margin-bottom: 0; margin-left: 0;
   }
 
   .tembusan-list { padding-left: 0; list-style-type: none; margin-top: 2mm; }
@@ -318,17 +308,26 @@
 
 {{-- === MEMUTUSKAN / MENETAPKAN === --}}
 <div class="memutuskan-title keep-with-next">M E M U T U S K A N</div>
-<div class="menetapkan-label keep-with-next">Menetapkan :</div>
+<div class="diktum-item menetapkan-header keep-with-next">
+  <span class="label">Menetapkan</span>
+  <span class="colon">:</span>
+  <div class="content"></div>
+</div>
 
 {{-- Blok Memutuskan dengan array terstruktur --}}
 <div class="menetapkan-items">
   @if(!empty($menetapkanItems))
     @foreach($menetapkanItems as $index => $item)
+      @php
+        $judul = is_array($item) ? ($item['judul'] ?? null) : null;
+        $isi = is_array($item) ? ($item['isi'] ?? '') : (is_string($item) ? $item : '');
+        $judul = $judul ?: ($ordinalWords[$index] ?? 'BERIKUTNYA');
+      @endphp
       <div class="diktum-item avoid-break">
-        <span class="label">{{ $item['judul'] ?? ($ordinalWords[$index] ?? 'BERIKUTNYA') }}</span>
+        <span class="label">{{ $judul }}</span>
         <span class="colon">:</span>
         <div class="content">
-          {!! $item['isi'] !!}
+          {!! $isi !!}
         </div>
       </div>
     @endforeach
@@ -347,16 +346,22 @@
       {!! $jabatanPrefix !!}{{ rtrim($jabatanBaris1, ',') }},
     </div>
 
-    <div class="ttd-area-sign" style="--ttd-w: {{$ttdW}}mm; --cap-w: {{$capW}}mm; --cap-opacity: {{$capOpacity}}; --ttd-x: {{$ttdX}}mm; --ttd-y: {{$ttdY}}mm; --cap-x: {{$capX}}mm; --cap-y: {{$capY}}mm;">
+    <div class="ttd-area-sign" style="--ttd-w: {{$ttdW}}mm; --cap-w: {{$capW}}mm; --cap-opacity: {{$capOpacity}}; --ttd-x: {{$ttdX ?? 0}}mm; --ttd-y: {{$ttdY ?? 0}}mm; --cap-x: {{$capX ?? 0}}mm; --cap-y: {{$capY ?? 0}}mm;">
       @if($showSigns)
         @if(!empty($ttdImageB64))
-            <div class="ttd-draggable ttd">
+            <div class="ttd-draggable ttd"
+                 @if($context === 'pdf')
+                 style="position: absolute; left: 50%; margin-left: {{ -((int)$ttdW / 2) + (int)($ttdX ?? 0) }}mm; bottom: {{ (int)($ttdY ?? 0) }}mm; width: {{ (int)$ttdW }}mm;"
+                 @endif>
                 <img src="{{ $ttdImageB64 }}" alt="TTD">
                 <div class="resize-handle ttd-handle"></div>
             </div>
         @endif
         @if(!empty($capImageB64))
-            <div class="cap-draggable cap">
+            <div class="cap-draggable cap"
+                 @if($context === 'pdf')
+                 style="position: absolute; left: 50%; margin-left: {{ -((int)$capW / 4) + (int)($capX ?? 0) }}mm; bottom: {{ (int)($capY ?? 0) }}mm; width: {{ (int)$capW }}mm; opacity: {{ $capOpacity }};"
+                 @endif>
                 <img src="{{ $capImageB64 }}" alt="Cap">
                 <div class="resize-handle cap-handle"></div>
             </div>
@@ -365,8 +370,10 @@
     </div>
 
     <div class="ttd-teks avoid-break">
+      @if ($showNamaPenandatangan ?? true)
       <strong>{{ $pen->nama_lengkap ?? '(.............................)' }}</strong><br>
       NPP. {{ $pen->npp ?? '-' }}
+      @endif
     </div>
   </div>
 </div>

@@ -241,6 +241,43 @@
                 justify-content: center;
                 min-height: 120px;
             }
+
+            /* --- Custom Tab Styling (Contrast Fix) --- */
+            .card-tabs .card-header {
+                background-color: #f8f9fa !important;
+                border-bottom: 1px solid #dee2e6;
+                padding-top: 4px !important;
+            }
+            .card-tabs .nav-tabs .nav-link {
+                color: #495057 !important;
+                font-weight: 500;
+                border: 1px solid transparent;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                padding: 10px 18px;
+                transition: all 0.15s ease-in-out;
+            }
+            .card-tabs .nav-tabs .nav-link i {
+                color: #6c757d !important;
+                transition: color 0.15s ease-in-out;
+            }
+            .card-tabs .nav-tabs .nav-link:hover {
+                color: #007bff !important;
+                background-color: rgba(0, 123, 255, 0.05);
+                border-color: #e9ecef #e9ecef transparent;
+            }
+            .card-tabs .nav-tabs .nav-link:hover i {
+                color: #007bff !important;
+            }
+            .card-tabs .nav-tabs .nav-link.active {
+                color: #007bff !important;
+                background-color: #fff !important;
+                border-color: #dee2e6 #dee2e6 transparent !important;
+                font-weight: 600;
+            }
+            .card-tabs .nav-tabs .nav-link.active i {
+                color: #007bff !important;
+            }
         </style>
     @endpush
 @endonce

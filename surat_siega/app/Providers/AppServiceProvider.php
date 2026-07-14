@@ -25,8 +25,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\NomorSuratService::class);
         $this->app->singleton(\App\Services\AuditService::class);
 
-        // Register helpers as singletons if they're classes
-        // (Skip if helpers are functions)
+
 
         // Performance optimization for production
         if ($this->app->environment('production')) {

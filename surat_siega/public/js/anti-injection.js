@@ -38,7 +38,7 @@ allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'xls', 'xlsx', '
 enableRealTime: false,
 
 // Enable/disable console logging
-debugMode: true, // Set false di production
+debugMode: false, // Set false di production
 
 // ✅ WHITELIST: Field yang TIDAK perlu sanitasi ketat
 whitelistedFields: [
@@ -235,18 +235,14 @@ xss: [
                             if (CONFIG.debugMode) {
                             console.log(`✅ Field "${fieldName}" whitelisted - minimal sanitization`);
                             }
-
-                            // Hanya hapus tag HTML berbahaya
                             return value
-                            .replace(/<script\b[^>]*>[\s\S]*?<\ /script>/gi, '')
-                                    .replace(/<iframe\b[^>]*>[\s\S]*?<\ /iframe>/gi, '')
-                                            .replace(/javascript:/gi, '');
-                                            }
-
-                                            // Email fields
-                                            if (CONFIG.emailFields.includes(fieldName)) {
-                                            return sanitizeEmail(value);
-                                            }
+                                .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+                                .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '')
+                                .replace(/javascript:/gi, '');
+                            }    // Email fields
+                            if (CONFIG.emailFields.includes(fieldName)) {
+                            return sanitizeEmail(value);
+                            }
 
                                             // Numeric fields
                                             if (CONFIG.numericFields.includes(fieldName)) {
@@ -317,12 +313,16 @@ xss: [
                                                 return result;
                                                 }
 
-                                                // Check for double extensions (file.php.jpg)
+                                                // Check for double extensions (only block truly dangerous: .php.jpg, .exe.png)
                                                 const parts = fileName.split('.');
+                                                const dangerousDouble = ['php', 'exe', 'sh', 'bat', 'cmd', 'pif', 'scr', 'asp', 'aspx', 'jsp'];
                                                 if (parts.length > 2) {
-                                                result.valid = false;
-                                                result.message = 'Nama file tidak valid (double extension detected)';
-                                                return result;
+                                                    const lastTwo = parts.slice(-2).map(p => p.toLowerCase());
+                                                    if (dangerousDouble.includes(lastTwo[0]) && CONFIG.allowedExtensions.includes(lastTwo[1])) {
+                                                        result.valid = false;
+                                                        result.message = 'Nama file tidak valid (double extension terdeteksi)';
+                                                        return result;
+                                                    }
                                                 }
 
                                                 // Check for executable extensions in name
@@ -338,10 +338,10 @@ xss: [
                                                 }
 
                                                 //
-                                                ============================================================================
+                                                // ============================================================================
                                                 // FORM PROTECTION - IMPROVED
                                                 //
-                                                ============================================================================
+                                                // ============================================================================
 
                                                 /**
                                                 * Protect single form
@@ -363,8 +363,7 @@ xss: [
                                                 const threats = [];
 
                                                 // Get all text-based inputs
-                                                const inputs = form.querySelectorAll('input[type="text"],
-                                                input[type="search"], input[type="email"], textarea');
+                                                const inputs = form.querySelectorAll('input[type="text"], input[type="search"], input[type="email"], textarea');
 
                                                 inputs.forEach(input => {
                                                 const original = input.value;
@@ -436,35 +435,71 @@ xss: [
                                                     e.preventDefault(); if (typeof Swal !=='undefined' ) { Swal.fire({
                                                     icon: 'error' , title: 'File Tidak Valid' , text:
                                                     validation.message, confirmButtonText: 'OK' }); } else {
-                                                    alert(validation.message); } fileError=true; break; } } } }); if
-                                                    (fileError) return false; }); // ❌ REAL-TIME VALIDATION
-                                                    DINONAKTIFKAN (terlalu invasif!) // if (CONFIG.enableRealTime) { //
-                                                    addRealTimeValidation(form); // } }
-                                                    //============================================================================//
-                                                    INITIALIZATION
-                                                    //============================================================================/**
-                                                    * Initialize anti-injection protection */ function init() { if
-                                                    (CONFIG.debugMode) { console.log('%c🛡️ Anti-Injection Protection
-                                                    v2.0
-                                                    Initialized', 'background: #28a745; color: white; font-size: 14px; padding: 5px 10px; border-radius: 3px;'
-                                                    ); console.log('Whitelisted fields:', CONFIG.whitelistedFields); }
-                                                    // Protect all existing forms
-                                                    document.querySelectorAll('form').forEach(protectForm); // Watch for
-                                                    dynamically added forms if (typeof MutationObserver !=='undefined' )
-                                                    { const observer=new MutationObserver(function(mutations) {
+                                                    alert(validation.message); } fileError=true; break; } } } });
+                                                    if (fileError) return false;
+                                                });
+
+                                                // ❌ REAL-TIME VALIDATION DINONAKTIFKAN (terlalu invasif!)
+                                                // if (CONFIG.enableRealTime) {
+                                                //     addRealTimeValidation(form);
+                                                // }
+
+                                                return true;
+                                            }
+                                        // ============================================================================
+                                        // INITIALIZATION
+                                        // ============================================================================
+
+                                        /**
+                                         * Initialize anti-injection protection
+                                         */
+                                        function init() {
+                                            if (CONFIG.debugMode) {
+                                                console.log('%c🛡️ Anti-Injection Protection v2.0 Initialized',
+                                                    'background: #28a745; color: white; font-size: 14px; padding: 5px 10px; border-radius: 3px;');
+                                                console.log('Whitelisted fields:', CONFIG.whitelistedFields);
+                                            }
+
+                                            // Protect all existing forms
+                                            document.querySelectorAll('form').forEach(protectForm);
+
+                                            // Watch for dynamically added forms
+                                            if (typeof MutationObserver !== 'undefined') {
+                                                const observer = new MutationObserver(function(mutations) {
                                                     mutations.forEach(function(mutation) {
-                                                    mutation.addedNodes.forEach(function(node) { if
-                                                    (node.tagName==='FORM' ) { protectForm(node); } else if
-                                                    (node.querySelectorAll) {
-                                                    node.querySelectorAll('form').forEach(protectForm); } }); }); });
-                                                    observer.observe(document.body, { childList: true, subtree: true });
-                                                    } } // Auto-initialize when DOM is ready if
-                                                    (document.readyState==='loading' ) {
-                                                    document.addEventListener('DOMContentLoaded', init); } else {
-                                                    init(); }
-                                                    //============================================================================//
-                                                    PUBLIC API
-                                                    //============================================================================window.AntiInjection={
-                                                    sanitizeText, sanitizeEmail, sanitizeNumber, validateFile,
-                                                    protectForm, detectThreats, smartSanitize, config: CONFIG,
-                                                    version: '2.0.0' }; })();
+                                                        mutation.addedNodes.forEach(function(node) {
+                                                            if (node.tagName === 'FORM') {
+                                                                protectForm(node);
+                                                            } else if (node.querySelectorAll) {
+                                                                node.querySelectorAll('form').forEach(protectForm);
+                                                            }
+                                                        });
+                                                    });
+                                                });
+                                                observer.observe(document.body, { childList: true, subtree: true });
+                                            }
+                                        }
+
+                                        // Auto-initialize when DOM is ready
+                                        if (document.readyState === 'loading') {
+                                            document.addEventListener('DOMContentLoaded', init);
+                                        } else {
+                                            init();
+                                        }
+
+                                        // ============================================================================
+                                        // PUBLIC API
+                                        // ============================================================================
+
+                                        window.AntiInjection = {
+                                            sanitizeText: sanitizeText,
+                                            sanitizeEmail: sanitizeEmail,
+                                            sanitizeNumber: sanitizeNumber,
+                                            validateFile: validateFile,
+                                            protectForm: protectForm,
+                                            detectThreats: detectThreats,
+                                            smartSanitize: smartSanitize,
+                                            config: CONFIG,
+                                            version: '2.0.0'
+                                        };
+                                    })();
