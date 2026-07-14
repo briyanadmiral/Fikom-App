@@ -29,11 +29,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin') {
       <i class="bi bi-speedometer2 me-2"></i> Dashboard
     </a>
     <?php if (isset($_SESSION['mou_admin']) && $_SESSION['mou_admin'] === true): ?>
-    <a href="perencanaan.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'perencanaan.php') ? 'active' : '' ?>">
-      <i class="bi bi-calendar-event me-2"></i> Perencanaan
-    </a>
-    <a href="pelaksanaan.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'pelaksanaan.php') ? 'active' : '' ?>">
-      <i class="bi bi-play-circle me-2"></i> Pelaksanaan
+    <a href="verifikasi_user.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'verifikasi_user.php') ? 'active' : '' ?>">
+      <i class="bi bi-person-check me-2"></i> Verifikasi Dosen
     </a>
     <?php endif; ?>
     <?php if (isset($_SESSION['role']) && ($_SESSION['role'] === 'dosen' || $_SESSION['role'] === 'superadmin')): ?>

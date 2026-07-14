@@ -228,6 +228,7 @@ try {
                 
                 <a href="kelola-ruangan.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'kelola-ruangan.php') ? 'active' : '' ?>">
                     <i class="bi bi-building me-2"></i> Kelola Ruangan
+                    <span class="badge" id="nav-badge-pending-admin" style="<?= (count($pending_bookings) > 0) ? '' : 'display: none;' ?>"><?php echo count($pending_bookings); ?></span>
                 </a>
                 
                 <a href="lihat_jadwal.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'lihat_jadwal.php') ? 'active' : '' ?>">
@@ -240,6 +241,10 @@ try {
                 
                 <a href="laporan.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'laporan.php') ? 'active' : '' ?>">
                     <i class="bi bi-file-earmark-pdf me-2"></i> Laporan Peminjaman
+                </a>
+
+                <a href="verifikasi_user.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'verifikasi_user.php') ? 'active' : '' ?>">
+                    <i class="bi bi-person-check me-2"></i> Verifikasi Mahasiswa
                 </a>
 
                 <hr class="mx-3 opacity-25">

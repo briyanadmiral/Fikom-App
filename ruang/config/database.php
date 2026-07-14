@@ -30,6 +30,18 @@ class Database
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"
                 ]
             );
+
+            // Auto-migration to support pending status
+            try {
+                $stmt = $this->conn->query("SHOW COLUMNS FROM users LIKE 'status'");
+                $col = $stmt->fetch();
+                if ($col && strpos(strtolower($col['Type']), 'varchar') === false) {
+                    $this->conn->exec("ALTER TABLE users MODIFY COLUMN status VARCHAR(20) DEFAULT 'active'");
+                }
+            } catch (Exception $e) {
+                error_log("[Ruang Migration] status column migration failed: " . $e->getMessage());
+            }
+
         } catch (Exception $e) {
             error_log("[Ruang DB] Connection error: " . $e->getMessage()
                 . " | host=" . $this->host
@@ -100,71 +112,86 @@ function syncUserSession()
                 $stmt->execute([$email]);
                 $user = $stmt->fetch();
 
-                if (!$user) {
-                    // Auto-registrasi jika belum ada
-                    $stmt_insert = $db->prepare(
-                        "INSERT INTO users (email, nama, role, nim_nip, jurusan, status) VALUES (?, ?, ?, ?, ?, 'active')"
-                    );
-                    $stmt_insert->execute([
-                        $email,
-                        $_SESSION['user_name'] ?? 'Guest',
-                        $db_role,
-                        $_SESSION['nim'] ?? $_SESSION['nip'] ?? '-',
-                        $_SESSION['program'] ?? $_SESSION['jurusan'] ?? '-',
-                    ]);
-                    $userId = $db->lastInsertId();
-                } else {
-                    $userId = $user['id'];
-                    // Update role jika berubah
-                    if ($user['role'] !== $db_role) {
-                        $db->prepare("UPDATE users SET role = ? WHERE id = ?")->execute([$db_role, $userId]);
-                    }
-                }
+                 if (!$user) {
+                     // Auto-registrasi jika belum ada
+                     $status = ($db_role === 'mahasiswa') ? 'pending' : 'active';
+                     $stmt_insert = $db->prepare(
+                         "INSERT INTO users (email, nama, role, nim_nip, jurusan, status) VALUES (?, ?, ?, ?, ?, ?)"
+                     );
+                     $stmt_insert->execute([
+                         $email,
+                         $_SESSION['user_name'] ?? 'Guest',
+                         $db_role,
+                         $_SESSION['nim'] ?? $_SESSION['nip'] ?? '-',
+                         $_SESSION['program'] ?? $_SESSION['jurusan'] ?? '-',
+                         $status
+                     ]);
+                     $userId = $db->lastInsertId();
+                     $userStatus = $status;
+                 } else {
+                     $userId = $user['id'];
+                     $userStatus = $user['status'];
+                     // Update role jika berubah
+                     if ($user['role'] !== $db_role) {
+                         $db->prepare("UPDATE users SET role = ? WHERE id = ?")->execute([$db_role, $userId]);
+                     }
+                 }
 
-                $_SESSION['user_id'] = (int) $userId;
+                 $_SESSION['user_id'] = (int) $userId;
+                 $_SESSION['ruang_status'] = $userStatus;
 
-            } catch (PDOException $e) {
-                error_log("[Ruang] Sync user error: " . $e->getMessage());
-                if (empty($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
-                    $_SESSION['user_id'] = 0;
-                }
-            }
-        } else {
-            // DB tidak tersedia, gunakan fallback user_id
-            if (empty($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
-                $_SESSION['user_id'] = 0;
-            }
-        }
-    }
-}
+             } catch (PDOException $e) {
+                 error_log("[Ruang] Sync user error: " . $e->getMessage());
+                 if (empty($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
+                     $_SESSION['user_id'] = 0;
+                 }
+             }
+         } else {
+             // DB tidak tersedia, gunakan fallback user_id
+             if (empty($_SESSION['user_id']) || !is_numeric($_SESSION['user_id'])) {
+                 $_SESSION['user_id'] = 0;
+             }
+         }
+     }
+ }
 
-function checkSessionRole($required_roles = [])
-{
-    startSession();
+ function checkSessionRole($required_roles = [])
+ {
+     startSession();
 
-    $user_roles = [];
-    if (isset($_SESSION['admin']) && $_SESSION['admin'] === true) {
-        $user_roles[] = 'admin';
-    }
-    if (isset($_SESSION['users']) && $_SESSION['users'] === true) {
-        $user_roles[] = 'users';
-    }
+     if (isset($_SESSION['ruang_status']) && $_SESSION['ruang_status'] === 'pending') {
+         $current_file = basename($_SERVER['PHP_SELF']);
+         if ($current_file !== 'waiting_room.php' && $current_file !== 'logout.php') {
+             $is_subfolder = (basename(dirname($_SERVER['PHP_SELF'])) === 'admin' || basename(dirname($_SERVER['PHP_SELF'])) === 'users');
+             $prefix = $is_subfolder ? '../' : '';
+             header("Location: " . $prefix . "waiting_room.php");
+             exit;
+         }
+     }
 
-    if (empty($user_roles)) {
-        return false;
-    }
+     $user_roles = [];
+     if (isset($_SESSION['admin']) && $_SESSION['admin'] === true) {
+         $user_roles[] = 'admin';
+     }
+     if (isset($_SESSION['users']) && $_SESSION['users'] === true) {
+         $user_roles[] = 'users';
+     }
 
-    if (empty($required_roles)) {
-        return $user_roles;
-    }
+     if (empty($user_roles)) {
+         return false;
+     }
 
-    foreach ($required_roles as $role) {
-        if (in_array($role, $user_roles)) {
-            return true;
-        }
-    }
+     if (empty($required_roles)) {
+         return $user_roles;
+     }
 
-    return false;
+     foreach ($required_roles as $role) {
+         if (in_array($role, $user_roles)) {
+             return true;
+         }
+     }
+
+     return false;
 }
 
 function getUserInfo()

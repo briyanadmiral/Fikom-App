@@ -523,7 +523,7 @@ $base_url = $http_protocol . "://" . $domain . $dir_path . "/evaluasi_klien.php?
                         <div class="card glass-panel border-0 p-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h3 class="card-title h5 mb-0" style="font-weight: 700; color: var(--dark);"><i class="fas fa-list-check me-2"></i>Status Kuesioner Kegiatan</h3>
-                                <a href="evaluasi_analisis.php" class="btn btn-custom-action btn-sm"><i class="fas fa-chart-pie me-2 text-primary"></i>Lihat Analisis Kuesioner</a>
+                                <a href="evaluasi_analisis.php" class="btn btn-custom-action btn-sm"><i class="fas fa-chart-pie me-2 text-primary"></i>Hasil Kuesioner</a>
                             </div>
                             
                             <!-- Filters -->

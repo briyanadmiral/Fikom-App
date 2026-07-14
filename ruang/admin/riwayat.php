@@ -83,6 +83,10 @@ try {
                     <i class="bi bi-file-earmark-pdf me-2"></i> Laporan Peminjaman
                 </a>
 
+                <a href="verifikasi_user.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'verifikasi_user.php') ? 'active' : '' ?>">
+                    <i class="bi bi-person-check me-2"></i> Verifikasi Mahasiswa
+                </a>
+
                 <hr class="mx-3 opacity-25">
 
                 <a href="../logout.php" class="nav-item logout">

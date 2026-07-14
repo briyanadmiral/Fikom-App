@@ -11,6 +11,30 @@ if (!defined('FIKOM_ROOT')) define('FIKOM_ROOT', __DIR__);
 require_once __DIR__ . '/db.php';
 $conn = fikom_db('app'); // DB: fike8938_fikom_app
 
+if ($conn) {
+    // Dynamic Auto-Migration for t_mou table to support student verification
+    $check_status = mysqli_query($conn, "SHOW COLUMNS FROM t_mou LIKE 'status'");
+    if ($check_status && mysqli_num_rows($check_status) == 0) {
+        mysqli_query($conn, "ALTER TABLE t_mou ADD COLUMN status VARCHAR(20) DEFAULT 'active'");
+    }
+    $check_nama = mysqli_query($conn, "SHOW COLUMNS FROM t_mou LIKE 'nama'");
+    if ($check_nama && mysqli_num_rows($check_nama) == 0) {
+        mysqli_query($conn, "ALTER TABLE t_mou ADD COLUMN nama VARCHAR(100) DEFAULT NULL");
+    }
+    $check_nim = mysqli_query($conn, "SHOW COLUMNS FROM t_mou LIKE 'nim'");
+    if ($check_nim && mysqli_num_rows($check_nim) == 0) {
+        mysqli_query($conn, "ALTER TABLE t_mou ADD COLUMN nim VARCHAR(20) DEFAULT NULL");
+    }
+    $check_wa = mysqli_query($conn, "SHOW COLUMNS FROM t_mou LIKE 'whatsapp'");
+    if ($check_wa && mysqli_num_rows($check_wa) == 0) {
+        mysqli_query($conn, "ALTER TABLE t_mou ADD COLUMN whatsapp VARCHAR(20) DEFAULT NULL");
+    }
+    $check_created = mysqli_query($conn, "SHOW COLUMNS FROM t_mou LIKE 'created_at'");
+    if ($check_created && mysqli_num_rows($check_created) == 0) {
+        mysqli_query($conn, "ALTER TABLE t_mou ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+    }
+}
+
 $email       = $_SESSION['user_email'];
 $role_global = $_SESSION['role']; 
 $program     = $_SESSION['program'] ?? '-'; 
@@ -235,9 +259,10 @@ if ($role_global === 'superadmin') {
 // Reset semua tiket
 $_SESSION['mou_admin'] = false;
 $_SESSION['mou_user']  = false;
+$_SESSION['mou_status'] = 'active';
 
 // LAPIS 1: Cek di Database t_mou (Pengelola / Admin Spesifik MOU)
-$query_mou = "SELECT role, jurusan FROM t_mou WHERE email = '$email' AND deleted_at IS NULL LIMIT 1";
+$query_mou = "SELECT role, status, jurusan FROM t_mou WHERE email = '$email' AND deleted_at IS NULL LIMIT 1";
 $result_mou = mysqli_query($conn, $query_mou);
 $data_mou = mysqli_fetch_assoc($result_mou);
 
@@ -249,18 +274,29 @@ if ($data_mou) {
     }
     $_SESSION['mou_jurusan'] = $data_mou['jurusan'];
     $_SESSION['mou_email']   = $email;
+    $_SESSION['mou_status']  = $data_mou['status'] ?? 'active';
 } 
 else {
     // LAPIS 2: Tidak ketemu di t_mou, cek di tabel Dosen
-    $query_dosen = "SELECT jurusan FROM dosen WHERE email = '$email' LIMIT 1";
+    $query_dosen = "SELECT nama, nip, jurusan FROM dosen WHERE email = '$email' LIMIT 1";
     $result_dosen = mysqli_query($conn, $query_dosen);
     $data_dosen = mysqli_fetch_assoc($result_dosen);
 
     if ($data_dosen) {
         // Dosen biasa (bukan admin spesifik MOU) masuk sebagai user
+        // Butuh approval admin: auto-register dengan status pending
+        $name_esc = mysqli_real_escape_string($conn, $data_dosen['nama'] ?? 'Dosen');
+        $nip_esc = mysqli_real_escape_string($conn, $data_dosen['nip'] ?? '-');
+        $prog_esc = mysqli_real_escape_string($conn, $data_dosen['jurusan']);
+        
+        $sql_insert = "INSERT INTO t_mou (email, role, jurusan, status, nama, nim, whatsapp) 
+                       VALUES ('$email', 'dosen', '$prog_esc', 'pending', '$name_esc', '$nip_esc', '-')";
+        mysqli_query($conn, $sql_insert);
+
         $_SESSION['mou_user']    = true;
         $_SESSION['mou_jurusan'] = $data_dosen['jurusan'];
         $_SESSION['mou_email']   = $email;
+        $_SESSION['mou_status']  = 'pending';
     } 
     else {
         // LAPIS 3: Bukan Dosen, cek apakah Mahasiswa
@@ -268,11 +304,17 @@ else {
             $_SESSION['mou_user']    = true;
             $_SESSION['mou_jurusan'] = $program;
             $_SESSION['mou_email']   = $email;
+            $_SESSION['mou_status']  = 'active';
         }
     }
 }
 
 // VALIDASI AKHIR & REDIRECT
+if (isset($_SESSION['mou_status']) && $_SESSION['mou_status'] === 'pending') {
+    header("Location: mou/waiting_room.php");
+    exit;
+}
+
 if (isset($_SESSION['mou_admin']) && $_SESSION['mou_admin'] === true) {
     header("Location: mou/index.php");
     exit;

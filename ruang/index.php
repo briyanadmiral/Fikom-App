@@ -2,9 +2,12 @@
 // index.php - Main Page Sentralisasi Ruangan FIKOM
 require_once 'config/database.php';
 
-// ... (Logika PHP Anda tidak berubah) ...
 startSession();
 $user_info = getUserInfo();
+if (isset($_SESSION['ruang_status']) && $_SESSION['ruang_status'] === 'pending') {
+  header("Location: waiting_room.php");
+  exit;
+}
 if ($user_info['is_admin'] || $user_info['is_users']) {
   if ($user_info['is_admin']) {
     header("Location: admin/dashboard.php");

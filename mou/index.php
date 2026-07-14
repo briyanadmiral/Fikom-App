@@ -242,6 +242,10 @@ $card_qs = http_build_query($card_qs_arr);
                     </div>
                 <?php endif; ?>
 
+                <!-- Statistik MOU Section -->
+                <div class="mb-3">
+                    <h5 class="text-muted fw-bold" style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="bi bi-bar-chart-steps me-2"></i>Statistik Dokumen & Kegiatan MOU</h5>
+                </div>
                 <!-- Statistik cards -->
                 <div class="row mb-4">
                     <div class="col-md-4 mb-3">
@@ -306,6 +310,7 @@ $card_qs = http_build_query($card_qs_arr);
                         </a>
                     </div>
                 </div>
+
 
                 <!-- Filter -->
                 <div class="d-flex justify-content-between align-items-end mb-4">
@@ -474,9 +479,13 @@ $card_qs = http_build_query($card_qs_arr);
                     </ul>
                 </nav>
                 </div></div>
+
+
+
             </main>
         </div>
     </div>
-</body>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
