@@ -90,6 +90,10 @@ public function index() {
                 elseif (in_array($nim_code, ['k1', 'k2', 'k3', 'k4', 'k5'])) {
                     $id_prodi = 2; 
                     $nama_prodi = 'Teknik Informatika';
+                } else {
+                    // Fallback default prodi agar semua student unika bisa masuk
+                    $id_prodi = 1;
+                    $nama_prodi = 'Sistem Informasi';
                 }
             }
 

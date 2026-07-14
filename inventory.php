@@ -576,6 +576,9 @@ if ($data_inv) {
                 $_SESSION['users_siega'] = true;
             } elseif ($program == 'informatika') {
                 $_SESSION['users_ti'] = true;
+            } else {
+                // Semua student unika diizinkan, default ke prodi Sistem Informasi (siega)
+                $_SESSION['users_siega'] = true;
             }
         }
     }

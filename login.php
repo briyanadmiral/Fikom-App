@@ -126,6 +126,24 @@ if (isset($_POST['credential'])) {
             }
         }
 
+        // Cek apakah email ini terdaftar di database surat (pengguna)
+        $is_registered_surat = false;
+        if ($conn) {
+            $db_host = $_ENV['DB_HOST'] ?? 'localhost';
+            $db_user = $_ENV['DB_USERNAME'] ?? 'root';
+            $db_pass = $_ENV['DB_PASSWORD'] ?? '';
+            $db_name_surat = $_ENV['DB_DATABASE_SURAT'] ?? 'fike8938_fikom_surat';
+            $conn_surat = mysqli_connect($db_host, $db_user, $db_pass, $db_name_surat);
+            if ($conn_surat) {
+                $email_escaped = mysqli_real_escape_string($conn_surat, $email);
+                $check_surat = mysqli_query($conn_surat, "SELECT * FROM pengguna WHERE email = '$email_escaped' AND deleted_at IS NULL LIMIT 1");
+                if ($check_surat && mysqli_num_rows($check_surat) > 0) {
+                    $is_registered_surat = true;
+                }
+                mysqli_close($conn_surat);
+            }
+        }
+
         $superadmin_emails = ['briyanadmiral@gmail.com', 'magang.si@unika.ac.id'];
         if (in_array($email, $superadmin_emails)) {
             $role = 'superadmin';
@@ -167,6 +185,11 @@ if (isset($_POST['credential'])) {
             $role = 'dosen'; // Agar mereka bisa melihat menu "Arsip MOU" di dashboard utama
         }
 
+        // B5. CEK PENGGUNA SISTEM SURAT TERDAFTAR (Guna membolehkan login email non-unika yang sudah didaftarkan)
+        elseif ($is_registered_surat) {
+            $role = 'dosen'; // Agar mereka bisa melihat menu "Surat" di dashboard utama
+        }
+
         // C. JIKA BUKAN DOSEN/USER RUANGAN TERDAFTAR, TAPI PAKAI EMAIL @unika.ac.id
         elseif (strpos($domain, 'unika.ac.id') !== false && strpos($domain, 'student') === false) {
             // Berarti dia punya email kampus, tapi belum didaftarkan di sistem oleh Superadmin
@@ -182,23 +205,21 @@ if (isset($_POST['credential'])) {
             $siega = ['n1', 'n2', 'g4', 'n4'];
             $informatika = ['k1', 'k2', 'k3', 'k4', 'k5'];
 
+            $role = 'mahasiswa';
             if (in_array($kode, $siega)) {
-                $role = 'mahasiswa';
                 $program = 'siega';
             } elseif (in_array($kode, $informatika)) {
-                $role = 'mahasiswa';
                 $program = 'informatika';
             } else {
-                // Mahasiswa tapi bukan prodi yang diizinkan
-                header("Location: logout.php?error=prodi_not_allowed");
-                exit();
+                // Semua email student unika diizinkan
+                $program = 'lainnya';
             }
 
             $_SESSION['nim'] = $prefix;
             $_SESSION['program'] = $program;
         }
 
-        // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR & BUKAN USER RUANGAN/INVENTORY/MOU TERDAFTAR
+        // E. BUKAN EMAIL KAMPUS & BUKAN DOSEN TERDAFTAR & BUKAN USER RUANGAN/INVENTORY/MOU/SURAT TERDAFTAR
         else {
             // Jika dia pakai email pribadi (Gmail/dll) dan TIDAK ada di tabel dosen/ruangan/inventory/mou
             header("Location: logout.php?error=wrong_domain");
