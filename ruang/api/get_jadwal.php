@@ -5,6 +5,12 @@ require_once '../config/database.php';
 $database = new Database();
 $db = $database->getConnection();
 
+// Guard: Jika koneksi DB gagal, kembalikan array kosong
+if (!$db) {
+    echo json_encode([]);
+    exit;
+}
+
 $events = [];
 
 // 1. Ambil filter ID ruangan dari URL
@@ -43,7 +49,8 @@ try {
             'start' => $booking['tanggal_pinjam'] . ' ' . $booking['jam_mulai'], 
             'end'   => $booking['tanggal_pinjam'] . ' ' . $booking['jam_selesai'], 
             'color' => $color,
-            'allDay'=> false 
+            'allDay'=> false,
+            'status'=> $booking['status']
         ];
     }
 

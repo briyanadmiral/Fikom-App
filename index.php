@@ -31,6 +31,7 @@ $status_peminjaman = [
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -44,24 +45,30 @@ $status_peminjaman = [
     <style>
         /* === TEMA GLASSMORPHISM (GREY UI/UX) === */
         :root {
-            --primary: #8a9ccc; /* Subtle blue/purple accent */
+            --primary: #8a9ccc;
+            /* Subtle blue/purple accent */
             --primary-soft: rgba(255, 255, 255, 0.5);
             --dark: #3a4252;
             --text-main: #333333;
             --text-muted: #5e6677;
             --bg-body: #e4e7ec;
-            --bg-card: rgba(255, 255, 255, 0.4); /* Translucent */
+            --bg-card: rgba(255, 255, 255, 0.4);
+            /* Translucent */
             --border: rgba(255, 255, 255, 0.7);
             --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
             --glass-blur: blur(16px);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        body { 
-            font-family: 'Inter', sans-serif; 
+        body {
+            font-family: 'Inter', sans-serif;
             background: var(--bg-body);
-            background-image: 
+            background-image:
                 radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 40%),
                 radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.7) 0%, transparent 40%),
                 radial-gradient(circle at 50% 50%, rgba(200, 205, 215, 0.5) 0%, transparent 60%);
@@ -100,7 +107,11 @@ $status_peminjaman = [
             box-shadow: var(--shadow);
         }
 
-        .header .logo img { height: 40px; width: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+        .header .logo img {
+            height: 40px;
+            width: auto;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
 
         .user-profile {
             display: flex;
@@ -110,27 +121,47 @@ $status_peminjaman = [
             border-left: 2px solid rgba(255, 255, 255, 0.6);
         }
 
-        .user-profile img { 
-            width: 40px; height: 40px; 
-            border-radius: 10px; 
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             object-fit: cover;
             border: 2px solid var(--primary-soft);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
         }
 
-        .user-details strong { font-size: 0.9rem; color: var(--dark); display: block; }
-        .user-details small { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+        .user-details strong {
+            font-size: 0.9rem;
+            color: var(--dark);
+            display: block;
+        }
 
-        .logout-btn { 
-            width: 35px; height: 35px; 
-            display: grid; place-items: center;
-            background: rgba(255, 255, 255, 0.5); 
-            color: #ef4444; border: 1px solid rgba(255, 255, 255, 0.7);
-            border-radius: 8px; font-size: 0.9rem;
+        .user-details small {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            width: 35px;
+            height: 35px;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.5);
+            color: #ef4444;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            font-size: 0.9rem;
             transition: all 0.3s;
             backdrop-filter: blur(5px);
         }
-        .logout-btn:hover { background: #ef4444; color: white; transform: translateY(-2px); border-color: #ef4444; }
+
+        .logout-btn:hover {
+            background: #ef4444;
+            color: white;
+            transform: translateY(-2px);
+            border-color: #ef4444;
+        }
 
         /* Welcome Section */
         .welcome-section {
@@ -147,8 +178,18 @@ $status_peminjaman = [
             color: var(--dark);
         }
 
-        .welcome-section h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; text-shadow: 0 1px 2px rgba(255,255,255,0.8); }
-        .welcome-section p { color: var(--text-muted); font-size: 1rem; max-width: 600px; }
+        .welcome-section h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        .welcome-section p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            max-width: 600px;
+        }
 
         /* Menu Grid */
         .section-title {
@@ -160,8 +201,13 @@ $status_peminjaman = [
             align-items: center;
             gap: 10px;
         }
+
         .section-title::before {
-            content: ''; width: 4px; height: 20px; background: var(--primary); border-radius: 10px;
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 10px;
             box-shadow: 0 0 5px var(--primary);
         }
 
@@ -191,38 +237,49 @@ $status_peminjaman = [
             position: relative;
             overflow: hidden;
         }
-        
+
         .action-card::before {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, transparent 60%);
-            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.7) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
         }
 
         .action-card i {
-            width: 60px; height: 60px;
-            display: grid; place-items: center;
+            width: 60px;
+            height: 60px;
+            display: grid;
+            place-items: center;
             background: rgba(255, 255, 255, 0.6);
             color: var(--primary);
             font-size: 1.5rem;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
             transition: all 0.3s;
         }
 
-        .action-card h3 { 
-            font-size: 1rem; 
-            font-weight: 600; 
+        .action-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
             color: var(--dark);
         }
 
         .action-card:hover {
             transform: translateY(-5px);
-            border-color: rgba(255,255,255,0.9);
+            border-color: rgba(255, 255, 255, 0.9);
             box-shadow: 0 15px 35px 0 rgba(31, 38, 135, 0.12);
         }
 
-        .action-card:hover::before { opacity: 1; }
+        .action-card:hover::before {
+            opacity: 1;
+        }
 
         .action-card:hover i {
             background: var(--primary);
@@ -233,13 +290,29 @@ $status_peminjaman = [
 
         /* Responsivitas */
         @media (max-width: 768px) {
-            .header { flex-direction: column; gap: 1rem; text-align: center; }
-            .user-profile { border: none; padding: 0; }
-            .welcome-section { text-align: center; padding: 1.5rem; }
-            .quick-actions { grid-template-columns: 1fr 1fr; }
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .user-profile {
+                border: none;
+                padding: 0;
+            }
+
+            .welcome-section {
+                text-align: center;
+                padding: 1.5rem;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="dashboard-container">
@@ -247,7 +320,7 @@ $status_peminjaman = [
             <div class="logo">
                 <img src="assets/img/fikom.png" alt="Logo Fikom">
             </div>
-            
+
             <div style="display: flex; align-items: center; gap: 20px;">
                 <div class="user-profile">
                     <div class="user-details" style="text-align: right;">
@@ -255,7 +328,7 @@ $status_peminjaman = [
                         <small>
                             <?php echo ucfirst($role); ?>
                             <?php if ($role == 'mahasiswa')
-    echo " • " . htmlspecialchars($nim); ?>
+                                echo " • " . htmlspecialchars($nim); ?>
                         </small>
                     </div>
                     <img src="<?php echo htmlspecialchars($picture); ?>" alt="User Avatar">
@@ -277,26 +350,27 @@ $status_peminjaman = [
                 <i class="fas fa-boxes-stacked"></i>
                 <h3>Inventory</h3>
             </a>
-            
+
             <a href="peminjamanRuangan.php" class="action-card">
                 <i class="fas fa-door-open"></i>
                 <h3>Pinjam Ruangan</h3>
             </a>
 
             <?php if ($role == 'dosen' || $role == 'superadmin'): ?>
-            <a href="surat.php" class="action-card">
-                <i class="fas fa-envelope-open-text"></i>
-                <h3>Manajemen Surat</h3>
-            </a>
-            
-            <a href="mou.php" class="action-card">
-                <i class="fas fa-file-contract"></i>
-                <h3>Arsip MOU</h3>
-            </a>
-            <?php
-endif; ?>
+                <a href="surat.php" class="action-card">
+                    <i class="fas fa-envelope-open-text"></i>
+                    <h3>Manajemen Surat</h3>
+                </a>
+
+                <a href="mou.php" class="action-card">
+                    <i class="fas fa-file-contract"></i>
+                    <h3>Arsip MOU</h3>
+                </a>
+                <?php
+            endif; ?>
         </div>
     </div>
 
 </body>
+
 </html>

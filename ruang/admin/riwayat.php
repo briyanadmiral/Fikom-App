@@ -16,25 +16,29 @@ $db = $database->getConnection();
 
 $history_bookings = [];
 try {
-    // Query untuk mengambil SEMUA pengajuan yang sudah 'approved' atau 'rejected'
-    $stmt = $db->query("SELECT 
-                            pp.*, 
-                            u.nama as nama_peminjam, 
-                            r.nama_ruangan,
-                            admin.nama as nama_admin
-                        FROM 
-                            pengajuan_peminjaman pp 
-                        JOIN 
-                            users u ON pp.user_id = u.id 
-                        JOIN 
-                            ruangan r ON pp.ruangan_id = r.id
-                        LEFT JOIN 
-                            users admin ON pp.approved_by = admin.id
-                        WHERE 
-                            pp.status IN ('approved', 'rejected') 
-                        ORDER BY 
-                            pp.created_at DESC");
-    $history_bookings = $stmt->fetchAll();
+    if ($db) {
+        // Query untuk mengambil SEMUA pengajuan yang sudah 'approved' atau 'rejected'
+        $stmt = $db->query("SELECT 
+                                pp.*, 
+                                u.nama as nama_peminjam, 
+                                r.nama_ruangan,
+                                admin.nama as nama_admin
+                            FROM 
+                                pengajuan_peminjaman pp 
+                            JOIN 
+                                users u ON pp.user_id = u.id 
+                            JOIN 
+                                ruangan r ON pp.ruangan_id = r.id
+                            LEFT JOIN 
+                                users admin ON pp.approved_by = admin.id
+                            WHERE 
+                                pp.status IN ('approved', 'rejected') 
+                            ORDER BY 
+                                pp.updated_at DESC, pp.created_at DESC");
+        $history_bookings = $stmt->fetchAll();
+    } else {
+        $error = 'Koneksi database tidak tersedia.';
+    }
 } catch (Exception $e) {
     $error = 'Error loading booking history: ' . $e->getMessage();
 }
@@ -73,6 +77,14 @@ try {
                 
                 <a href="riwayat.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'riwayat.php') ? 'active' : '' ?>">
                     <i class="bi bi-clock-history me-2"></i> Riwayat Pengajuan
+                </a>
+                
+                <a href="laporan.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'laporan.php') ? 'active' : '' ?>">
+                    <i class="bi bi-file-earmark-pdf me-2"></i> Laporan Peminjaman
+                </a>
+
+                <a href="verifikasi_user.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'verifikasi_user.php') ? 'active' : '' ?>">
+                    <i class="bi bi-person-check me-2"></i> Verifikasi Mahasiswa
                 </a>
 
                 <hr class="mx-3 opacity-25">
@@ -120,6 +132,7 @@ try {
                                 <div class="booking-details">
                                     <div class="detail-grid">
                                         <div><strong>Pemohon:</strong> <?php echo htmlspecialchars($booking['nama_peminjam']); ?></div>
+                                        <div><strong>WhatsApp:</strong> <?php echo !empty($booking['no_wa']) ? htmlspecialchars($booking['no_wa']) : '-'; ?></div>
                                         <div><strong>Ruangan:</strong> <?php echo htmlspecialchars($booking['nama_ruangan']); ?></div>
                                         <div><strong>Tanggal:</strong> <?php echo date('d/m/Y', strtotime($booking['tanggal_pinjam'])); ?></div>
                                         <div><strong>Waktu:</strong> <?php echo substr($booking['jam_mulai'], 0, 5) . ' - ' . substr($booking['jam_selesai'], 0, 5); ?></div>
@@ -150,6 +163,6 @@ try {
         </main>
     </div>
 
-    <script src="../assets/js/script.js"></script>
+    <script src="../assets/js/script.js?v=<?= time() ?>"></script>
 </body>
 </html>

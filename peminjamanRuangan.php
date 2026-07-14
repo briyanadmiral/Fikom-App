@@ -8,7 +8,9 @@ $email   = $_SESSION['user_email'];
 $role    = $_SESSION['role']; 
 $name    = $_SESSION['user_name'];
 
-$koneksi_ruang = mysqli_connect('localhost', 'root', '', 'sentralisasi_ruangan_fikom');
+if (!defined('FIKOM_ROOT')) define('FIKOM_ROOT', __DIR__);
+require_once __DIR__ . '/db.php';
+$koneksi_ruang = fikom_db('ruang'); // DB: fike8938_fikom_ruang
 
 /* =================================================================================
    BAGIAN 1: LOGIKA KHUSUS SUPERADMIN (CRUD & MODE BUNGLON)
@@ -246,14 +248,38 @@ $_SESSION['nama']    = $name;
 $_SESSION['user_id'] = $email; // Default fallback fallback untuk integrasi ini
 
 // 3. Konversi sistem Role lama -> Role Baru 
-if ($role === 'dosen') {
-    $_SESSION['users'] = true;
-} elseif ($role === 'mahasiswa') {
-    $_SESSION['users'] = true;
-} else {
-    // Jika rolenya tidak terdaftar
-    echo "<script>alert('Akses Ditolak: Anda tidak terdaftar sebagai pengguna yang dapat masuk ke Sistem Peminjaman Ruangan ini.'); window.location='index.php';</script>";
-    exit;
+$is_found_in_ruang = false;
+if ($koneksi_ruang) {
+    $email_escaped = mysqli_real_escape_string($koneksi_ruang, $email);
+    $query_ruang_user = mysqli_query($koneksi_ruang, "SELECT * FROM users WHERE email = '$email_escaped' AND status = 'active' LIMIT 1");
+
+    if ($query_ruang_user && mysqli_num_rows($query_ruang_user) > 0) {
+        $is_found_in_ruang = true;
+        $ruang_user = mysqli_fetch_assoc($query_ruang_user);
+        if ($ruang_user['role'] === 'admin') {
+            $_SESSION['admin'] = true;
+            $_SESSION['role']  = 'admin';
+        } else {
+            $_SESSION['users'] = true;
+            if ($role !== 'dosen' && $role !== 'mahasiswa') {
+                $_SESSION['role'] = ($ruang_user['role'] === 'dosen') ? 'dosen' : 'mahasiswa';
+            }
+        }
+    }
+}
+
+if (!$is_found_in_ruang) {
+    if ($role === 'admin') {
+        $_SESSION['admin'] = true;
+    } elseif ($role === 'dosen') {
+        $_SESSION['users'] = true;
+    } elseif ($role === 'mahasiswa') {
+        $_SESSION['users'] = true;
+    } else {
+        // Jika rolenya tidak terdaftar
+        echo "<script>alert('Akses Ditolak: Anda tidak terdaftar sebagai pengguna yang dapat masuk ke Sistem Peminjaman Ruangan ini.'); window.location='index.php';</script>";
+        exit;
+    }
 }
 
 // 4. Integrasi sukses, arahkan ke index ruangan

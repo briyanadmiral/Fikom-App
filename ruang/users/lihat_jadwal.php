@@ -92,6 +92,12 @@ $user_info = getUserInfo();
                     <option value="all">Semua Ruangan</option>
                 </select>
             </div>
+            
+            <div class="tabs" style="margin-top: 1rem; margin-bottom: 1.5rem;">
+                <button class="tab-btn active" id="btn-calendar-view" onclick="switchView('calendar')"><i class="bi bi-calendar3 me-2"></i> Mode Kalender</button>
+                <button class="tab-btn" id="btn-table-view" onclick="switchView('table')"><i class="bi bi-table me-2"></i> Mode Tabel</button>
+            </div>
+            
             <div id="calendar-container">
                 <div id='calendar'></div> 
                 <div class="legend-calendar">
@@ -99,6 +105,25 @@ $user_info = getUserInfo();
                     <div class="legend-item"><div class="legend-color" style="background: #3788d8;"></div> <span>Mata Kuliah Tetap</span></div>
                     <div class="legend-item"><div class="legend-color" style="background: #4CAF50;"></div> <span>Peminjaman (Disetujui)</span></div>
                     <div class="legend-item"><div class="legend-color" style="background: #ff9f0a;"></div> <span>Peminjaman (Pending)</span></div>
+                </div>
+            </div>
+
+            <div id="table-container" style="display: none;">
+                <div class="rooms-table-wrapper">
+                    <table class="rooms-table">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Agenda/Kegiatan</th>
+                                <th>Jenis</th>
+                                <th>Waktu</th>
+                                <th>Status / Hari</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedule-table-body">
+                            <!-- Dinamis via JavaScript -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </main>
@@ -114,13 +139,14 @@ $user_info = getUserInfo();
                 <p><strong>Kegiatan:</strong> <span id="modal-title"></span></p>
                 <p><strong>Tanggal:</strong> <span id="modal-date"></span></p>
                 <p><strong>Jam:</strong> <span id="modal-time"></span></p>
+                <p><strong>Status:</strong> <span id="modal-status"></span></p>
             </div>
         </div>
     </div>
 
     <script src='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/main.min.js'></script>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/index.global.min.js'></script>
-    <script src="../assets/js/script.js"></script> 
+    <script src="../assets/js/script.js?v=<?= time() ?>"></script> 
 
     <script>
       // [BARU] Fungsi untuk menutup modal
@@ -162,7 +188,10 @@ $user_info = getUserInfo();
               var selectedRoomId = roomSelect.value;
               fetch('../api/get_jadwal.php?room_id=' + selectedRoomId) 
                 .then(response => response.json())
-                .then(data => { successCallback(data); })
+                .then(data => { 
+                    successCallback(data); 
+                    populateTable(data);
+                })
                 .catch(error => { failureCallback(error); });
             },
             
@@ -193,6 +222,18 @@ $user_info = getUserInfo();
                 document.getElementById('modal-date').textContent = date;
                 document.getElementById('modal-time').textContent = startTime + ' - ' + endTime;
 
+                var statusText = 'Mata Kuliah Tetap';
+                if (event.extendedProps.status) {
+                    if (event.extendedProps.status === 'approved') {
+                        statusText = 'Disetujui';
+                    } else if (event.extendedProps.status === 'pending') {
+                        statusText = 'Pending';
+                    } else {
+                        statusText = event.extendedProps.status;
+                    }
+                }
+                document.getElementById('modal-status').textContent = statusText;
+
                 document.getElementById('event-detail-modal').style.display = 'block';
             }
           });
@@ -205,6 +246,115 @@ $user_info = getUserInfo();
           }
         });
       });
+
+      function switchView(view) {
+          var btnCalendar = document.getElementById('btn-calendar-view');
+          var btnTable = document.getElementById('btn-table-view');
+          var calendarCont = document.getElementById('calendar-container');
+          var tableCont = document.getElementById('table-container');
+          
+          if (view === 'calendar') {
+              btnCalendar.classList.add('active');
+              btnTable.classList.remove('active');
+              calendarCont.style.display = 'block';
+              tableCont.style.display = 'none';
+              if (calendar) {
+                  calendar.updateSize();
+              }
+          } else {
+              btnCalendar.classList.remove('active');
+              btnTable.classList.add('active');
+              calendarCont.style.display = 'none';
+              tableCont.style.display = 'block';
+          }
+      }
+
+      function populateTable(events) {
+          var tbody = document.getElementById('schedule-table-body');
+          tbody.innerHTML = '';
+          
+          if (!events || events.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding: 30px;">📭 Tidak ada jadwal untuk ruangan ini.</td></tr>';
+              return;
+          }
+          
+          events.forEach((event, index) => {
+              var tr = document.createElement('tr');
+              
+              // No
+              var tdNo = document.createElement('td');
+              tdNo.textContent = index + 1;
+              tr.appendChild(tdNo);
+              
+              // Agenda/Kegiatan
+              var tdTitle = document.createElement('td');
+              tdTitle.innerHTML = '<strong>' + escapeHtml(event.title) + '</strong>';
+              tr.appendChild(tdTitle);
+              
+              // Jenis
+              var tdType = document.createElement('td');
+              var isMatkul = event.id.startsWith('matkul_');
+              tdType.innerHTML = isMatkul ? '<span class="facility-tag" style="background: rgba(55, 136, 216, 0.2); color: #1c5fa1;">Mata Kuliah</span>' : '<span class="facility-tag" style="background: rgba(76, 175, 80, 0.2); color: #2e7d32;">Peminjaman</span>';
+              tr.appendChild(tdType);
+              
+              // Waktu
+              var tdTime = document.createElement('td');
+              if (isMatkul) {
+                  var period = '';
+                  if (event.startRecur && event.endRecur) {
+                      var startD = formatDateString(event.startRecur);
+                      var endD = event.endRecur;
+                      try {
+                          var dateObj = new Date(event.endRecur);
+                          dateObj.setDate(dateObj.getDate() - 1);
+                          var yyyy = dateObj.getFullYear();
+                          var mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+                          var dd = String(dateObj.getDate()).padStart(2, '0');
+                          endD = yyyy + '-' + mm + '-' + dd;
+                      } catch(e){}
+                      period = '<br><span style="font-size:0.8rem; color:#666;">Periode: ' + startD + ' s/d ' + formatDateString(endD) + '</span>';
+                  }
+                  tdTime.innerHTML = event.startTime.substring(0, 5) + ' - ' + event.endTime.substring(0, 5) + period;
+              } else {
+                  var parts = event.start.split(' ');
+                  var dateStr = formatDateString(parts[0]);
+                  var timeStr = parts[1].substring(0, 5) + ' - ' + event.end.split(' ')[1].substring(0, 5);
+                  tdTime.innerHTML = '<strong>' + dateStr + '</strong><br><span style="font-size:0.8rem; color:#666;">' + timeStr + '</span>';
+              }
+              tr.appendChild(tdTime);
+              
+              // Status / Hari
+              var tdStatus = document.createElement('td');
+              if (isMatkul) {
+                  var days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                  var dayName = event.daysOfWeek && event.daysOfWeek.length > 0 ? days[event.daysOfWeek[0]] : '-';
+                  tdStatus.innerHTML = '<span class="status-badge" style="background: rgba(55, 136, 216, 0.1); color: #1c5fa1; border: 1px solid rgba(55, 136, 216, 0.3);">' + dayName + '</span>';
+              } else {
+                  var statusClass = event.status === 'approved' ? 'approved' : 'pending';
+                  var statusText = event.status === 'approved' ? 'Disetujui' : 'Pending';
+                  tdStatus.innerHTML = '<span class="status-badge ' + statusClass + '">' + statusText + '</span>';
+              }
+              tr.appendChild(tdStatus);
+              
+              tbody.appendChild(tr);
+          });
+      }
+      
+      function escapeHtml(text) {
+          return text
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
+      }
+      
+      function formatDateString(str) {
+          if (!str) return '-';
+          var parts = str.split('-');
+          if (parts.length !== 3) return str;
+          return parts[2] + '/' + parts[1] + '/' + parts[0];
+      }
     </script>
 </body>
 </html>

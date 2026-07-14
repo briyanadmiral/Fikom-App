@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function generateCode() {
         const selectedOption = jenisSelect.options[jenisSelect.selectedIndex];
+        const idJenis = jenisSelect.value;
         const kodeJenis = selectedOption.getAttribute('data-kode');
         const bulan = parseInt(bulanInput.value, 10);
         const tahun = tahunInput.value;
@@ -115,11 +116,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const kodeProdi = "<?= $_SESSION['app_user']['id_prodi'] == 1 ? 'SI' : 'TI' ?>";
         const bulanRomawi = toRoman(bulan);
         
-        // Placeholder untuk nomor urut. Implementasi ideal menggunakan AJAX.
-        const nomorBarang = '001'; 
-
-        const generatedCode = `${kodeJenis}/${kodeProdi}/${bulanRomawi}/${tahun}/${nomorBarang}`;
-        kodeInventarisInput.value = generatedCode;
+        // Dynamic generation using AJAX
+        fetch(`<?= BASE_URL; ?>/barang/getNextCode?id_jenis=${idJenis}&bulan=${bulan}&tahun=${tahun}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.kode) {
+                    kodeInventarisInput.value = data.kode;
+                } else {
+                    const nomorBarang = '001'; 
+                    kodeInventarisInput.value = `${kodeJenis}/${kodeProdi}/${bulanRomawi}/${tahun}/${nomorBarang}`;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                const nomorBarang = '001'; 
+                kodeInventarisInput.value = `${kodeJenis}/${kodeProdi}/${bulanRomawi}/${tahun}/${nomorBarang}`;
+            });
     }
 
     // Event listeners untuk generate kode otomatis

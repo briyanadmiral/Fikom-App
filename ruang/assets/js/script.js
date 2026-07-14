@@ -82,7 +82,14 @@ const Utils = {
     // API call wrapper
     apiCall: async (url, options = {}) => {
         try {
-            const response = await fetch(url, {
+            let resolvedUrl = url;
+            if (!url.startsWith('http') && !url.startsWith('/') && !url.startsWith('.')) {
+                const path = window.location.pathname;
+                if (path.includes('/users/') || path.includes('/admin/')) {
+                    resolvedUrl = '../' + url;
+                }
+            }
+            const response = await fetch(resolvedUrl, {
                 headers: {
                     'Content-Type': 'application/json',
                     ...options.headers
@@ -484,24 +491,43 @@ const AdminDashboard = {
         try {
             const result = await Utils.apiCall('api/pengajuan.php?action=pending');
             
-            if (result.success && result.data.length > 0) {
-                let html = '';
-                result.data.slice(0, 3).forEach(booking => {
-                    html += `
-                        <div class="pending-item">
-                            <div class="pending-header">
-                                <strong>${booking.keperluan}</strong>
-                                <span class="pending-time">${new Date(booking.tanggal_pinjam).toLocaleDateString()}</span>
+            if (result.success) {
+                const pendingCount = result.data ? result.data.length : 0;
+
+                // Update stats card
+                const statPendingRequests = document.getElementById('stat-pending-requests');
+                if (statPendingRequests) statPendingRequests.textContent = pendingCount;
+
+                // Update sidebar badge
+                const navBadge = document.getElementById('nav-badge-pending-admin');
+                if (navBadge) {
+                    if (pendingCount > 0) {
+                        navBadge.textContent = pendingCount;
+                        navBadge.style.display = 'inline-block';
+                    } else {
+                        navBadge.style.display = 'none';
+                    }
+                }
+
+                if (result.data && result.data.length > 0) {
+                    let html = '';
+                    result.data.slice(0, 3).forEach(booking => {
+                        html += `
+                            <div class="pending-item">
+                                <div class="pending-header">
+                                    <strong>${booking.keperluan}</strong>
+                                    <span class="pending-time">${new Date(booking.tanggal_pinjam).toLocaleDateString()}</span>
+                                </div>
+                                <div class="pending-detail">
+                                    ${booking.nama} - ${booking.nama_ruangan}
+                                </div>
                             </div>
-                            <div class="pending-detail">
-                                ${booking.nama} - ${booking.nama_ruangan}
-                            </div>
-                        </div>
-                    `;
-                });
-                pendingList.innerHTML = html;
-            } else {
-                pendingList.innerHTML = '<div class="empty-state">✅ Tidak ada pengajuan pending</div>';
+                        `;
+                    });
+                    pendingList.innerHTML = html;
+                } else {
+                    pendingList.innerHTML = '<div class="empty-state">✅ Tidak ada pengajuan pending</div>';
+                }
             }
         } catch (error) {
             console.error('Error loading pending requests:', error);
@@ -511,11 +537,11 @@ const AdminDashboard = {
 
     // Setup event listeners
     setupEventListeners: () => {
-        // Auto refresh every 2 minutes for admin dashboard
+        // Auto refresh every 10 seconds for admin dashboard
         setInterval(() => {
             AdminDashboard.loadRecentActivities();
             AdminDashboard.loadPendingRequests();
-        }, 120000);
+        }, 10000);
     }
 };
 
@@ -539,29 +565,66 @@ const StudentDashboard = {
         try {
             const result = await Utils.apiCall('api/pengajuan.php?action=user_bookings');
             
-            if (result.success && result.data.length > 0) {
-                let html = '';
-                result.data.slice(0, 3).forEach(booking => {
-                    const statusClass = booking.status;
-                    const statusText = booking.status === 'pending' ? '⏳ Pending' : 
-                                     booking.status === 'approved' ? '✅ Disetujui' : '❌ Ditolak';
-                    
-                    html += `
-                        <div class="recent-booking-item">
-                            <div class="booking-header">
-                                <h4>${booking.keperluan}</h4>
-                                <span class="status-badge ${statusClass}">${statusText}</span>
+            if (result.success) {
+                // Calculate stats dynamically
+                let total = result.data ? result.data.length : 0;
+                let pending = 0;
+                let approved = 0;
+                let rejected = 0;
+
+                if (result.data) {
+                    result.data.forEach(booking => {
+                        if (booking.status === 'pending') pending++;
+                        else if (booking.status === 'approved') approved++;
+                        else if (booking.status === 'rejected') rejected++;
+                    });
+                }
+
+                // Update stats cards in UI
+                const statTotal = document.getElementById('stat-total');
+                if (statTotal) statTotal.textContent = total;
+                const statPending = document.getElementById('stat-pending');
+                if (statPending) statPending.textContent = pending;
+                const statApproved = document.getElementById('stat-approved');
+                if (statApproved) statApproved.textContent = approved;
+                const statRejected = document.getElementById('stat-rejected');
+                if (statRejected) statRejected.textContent = rejected;
+
+                // Update sidebar badge
+                const navBadge = document.getElementById('nav-badge-pending');
+                if (navBadge) {
+                    if (pending > 0) {
+                        navBadge.textContent = pending;
+                        navBadge.style.display = 'inline-block';
+                    } else {
+                        navBadge.style.display = 'none';
+                    }
+                }
+
+                if (result.data && result.data.length > 0) {
+                    let html = '';
+                    result.data.slice(0, 3).forEach(booking => {
+                        const statusClass = booking.status;
+                        const statusText = booking.status === 'pending' ? '⏳ Pending' : 
+                                         booking.status === 'approved' ? '✅ Disetujui' : '❌ Ditolak';
+                        
+                        html += `
+                            <div class="recent-booking-item">
+                                <div class="booking-header">
+                                    <h4>${booking.keperluan}</h4>
+                                    <span class="status-badge ${statusClass}">${statusText}</span>
+                                </div>
+                                <div class="booking-info">
+                                    <div>${booking.nama_ruangan}</div>
+                                    <div>${new Date(booking.tanggal_pinjam).toLocaleDateString()} | ${booking.jam_mulai.slice(0,5)} - ${booking.jam_selesai.slice(0,5)}</div>
+                                </div>
                             </div>
-                            <div class="booking-info">
-                                <div>${booking.nama_ruangan}</div>
-                                <div>${new Date(booking.tanggal_pinjam).toLocaleDateString()} | ${booking.jam_mulai.slice(0,5)} - ${booking.jam_selesai.slice(0,5)}</div>
-                            </div>
-                        </div>
-                    `;
-                });
-                bookingsContainer.innerHTML = html;
-            } else {
-                bookingsContainer.innerHTML = '<div class="empty-state">📝 Belum ada pengajuan yang dibuat</div>';
+                        `;
+                    });
+                    bookingsContainer.innerHTML = html;
+                } else {
+                    bookingsContainer.innerHTML = '<div class="empty-state">📝 Belum ada pengajuan yang dibuat</div>';
+                }
             }
         } catch (error) {
             console.error('Error loading bookings:', error);
@@ -571,8 +634,8 @@ const StudentDashboard = {
 
     // Setup event listeners
     setupEventListeners: () => {
-        // Auto refresh bookings
-        setInterval(StudentDashboard.loadRecentBookings, 180000); // 3 minutes
+        // Auto refresh bookings every 10 seconds
+        setInterval(StudentDashboard.loadRecentBookings, 10000);
     }
 };
 

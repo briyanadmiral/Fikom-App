@@ -8,7 +8,8 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'superadmin') {
 }
 
 // Koneksi ke database
-$koneksi = mysqli_connect('localhost', 'root', '', 'fikomapp') or die ('Koneksi ke database gagal');
+include '../koneksi.php';
+$koneksi = $conn;
 
 // 2. PROSES FORM DENGAN PREPARED STATEMENTS (LEBIH AMAN)
 if(isset($_POST['submit'])){

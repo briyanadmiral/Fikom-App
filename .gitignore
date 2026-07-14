@@ -20,6 +20,14 @@ storage/framework/cache/data/*
 storage/framework/sessions/*
 storage/framework/views/*
 storage/logs/*.log
+*.log
+
+# Python / Virtualenv
+.venv/
+
+# DB dumps
+database_kosong/
+database_kosong.zip
 
 # IDE
 .idea/

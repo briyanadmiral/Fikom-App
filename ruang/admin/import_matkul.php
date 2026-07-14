@@ -8,6 +8,10 @@ $database = new Database();
 $db = $database->getConnection();
 
 if (isset($_POST["import"])) {
+    if (!$db) {
+        echo "<script>alert('Error: Koneksi database tidak tersedia.'); window.location='import_matkul.php';</script>";
+        exit;
+    }
     $fileName = $_FILES["file"]["tmp_name"];
     
     if ($_FILES["file"]["size"] > 0) {

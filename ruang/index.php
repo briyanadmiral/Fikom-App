@@ -2,9 +2,12 @@
 // index.php - Main Page Sentralisasi Ruangan FIKOM
 require_once 'config/database.php';
 
-// ... (Logika PHP Anda tidak berubah) ...
 startSession();
 $user_info = getUserInfo();
+if (isset($_SESSION['ruang_status']) && $_SESSION['ruang_status'] === 'pending') {
+  header("Location: waiting_room.php");
+  exit;
+}
 if ($user_info['is_admin'] || $user_info['is_users']) {
   if ($user_info['is_admin']) {
     header("Location: admin/dashboard.php");
@@ -166,6 +169,12 @@ if ($user_info['is_admin'] || $user_info['is_users']) {
   </header>
 
   <div class="container">
+    <?php if (!class_exists('PDO')): ?>
+      <div style="background:#fee2e2; border:1px solid #ef4444; color:#b91c1c; padding:15px; border-radius:8px; margin-bottom:20px; text-align:center; font-family:sans-serif; line-height:1.6;">
+        <strong>&#9888; Ekstensi PHP 'PDO' / 'pdo_mysql' Tidak Aktif di Server!</strong><br>
+        Sistem peminjaman ruangan tidak dapat memuat data jadwal. Silakan hubungi admin server atau aktifkan ekstensi <strong>pdo</strong> dan <strong>pdo_mysql</strong> melalui cPanel hosting Anda (menu <strong>Select PHP Version</strong> &rarr; tab <strong>Extensions</strong>).
+      </div>
+    <?php endif; ?>
     <div class="date-selector" style="text-align: center;">
       <h2>📅 Jadwal Penggunaan Ruangan</h2>
       <p style="margin-top: 1rem; color: #666; font-size: 0.9rem;">
@@ -213,13 +222,14 @@ if ($user_info['is_admin'] || $user_info['is_users']) {
         <p><strong>Kegiatan:</strong> <span id="modal-title"></span></p>
         <p><strong>Tanggal:</strong> <span id="modal-date"></span></p>
         <p><strong>Jam:</strong> <span id="modal-time"></span></p>
+        <p><strong>Status:</strong> <span id="modal-status"></span></p>
       </div>
     </div>
   </div>
 
   <script src='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/main.min.js'></script>
   <script src='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.10/index.global.min.js'></script>
-  <script src="assets/js/script.js"></script>
+  <script src="assets/js/script.js?v=<?= time() ?>"></script>
 
   <script>
     // [BARU] Fungsi untuk menutup modal
@@ -296,6 +306,18 @@ if ($user_info['is_admin'] || $user_info['is_users']) {
             document.getElementById('modal-title').textContent = event.title;
             document.getElementById('modal-date').textContent = date;
             document.getElementById('modal-time').textContent = startTime + ' - ' + endTime;
+
+            var statusText = 'Mata Kuliah Tetap';
+            if (event.extendedProps.status) {
+              if (event.extendedProps.status === 'approved') {
+                statusText = 'Disetujui';
+              } else if (event.extendedProps.status === 'pending') {
+                statusText = 'Pending';
+              } else {
+                statusText = event.extendedProps.status;
+              }
+            }
+            document.getElementById('modal-status').textContent = statusText;
 
             document.getElementById('event-detail-modal').style.display = 'block';
           }

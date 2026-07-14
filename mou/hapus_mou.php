@@ -19,6 +19,26 @@ $query = "SELECT file FROM mou WHERE id_mou = $id";
 $result = mysqli_query($conn, $query);
 $data = mysqli_fetch_assoc($result);
 
+// Safety validation: Check pelaksanaan and perencanaan counts before deletion
+$count_pelaksanaan_q = "SELECT COUNT(*) as total FROM pelaksanaan WHERE id_mou = $id";
+$res_col1 = mysqli_query($conn, "SHOW COLUMNS FROM pelaksanaan LIKE 'deleted_at'");
+if ($res_col1 && mysqli_num_rows($res_col1) > 0) {
+    $count_pelaksanaan_q .= " AND deleted_at IS NULL";
+}
+$count_pelaksanaan = mysqli_fetch_assoc(mysqli_query($conn, $count_pelaksanaan_q))['total'] ?? 0;
+
+$count_perencanaan_q = "SELECT COUNT(*) as total FROM perencanaan WHERE id_mou = $id";
+$res_col2 = mysqli_query($conn, "SHOW COLUMNS FROM perencanaan LIKE 'deleted_at'");
+if ($res_col2 && mysqli_num_rows($res_col2) > 0) {
+    $count_perencanaan_q .= " AND deleted_at IS NULL";
+}
+$count_perencanaan = mysqli_fetch_assoc(mysqli_query($conn, $count_perencanaan_q))['total'] ?? 0;
+
+if ($count_pelaksanaan > 0 || $count_perencanaan > 0) {
+    header("Location: index.php?error=" . urlencode("Tidak dapat menghapus MOU karena masih memiliki data pelaksanaan atau perencanaan."));
+    exit();
+}
+
 // Delete query
 $delete_query = "DELETE FROM mou WHERE id_mou = $id";
 

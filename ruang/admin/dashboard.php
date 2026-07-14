@@ -24,25 +24,27 @@ $stats = [
     'total_users' => 0
 ];
 
-try {
-    // Total ruangan
-    $stmt = $db->query("SELECT COUNT(*) as total FROM ruangan WHERE status = 'active'");
-    $stats['total_ruangan'] = $stmt->fetch()['total'];
-    
-    // Pending requests
-    $stmt = $db->query("SELECT COUNT(*) as total FROM pengajuan_peminjaman WHERE status = 'pending'");
-    $stats['pending_requests'] = $stmt->fetch()['total'];
-    
-    // Approved today
-    $stmt = $db->query("SELECT COUNT(*) as total FROM pengajuan_peminjaman WHERE status = 'approved' AND DATE(approved_at) = CURDATE()");
-    $stats['approved_today'] = $stmt->fetch()['total'];
-    
-    // Total users
-    $stmt = $db->query("SELECT COUNT(*) as total FROM users WHERE status = 'active'");
-    $stats['total_users'] = $stmt->fetch()['total'];
-    
-} catch(PDOException $e) {
-    error_log("Error getting stats: " . $e->getMessage());
+if ($db) {
+    try {
+        // Total ruangan
+        $stmt = $db->query("SELECT COUNT(*) as total FROM ruangan WHERE status = 'active'");
+        $stats['total_ruangan'] = $stmt->fetch()['total'];
+        
+        // Pending requests
+        $stmt = $db->query("SELECT COUNT(*) as total FROM pengajuan_peminjaman WHERE status = 'pending'");
+        $stats['pending_requests'] = $stmt->fetch()['total'];
+        
+        // Approved today
+        $stmt = $db->query("SELECT COUNT(*) as total FROM pengajuan_peminjaman WHERE status = 'approved' AND DATE(approved_at) = CURDATE()");
+        $stats['approved_today'] = $stmt->fetch()['total'];
+        
+        // Total users
+        $stmt = $db->query("SELECT COUNT(*) as total FROM users WHERE status = 'active'");
+        $stats['total_users'] = $stmt->fetch()['total'];
+        
+    } catch(Exception $e) {
+        error_log("[Ruang Admin] Error getting stats: " . $e->getMessage());
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -71,9 +73,7 @@ try {
                 
                 <a href="kelola-ruangan.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'kelola-ruangan.php') ? 'active' : '' ?>">
                     <i class="bi bi-building me-2"></i> Kelola Ruangan
-                    <?php if ($stats['pending_requests'] > 0): ?>
-                        <span class="badge"><?php echo $stats['pending_requests']; ?></span>
-                    <?php endif; ?>
+                    <span class="badge" id="nav-badge-pending-admin" style="<?= ($stats['pending_requests'] > 0) ? '' : 'display: none;' ?>"><?php echo $stats['pending_requests']; ?></span>
                 </a>
                 
                 <a href="lihat_jadwal.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'lihat_jadwal.php') ? 'active' : '' ?>">
@@ -82,6 +82,14 @@ try {
                 
                 <a href="riwayat.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'riwayat.php') ? 'active' : '' ?>">
                     <i class="bi bi-clock-history me-2"></i> Riwayat Pengajuan
+                </a>
+                
+                <a href="laporan.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'laporan.php') ? 'active' : '' ?>">
+                    <i class="bi bi-file-earmark-pdf me-2"></i> Laporan Peminjaman
+                </a>
+
+                <a href="verifikasi_user.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'verifikasi_user.php') ? 'active' : '' ?>">
+                    <i class="bi bi-person-check me-2"></i> Verifikasi Mahasiswa
                 </a>
 
                 <hr class="mx-3 opacity-25">
@@ -113,7 +121,7 @@ try {
                 <div class="stat-card orange">
                     <div class="stat-icon">⏳</div>
                     <div class="stat-content">
-                        <h3><?php echo $stats['pending_requests']; ?></h3>
+                        <h3 id="stat-pending-requests"><?php echo $stats['pending_requests']; ?></h3>
                         <p>Pending Requests</p>
                     </div>
                 </div>
@@ -158,7 +166,7 @@ try {
                     
                     <a href="kelola-ruangan.php" class="action-card">
                         <div class="action-icon">📈</div>
-                        <h3>Kelola Sistem</h3>
+                        <h3>Kelola Ruang</h3>
                         <p>Manajemen ruangan dan pengajuan</p>
                     </a>
                 </div>
@@ -180,6 +188,6 @@ try {
         </main>
     </div>
 
-    <script src="../assets/js/script.js"></script>
+    <script src="../assets/js/script.js?v=<?= time() ?>"></script>
 </body>
 </html>

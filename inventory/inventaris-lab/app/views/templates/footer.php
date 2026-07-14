@@ -6,8 +6,10 @@
 
 <script>
     $(document).ready(function() {
-        // Inisialisasi untuk tabel biasa
-        $('#data-table').DataTable();
+        // Inisialisasi untuk tabel biasa (hanya jika tidak menampilkan baris kosong/colspan)
+        if ($('#data-table').length > 0 && $('#data-table tbody tr td[colspan]').length === 0) {
+            $('#data-table').DataTable();
+        }
         $('[data-bs-toggle="tooltip"]').tooltip();
 
         // Inisialisasi untuk tabel log

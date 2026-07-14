@@ -6,7 +6,12 @@ public function index() {
         
         // 1. CEK SESSION DARI MAIN APP (GOOGLE LOGIN)
         if (!isset($_SESSION['user_email'])) {
-            header('Location: http://localhost/fikomapp/login.php');
+            $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+            $host = $_SERVER['HTTP_HOST'];
+            $script = $_SERVER['SCRIPT_NAME'];
+            $pos = strpos($script, '/inventory/inventaris-lab/public');
+            $basePath = ($pos !== false) ? substr($script, 0, $pos) : '';
+            header('Location: ' . $protocol . $host . $basePath . '/login.php');
             exit;
         }
 
@@ -85,15 +90,24 @@ public function index() {
                 elseif (in_array($nim_code, ['k1', 'k2', 'k3', 'k4', 'k5'])) {
                     $id_prodi = 2; 
                     $nama_prodi = 'Teknik Informatika';
+                } else {
+                    // Fallback default prodi agar semua student unika bisa masuk
+                    $id_prodi = 1;
+                    $nama_prodi = 'Sistem Informasi';
                 }
             }
 
             // Jika setelah dicek ternyata prodi tetap tidak diketahui
             if (is_null($id_prodi)) {
                 $kode_tampil = isset($nim_code) ? $nim_code : 'Unknown';
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+                $host = $_SERVER['HTTP_HOST'];
+                $script = $_SERVER['SCRIPT_NAME'];
+                $pos = strpos($script, '/inventory/inventaris-lab/public');
+                $basePath = ($pos !== false) ? substr($script, 0, $pos) : '';
                 echo "<script>
                         alert('Akses Ditolak. Data Prodi ($kode_tampil) tidak dapat diidentifikasi.'); 
-                        window.location='http://localhost/fikomapp/index.php';
+                        window.location='" . $protocol . $host . $basePath . "/index.php';
                       </script>";
                 exit;
             }
@@ -136,7 +150,17 @@ public function index() {
         unset($_SESSION['inv_validated']);
 
         // 3. REDIRECT KEMBALI KE DASHBOARD UTAMA FIKOMAPP
-        header('Location: http://localhost/fikomapp/index.php'); 
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+        $host = $_SERVER['HTTP_HOST'];
+        $script = $_SERVER['SCRIPT_NAME'];
+        $pos = strpos($script, '/inventory/inventaris-lab/public');
+        $basePath = ($pos !== false) ? substr($script, 0, $pos) : '';
+        
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin') {
+            header('Location: ' . $protocol . $host . $basePath . '/superadmin/superadmin_home.php'); 
+        } else {
+            header('Location: ' . $protocol . $host . $basePath . '/index.php'); 
+        }
         exit;
     }
 }

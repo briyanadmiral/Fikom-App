@@ -20,8 +20,11 @@ $error = '';
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
     try {
+        if (!$db) {
+            throw new Exception("Koneksi database tidak tersedia.");
+        }
         // Validate required fields
-        $required_fields = ['ruangan_id', 'keperluan', 'tanggal_pinjam', 'jam_mulai', 'jam_selesai'];
+        $required_fields = ['ruangan_id', 'keperluan', 'tanggal_pinjam', 'jam_mulai', 'jam_selesai', 'no_wa'];
         foreach ($required_fields as $field) {
             if (empty($_POST[$field])) {
                 throw new Exception("Field $field harus diisi");
@@ -82,8 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
         }
 
         $insert_query = "INSERT INTO pengajuan_peminjaman 
-                        (user_id, ruangan_id, keperluan, deskripsi, tanggal_pinjam, jam_mulai, jam_selesai, jumlah_peserta, surat_peminjaman) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        (user_id, ruangan_id, keperluan, deskripsi, tanggal_pinjam, jam_mulai, jam_selesai, jumlah_peserta, surat_peminjaman, no_wa) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $db->prepare($insert_query);
         $stmt->execute([
             $userId,
@@ -94,7 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
             $_POST['jam_mulai'],
             $_POST['jam_selesai'],
             $jumlahPeserta,
-            $surat_filename
+            $surat_filename,
+            $_POST['no_wa']
         ]);
 
         logActivity($_SESSION['user_id'], 'Submit Booking', "Submitted booking request for room ID: " . $_POST['ruangan_id'], $_POST['ruangan_id']);
@@ -108,8 +112,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_booking'])) {
 // Get rooms list
 $rooms = [];
 try {
-    $stmt = $db->query("SELECT * FROM ruangan WHERE status = 'active' ORDER BY nama_ruangan");
-    $rooms = $stmt->fetchAll();
+    if ($db) {
+        $stmt = $db->query("SELECT * FROM ruangan WHERE status = 'active' ORDER BY nama_ruangan");
+        $rooms = $stmt->fetchAll();
+    } else {
+        $error = 'Koneksi database tidak tersedia.';
+    }
 } catch (Exception $e) {
     $error = 'Error loading rooms: ' . $e->getMessage();
 }
@@ -117,8 +125,8 @@ try {
 // Get user's booking history
 $bookings = [];
 try {
-    if (isset($_SESSION['user_id'])) {
-        $stmt = $db->prepare("SELECT pp.*, r.nama_ruangan FROM pengajuan_peminjaman pp JOIN ruangan r ON pp.ruangan_id = r.id WHERE pp.user_id = ? ORDER BY pp.created_at DESC");
+    if ($db && isset($_SESSION['user_id'])) {
+        $stmt = $db->prepare("SELECT pp.*, r.nama_ruangan FROM pengajuan_peminjaman pp JOIN ruangan r ON pp.ruangan_id = r.id WHERE pp.user_id = ? ORDER BY pp.updated_at DESC, pp.created_at DESC");
         $stmt->execute([$_SESSION['user_id']]);
         $bookings = $stmt->fetchAll();
     }
@@ -225,6 +233,11 @@ try {
                             </div>
 
                             <div class="form-group">
+                                <label>Nomor WhatsApp: <span class="required">*</span></label>
+                                <input type="text" name="no_wa" required placeholder="Contoh: 08123456789">
+                            </div>
+
+                            <div class="form-group">
                                 <label>Jam Mulai: <span class="required">*</span></label>
                                 <select name="jam_mulai" required>
                                     <?php for ($i = 6; $i <= 20; $i++): ?>
@@ -314,7 +327,7 @@ try {
         </main>
     </div>
 
-    <script src="../assets/js/script.js"></script>
+    <script src="../assets/js/script.js?v=<?= time() ?>"></script>
     <script>
         function checkSchedule() {
             const roomSelect = document.querySelector('[name="ruangan_id"]');

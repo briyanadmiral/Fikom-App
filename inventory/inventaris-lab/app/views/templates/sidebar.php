@@ -1,9 +1,9 @@
 <?php 
-    // Logika URL
-    $uri_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-    $uri_segments = explode('/', $uri_path);
-    $controller_name = $uri_segments[3] ?? 'index'; 
-    $method_name = $uri_segments[4] ?? 'index';
+    // Logika URL Aktif Dinamis
+    $url_query = isset($_GET['url']) ? rtrim($_GET['url'], '/') : '';
+    $url_segments = explode('/', $url_query);
+    $controller_name = !empty($url_segments[0]) ? strtolower($url_segments[0]) : 'index'; 
+    $method_name = !empty($url_segments[1]) ? strtolower($url_segments[1]) : 'index';
 
     // Cek apakah Login sebagai Admin (SI atau TI)
     $isAdmin = !empty($_SESSION['admin_siega']) || !empty($_SESSION['admin_ti']);
@@ -17,11 +17,16 @@
     $prodiUser = $data['user']['nama_prodi'] ?? 'Inventaris Lab';
 
     // --- LOGIKA URL KEMBALI DINAMIS ---
-    // Menentukan arah tombol keluar berdasarkan role dari Main App
-    $url_keluar = '/fikomapp/index.php'; // Default untuk Dosen / Mahasiswa
+    $protocol_keluar = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+    $host_keluar = $_SERVER['HTTP_HOST'];
+    $script_keluar = $_SERVER['SCRIPT_NAME'];
+    $pos_keluar = strpos($script_keluar, '/inventory/inventaris-lab/public');
+    $basePath_keluar = ($pos_keluar !== false) ? substr($script_keluar, 0, $pos_keluar) : '';
+
+    $url_keluar = $protocol_keluar . $host_keluar . $basePath_keluar . '/index.php';
 
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin') {
-        $url_keluar = '/fikomapp/superadmin/superadmin_home.php'; // Khusus Superadmin
+        $url_keluar = $protocol_keluar . $host_keluar . $basePath_keluar . '/superadmin/superadmin_home.php'; // Khusus Superadmin
     }
 ?>
 

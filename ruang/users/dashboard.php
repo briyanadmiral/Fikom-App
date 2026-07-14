@@ -24,7 +24,7 @@ $stats = [
 ];
 
 try {
-    if (isset($_SESSION['user_id'])) {
+    if ($db && isset($_SESSION['user_id'])) {
         $user_id = $_SESSION['user_id'];
         
         // Total pengajuan
@@ -47,7 +47,7 @@ try {
         $stmt->execute([$user_id]);
         $stats['rejected'] = $stmt->fetch()['total'];
     }
-} catch(PDOException $e) {
+} catch(Exception $e) {
     error_log("Error getting stats: " . $e->getMessage());
 }
 ?>
@@ -81,9 +81,7 @@ try {
 
                 <a href="pengajuan.php" class="nav-item <?= (basename($_SERVER['PHP_SELF']) == 'pengajuan.php') ? 'active' : '' ?>">
                     <i class="bi bi-pencil-square me-2"></i> Pengajuan & Riwayat
-                    <?php if (isset($stats['pending']) && $stats['pending'] > 0): ?>
-                        <span class="badge"><?php echo $stats['pending']; ?></span>
-                    <?php endif; ?>
+                    <span class="badge" id="nav-badge-pending" style="<?= (isset($stats['pending']) && $stats['pending'] > 0) ? '' : 'display: none;' ?>"><?php echo $stats['pending']; ?></span>
                 </a>
 
                 <hr class="mx-3 opacity-25">
@@ -114,7 +112,7 @@ try {
                 <div class="stat-card blue">
                     <div class="stat-icon">📝</div>
                     <div class="stat-content">
-                        <h3><?php echo $stats['total_pengajuan']; ?></h3>
+                        <h3 id="stat-total"><?php echo $stats['total_pengajuan']; ?></h3>
                         <p>Total Pengajuan</p>
                     </div>
                 </div>
@@ -122,7 +120,7 @@ try {
                 <div class="stat-card orange">
                     <div class="stat-icon">⏳</div>
                     <div class="stat-content">
-                        <h3><?php echo $stats['pending']; ?></h3>
+                        <h3 id="stat-pending"><?php echo $stats['pending']; ?></h3>
                         <p>Menunggu Persetujuan</p>
                     </div>
                 </div>
@@ -130,7 +128,7 @@ try {
                 <div class="stat-card green">
                     <div class="stat-icon">✅</div>
                     <div class="stat-content">
-                        <h3><?php echo $stats['approved']; ?></h3>
+                        <h3 id="stat-approved"><?php echo $stats['approved']; ?></h3>
                         <p>Disetujui</p>
                     </div>
                 </div>
@@ -138,7 +136,7 @@ try {
                 <div class="stat-card red">
                     <div class="stat-icon">❌</div>
                     <div class="stat-content">
-                        <h3><?php echo $stats['rejected']; ?></h3>
+                        <h3 id="stat-rejected"><?php echo $stats['rejected']; ?></h3>
                         <p>Ditolak</p>
                     </div>
                 </div>
@@ -178,6 +176,6 @@ try {
             </main>
     </div>
 
-    <script src="../assets/js/script.js"></script>
+    <script src="../assets/js/script.js?v=<?= time() ?>"></script>
 </body>
 </html>

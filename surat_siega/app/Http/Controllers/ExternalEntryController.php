@@ -31,24 +31,33 @@ class ExternalEntryController extends Controller
         }
 
         $sharedSecret = config('services.entry_shared_secret');
+        if ($sharedSecret) {
+            $timezone = new \DateTimeZone('Asia/Jakarta');
+            
+            // Check today
+            $dateToday = new \DateTime('now', $timezone);
+            $tokenToday = hash_hmac('sha256', $userId . $dateToday->format('Y-m-d'), $sharedSecret);
+            
+            // Check yesterday
+            $dateYesterday = clone $dateToday;
+            $dateYesterday->modify('-1 day');
+            $tokenYesterday = hash_hmac('sha256', $userId . $dateYesterday->format('Y-m-d'), $sharedSecret);
+            
+            // Check tomorrow
+            $dateTomorrow = clone $dateToday;
+            $dateTomorrow->modify('+1 day');
+            $tokenTomorrow = hash_hmac('sha256', $userId . $dateTomorrow->format('Y-m-d'), $sharedSecret);
 
-        // SECURITY: Jika shared_secret belum dikonfigurasi, block akses di production
-        // Di local/testing, izinkan tanpa token untuk kemudahan development
-        if (empty($sharedSecret)) {
-            if (app()->environment('production')) {
-                Log::critical('ExternalEntry: entry_shared_secret not configured in production!', [
-                    'ip' => $request->ip(),
-                ]);
-                abort(503, 'Konfigurasi keamanan belum lengkap. Hubungi administrator.');
-            }
-            // Di local/testing: lanjut tanpa token validation
-        } else {
-            $expectedToken = hash_hmac('sha256', $userId . date('Y-m-d'), $sharedSecret);
+            $isValid = hash_equals($tokenToday, $token) || 
+                       hash_equals($tokenYesterday, $token) || 
+                       hash_equals($tokenTomorrow, $token);
 
-            if (! $token || ! hash_equals($expectedToken, $token)) {
+            if (! $isValid) {
                 Log::warning('ExternalEntry: Invalid token attempt', [
                     'user_id' => $userId,
                     'ip' => $request->ip(),
+                    'token_received' => $token,
+                    'expected_today' => $tokenToday,
                 ]);
                 abort(403, 'Token tidak valid atau sudah expired.');
             }
@@ -71,6 +80,7 @@ class ExternalEntryController extends Controller
             'user_name' => $user->nama_lengkap,
             'entered_from_dashboard' => true,
             'entry_time' => now(),
+            'global_role' => $request->query('global_role'),
         ]);
 
         Auth::login($user);
@@ -89,12 +99,21 @@ class ExternalEntryController extends Controller
     public function exit(Request $request)
     {
         $userName = Auth::user()?->nama_lengkap ?? 'User';
+        $globalRole = session('global_role');
 
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect(config('app.dashboard_menu_url'))->with('success', 'Anda telah berhasil logout.');
+        $base = $request->getSchemeAndHttpHost() . $request->getBaseUrl();
+        $pos = strpos($base, '/surat_siega/public');
+        $main_url = ($pos !== false) ? substr($base, 0, $pos) : $base;
+
+        if ($globalRole === 'superadmin') {
+            return redirect($main_url . '/superadmin/superadmin_home.php')->with('success', 'Anda telah berhasil logout.');
+        } else {
+            return redirect($main_url . '/index.php')->with('success', 'Anda telah berhasil logout.');
+        }
     }
 }

@@ -1,6 +1,8 @@
 <?php 
-// Catatan: Pengecekan session sebaiknya ada di file induk (seperti index.php)
-if (!isset($_SESSION['mou_admin']) || $_SESSION['mou_admin'] !== true) {
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['mou_admin']) && !isset($_SESSION['mou_user'])) {
     header("Location: ../mou.php");
     exit;
 }
@@ -20,15 +22,22 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin') {
   <p class="small text-muted mb-4">Arsip Kerja Sama</p>
 
   <nav class="nav flex-column w-100">
-    <a href="index.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'index.php') ? 'active' : '' ?>">
+    <?php 
+    $dashboard_url = (isset($_SESSION['mou_admin']) && $_SESSION['mou_admin'] === true) ? 'index.php' : 'index_umum.php';
+    ?>
+    <a href="<?= $dashboard_url ?>" class="nav-link <?= (in_array(basename($_SERVER['PHP_SELF']), ['index.php', 'index_umum.php'])) ? 'active' : '' ?>">
       <i class="bi bi-speedometer2 me-2"></i> Dashboard
     </a>
-    <a href="perencanaan.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'perencanaan.php') ? 'active' : '' ?>">
-      <i class="bi bi-calendar-event me-2"></i> Perencanaan
+    <?php if (isset($_SESSION['mou_admin']) && $_SESSION['mou_admin'] === true): ?>
+    <a href="verifikasi_user.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'verifikasi_user.php') ? 'active' : '' ?>">
+      <i class="bi bi-person-check me-2"></i> Verifikasi Dosen
     </a>
-    <a href="pelaksanaan.php" class="nav-link <?= (basename($_SERVER['PHP_SELF']) == 'pelaksanaan.php') ? 'active' : '' ?>">
-      <i class="bi bi-play-circle me-2"></i> Pelaksanaan
+    <?php endif; ?>
+    <?php if (isset($_SESSION['role']) && ($_SESSION['role'] === 'dosen' || $_SESSION['role'] === 'superadmin')): ?>
+    <a href="evaluasi_kepuasan.php" class="nav-link <?= (in_array(basename($_SERVER['PHP_SELF']), ['evaluasi_kepuasan.php', 'evaluasi_analisis.php'])) ? 'active' : '' ?>">
+      <i class="bi bi-patch-check me-2"></i> Evaluasi Kepuasan
     </a>
+    <?php endif; ?>
 
     <hr class="my-3 border-secondary opacity-25">
 

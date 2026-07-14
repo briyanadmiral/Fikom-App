@@ -1,4 +1,9 @@
 <?php
+session_start();
+if (!isset($_SESSION['mou_admin']) && !isset($_SESSION['mou_user'])) {
+    header("Location: ../mou.php");
+    exit;
+}
 include 'koneksi.php';
 
 // helper: cek apakah kolom ada
@@ -24,7 +29,7 @@ $offset = ($page - 1) * $limit;
 ======================== */
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $bulan  = isset($_GET['bulan']) && $_GET['bulan'] !== '' ? intval($_GET['bulan']) : '';
-$tahun  = isset($_GET['tahun']) && $_GET['tahun'] !== '' ? intval($_GET['tahun']) : date('Y');
+$tahun  = isset($_GET['tahun']) && $_GET['tahun'] !== '' ? intval($_GET['tahun']) : '';
 
 /* ========================
    Statistik
@@ -89,8 +94,10 @@ $result = mysqli_query($conn, $query);
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Daftar MOU</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="css/glass.css?v=<?= time() ?>">
 </head>
 <body>
 
@@ -108,18 +115,18 @@ $result = mysqli_query($conn, $query);
       <!-- Statistik -->
       <div class="row mb-4">
         <div class="col-md-6 mb-3">
-          <div class="card bg-primary text-white">
+          <div class="card h-100 border-0 shadow-sm">
             <div class="card-body">
-              <h5>Total MOU</h5>
-              <p class="display-6"><?= $total_mou ?></p>
+              <h5 class="card-title text-primary"><i class="bi bi-file-earmark-text me-2"></i>Total MOU</h5>
+              <p class="card-text display-6"><?= $total_mou ?></p>
             </div>
           </div>
         </div>
         <div class="col-md-6 mb-3">
-          <div class="card bg-success text-white">
+          <div class="card h-100 border-0 shadow-sm">
             <div class="card-body">
-              <h5>MOU Selesai</h5>
-              <p class="display-6"><?= $total_finish ?></p>
+              <h5 class="card-title text-success"><i class="bi bi-check-circle me-2"></i>MOU Selesai</h5>
+              <p class="card-text display-6"><?= $total_finish ?></p>
             </div>
           </div>
         </div>
@@ -158,8 +165,10 @@ $result = mysqli_query($conn, $query);
       </div>
 
       <!-- TABEL -->
-      <table class="table table-striped text-center align-middle">
-        <thead class="table-dark">
+      <div class="card border-0 shadow-none">
+        <div class="card-body p-0 table-responsive">
+      <table class="table table-hover text-center mb-0">
+        <thead>
           <tr>
             <th>No</th>
             <th>No MOU (Eksternal)</th>
@@ -201,6 +210,7 @@ $result = mysqli_query($conn, $query);
         <?php endwhile; ?>
         </tbody>
       </table>
+      </div></div>
 
       <!-- Pagination -->
       <nav>
