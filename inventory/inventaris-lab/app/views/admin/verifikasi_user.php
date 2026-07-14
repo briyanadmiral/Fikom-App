@@ -41,14 +41,20 @@
                                     <td><?= $user['email']; ?></td>
                                     <td><?= $user['whatsapp']; ?></td>
                                     <td>
-                                        <div class="d-flex justify-content-start" style="gap: 5px;">
-                                            <!-- Tombol Verify (Hijau) -->
-                                            <a href="<?= BASE_URL; ?>/admin/setujui_user/<?= $user['id_user']; ?>" class="btn btn-success btn-sm" onclick="return confirm('Verifikasi mahasiswa ini?');">
+                                        <div class="d-flex justify-content-start" style="gap: 8px;">
+                                            <!-- Tombol Verify (Hijau Paksa) -->
+                                            <a href="<?= BASE_URL; ?>/admin/setujui_user/<?= $user['id_user']; ?>" 
+                                               class="btn btn-sm" 
+                                               style="background-color: #198754; color: white; border: none; padding: 5px 10px; border-radius: 4px; text-decoration: none;"
+                                               onclick="return confirm('Verifikasi mahasiswa ini?');">
                                                 <i class="fas fa-check"></i> Verify
                                             </a>
                                             
-                                            <!-- Tombol Decline (Merah) -->
-                                            <a href="<?= BASE_URL; ?>/admin/tolak_user/<?= $user['id_user']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Tolak dan hapus pengajuan akses mahasiswa ini?');">
+                                            <!-- Tombol Decline (Merah Paksa) -->
+                                            <a href="<?= BASE_URL; ?>/admin/tolak_user/<?= $user['id_user']; ?>" 
+                                               class="btn btn-sm" 
+                                               style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; text-decoration: none;"
+                                               onclick="return confirm('Tolak dan hapus pengajuan akses mahasiswa ini?');">
                                                 <i class="fas fa-times"></i> Decline
                                             </a>
                                         </div>
